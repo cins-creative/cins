@@ -98,6 +98,37 @@ const IMAGE_MIME_CANDIDATES = [
   "image/gif",
 ] as const;
 
+/**
+ * Gọi trong `pointerdown` (trước `click`) để Clipboard API còn gắn user gesture.
+ * Trả `null` nếu môi trường không hỗ trợ đọc clipboard.
+ */
+export function beginClipboardImageRead(): ReturnType<
+  typeof readImageFilesFromClipboardDetailed
+> | null {
+  if (typeof window !== "undefined" && !window.isSecureContext) return null;
+  if (typeof navigator === "undefined" || !navigator.clipboard?.read) {
+    return null;
+  }
+  return readImageFilesFromClipboardDetailed();
+}
+
+/** Hint UI khi nút Dán không lấy được ảnh (permission / empty / Simple Browser). */
+export function clipboardImageFailureMessage(
+  reason: ClipboardImageReadResult["reason"],
+): string {
+  switch (reason) {
+    case "ok":
+      return "";
+    case "denied":
+    case "unsupported":
+    case "insecure":
+      return "Trình duyệt không đọc clipboard bằng nút. Copy ảnh rồi nhấn Ctrl+V vào khung ảnh — hoặc dùng Chọn ảnh.";
+    case "empty":
+    default:
+      return "Chưa có ảnh trong bộ nhớ tạm. Copy ảnh rồi Ctrl+V vào khung ảnh, hoặc dùng Chọn ảnh.";
+  }
+}
+
 /** Đọc clipboard kèm lý do thất bại (permission / không hỗ trợ). */
 export async function readImageFilesFromClipboardDetailed(): Promise<ClipboardImageReadResult> {
   try {

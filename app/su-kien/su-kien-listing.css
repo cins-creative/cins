@@ -519,6 +519,9 @@
 }
 
 .sk-detail-topbar {
+  position: sticky;
+  top: var(--site-nav-height, 64px);
+  z-index: 50;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -529,6 +532,16 @@
   box-sizing: border-box;
   margin: 0;
   padding: 14px 20px 10px;
+  background: color-mix(in srgb, var(--bg-surface, #fff) 92%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+  backdrop-filter: blur(12px) saturate(1.2);
+  border-bottom: 1px solid var(--sk-detail-line);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .sk-detail-topbar {
+    background: var(--bg-surface, #fff);
+  }
 }
 
 .sk-detail-topbar .cso-sk-detail-toolbar-end {
@@ -1232,6 +1245,11 @@ a.sk-detail-fact-link-hint:focus-visible {
 }
 
 @media (max-width: 899px) {
+  .sk-detail-topbar {
+    padding: 10px 16px 8px;
+    gap: 8px 12px;
+  }
+
   .sk-detail-hero {
     aspect-ratio: 16 / 10;
     min-height: 200px;
@@ -1267,6 +1285,16 @@ a.sk-detail-fact-link-hint:focus-visible {
   background:
     radial-gradient(ellipse 70% 40% at 100% 0%, rgba(31, 116, 201, 0.16), transparent 55%),
     linear-gradient(180deg, #0c0f14 0%, #12161e 50%, #0c0f14 100%);
+}
+
+:root[data-theme="dark"] .sk-detail-topbar {
+  background: color-mix(in srgb, var(--sk-detail-surface, #12161e) 94%, transparent);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  :root[data-theme="dark"] .sk-detail-topbar {
+    background: var(--sk-detail-surface, #12161e);
+  }
 }
 
 :root[data-theme="dark"] .sk-detail-back,

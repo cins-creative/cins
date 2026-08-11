@@ -6477,6 +6477,13 @@
   max-width: 100%;
 }
 
+.cins-admin .admin-nguoi-dung-th-act,
+.cins-admin .admin-nguoi-dung-td-act {
+  width: 52px;
+  text-align: center;
+  white-space: nowrap;
+}
+
 .cins-admin .admin-nguoi-dung-role-select {
   appearance: none;
   -webkit-appearance: none;

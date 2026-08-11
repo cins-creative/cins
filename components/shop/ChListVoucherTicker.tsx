@@ -1,7 +1,7 @@
 "use client";
 
 import { TicketPercent } from "lucide-react";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 /** px/s — mobile nhanh hơn vì viewport hẹp. */
 const TICKER_SPEED_PX_S = 59;
@@ -49,15 +49,34 @@ function resolveTickerDuration(runWidth: number): number {
   return Math.min(TICKER_MAX_DURATION_S, Math.max(TICKER_MIN_DURATION_S, raw));
 }
 
-/** Strip voucher cuối card shop — ticker vòng lặp mượt (2 run giống nhau). */
+/** Strip voucher cuối card shop — ticker vòng lặp; pause khi off-screen. */
 export function ChListVoucherTicker({ lines }: Props) {
+  const rootRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const measuredShiftRef = useRef(0);
   const [ready, setReady] = useState(false);
+  const [inView, setInView] = useState(false);
   const runLines = buildRunLines(lines);
 
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || lines.length === 0) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setInView(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        setInView(entries.some((e) => e.isIntersecting));
+      },
+      { root: null, rootMargin: "80px 0px", threshold: 0 },
+    );
+    io.observe(root);
+    return () => io.disconnect();
+  }, [lines.length]);
+
   useLayoutEffect(() => {
-    if (lines.length === 0) return;
+    if (lines.length === 0 || !inView) return;
 
     const track = trackRef.current;
     if (!track) return;
@@ -80,7 +99,10 @@ export function ChListVoucherTicker({ lines }: Props) {
       const runWidth = Math.round(run?.getBoundingClientRect().width ?? 0);
       if (runWidth <= 0) return;
 
-      if (Math.abs(runWidth - measuredShiftRef.current) < 1) return;
+      if (Math.abs(runWidth - measuredShiftRef.current) < 1) {
+        setReady(true);
+        return;
+      }
       measuredShiftRef.current = runWidth;
 
       track.style.setProperty("--ch-voucher-ticker-shift", `${runWidth}px`);
@@ -113,12 +135,18 @@ export function ChListVoucherTicker({ lines }: Props) {
       mobileMq.removeEventListener("change", scheduleMeasure);
       reducedMotion.removeEventListener("change", scheduleMeasure);
     };
-  }, [lines]);
+  }, [lines, inView]);
 
   if (lines.length === 0) return null;
 
+  const animating = ready && inView;
+
   return (
-    <div className="ch-list-card-voucher-strip" aria-label="Voucher đang chạy">
+    <div
+      ref={rootRef}
+      className="ch-list-card-voucher-strip"
+      aria-label="Voucher đang chạy"
+    >
       <span className="ch-list-card-voucher-strip-perf" aria-hidden />
       <div className="ch-list-card-voucher-strip-brand" aria-hidden>
         <TicketPercent size={15} strokeWidth={2.25} />
@@ -127,7 +155,7 @@ export function ChListVoucherTicker({ lines }: Props) {
       <div className="ch-list-card-voucher-strip-marquee">
         <div
           ref={trackRef}
-          className={`ch-list-card-voucher-strip-track${ready ? " is-ready" : ""}`}
+          className={`ch-list-card-voucher-strip-track${animating ? " is-ready" : ""}`}
         >
           <span className="ch-list-card-voucher-strip-run">
             <VoucherRun lines={runLines} />

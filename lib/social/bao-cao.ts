@@ -58,7 +58,7 @@ export async function createBaoCao(
 
   const admin = createServiceRoleClient();
 
-  /* v1 chỉ hỗ trợ báo cáo cột mốc — resolve chủ sở hữu + kênh xử lý. */
+  /* v1: cot_moc · shop_cua_hang — resolve chủ sở hữu + kênh xử lý. */
   let ownerId: string | null = null;
   let idCongDong: string | null = null;
   let kenh: "admin" | "cong_dong" = "admin";
@@ -89,6 +89,21 @@ export async function createBaoCao(
         idCongDong = org.id;
       }
     }
+  } else if (loaiDoiTuong === "shop_cua_hang") {
+    const { data: shop } = await admin
+      .from("shop_cua_hang")
+      .select("id, id_nguoi_dung")
+      .eq("id", idDoiTuong)
+      .maybeSingle<{ id: string; id_nguoi_dung: string }>();
+    if (!shop) return { ok: false, error: "Không tìm thấy cửa hàng." };
+    ownerId = shop.id_nguoi_dung;
+    if (ownerId === input.reporterId) {
+      return {
+        ok: false,
+        error: "Bạn không thể báo cáo cửa hàng của chính mình.",
+      };
+    }
+    kenh = "admin";
   }
 
   const { data: inserted, error } = await admin

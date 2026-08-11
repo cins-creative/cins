@@ -70,7 +70,11 @@ export default async function SuKienDetailPage({ params }: Props) {
 
   const { suKienId: rawKey } = await params;
   const key = rawKey?.trim() ?? "";
-  const detail = await getSuKienByPublicKey(key);
+
+  const [detail, session] = await Promise.all([
+    getSuKienByPublicKey(key),
+    getCurrentSessionAndProfile(),
+  ]);
   if (!detail) notFound();
 
   const canonical = suKienCardPath(detail.suKien);
@@ -89,7 +93,6 @@ export default async function SuKienDetailPage({ params }: Props) {
     permanentRedirect(suKienDetailPath(detail.suKien.slug.trim()));
   }
 
-  const session = await getCurrentSessionAndProfile();
   const canManage = await canViewerManageSuKien(
     session?.profile?.id ?? null,
     detail.orgId,

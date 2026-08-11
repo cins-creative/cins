@@ -379,9 +379,7 @@ export function SuKienManagePanel({
           </section>
 
           <section className="cso-sk-manage-section">
-            <h3 className="cso-sk-manage-section-title">
-              Nội dung chờ duyệt
-            </h3>
+            <h3 className="cso-sk-manage-section-title">Nội dung quầy</h3>
             <ShopQuaySuKienPanel
               suKienId={suKienId}
               canManage

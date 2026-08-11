@@ -4424,7 +4424,7 @@
   margin: 0;
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
-  padding: var(--wj-shell-pad-top, 16px) 0 0;
+  padding: 0;
 }
 
 .world-journey-home.view-video .wj-feed.view-video {
@@ -4508,6 +4508,7 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 
 .wj-reel-slide {
   position: relative;
+  isolation: isolate;
   flex: 0 1 auto;
   overflow: hidden;
   background: #0b0c0e;
@@ -4541,6 +4542,7 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 .wj-reel-media {
   position: absolute;
   inset: 0;
+  z-index: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4548,10 +4550,14 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 }
 
 .wj-reel-iframe {
+  position: relative;
+  z-index: 0;
   width: 100%;
   height: 100%;
   border: 0;
   background: #000;
+  /* Tap/timeline nằm trên — iframe không nuốt pointer. */
+  pointer-events: none;
 }
 
 .wj-reel-poster,
@@ -4569,68 +4575,269 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   color: rgba(255, 255, 255, 0.55);
 }
 
-.wj-reel-rail {
+.wj-reel-tap {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.wj-reel-pause-badge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+}
+
+.wj-reel-rail.jcard-actions {
   flex: 0 0 var(--wj-reel-rail-w);
   align-self: flex-end;
   z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
-  padding-bottom: 72px;
-}
-
-.wj-reel-action {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 0;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 0 56px;
+  margin: 0;
   border: 0;
   background: transparent;
-  color: #fff;
-  text-decoration: none;
-  cursor: pointer;
-  font: inherit;
-  opacity: 1;
+  overflow: visible;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
 }
 
-.wj-reel-action.is-on {
-  color: var(--blue, #1877f2);
+.wj-reel-rail .action-btn,
+.wj-reel-rail .share-btn,
+.wj-reel-rail .action-btn-part,
+.wj-reel-rail .j-action-touch,
+.wj-reel-rail .action-btn--touch {
+  color: #fff;
+  background: transparent;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 4px;
+  min-width: 44px;
+  border-radius: 10px;
 }
 
-.wj-reel-action-icon {
-  display: inline-flex;
-  width: 44px;
-  height: 44px;
+.wj-reel-rail .action-btn:hover,
+.wj-reel-rail .share-btn:hover,
+.wj-reel-rail .action-btn-part:hover,
+.wj-reel-rail .j-action-touch:hover,
+.wj-reel-rail .action-btn--touch:hover {
+  background: transparent;
+  color: #fff;
+}
+
+.wj-reel-rail .action-btn.is-liked,
+.wj-reel-rail .action-btn--split.is-liked {
+  color: #fb7185;
+  background: transparent;
+}
+
+.wj-reel-rail .action-btn.is-disliked,
+.wj-reel-rail .action-btn--split.is-disliked {
+  color: #93c5fd;
+  background: transparent;
+}
+
+.wj-reel-rail .action-btn.is-bookmarked,
+.wj-reel-rail .action-btn--split.is-bookmarked {
+  color: #fde68a;
+  background: transparent;
+}
+
+.wj-reel-rail .action-btn.is-commented {
+  color: #86efac;
+  background: transparent;
+}
+
+/* Thắng journey.css dark tint (#fff1f2 / rgba rose) trên rail video */
+:root[data-theme="dark"] .wj-reel-rail .action-btn,
+:root[data-theme="dark"] .wj-reel-rail .action-btn--split,
+:root[data-theme="dark"] .wj-reel-rail .action-btn.is-liked,
+:root[data-theme="dark"] .wj-reel-rail .action-btn--split.is-liked,
+:root[data-theme="dark"] .wj-reel-rail .action-btn--split.is-liked:hover,
+:root[data-theme="dark"] .wj-reel-rail .action-btn--split.is-liked:focus-within,
+:root[data-theme="dark"] .wj-reel-rail .action-btn.is-bookmarked,
+:root[data-theme="dark"] .wj-reel-rail .action-btn--split.is-bookmarked,
+:root[data-theme="dark"] .wj-reel-rail .action-btn.is-commented,
+:root[data-theme="dark"] .wj-reel-rail .action-btn--split.is-commented,
+.wj-reel-rail .action-btn--split:hover,
+.wj-reel-rail .action-btn--split:focus-within,
+.wj-reel-rail .action-btn--split.is-liked,
+.wj-reel-rail .action-btn--split.is-liked:hover,
+.wj-reel-rail .action-btn--split.is-liked:focus-within,
+.wj-reel-rail .action-btn--split.is-bookmarked,
+.wj-reel-rail .action-btn--split.is-commented {
+  background: transparent;
+}
+
+.wj-reel-rail .action-btn svg,
+.wj-reel-rail .share-btn svg,
+.wj-reel-rail .action-btn-part svg,
+.wj-reel-rail .j-action-touch svg {
+  width: 26px;
+  height: 26px;
+}
+
+/* Số đếm chồng góc icon — không pill riêng */
+.wj-reel-rail .action-btn--split,
+.wj-reel-rail .action-btn--touch,
+.wj-reel-rail .j-action-touch {
+  position: relative;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
+  gap: 0;
+  padding: 4px;
+  min-width: 40px;
+  min-height: 40px;
 }
 
-.wj-reel-action-count {
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.1;
-  min-height: 14px;
+.wj-reel-rail .action-btn-count,
+.wj-reel-rail .action-btn-count--static {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  min-width: 1.1em;
+  padding: 0;
+  margin: 0;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  text-shadow:
+    0 0 3px rgba(0, 0, 0, 0.85),
+    0 1px 2px rgba(0, 0, 0, 0.65);
+  background: transparent;
+  pointer-events: none;
+}
+
+.wj-reel-rail .action-btn--split {
+  flex-direction: row;
+  gap: 0;
+  padding: 4px;
+  background: transparent;
+}
+
+.wj-reel-rail .j-reaction-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Share menu mở sang trái — không tràn khỏi cạnh phải. */
+.wj-reel-rail .jcard-share .post-byline-share {
+  left: auto;
+  right: calc(100% + 8px);
+  bottom: 0;
+  top: auto;
+}
+
+.wj-reel-rail .j-reaction-picker {
+  left: auto;
+  right: calc(100% + 8px);
+  bottom: 0;
+  top: auto;
 }
 
 .wj-reel-meta {
   position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 16px;
+  left: 0;
+  right: 0;
+  /* Nhường chỗ timeline sát cạnh dưới video. */
+  bottom: 14px;
   z-index: 2;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 48px 14px 10px;
+  box-sizing: border-box;
   pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(0, 0, 0, 0.22) 42%,
+    rgba(0, 0, 0, 0.62) 100%
+  );
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
 }
 
 .wj-reel-meta a,
 .wj-reel-meta button {
   pointer-events: auto;
+}
+
+.wj-reel-timeline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  height: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0 0 0;
+  box-sizing: border-box;
+  cursor: pointer;
+  touch-action: none;
+  outline: none;
+}
+
+.wj-reel-timeline-track {
+  position: relative;
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.28);
+  border-radius: 0;
+  overflow: hidden;
+  transition: height 120ms ease;
+}
+
+.wj-reel-timeline.is-scrubbing .wj-reel-timeline-track,
+.wj-reel-timeline:hover .wj-reel-timeline-track,
+.wj-reel-timeline:focus-visible .wj-reel-timeline-track {
+  height: 5px;
+}
+
+.wj-reel-timeline-fill {
+  height: 100%;
+  background: #fff;
+  border-radius: inherit;
+  will-change: width;
+}
+
+.wj-reel-timeline-time {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
 }
 
 .wj-reel-author {
@@ -4780,16 +4987,26 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
     box-shadow: none;
   }
 
-  .wj-reel-rail {
+  .wj-reel-rail.jcard-actions {
     position: absolute;
     right: 8px;
     bottom: 88px;
     align-self: auto;
     padding-bottom: 0;
-    gap: 12px;
+    gap: 8px;
   }
 
   .wj-reel-meta {
+    right: 0;
+    padding-right: 64px;
+    bottom: 14px;
+  }
+
+  .wj-reel-timeline {
+    height: 26px;
+  }
+
+  .wj-reel-timeline-time {
     right: 64px;
   }
 }

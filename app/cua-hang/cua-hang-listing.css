@@ -100,6 +100,7 @@
   font-size: 13px;
   font-weight: 650;
   line-height: 1.2;
+  text-decoration: none;
   cursor: pointer;
   transition:
     color 0.18s ease,
@@ -1454,13 +1455,14 @@
   text-overflow: ellipsis;
 }
 
+/* Shop grid: 4 cột desktop → 2 cột tablet/mobile */
 .ch-list-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .ch-list-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1468,8 +1470,23 @@
 
 @media (max-width: 560px) {
   .ch-list-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
+  }
+
+  .ch-list-card-body {
+    padding: 0 12px 12px;
+  }
+
+  .ch-list-card-avatar {
+    width: 76px;
+    height: 76px;
+    margin-top: -38px;
+    border-radius: 14px;
+    font-size: 26px;
+  }
+
+  .ch-list-card-title {
+    font-size: 17px;
   }
 }
 
@@ -1483,7 +1500,7 @@
   text-decoration: none;
   color: inherit;
   content-visibility: auto;
-  contain-intrinsic-size: auto 320px;
+  contain-intrinsic-size: auto 340px;
   transition:
     border-color 0.15s ease,
     transform 0.15s ease;
@@ -1491,13 +1508,22 @@
 
 .ch-list-card-body {
   position: relative;
-  padding: 0 18px 18px;
+  padding: 0 16px 16px;
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   min-height: 0;
+}
+
+.ch-list-card-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 8px;
+  margin-bottom: 2px;
 }
 
 .ch-list-card:hover {
@@ -1515,7 +1541,7 @@
 
 .ch-list-card-cover {
   position: relative;
-  height: 88px;
+  height: 56px;
   background: var(--cins-blue-soft, #e7f0fb);
 }
 
@@ -1531,21 +1557,23 @@
 }
 
 .ch-list-card-avatar {
-  width: 64px;
-  height: 64px;
-  margin-top: -32px;
-  margin-bottom: 12px;
-  border-radius: 10px;
-  border: 3px solid var(--bg-surface, #fff);
+  width: 88px;
+  height: 88px;
+  margin-top: -44px;
+  margin-bottom: 0;
+  border-radius: 16px;
+  border: 4px solid var(--bg-surface, #fff);
   background: var(--cins-blue-soft, #e7f0fb);
   overflow: hidden;
   flex-shrink: 0;
   display: grid;
   place-items: center;
   font-weight: 800;
-  font-size: 22px;
+  font-size: 30px;
   color: var(--cins-blue, #1f74c9);
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
+  box-shadow:
+    0 4px 6px rgba(15, 23, 42, 0.06),
+    0 10px 24px rgba(15, 23, 42, 0.12);
 }
 
 .ch-list-card-avatar img {
@@ -1560,7 +1588,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  margin-bottom: 8px;
+  margin-bottom: 0;
 }
 
 .ch-list-card-badge {
@@ -1582,9 +1610,10 @@
 
 .ch-list-card-title {
   margin: 0;
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.35;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
   color: var(--ink-display, rgba(0, 0, 0, 0.88));
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -1593,16 +1622,16 @@
 }
 
 .ch-list-card-owner {
-  margin: 4px 0 0;
-  font-size: 12px;
+  margin: 0;
+  font-size: 11.5px;
   color: var(--ink-muted, rgba(0, 0, 0, 0.42));
 }
 
 .ch-list-card-desc {
-  margin: 10px 0 0;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--ink-body, rgba(0, 0, 0, 0.55));
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-body, rgba(0, 0, 0, 0.5));
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -1622,12 +1651,12 @@
 
 .ch-list-card-hang {
   list-style: none;
-  margin: 14px 0 0;
-  padding: 12px 0 0;
+  margin: 12px 0 0;
+  padding: 10px 0 0;
   width: 100%;
   display: flex;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   border-top: 1px solid var(--border, #e4e6eb);
 }
 
@@ -1667,10 +1696,10 @@
 
 .ch-list-card-hang-name {
   width: 100%;
-  font-size: 11px;
-  line-height: 1.3;
+  font-size: 10px;
+  line-height: 1.25;
   font-weight: 500;
-  color: var(--ink-body, rgba(0, 0, 0, 0.55));
+  color: var(--ink-body, rgba(0, 0, 0, 0.48));
   text-align: center;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -1680,7 +1709,7 @@
 
 .ch-list-card.has-voucher-strip {
   content-visibility: visible;
-  contain-intrinsic-size: auto 320px;
+  contain-intrinsic-size: auto 340px;
 }
 
 .ch-list-card-voucher-strip {
@@ -1769,6 +1798,11 @@
 .ch-list-card-voucher-strip-track.is-ready {
   animation: ch-list-voucher-ticker var(--ch-voucher-ticker-duration, 16s) linear
     infinite;
+}
+
+.ch-list-card-voucher-strip-track:not(.is-ready) {
+  animation: none;
+  transform: translate3d(0, 0, 0);
 }
 
 .ch-list-card-voucher-strip-run {

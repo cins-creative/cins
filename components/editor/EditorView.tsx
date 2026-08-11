@@ -905,6 +905,8 @@ type Props = {
   prefillDraft?: import("@/lib/journey/compose-types").ComposePrefillDraft | null;
   /** Hậu tố draft key — xem `buildComposeEditorDraftKey.scope`. */
   draftScope?: string | null;
+  /** Mock ticker hàng bán trên ComposePreviewPanel (Giới thiệu SP). */
+  shopKioskPreview?: import("@/lib/journey/compose-types").ComposeShopKioskPreview | null;
   onClose?: () => void;
   onPublished?: (detail?: ComposePublishedDetail) => void;
 };
@@ -971,6 +973,7 @@ export function EditorView({
   initialLottieFile,
   prefillDraft = null,
   draftScope = null,
+  shopKioskPreview = null,
   onClose,
   onPublished,
 }: Props) {
@@ -1847,7 +1850,9 @@ export function EditorView({
             processing: videoUploading || videoEncoding,
             videoCanvasRatio: videoCanvasRatio || null,
           }
-        : null,
+          : null,
+      shopKioskPreview,
+      articleTags: tags,
     };
   }, [
     title,
@@ -1864,6 +1869,8 @@ export function EditorView({
     videoUploading,
     videoEncoding,
     videoCanvasRatio,
+    shopKioskPreview,
+    tags,
   ]);
   const externalEmbedBlock = useMemo(
     () => blocks.find((b) => b.t === "embed") ?? null,

@@ -26,11 +26,14 @@ import { GalleryMainHoverOverlay } from "@/components/journey/GalleryMainHoverOv
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
 import { JourneyUnfoldArticleContent } from "@/components/journey/JourneyUnfoldArticleContent";
 import type { MilestoneMediaItem } from "@/components/journey/milestone-types";
+import { ShopKioskBlock } from "@/components/shop/ShopKioskBlock";
+import { SHOP_POST_HANG_MAX } from "@/lib/shop/types";
 import {
   buildComposePreviewSnapshot,
   type ComposePreviewDraft,
   type ComposePreviewSnapshot,
 } from "@/lib/journey/compose-preview-adapter";
+import type { ComposeShopKioskPreview } from "@/lib/journey/compose-types";
 import {
   coverThumbAspectCss,
   coverThumbAspectRatio,
@@ -161,7 +164,13 @@ function journeyCoverPreview(
  * (`j-m-card` + `JourneyMilestoneCardBodyContent`), không spine / khung mock.
  * Chỉ review bố cục («Xem đầy đủ» / «Thu gọn»); tắt lightbox, URL, media.
  */
-function JourneyPreview({ snap }: { snap: ComposePreviewSnapshot }) {
+function JourneyPreview({
+  snap,
+  shopKioskPreview = null,
+}: {
+  snap: ComposePreviewSnapshot;
+  shopKioskPreview?: ComposeShopKioskPreview | null;
+}) {
   const coverPreview = journeyCoverPreview(snap);
   const ownerLabel =
     snap.ownerName || (snap.ownerSlug ? `@${snap.ownerSlug}` : "Người dùng");
@@ -179,6 +188,11 @@ function JourneyPreview({ snap }: { snap: ComposePreviewSnapshot }) {
   }, [snap.title, snap.body, snap.blocks, canUnfold]);
 
   const isExpanded = canUnfold && contentOpen;
+  const kioskItems = shopKioskPreview?.items ?? [];
+  const kioskHint = shopKioskPreview?.hint?.trim() || null;
+  const showKioskSection =
+    shopKioskPreview != null &&
+    (kioskItems.length > 0 || Boolean(kioskHint));
 
   function openContent() {
     if (!canUnfold || contentOpen) return;
@@ -243,6 +257,7 @@ function JourneyPreview({ snap }: { snap: ComposePreviewSnapshot }) {
             noiDungBlocks={snap.blocks}
             preview={coverPreview}
             photoGridImages={snap.photoGrid}
+            articleTags={snap.articleTags}
             contentKind={snap.kind}
             captionExpandMode={
               snap.kind === "photo" || snap.kind === "video"
@@ -262,6 +277,30 @@ function JourneyPreview({ snap }: { snap: ComposePreviewSnapshot }) {
                 : undefined
             }
           />
+
+          {showKioskSection ? (
+            <div className="ed-cp-shop-kiosk">
+              {kioskItems.length > 0 ? (
+                <ShopKioskBlock
+                  sellerUserId={null}
+                  sellerName={snap.ownerName || null}
+                  sellerSlug={snap.ownerSlug || null}
+                  sellerAvatarUrl={snap.ownerAvatarUrl}
+                  hangItems={kioskItems}
+                  previewOnly
+                />
+              ) : null}
+              {kioskItems.length > 0 ? (
+                <p className="ed-cp-shop-kiosk-hint" role="status">
+                  Tối đa {SHOP_POST_HANG_MAX} sản phẩm
+                </p>
+              ) : kioskHint ? (
+                <p className="ed-cp-shop-kiosk-hint" role="status">
+                  {kioskHint}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           {canUnfold ? (
             <div
@@ -508,7 +547,12 @@ export function ComposePreviewPanel({
         id={`${tabsId}-panel`}
         aria-labelledby={`${tabsId}-${tab}`}
       >
-        {tab === "journey" ? <JourneyPreview snap={snap} /> : null}
+        {tab === "journey" ? (
+          <JourneyPreview
+            snap={snap}
+            shopKioskPreview={deferredDraft.shopKioskPreview}
+          />
+        ) : null}
         {tab === "gallery" ? <GalleryCardPreview snap={snap} /> : null}
         {tab === "masonry" ? <MasonryPreview snap={snap} /> : null}
       </div>

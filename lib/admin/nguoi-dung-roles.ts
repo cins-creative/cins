@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  canDeleteUsers,
   canGrantAdmin,
   canManageUsers,
   normalizeEmail,
@@ -60,6 +61,8 @@ export type AdminUserListResponse = {
   total: number;
   actorRole: SystemRole;
   canGrantAdmin: boolean;
+  /** Chỉ Admin tối cao — soft-delete user. */
+  canDeleteUsers: boolean;
   roleStats: Record<SystemRole, number>;
   giaiDoanStats: AdminGiaiDoanStats;
   /** Số user có shop cá nhân (trong LIST_LIMIT). */
@@ -290,6 +293,7 @@ export async function fetchAdminUserList(params: {
         .select(
           "id, auth_user_id, slug, ten_hien_thi, avatar_id, email_lien_he, trang_thai_tai_khoan, da_xac_minh, tao_luc, lan_cuoi_active, giai_doan, ban_hang_bat, shop_hien_thi",
         )
+        .neq("trang_thai_tai_khoan", "da_xoa")
         .order("tao_luc", { ascending: false })
         .limit(LIST_LIMIT)
         .returns<ProfileRow[]>(),
@@ -308,6 +312,7 @@ export async function fetchAdminUserList(params: {
       total: 0,
       actorRole: params.actorRole,
       canGrantAdmin: canGrantAdmin(params.actorRole),
+      canDeleteUsers: canDeleteUsers(params.actorRole),
       roleStats: {
         super_admin: 0,
         admin: 0,
@@ -394,6 +399,7 @@ export async function fetchAdminUserList(params: {
     total: allRows.length,
     actorRole: params.actorRole,
     canGrantAdmin: canGrantAdmin(params.actorRole),
+    canDeleteUsers: canDeleteUsers(params.actorRole),
     roleStats,
     giaiDoanStats,
     shopStats,
@@ -565,4 +571,108 @@ export async function setUserVerified(
   }
 
   return { ok: true, daXacMinh: verified };
+}
+
+export type DeleteAdminUserInput = {
+  actorRole: SystemRole;
+  actorProfileId: string | null;
+  targetUserId: string;
+};
+
+/**
+ * Soft-delete user: `trang_thai_tai_khoan = da_xoa`, gỡ quyền hệ thống,
+ * xóa Auth user (không đăng nhập lại). Giữ profile + nội dung (FK).
+ * Chỉ Admin tối cao.
+ */
+export async function deleteAdminUser(
+  input: DeleteAdminUserInput,
+): Promise<
+  | { ok: true; slug: string; canhBaoXoaAuth?: string }
+  | { ok: false; message: string }
+> {
+  const { actorRole, actorProfileId, targetUserId } = input;
+
+  if (!canDeleteUsers(actorRole)) {
+    return {
+      ok: false,
+      message: "Chỉ Admin tối cao mới được xóa user.",
+    };
+  }
+
+  if (actorProfileId && actorProfileId === targetUserId) {
+    return { ok: false, message: "Không thể xóa tài khoản đang đăng nhập." };
+  }
+
+  const admin = createServiceRoleClient();
+  const { data: profile, error: profileErr } = await admin
+    .from("user_nguoi_dung")
+    .select("id, auth_user_id, slug, email_lien_he, trang_thai_tai_khoan")
+    .eq("id", targetUserId)
+    .maybeSingle<{
+      id: string;
+      auth_user_id: string | null;
+      slug: string;
+      email_lien_he: string | null;
+      trang_thai_tai_khoan: string;
+    }>();
+
+  if (profileErr) {
+    return { ok: false, message: profileErr.message };
+  }
+  if (!profile) {
+    return { ok: false, message: "Không tìm thấy người dùng." };
+  }
+  if (profile.trang_thai_tai_khoan === "da_xoa") {
+    return { ok: false, message: "User này đã bị xóa." };
+  }
+
+  let targetEmail = profile.email_lien_he;
+  if (profile.auth_user_id) {
+    const { data: authUser } = await admin.auth.admin.getUserById(
+      profile.auth_user_id,
+    );
+    if (authUser.user?.email) targetEmail = authUser.user.email;
+  }
+
+  const normalizedEmail = normalizeEmail(targetEmail);
+  if (normalizedEmail === SUPER_ADMIN_EMAIL) {
+    return { ok: false, message: "Không thể xóa Admin tối cao." };
+  }
+
+  const dbRole = await getTargetDbRole(targetUserId);
+  const targetRole = resolveSystemRole(targetEmail, dbRole);
+  if (targetRole === "super_admin") {
+    return { ok: false, message: "Không thể xóa Admin tối cao." };
+  }
+
+  const authId = profile.auth_user_id;
+
+  const { error: softErr } = await admin
+    .from("user_nguoi_dung")
+    .update({
+      trang_thai_tai_khoan: "da_xoa",
+      auth_user_id: null,
+      ban_hang_bat: false,
+      shop_hien_thi: false,
+    })
+    .eq("id", targetUserId);
+
+  if (softErr) {
+    return { ok: false, message: softErr.message };
+  }
+
+  await admin
+    .from("user_quyen_he_thong")
+    .delete()
+    .eq("id_nguoi_dung", targetUserId);
+
+  let canhBaoXoaAuth: string | undefined;
+  if (authId) {
+    const { error: delAuthErr } = await admin.auth.admin.deleteUser(authId);
+    if (delAuthErr) {
+      canhBaoXoaAuth = `Đã đánh dấu xóa nhưng chưa gỡ Auth: ${delAuthErr.message}`;
+    }
+  }
+
+  return { ok: true, slug: profile.slug, canhBaoXoaAuth };
 }

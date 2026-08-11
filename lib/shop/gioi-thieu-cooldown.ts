@@ -1,10 +1,10 @@
 import "server-only";
 
 import { getNhomById } from "@/lib/shop/nhom";
-import { SHOP_GIOI_THIEU_COOLDOWN_DAYS } from "@/lib/shop/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export type GioiThieuCooldownStatus = {
+  /** Luôn true — đã bỏ giới hạn lượt giới thiệu (2026-08-11). */
   allowed: boolean;
   cooldownDays: number;
   lastAt: string | null;
@@ -12,10 +12,7 @@ export type GioiThieuCooldownStatus = {
   remainingMs: number;
 };
 
-function cooldownMs(): number {
-  return SHOP_GIOI_THIEU_COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
-}
-
+/** Trạng thái nút giới thiệu — không còn cooldown. */
 export async function getGioiThieuCooldown(
   ownerId: string,
   nhomId: string,
@@ -36,32 +33,18 @@ export async function getGioiThieuCooldown(
     throw new Error("LOAD_FAILED");
   }
 
-  const lastAt = data?.tao_luc ?? null;
-  if (!lastAt) {
-    return {
-      allowed: true,
-      cooldownDays: SHOP_GIOI_THIEU_COOLDOWN_DAYS,
-      lastAt: null,
-      nextAt: null,
-      remainingMs: 0,
-    };
-  }
-
-  const lastMs = new Date(lastAt).getTime();
-  const nextMs = lastMs + cooldownMs();
-  const remainingMs = Math.max(0, nextMs - Date.now());
   return {
-    allowed: remainingMs <= 0,
-    cooldownDays: SHOP_GIOI_THIEU_COOLDOWN_DAYS,
-    lastAt,
-    nextAt: new Date(nextMs).toISOString(),
-    remainingMs,
+    allowed: true,
+    cooldownDays: 0,
+    lastAt: data?.tao_luc ?? null,
+    nextAt: null,
+    remainingMs: 0,
   };
 }
 
 /**
- * Ghi mốc giới thiệu sau khi đăng bài.
- * Trả COOLDOWN nếu còn trong 3 ngày (atomic — không đè bản ghi mới).
+ * Ghi mốc giới thiệu sau khi đăng bài (audit / lần gần nhất).
+ * Không chặn — cho phép giới thiệu lại bất kỳ lúc nào.
  */
 export async function recordGioiThieu(input: {
   ownerId: string;
@@ -73,21 +56,14 @@ export async function recordGioiThieu(input: {
     throw new Error("FORBIDDEN");
   }
 
-  const status = await getGioiThieuCooldown(input.ownerId, input.nhomId);
-  if (!status.allowed) {
-    throw new Error("COOLDOWN");
-  }
-
   const admin = createServiceRoleClient();
   const nowIso = new Date().toISOString();
-  const cutoffIso = new Date(Date.now() - cooldownMs()).toISOString();
 
-  /* Upsert: chỉ cập nhật khi chưa có hoặc đã hết cooldown. */
   const { data: existing } = await admin
     .from("shop_nhom_gioi_thieu")
-    .select("id_nhom, tao_luc")
+    .select("id_nhom")
     .eq("id_nhom", input.nhomId)
-    .maybeSingle<{ id_nhom: string; tao_luc: string }>();
+    .maybeSingle<{ id_nhom: string }>();
 
   if (!existing) {
     const { error } = await admin.from("shop_nhom_gioi_thieu").insert({
@@ -96,37 +72,28 @@ export async function recordGioiThieu(input: {
       tao_luc: nowIso,
     });
     if (error) {
-      /* Race insert — đọc lại. */
-      const again = await getGioiThieuCooldown(input.ownerId, input.nhomId);
-      if (!again.allowed) throw new Error("COOLDOWN");
       console.error("[shop] recordGioiThieu insert", error);
       throw new Error("SAVE_FAILED");
     }
   } else {
-    const { data: updated, error } = await admin
+    const { error } = await admin
       .from("shop_nhom_gioi_thieu")
       .update({
         id_cot_moc: input.cotMocId,
         tao_luc: nowIso,
       })
-      .eq("id_nhom", input.nhomId)
-      .lt("tao_luc", cutoffIso)
-      .select("id_nhom")
-      .maybeSingle<{ id_nhom: string }>();
+      .eq("id_nhom", input.nhomId);
     if (error) {
       console.error("[shop] recordGioiThieu update", error);
       throw new Error("SAVE_FAILED");
     }
-    if (!updated) {
-      throw new Error("COOLDOWN");
-    }
   }
 
   return {
-    allowed: false,
-    cooldownDays: SHOP_GIOI_THIEU_COOLDOWN_DAYS,
+    allowed: true,
+    cooldownDays: 0,
     lastAt: nowIso,
-    nextAt: new Date(Date.now() + cooldownMs()).toISOString(),
-    remainingMs: cooldownMs(),
+    nextAt: null,
+    remainingMs: 0,
   };
 }

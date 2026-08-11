@@ -1,9 +1,19 @@
 "use client";
 
-import { BadgeCheck, BarChart3, List, Loader2, Search, Shield, Store } from "lucide-react";
+import {
+  BadgeCheck,
+  BarChart3,
+  List,
+  Loader2,
+  Search,
+  Shield,
+  Store,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
+import { AdminNguoiDungDeleteDialog } from "@/components/admin/AdminNguoiDungDeleteDialog";
 import { AdminNguoiDungGrowthDashboard } from "@/components/admin/AdminNguoiDungGrowthDashboard";
 import {
   ADMIN_GIAI_DOAN_FILTERS,
@@ -148,6 +158,7 @@ export function AdminNguoiDungScreen() {
   const [total, setTotal] = useState(0);
   const [actorRole, setActorRole] = useState<SystemRole>("thanh_vien");
   const [canGrantAdminFlag, setCanGrantAdminFlag] = useState(false);
+  const [canDeleteUsersFlag, setCanDeleteUsersFlag] = useState(false);
   const [roleStats, setRoleStats] = useState<Record<SystemRole, number>>({
     super_admin: 0,
     admin: 0,
@@ -163,6 +174,9 @@ export function AdminNguoiDungScreen() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [deletingRow, setDeletingRow] = useState<AdminUserListRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (view === "dashboard") return;
@@ -183,6 +197,7 @@ export function AdminNguoiDungScreen() {
       setTotal(data.total ?? 0);
       setActorRole(data.actorRole);
       setCanGrantAdminFlag(data.canGrantAdmin);
+      setCanDeleteUsersFlag(data.canDeleteUsers === true);
       setRoleStats(
         data.roleStats ?? {
           super_admin: 0,
@@ -278,6 +293,36 @@ export function AdminNguoiDungScreen() {
     }
   }
 
+  async function handleDeleteConfirm() {
+    if (!deletingRow) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(
+        `/api/admin/nguoi-dung/${encodeURIComponent(deletingRow.id)}`,
+        { method: "DELETE" },
+      );
+      const json = (await res.json()) as {
+        error?: string;
+        canhBaoXoaAuth?: string | null;
+      };
+      if (!res.ok) {
+        throw new Error(json.error ?? "Không xóa được user.");
+      }
+      setDeletingRow(null);
+      if (json.canhBaoXoaAuth) {
+        setSaveError(json.canhBaoXoaAuth);
+      }
+      await load();
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : "Không xóa được user.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  const tableColSpan = canDeleteUsersFlag ? 9 : 8;
+
   return (
     <div className="admin-nguoi-dung-page">
       <header className="page-header admin-to-chuc-head">
@@ -285,7 +330,8 @@ export function AdminNguoiDungScreen() {
           <h1 className="page-title">Quản lý user</h1>
           <p className="admin-to-chuc-sub">
             Phân quyền cấp hệ thống CINs. Chỉ Admin tối cao (
-            <code>info.cins.vn@gmail.com</code>) cấp được quyền Admin.
+            <code>info.cins.vn@gmail.com</code>) cấp được quyền Admin và xóa
+            user.
           </p>
         </div>
         <div className="page-header-actions ndd-view-toggle">
@@ -440,12 +486,13 @@ export function AdminNguoiDungScreen() {
                   <th>Tình trạng</th>
                   <th>Tick xanh</th>
                   <th>Vai trò hệ thống</th>
+                  {canDeleteUsersFlag ? <th className="admin-nguoi-dung-th-act">Xóa</th> : null}
                 </tr>
               </thead>
               <tbody>
                 {!loading && rows.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="admin-table-empty">
+                    <td colSpan={tableColSpan} className="admin-table-empty">
                       Không có user phù hợp bộ lọc.
                     </td>
                   </tr>
@@ -566,6 +613,31 @@ export function AdminNguoiDungScreen() {
                           onChange={handleRoleChange}
                         />
                       </td>
+                      {canDeleteUsersFlag ? (
+                        <td className="admin-nguoi-dung-td-act">
+                          {row.role === "super_admin" ? (
+                            <span
+                              className="admin-nguoi-dung-muted"
+                              title="Không thể xóa Admin tối cao"
+                            >
+                              —
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              className="admin-to-chuc-act admin-to-chuc-act--icon admin-to-chuc-act--delete"
+                              aria-label={`Xóa ${row.tenHienThi}`}
+                              title="Xóa user"
+                              onClick={() => {
+                                setDeleteError(null);
+                                setDeletingRow(row);
+                              }}
+                            >
+                              <Trash2 size={15} strokeWidth={2.2} aria-hidden />
+                            </button>
+                          )}
+                        </td>
+                      ) : null}
                     </tr>
                   ))
                 )}
@@ -576,6 +648,22 @@ export function AdminNguoiDungScreen() {
           </>
         )}
       </div>
+
+      <AdminNguoiDungDeleteDialog
+        open={Boolean(deletingRow)}
+        tenHienThi={deletingRow?.tenHienThi ?? ""}
+        slug={deletingRow?.slug ?? ""}
+        email={deletingRow?.email ?? null}
+        soNoiDung={deletingRow?.soNoiDung ?? 0}
+        confirming={deleting}
+        error={deleteError}
+        onClose={() => {
+          if (deleting) return;
+          setDeletingRow(null);
+          setDeleteError(null);
+        }}
+        onConfirm={() => void handleDeleteConfirm()}
+      />
     </div>
   );
 }

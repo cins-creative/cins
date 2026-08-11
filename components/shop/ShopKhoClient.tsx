@@ -22,8 +22,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import {
+  beginClipboardImageRead,
+  clipboardImageFailureMessage,
   imageFilesFromClipboard,
-  readImageFilesFromClipboard,
+  readImageFilesFromClipboardDetailed,
 } from "@/lib/files/clipboard-images";
 import { isAllowedUploadImageFile } from "@/lib/files/infer-image-mime";
 import { uploadPostImageWithProgress } from "@/lib/files/upload-post-image";
@@ -49,8 +51,8 @@ import { parseGiaInput } from "@/lib/shop/gia-input";
 import {
   buildPrefillGioiThieu,
   chonBienTheChoKiosk,
+  danhGiaGioiThieuKiosk,
   doKichThuocAnh,
-  formatGioiThieuCooldownHint,
   mapAnhUrlLoaiHang,
   shopGioiThieuDraftScope,
   thuThapAnhLoaiHang,
@@ -171,6 +173,10 @@ export function ShopKhoClient({
   const lastSelectIndexRef = useRef<number | null>(null);
   /** Modifiers lúc mousedown trên checkbox (onChange không có shift/ctrl). */
   const selectModsRef = useRef({ shift: false, ctrl: false });
+  /** Clipboard.read() bắt đầu ở pointerdown để còn user gesture. */
+  const pendingClipboardReadRef = useRef<ReturnType<
+    typeof beginClipboardImageRead
+  > | null>(null);
   /** Dòng vừa sửa gần nhất — nguồn cho Áp dụng hàng loạt. */
   const [lastEditedId, setLastEditedId] = useState<string | null>(null);
   const [bulkApplying, setBulkApplying] = useState(false);
@@ -194,10 +200,6 @@ export function ShopKhoClient({
   const [ownerSlug, setOwnerSlug] = useState<string | null>(null);
   const [shopTen, setShopTen] = useState<string | null>(null);
   const [gioiThieuBusy, setGioiThieuBusy] = useState(false);
-  /** Hint cooldown 3 ngày / loại — null = chưa tải hoặc được phép. */
-  const [gioiThieuCooldownHint, setGioiThieuCooldownHint] = useState<
-    string | null
-  >(null);
   const [gioiThieuToast, setGioiThieuToast] = useState<{
     message: string;
     postHref?: string | null;
@@ -2178,47 +2180,11 @@ export function ShopKhoClient({
     [composeOwnerSlug, ownerSlug],
   );
 
-  /** Tải cooldown khi mở chi tiết loại hàng. */
-  useEffect(() => {
-    if (!activeNhom?.id) {
-      setGioiThieuCooldownHint(null);
-      return;
-    }
-    let cancelled = false;
-    setGioiThieuCooldownHint(null);
-    void (async () => {
-      try {
-        const res = await fetch(
-          `/api/shop/nhom/${encodeURIComponent(activeNhom.id)}/gioi-thieu`,
-        );
-        const json = (await res.json().catch(() => null)) as {
-          allowed?: boolean;
-          remainingMs?: number;
-          hint?: string | null;
-        } | null;
-        if (cancelled || !res.ok) return;
-        if (json?.allowed === false) {
-          const hint =
-            json.hint?.trim() ||
-            formatGioiThieuCooldownHint(json.remainingMs ?? 0) ||
-            "Mỗi loại hàng chỉ giới thiệu được 1 lần / 3 ngày.";
-          setGioiThieuCooldownHint(hint);
-        } else {
-          setGioiThieuCooldownHint(null);
-        }
-      } catch {
-        /* ignore — server chặn khi POST */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [activeNhom?.id]);
-
+  /** Ghi mốc lần giới thiệu gần nhất (audit) — không chặn lượt. */
   const recordGioiThieuAfterPublish = useCallback(
     async (nhomId: string, cotMocId: string) => {
       try {
-        const res = await fetch(
+        await fetch(
           `/api/shop/nhom/${encodeURIComponent(nhomId)}/gioi-thieu`,
           {
             method: "POST",
@@ -2226,27 +2192,11 @@ export function ShopKhoClient({
             body: JSON.stringify({ cotMocId }),
           },
         );
-        const json = (await res.json().catch(() => null)) as {
-          hint?: string | null;
-          remainingMs?: number;
-          allowed?: boolean;
-        } | null;
-        if (res.ok || res.status === 429) {
-          const hint =
-            json?.hint?.trim() ||
-            (json?.remainingMs != null
-              ? formatGioiThieuCooldownHint(json.remainingMs)
-              : "") ||
-            "Mỗi loại hàng chỉ giới thiệu được 1 lần / 3 ngày.";
-          if (activeNhom?.id === nhomId) {
-            setGioiThieuCooldownHint(hint);
-          }
-        }
       } catch {
         /* không chặn UX gắn kiosk */
       }
     },
-    [activeNhom?.id],
+    [],
   );
 
   useEffect(() => {
@@ -2288,7 +2238,7 @@ export function ShopKhoClient({
       if (items.length === 0) {
         setGioiThieuToast({
           message:
-            "Bài đã đăng. Chưa gắn được hàng (thiếu giá hoặc mẫu ngừng bán).",
+            "Bài đã đăng. Chưa gắn được hàng (thiếu giá, hết hàng hoặc mẫu ngừng bán).",
           postHref:
             detail.postSlug && (composeOwnerSlug || ownerSlug)
               ? `/${composeOwnerSlug || ownerSlug}/p/${detail.postSlug}`
@@ -2315,14 +2265,39 @@ export function ShopKhoClient({
 
   const gioiThieuDisabledReason = useMemo(() => {
     if (!activeNhom) return null;
-    if (gioiThieuCooldownHint) return gioiThieuCooldownHint;
     if (!canCompose) return "Đang tải phiên đăng nhập…";
     const ids = thuThapAnhLoaiHang({ nhom: activeNhom });
     if (ids.length === 0) {
       return "Thêm ảnh chính hoặc ảnh phụ cho loại hàng trước";
     }
     return null;
-  }, [activeNhom, canCompose, gioiThieuCooldownHint]);
+  }, [activeNhom, canCompose]);
+
+  const activeBangGia = useMemo(() => {
+    return (
+      (bangGiaId ? priceLists.find((b) => b.id === bangGiaId) : null) ??
+      priceLists[0] ??
+      null
+    );
+  }, [bangGiaId, priceLists]);
+
+  const gioiThieuKioskReady = useMemo(() => {
+    if (!activeNhom) return null;
+    const nhomGia = new Map<string, number>();
+    if (activeNhom.giaMacDinh != null) {
+      nhomGia.set(activeNhom.id, activeNhom.giaMacDinh);
+    }
+    return danhGiaGioiThieuKiosk({
+      mau: filteredProducts,
+      bangGia: activeBangGia,
+      nhomGiaById: nhomGia,
+    });
+  }, [activeNhom, filteredProducts, activeBangGia]);
+
+  const gioiThieuKioskWarn = useMemo(() => {
+    if (!gioiThieuKioskReady || gioiThieuKioskReady.ok) return null;
+    return gioiThieuKioskReady.message;
+  }, [gioiThieuKioskReady]);
 
   async function onGioiThieuSanPham(opts?: { moTa?: string }) {
     if (!activeNhom || gioiThieuBusy) return;
@@ -2334,26 +2309,6 @@ export function ShopKhoClient({
     setErr(null);
     setGioiThieuToast(null);
     try {
-      /* Server là nguồn sự thật — chặn spam trước khi mở composer. */
-      const coolRes = await fetch(
-        `/api/shop/nhom/${encodeURIComponent(activeNhom.id)}/gioi-thieu`,
-      );
-      const coolJson = (await coolRes.json().catch(() => null)) as {
-        allowed?: boolean;
-        remainingMs?: number;
-        hint?: string | null;
-        error?: string;
-      } | null;
-      if (coolRes.ok && coolJson?.allowed === false) {
-        const hint =
-          coolJson.hint?.trim() ||
-          formatGioiThieuCooldownHint(coolJson.remainingMs ?? 0) ||
-          "Mỗi loại hàng chỉ giới thiệu được 1 lần / 3 ngày.";
-        setGioiThieuCooldownHint(hint);
-        setErr(hint);
-        return;
-      }
-
       const moTaFresh =
         opts?.moTa !== undefined ? opts.moTa : (activeNhom.moTa ?? "");
       const nhomForPrefill: ShopNhom = {
@@ -2383,10 +2338,7 @@ export function ShopKhoClient({
           }),
         );
       }
-      const bg =
-        (bangGiaId
-          ? priceLists.find((b) => b.id === bangGiaId)
-          : null) ?? priceLists[0] ?? null;
+      const bg = activeBangGia;
       pendingGioiThieuRef.current = {
         nhomId: activeNhom.id,
         draftScope,
@@ -2394,10 +2346,25 @@ export function ShopKhoClient({
         bangGia: bg,
         nhomGiaMacDinh: activeNhom.giaMacDinh,
       };
+      const nhomGia = new Map<string, number>();
+      if (activeNhom.giaMacDinh != null) {
+        nhomGia.set(activeNhom.id, activeNhom.giaMacDinh);
+      }
+      const ready = danhGiaGioiThieuKiosk({
+        mau: filteredProducts,
+        bangGia: bg,
+        nhomGiaById: nhomGia,
+      });
       openCompose({
         kind: "photo",
         prefillDraft,
         draftScope,
+        shopKioskPreview: {
+          items: ready.items,
+          hint: ready.ok
+            ? ready.hint
+            : ready.hint || ready.message,
+        },
       });
     } catch {
       setErr("Không mở được trình soạn bài giới thiệu.");
@@ -2525,6 +2492,7 @@ export function ShopKhoClient({
             onGioiThieu={(opts) => void onGioiThieuSanPham(opts)}
             gioiThieuBusy={gioiThieuBusy}
             gioiThieuDisabledReason={gioiThieuDisabledReason}
+            gioiThieuKioskWarn={gioiThieuKioskWarn}
           />
         ) : (
           <div className="shop-kho-loai-meta">
@@ -2553,73 +2521,74 @@ export function ShopKhoClient({
           </div>
           <div className="shop-kho-toolbar">
             <div className="shop-kho-toolbar-actions">
-              {khoEditing ? (
-                <>
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    hidden
-                    onChange={(e) => {
-                      const files = Array.from(e.target.files ?? []);
-                      e.target.value = "";
-                      void handleAddImages(files);
-                    }}
-                  />
-                  {selectedIds.length > 0 ? (
-                    <button
-                      type="button"
-                      className="shop-kho-bulk-delete-btn"
-                      disabled={saving || uploading || deleting || bulkApplying}
-                      title={`Xóa ${selectedIds.length} mẫu đã chọn`}
-                      aria-label={`Xóa ${selectedIds.length} mẫu đã chọn`}
-                      onClick={() => {
-                        const items = products
-                          .filter((p) => selectedIdSet.has(p.id))
-                          .map((p) => ({ id: p.id, ten: p.ten }));
-                        if (items.length > 0) setDeleteTargets(items);
-                      }}
-                    >
-                      <Trash2 size={15} strokeWidth={2} aria-hidden />
-                      Xóa
-                      {selectedIds.length > 1 ? (
-                        <span className="shop-kho-bulk-delete-count">
-                          {selectedIds.length}
-                        </span>
-                      ) : null}
-                    </button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                onChange={(e) => {
+                  const files = Array.from(e.target.files ?? []);
+                  e.target.value = "";
+                  void handleAddImages(files);
+                }}
+              />
+              <button
+                type="button"
+                className="shop-kho-add-btn"
+                disabled={saving || uploading || deleting || bulkApplying}
+                title="Thêm một mẫu mới (vào chế độ Sửa)"
+                onClick={() => void createBlankProduct()}
+              >
+                {saving ? (
+                  <Loader2 className="shop-spin" size={15} />
+                ) : (
+                  <Plus size={15} strokeWidth={2.25} aria-hidden />
+                )}
+                Thêm hàng
+              </button>
+              <button
+                type="button"
+                className="shop-kho-add-images-btn"
+                disabled={saving || uploading || deleting || bulkApplying}
+                title="Thêm nhiều mẫu từ ảnh — ưu tiên dòng trống, thừa thì tạo mẫu mới"
+                aria-label="Thêm hàng loạt từ ảnh"
+                onClick={() => {
+                  if (!khoEditing) enterKhoEditing();
+                  fileRef.current?.click();
+                }}
+              >
+                {uploading ? (
+                  <span className="shop-kho-upload-progress" aria-live="polite">
+                    {uploadProgressAvg}%
+                  </span>
+                ) : (
+                  <ImagePlus size={15} strokeWidth={2} aria-hidden />
+                )}
+                Thêm hàng loạt
+              </button>
+              {khoEditing && selectedIds.length > 0 ? (
+                <button
+                  type="button"
+                  className="shop-kho-bulk-delete-btn"
+                  disabled={saving || uploading || deleting || bulkApplying}
+                  title={`Xóa ${selectedIds.length} mẫu đã chọn`}
+                  aria-label={`Xóa ${selectedIds.length} mẫu đã chọn`}
+                  onClick={() => {
+                    const items = products
+                      .filter((p) => selectedIdSet.has(p.id))
+                      .map((p) => ({ id: p.id, ten: p.ten }));
+                    if (items.length > 0) setDeleteTargets(items);
+                  }}
+                >
+                  <Trash2 size={15} strokeWidth={2} aria-hidden />
+                  Xóa
+                  {selectedIds.length > 1 ? (
+                    <span className="shop-kho-bulk-delete-count">
+                      {selectedIds.length}
+                    </span>
                   ) : null}
-                  <button
-                    type="button"
-                    className="shop-kho-add-btn"
-                    disabled={saving}
-                    onClick={() => void createBlankProduct()}
-                  >
-                    {saving ? (
-                      <Loader2 className="shop-spin" size={15} />
-                    ) : (
-                      <Plus size={15} strokeWidth={2.25} aria-hidden />
-                    )}
-                    Thêm mẫu
-                  </button>
-                  <button
-                    type="button"
-                    className="shop-kho-add-images-btn"
-                    disabled={saving}
-                    title="Thêm ảnh — ưu tiên dòng trống, thừa thì tạo mẫu mới"
-                    aria-label="Thêm hàng loạt từ ảnh"
-                    onClick={() => fileRef.current?.click()}
-                  >
-                    {uploading ? (
-                      <span className="shop-kho-upload-progress" aria-live="polite">
-                        {uploadProgressAvg}%
-                      </span>
-                    ) : (
-                      <ImagePlus size={15} strokeWidth={2} aria-hidden />
-                    )}
-                  </button>
-                </>
+                </button>
               ) : null}
               <button
                 type="button"
@@ -2941,19 +2910,37 @@ export function ShopKhoClient({
                                   type="button"
                                   className="shop-thumb-placeholder shop-thumb-placeholder--paste"
                                   aria-label="Dán ảnh từ bộ nhớ tạm"
-                                  title="Dán ảnh (nhiều ảnh → dòng trống)"
+                                  title="Dán ảnh (nhiều ảnh → dòng trống) · hoặc Ctrl+V"
                                   disabled={rowUploading || rowPending || rowSaving}
-                                  onClick={() => {
+                                  onPointerDown={() => {
+                                    if (rowUploading || rowPending || rowSaving) {
+                                      return;
+                                    }
+                                    pendingClipboardReadRef.current =
+                                      beginClipboardImageRead();
+                                  }}
+                                  onClick={(e) => {
+                                    const pick = (
+                                      e.currentTarget as HTMLElement
+                                    ).closest(
+                                      ".shop-thumb-pick",
+                                    ) as HTMLElement | null;
                                     void (async () => {
-                                      const files =
-                                        await readImageFilesFromClipboard();
-                                      if (files.length === 0) {
-                                        setErr(
-                                          "Không đọc được ảnh từ bộ nhớ tạm. Hãy copy ảnh rồi thử lại.",
-                                        );
+                                      const pending =
+                                        pendingClipboardReadRef.current;
+                                      pendingClipboardReadRef.current = null;
+                                      const result = await (pending ??
+                                        readImageFilesFromClipboardDetailed());
+                                      if (result.files.length > 0) {
+                                        void pickRowThumbs(p, result.files);
                                         return;
                                       }
-                                      void pickRowThumbs(p, files);
+                                      pick?.focus();
+                                      setErr(
+                                        clipboardImageFailureMessage(
+                                          result.reason,
+                                        ),
+                                      );
                                     })();
                                   }}
                                 >

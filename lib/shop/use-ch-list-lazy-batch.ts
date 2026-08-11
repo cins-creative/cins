@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 
 export const CH_LIST_LAZY_BATCH = 24;
+/** Card shop nặng hơn (avatar/cover/ticker) — batch nhỏ hơn. */
+export const CH_LIST_SHOP_LAZY_BATCH = 12;
 export const CH_LIST_LAZY_ROOT_MARGIN = "480px 0px";
 
 /**

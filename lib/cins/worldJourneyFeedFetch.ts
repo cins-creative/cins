@@ -683,15 +683,10 @@ async function buildExplorePool(
   return attachSocialState(admin, withLens, viewerId);
 }
 
-const fetchWorldJourneyFeedRankedCached = cache(buildWorldJourneyFeedRanked);
-
-const fetchWorldJourneyFeedRankedWideCached = cache((viewerId: string) =>
-  buildWorldJourneyFeedRanked(viewerId, {
-    poolLimit: FEED_FILTER_POOL_LIMIT,
-    softQuota: false,
-  }),
-);
-
+/**
+ * Ranked pool theo viewer — `unstable_cache` TTL ngắn (cùng key API + RSC).
+ * F5 trang chủ lần 2 trong cửa sổ revalidate không rebuild pool.
+ */
 function fetchWorldJourneyFeedRankedForApi(viewerId: string) {
   return unstable_cache(
     () => buildWorldJourneyFeedRanked(viewerId),
@@ -711,6 +706,13 @@ function fetchWorldJourneyFeedRankedWideForApi(viewerId: string) {
     { revalidate: WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC },
   )();
 }
+
+/** RSC: cùng unstable_cache với API + `cache()` dedupe trong một request. */
+const fetchWorldJourneyFeedRankedCached = cache(fetchWorldJourneyFeedRankedForApi);
+
+const fetchWorldJourneyFeedRankedWideCached = cache(
+  fetchWorldJourneyFeedRankedWideForApi,
+);
 
 async function fetchWorldJourneyShopOnlyPage(
   viewerId: string,

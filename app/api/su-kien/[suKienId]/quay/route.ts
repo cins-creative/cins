@@ -11,8 +11,9 @@ type Ctx = { params: Promise<{ suKienId: string }> };
 export async function GET(request: Request, ctx: Ctx) {
   const { suKienId } = await ctx.params;
   const session = await getCurrentSessionAndProfile();
-  const wantPending =
-    new URL(request.url).searchParams.get("pending") === "1";
+  const url = new URL(request.url);
+  const wantPending = url.searchParams.get("pending") === "1";
+  const wantCatalog = url.searchParams.get("catalog") === "1";
 
   let includePending = false;
   if (wantPending && session?.profile) {
@@ -33,6 +34,7 @@ export async function GET(request: Request, ctx: Ctx) {
   const items = await listQuaySuKien(suKienId, {
     includePending,
     actorId: session?.profile?.id,
+    includeCatalog: wantCatalog,
   });
   return NextResponse.json({ items });
 }

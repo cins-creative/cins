@@ -45,6 +45,11 @@ export function canGrantAdmin(role: SystemRole): boolean {
   return role === "super_admin";
 }
 
+/** Xóa user (soft-delete) — chỉ Admin tối cao. */
+export function canDeleteUsers(role: SystemRole): boolean {
+  return role === "super_admin";
+}
+
 export function canEditContent(role: SystemRole): boolean {
   return role === "super_admin" || role === "admin" || role === "curator";
 }

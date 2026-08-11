@@ -1,7 +1,19 @@
 # PLAN: Trang chủ — thấy nội dung feed ngay (instant paint)
 
 Ngày: 12/08/2026 · Dựa trên scan `app/page.tsx` + `HomeWorldJourneyMain` + `WorldJourneyFeed` + `PLAN_login_perf` / `PLAN_client_cache` / `CINS_DEV_RULES` §8–§10  
-Trạng thái: **Chưa implement** — chỉ plan.
+Trạng thái: **Bước 1 + 2 + 4 đã implement** (2026-08-12). Bước 0 đo / 3 / 5 còn lại.
+
+## Nhật ký ship (2026-08-12)
+
+| Bước | Đã làm |
+|---|---|
+| 1 | `HomeWorldJourneyMain` chỉ `await` session rồi `Suspense` → `HomeWorldJourneyFeedBlock`. Critical: owner + feed (+ gallery theo view). Layout/capabilities qua `layoutPromise` + `use()`; promos qua `feedPromosPromise`; module ngoài default qua `HomeWorldJourneyExtraModules`. Edit mode (`?tuy-chinh=1`) vẫn await layout+promos. Bỏ `listLinhVucForHub` trên path logged-in. |
+| 2 | RSC `fetchWorldJourneyFeedRankedCached` / `WideCached` = `cache(ForApi)` — cùng `unstable_cache` key + TTL 20s với API. F5 lần 2 trong 20s không rebuild ranked pool. |
+| 4 | `HomeWorldJourneySkeleton` khớp hơn header / composer / 2 card bài. |
+
+File mới: `HomeWorldJourneyFeedBlock.tsx`, `HomeWorldJourneyExtraModules.tsx`, `home-layout-resolve.ts`.
+
+---
 
 Xuất phát từ: *«header / feed trang chủ nên lưu localhost để vừa vào là thấy nội dung, không bị cảm giác load»*.
 
@@ -35,7 +47,9 @@ Cảm giác load khi vừa vào `/` (F5 / mở tab / soft-nav lại trang chủ)
 | Module sidebar stream từng khối | `renderHomeModules` + `Suspense` / module | Comment: “feed hiện ngay, từng khối stream sau” — **chỉ đúng cho module, không đúng cho feed** |
 | Cache RAM đổi tab trong phiên | `timelineCacheRef` / `galleryCacheRef` trong `WorldJourneyFeed` | Peek-revalidate khi đổi surface |
 | Skip fetch filter lần đầu (SSR seed) | `skipInitialFilterFetchRef` | `PLAN_client_cache` đã loại nghi vấn “mất SSR seed” |
-| Ranked feed API có `unstable_cache` 20s | `fetchWorldJourneyFeedRankedForApi` · `WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC = 20` | Chỉ path API |
+| Ranked feed API có `unstable_cache` 20s | `fetchWorldJourneyFeedRankedForApi` · TTL 20s | API + RSC (Bước 2) |
+| **Feed không chờ layout/caps/promos** | `HomeWorldJourneyFeedBlock` + promises | **Bước 1 — 2026-08-12** |
+| **SSR ranked = cùng unstable_cache API** | `RankedCached` = `cache(ForApi)` | **Bước 2 — 2026-08-12** |
 
 ### Còn đúng là nút thắt
 
@@ -134,57 +148,13 @@ DevTools → Network (Disable cache) + Performance, user đã login, F5 `/`:
 
 Ghi số vào cuối file này (mục “Nhật ký đo”) trước khi merge code.
 
-## Bước 1 — Tách feed khỏi cổng `Promise.all` (đòn bẩy chính)
+## Bước 1 — Tách feed khỏi cổng `Promise.all` (đòn bẩy chính) ✅
 
-**Ý:** Page / Main không `await` hết rồi mới render `WorldJourneyFeed`. Feed + identity tối thiểu stream riêng; phần còn lại Suspense độc lập.
+Đã ship 2026-08-12 — xem Nhật ký ship.
 
-Hướng cấu trúc (khớp §8, không bắt buộc đúng tên file):
+## Bước 2 — SSR trang chủ dùng `unstable_cache` ranked như API ✅
 
-```
-app/page.tsx
-  CinsShell
-    Suspense fallback=HomeWorldJourneySkeleton
-      HomeWorldJourneyShell (session đã có từ page hoặc tự lấy)
-        ├─ Suspense fallback=feed skeleton (khớp cột giữa)
-        │    HomeWorldJourneyFeedServer   ← owner tối thiểu + feedPage (+ gallery nếu view)
-        └─ (layout/capabilities có thể fetch trong boundary sidebar hoặc feed client nhận layout sau)
-```
-
-Chi tiết thiết kế cần chốt khi implement (một trong hai, ưu tiên ít đụng props):
-
-**Phương án A (khuyến nghị):** Tách async SC:
-
-1. `HomeWorldJourneyFeedBlock` — `fetchOwnerBySlug` (hoặc chỉ dùng session profile nếu đủ sidebar) + `fetchWorldJourneyFeedPageCached` (+ gallery/video/shop theo `searchParams`). Render `HomeWorldJourneyClient` / `WorldJourneyFeed` với `milestones` thật; `moduleNodes` vẫn là element chưa resolve như hiện tại.
-2. Layout + capabilities: fetch **trong** boundary riêng hoặc trong cùng FeedBlock nhưng **sau** khi đã bắt đầu render feed — **không** để chúng nằm cùng `Promise.all` với feed.
-
-Nếu `HomeWorldJourneyClient` bắt buộc `layoutLeft/Right/…` đồng bộ: tách provider layout thành Suspense con (skeleton cột trái/phải giữ `HomeAsideSkeleton`), feed giữa không chờ.
-
-**Phương án B (nhẹ hơn, nếu A quá lớn):** Trong `HomeWorldJourneyMain`, bỏ `Promise.all` phẳng — `await` feed (+ owner) trước, `return` JSX; các promise layout/capabilities/linhVuc/promos truyền xuống child async qua Suspense. Cùng ý §8, ít file mới hơn.
-
-**Ràng buộc:**
-
-- Không đổi logic `buildWorldJourneyFeedRanked` / filter / RLS.
-- Giữ `skipInitialFilterFetchRef` / SSR seed.
-- `?view=gallery|video|shop` vẫn SSR đúng surface.
-- Edit layout (`?tuy-chinh=1`) không regress.
-
-**Kỳ vọng:** Thời gian “thấy bài đầu” ≈ max(session, owner?, feed) thay vì max(cả 7).
-
-**Rủi ro:** Thấp–TB — đụng wiring home-adaptive (layout props). Test kỹ edit mode + soft refresh sau lưu layout.
-
-## Bước 2 — SSR trang chủ dùng `unstable_cache` ranked như API
-
-**Ý:** `fetchWorldJourneyFeedPageCached` (mode RSC) gọi cùng lớp cache với `fetchWorldJourneyFeedRankedForApi` (key + `revalidate: 20`), vẫn bọc `cache()` React để dedupe trong request.
-
-- Không invent TTL mới — dùng `WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC`.
-- Wide pool (`ranked-wide`) cùng pattern nếu SSR/shop cần.
-- Ghi chú stale ≤20s chấp nhận được cho trang chủ (feed ranking), không phải moat verify badge như sự thật offline.
-
-**Kỳ vọng:** F5 lần 2 trong 20s rẻ rõ; lần đầu sau deploy / hết hạn vẫn đúng chi phí cũ nhưng Bước 1 đã che cảm nhận.
-
-**Rủi ro:** TB — §8 nói “không tự thêm cache trừ yêu cầu riêng”; đây là **nối cache đã có** (`PLAN_login_perf` bước 5). Cần xác nhận không double-build khác key.
-
-**Không làm trong bước này:** client IndexedDB; đổi page size; prefetch gallery.
+Đã ship 2026-08-12 — `fetchWorldJourneyFeedRankedCached` = `cache(fetchWorldJourneyFeedRankedForApi)` (cùng key + TTL 20s). Wide tương tự.
 
 ## Bước 3 — bfcache / Cache-Control document
 
@@ -196,14 +166,9 @@ Nếu `HomeWorldJourneyClient` bắt buộc `layoutLeft/Right/…` đồng bộ:
 
 **Rủi ro:** TB nếu đụng header CDN — chỉ làm khi đo chứng minh Back là pain chính.
 
-## Bước 4 — Skeleton cột giữa content-aware (rẻ, song song được)
+## Bước 4 — Skeleton cột giữa content-aware ✅
 
-`HomeWorldJourneySkeleton` hiện 2 card thô, lệch nhịp header + composer + bài thật → cảm giác “đang chờ” nặng hơn latency thật.
-
-- Match: chiều cao gần `wj-feed-header`, ô composer, 1–2 `j-milestone` (avatar tròn, media aspect).
-- Token §4 / §8 — không peach, không layout shift lớn khi swap.
-
-**Rủi ro:** Thấp. Có thể làm cùng session Bước 1 nếu diff nhỏ; không thay thế Bước 1.
+Đã ship 2026-08-12 — header + composer + 2 card khớp hơn.
 
 ## Bước 5 — (Chỉ nếu còn chậm sau 1–2) IndexedDB SWR snapshot
 

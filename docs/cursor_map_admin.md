@@ -62,6 +62,11 @@ Tổ chức
 
 Người dùng
   /admin/nguoi-dung          → user_nguoi_dung + user_quyen_he_thong (phân quyền hệ thống)
+      · Gate list/role/verify: `canManageUsers` (super_admin | admin) — curator không
+      · Xóa user: `canDeleteUsers` (super_admin only) — soft-delete `trang_thai_tai_khoan=da_xoa` + gỡ Auth
+      · UI: `AdminNguoiDungScreen` · `AdminNguoiDungDeleteDialog` (gõ đúng slug)
+      · API: `GET list` · `PATCH [id]/vai-tro` · `PATCH [id]/xac-minh` · `DELETE [id]`
+      · Lib: `lib/admin/nguoi-dung-roles.ts` · `lib/auth/system-role.ts`
   /admin/tai-khoan-ai        → **Autopilot seeding** (10 nick AI curator)
       · Tabs: Tổng quan · Pipeline (Hàng đợi → Chờ duyệt → Đã duyệt → Đã đăng) · Nick
       · Gate: `canManageUsers` (super_admin | admin) — curator không
@@ -93,6 +98,7 @@ Hệ thống
 // admin/curator: user_quyen_he_thong + legacy CINS_ADMIN_EMAILS → admin
 // Panel /admin: canAccessAdminPanel (super_admin | admin | curator)
 // Tab /admin/nguoi-dung · /admin/tai-khoan-ai: canManageUsers (super_admin | admin)
+// Xóa user /admin/nguoi-dung: canDeleteUsers (super_admin only) — soft-delete + gỡ Auth; không xóa chính mình / Admin tối cao
 // Tab /admin/noi-dung-dang + toggle boost World feed (L29): canManageUsers (super_admin | admin) — curator không
 // Phân quyền org /admin/to-chuc: canGrantAdmin (super_admin only) + CINS_ORG_DELEGATION_PASSWORD + delegationPassword mỗi mutation (L22)
 // Sửa nội dung: canEditContent (super_admin | admin | curator)
@@ -362,7 +368,7 @@ Các section sau chỉ render empty state với icon — chưa cần data:
 
 - `/admin/to-chuc` — tất cả tổ chức (studio, doanh nghiệp...)
 - `/admin/verify` — xác nhận milestone (verify_yeu_cau + verify_xac_nhan)
-- `/admin/nguoi-dung` — **đã implement:** phân quyền hệ thống (`AdminNguoiDungScreen`, API `admin/nguoi-dung/*`)
+- `/admin/nguoi-dung` — **đã implement:** phân quyền hệ thống + soft-delete user (`AdminNguoiDungScreen`, `AdminNguoiDungDeleteDialog`, API `admin/nguoi-dung/*`)
 - `/admin/linh-vuc`
 - `/admin/analytics`
 - `/admin/vector-queue`

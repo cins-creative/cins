@@ -94,6 +94,11 @@ export async function listQuaySuKien(
     actorId?: string;
     /** Gắn catalog hàng (nặng) — mặc định false; dùng endpoint `/quay/hang`. */
     includeHang?: boolean;
+    /**
+     * Catalog loại/mẫu trên card shop — mặc định false (chế độ Shop).
+     * Bật khi chế độ «Mặt hàng» (`?catalog=1`).
+     */
+    includeCatalog?: boolean;
   },
 ): Promise<ShopQuaySuKien[]> {
   const admin = createServiceRoleClient();
@@ -120,8 +125,9 @@ export async function listQuaySuKien(
 
   const sellerIds = [...new Set(items.map((i) => i.idNguoiDung))];
   const includeHang = opts?.includeHang === true;
+  const includeCatalog = opts?.includeCatalog === true;
   const [shopByOwner, hangBySeller] = await Promise.all([
-    listShopListingCardsByOwnerIds(sellerIds),
+    listShopListingCardsByOwnerIds(sellerIds, { includeCatalog }),
     includeHang
       ? loadHangSearchBySeller(sellerIds, items, opts?.actorId)
       : Promise.resolve(new Map<string, ShopQuayHangSearch[]>()),
@@ -202,6 +208,8 @@ async function loadHangSearchBySeller(
           nhanBienThe: it.nhanBienThe?.trim() || "Mặc định",
           phanLoai: it.phanLoai,
           phanLoai2: it.phanLoai2,
+          idNhom: it.idNhom,
+          tenLoai: it.tenLoai,
           anhUrl: it.anhUrl,
           soLuongTon: it.soLuongTon,
           soLuongBan: it.soLuongBan,

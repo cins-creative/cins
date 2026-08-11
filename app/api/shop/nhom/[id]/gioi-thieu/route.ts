@@ -5,12 +5,11 @@ import {
   getGioiThieuCooldown,
   recordGioiThieu,
 } from "@/lib/shop/gioi-thieu-cooldown";
-import { formatGioiThieuCooldownHint } from "@/lib/shop/gioi-thieu";
 
 type Ctx = { params: Promise<{ id: string }> };
 
 /**
- * GET /api/shop/nhom/[id]/gioi-thieu — trạng thái cooldown giới thiệu (3 ngày).
+ * GET /api/shop/nhom/[id]/gioi-thieu — trạng thái giới thiệu (không còn cooldown).
  */
 export async function GET(_request: Request, ctx: Ctx) {
   const session = await getCurrentSessionAndProfile();
@@ -26,9 +25,7 @@ export async function GET(_request: Request, ctx: Ctx) {
     const status = await getGioiThieuCooldown(session.profile.id, id.trim());
     return NextResponse.json({
       ...status,
-      hint: status.allowed
-        ? null
-        : formatGioiThieuCooldownHint(status.remainingMs),
+      hint: null,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
@@ -73,32 +70,12 @@ export async function POST(request: Request, ctx: Ctx) {
     });
     return NextResponse.json({
       ...status,
-      hint: formatGioiThieuCooldownHint(status.remainingMs),
+      hint: null,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
     if (msg === "FORBIDDEN") {
       return NextResponse.json({ error: "Không có quyền." }, { status: 403 });
-    }
-    if (msg === "COOLDOWN") {
-      const status = await getGioiThieuCooldown(
-        session.profile.id,
-        id.trim(),
-      ).catch(() => null);
-      return NextResponse.json(
-        {
-          error:
-            status && !status.allowed
-              ? formatGioiThieuCooldownHint(status.remainingMs)
-              : "Mỗi loại hàng chỉ giới thiệu được 1 lần / 3 ngày.",
-          ...status,
-          hint:
-            status && !status.allowed
-              ? formatGioiThieuCooldownHint(status.remainingMs)
-              : null,
-        },
-        { status: 429 },
-      );
     }
     return NextResponse.json({ error: "Không lưu được." }, { status: 500 });
   }

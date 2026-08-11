@@ -20,7 +20,12 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { readImageFilesFromClipboard } from "@/lib/files/clipboard-images";
+import {
+  beginClipboardImageRead,
+  clipboardImageFailureMessage,
+  imageFilesFromClipboard,
+  readImageFilesFromClipboardDetailed,
+} from "@/lib/files/clipboard-images";
 import { uploadPostImageWithProgress } from "@/lib/files/upload-post-image";
 import {
   createVideoTusUpload,
@@ -35,6 +40,10 @@ import {
   SHOP_NHOM_FEATURE_MAX,
   SHOP_NHOM_MO_TA_MAX,
 } from "@/lib/shop/types";
+import {
+  labelNhomGioiThieuCanhBao,
+  nhomGioiThieuCanhBao,
+} from "@/lib/shop/gioi-thieu";
 
 import { ShopNhomMoTaField } from "./ShopNhomMoTaField";
 
@@ -42,6 +51,22 @@ const MAX_SHOP_VIDEO_BYTES = 500 * 1024 * 1024;
 
 /** Khớp `KHO_UPLOAD_CONCURRENCY` của lưới kho (ShopKhoClient). */
 const ANH_PHU_UPLOAD_CONCURRENCY = 3;
+
+type PendingClipboardRead = ReturnType<
+  typeof readImageFilesFromClipboardDetailed
+> | null;
+
+async function resolveClipboardPaste(pending: PendingClipboardRead): Promise<{
+  files: File[];
+  message: string | null;
+}> {
+  const result = await (pending ?? readImageFilesFromClipboardDetailed());
+  if (result.files.length > 0) return { files: result.files, message: null };
+  return {
+    files: [],
+    message: clipboardImageFailureMessage(result.reason),
+  };
+}
 
 type PendingStatus = "uploading" | "done" | "error";
 
@@ -84,14 +109,19 @@ export function ShopKhoLoaiHub({
   const [anhId, setAnhId] = useState<string | null>(null);
   const [anhUrl, setAnhUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [pasteArmed, setPasteArmed] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const draftPreviewRef = useRef<string | null>(null);
+  const pendingClipboardReadRef = useRef<PendingClipboardRead>(null);
+  const pasteArmedRef = useRef(false);
 
   const resetDraft = useCallback(() => {
     if (draftPreviewRef.current) {
       URL.revokeObjectURL(draftPreviewRef.current);
       draftPreviewRef.current = null;
     }
+    pasteArmedRef.current = false;
+    setPasteArmed(false);
     setNhan("");
     setMoTa("");
     setAnhId(null);
@@ -141,6 +171,26 @@ export function ShopKhoLoaiHub({
       setUploading(false);
     }
   }
+
+  const uploadAnhRef = useRef(uploadAnh);
+  uploadAnhRef.current = uploadAnh;
+
+  useEffect(() => {
+    if (!creating || !pasteArmed) return;
+    function onPaste(e: ClipboardEvent) {
+      if (!pasteArmedRef.current || uploading || busy) return;
+      const files = imageFilesFromClipboard(e.clipboardData);
+      const file = files[0];
+      if (!file) return;
+      e.preventDefault();
+      e.stopPropagation();
+      pasteArmedRef.current = false;
+      setPasteArmed(false);
+      void uploadAnhRef.current(file);
+    }
+    window.addEventListener("paste", onPaste, true);
+    return () => window.removeEventListener("paste", onPaste, true);
+  }, [creating, pasteArmed, uploading, busy]);
 
   async function createLoai() {
     const name = nhan.trim();
@@ -245,7 +295,20 @@ export function ShopKhoLoaiHub({
 
       {creating ? (
         <div className="shop-kho-loai-create">
-          <div className="shop-kho-loai-meta-anh-wrap">
+          <div
+            className="shop-kho-loai-meta-anh-wrap"
+            tabIndex={0}
+            onPaste={(e) => {
+              if (uploading || busy) return;
+              const file = imageFilesFromClipboard(e.clipboardData)[0];
+              if (!file) return;
+              e.preventDefault();
+              e.stopPropagation();
+              pasteArmedRef.current = false;
+              setPasteArmed(false);
+              void uploadAnh(file);
+            }}
+          >
             <button
               type="button"
               className={`shop-kho-loai-create-anh${uploading ? " is-busy" : ""}`}
@@ -275,18 +338,29 @@ export function ShopKhoLoaiHub({
               disabled={uploading || busy}
               aria-label="Dán ảnh loại từ bộ nhớ tạm"
               title="Dán ảnh"
+              onPointerDown={() => {
+                if (uploading || busy) return;
+                pendingClipboardReadRef.current = beginClipboardImageRead();
+              }}
               onClick={(e) => {
                 e.stopPropagation();
                 void (async () => {
-                  const files = await readImageFilesFromClipboard();
+                  const pending = pendingClipboardReadRef.current;
+                  pendingClipboardReadRef.current = null;
+                  const { files, message } = await resolveClipboardPaste(pending);
                   const file = files[0];
-                  if (!file) {
-                    onError(
-                      "Không đọc được ảnh từ bộ nhớ tạm. Hãy copy ảnh rồi thử lại.",
-                    );
+                  if (file) {
+                    pasteArmedRef.current = false;
+                    setPasteArmed(false);
+                    void uploadAnh(file);
                     return;
                   }
-                  void uploadAnh(file);
+                  pasteArmedRef.current = true;
+                  setPasteArmed(true);
+                  onError(
+                    message ??
+                      clipboardImageFailureMessage("empty"),
+                  );
                 })();
               }}
             >
@@ -353,10 +427,15 @@ export function ShopKhoLoaiHub({
         {loaiList.map((n) => {
           const featBusy = featureBusyId === n.id;
           const capped = !n.noiBat && featureCount >= SHOP_NHOM_FEATURE_MAX;
+          const canhBao = nhomGioiThieuCanhBao(n);
+          const warnTitle =
+            canhBao.length > 0
+              ? canhBao.map(labelNhomGioiThieuCanhBao).join(" · ")
+              : null;
           return (
             <li key={n.id}>
               <div
-                className={`shop-kho-loai-card${n.noiBat ? " is-feature" : ""}`}
+                className={`shop-kho-loai-card${n.noiBat ? " is-feature" : ""}${canhBao.length ? " is-warn" : ""}`}
               >
                 <button
                   type="button"
@@ -372,10 +451,25 @@ export function ShopKhoLoaiHub({
                         <Tags size={20} />
                       </span>
                     )}
+                    {warnTitle ? (
+                      <span
+                        className="shop-kho-loai-card-warn"
+                        title={warnTitle}
+                        aria-label={warnTitle}
+                      >
+                        <AlertTriangle size={12} strokeWidth={2.4} aria-hidden />
+                      </span>
+                    ) : null}
                   </span>
                   <span className="shop-kho-loai-card-body">
                     <strong>{n.nhan}</strong>
                     <span>{mauCountByNhomId[n.id] ?? 0} mẫu</span>
+                    {warnTitle ? (
+                      <span className="shop-kho-loai-tax-badge is-warn">
+                        {labelNhomGioiThieuCanhBao(canhBao[0]!)}
+                        {canhBao.length > 1 ? ` +${canhBao.length - 1}` : ""}
+                      </span>
+                    ) : null}
                     {!n.idDanhMuc ? (
                       <span className="shop-kho-loai-tax-badge">
                         Chưa gắn danh mục
@@ -468,6 +562,8 @@ type MetaProps = {
   onGioiThieu?: (opts?: { moTa: string }) => void;
   gioiThieuBusy?: boolean;
   gioiThieuDisabledReason?: string | null;
+  /** Cảnh báo kiosk (thiếu mẫu/giá/hết hàng) — không chặn mở composer. */
+  gioiThieuKioskWarn?: string | null;
 };
 
 function giaInputValue(
@@ -492,6 +588,7 @@ export function ShopKhoLoaiMeta({
   onGioiThieu,
   gioiThieuBusy = false,
   gioiThieuDisabledReason = null,
+  gioiThieuKioskWarn = null,
 }: MetaProps) {
   const [nhan, setNhan] = useState(nhom.nhan);
   const [moTa, setMoTa] = useState(nhom.moTa ?? "");
@@ -545,6 +642,9 @@ export function ShopKhoLoaiMeta({
   const pendingUrlsRef = useRef<Set<string>>(new Set());
   const videoAbortRef = useRef<{ abort: () => void } | null>(null);
   const giaDirtyRef = useRef(false);
+  const pendingClipboardReadRef = useRef<PendingClipboardRead>(null);
+  const pasteArmTargetRef = useRef<"anh" | "phu" | null>(null);
+  const [pasteArmed, setPasteArmed] = useState(false);
 
   /* Rời component giữa lúc upload — thu hồi objectURL còn treo. */
   useEffect(() => {
@@ -998,6 +1098,29 @@ export function ShopKhoLoaiMeta({
   const displayAnhUrl = previewAnhUrl || nhom.anhUrl;
   const mediaBusy = uploadingAnh || uploadingPhu || uploadingVideo || saving;
 
+  const uploadAnhRef = useRef(uploadAnh);
+  uploadAnhRef.current = uploadAnh;
+  const uploadAnhPhuManyRef = useRef(uploadAnhPhuMany);
+  uploadAnhPhuManyRef.current = uploadAnhPhuMany;
+
+  useEffect(() => {
+    if (!pasteArmed) return;
+    function onPaste(e: ClipboardEvent) {
+      const target = pasteArmTargetRef.current;
+      if (!target || mediaBusy) return;
+      const files = imageFilesFromClipboard(e.clipboardData);
+      if (files.length === 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      pasteArmTargetRef.current = null;
+      setPasteArmed(false);
+      if (target === "anh") void uploadAnhRef.current(files[0]);
+      else void uploadAnhPhuManyRef.current(files);
+    }
+    window.addEventListener("paste", onPaste, true);
+    return () => window.removeEventListener("paste", onPaste, true);
+  }, [pasteArmed, mediaBusy]);
+
   async function onDeleteClick() {
     if (mediaBusy || deleting) return;
     if (mauCount > 0) {
@@ -1048,7 +1171,7 @@ export function ShopKhoLoaiMeta({
           {onGioiThieu ? (
             <button
               type="button"
-              className="shop-kho-loai-gioi-thieu"
+              className={`shop-kho-loai-gioi-thieu${gioiThieuKioskWarn ? " is-warn" : ""}`}
               disabled={
                 mediaBusy ||
                 deleting ||
@@ -1057,6 +1180,7 @@ export function ShopKhoLoaiMeta({
               }
               title={
                 gioiThieuDisabledReason ??
+                gioiThieuKioskWarn ??
                 "Tạo bài album ảnh giới thiệu mặt hàng này"
               }
               aria-label="Giới thiệu sản phẩm"
@@ -1064,6 +1188,8 @@ export function ShopKhoLoaiMeta({
             >
               {gioiThieuBusy ? (
                 <Loader2 size={14} className="shop-spin" aria-hidden />
+              ) : gioiThieuKioskWarn ? (
+                <AlertTriangle size={14} strokeWidth={2} aria-hidden />
               ) : (
                 <Megaphone size={14} strokeWidth={2} aria-hidden />
               )}
@@ -1096,9 +1222,29 @@ export function ShopKhoLoaiMeta({
         </div>
       </div>
 
+      {gioiThieuKioskWarn && onGioiThieu ? (
+        <p className="shop-kho-gioi-thieu-warn" role="status">
+          <AlertTriangle size={14} strokeWidth={2.2} aria-hidden />
+          {gioiThieuKioskWarn}
+        </p>
+      ) : null}
+
       <div className="shop-kho-loai-meta-grid">
         <div className="shop-kho-loai-meta-media">
-          <div className="shop-kho-loai-meta-anh-wrap">
+          <div
+            className="shop-kho-loai-meta-anh-wrap"
+            tabIndex={0}
+            onPaste={(e) => {
+              if (mediaBusy) return;
+              const file = imageFilesFromClipboard(e.clipboardData)[0];
+              if (!file) return;
+              e.preventDefault();
+              e.stopPropagation();
+              pasteArmTargetRef.current = null;
+              setPasteArmed(false);
+              void uploadAnh(file);
+            }}
+          >
             <button
               type="button"
               className={`shop-kho-loai-meta-anh${uploadingAnh ? " is-busy" : ""}`}
@@ -1141,18 +1287,26 @@ export function ShopKhoLoaiMeta({
               disabled={mediaBusy}
               aria-label="Dán ảnh loại từ bộ nhớ tạm"
               title="Dán ảnh"
+              onPointerDown={() => {
+                if (mediaBusy) return;
+                pendingClipboardReadRef.current = beginClipboardImageRead();
+              }}
               onClick={(e) => {
                 e.stopPropagation();
                 void (async () => {
-                  const files = await readImageFilesFromClipboard();
+                  const pending = pendingClipboardReadRef.current;
+                  pendingClipboardReadRef.current = null;
+                  const { files, message } = await resolveClipboardPaste(pending);
                   const file = files[0];
-                  if (!file) {
-                    onError(
-                      "Không đọc được ảnh từ bộ nhớ tạm. Hãy copy ảnh rồi thử lại.",
-                    );
+                  if (file) {
+                    pasteArmTargetRef.current = null;
+                    setPasteArmed(false);
+                    void uploadAnh(file);
                     return;
                   }
-                  void uploadAnh(file);
+                  pasteArmTargetRef.current = "anh";
+                  setPasteArmed(true);
+                  onError(message ?? clipboardImageFailureMessage("empty"));
                 })();
               }}
             >
@@ -1278,7 +1432,20 @@ export function ShopKhoLoaiMeta({
             {videoPhu || uploadingVideo ? "1" : "0"}/1 video
           </span>
         </div>
-        <div className="shop-kho-loai-meta-phu-row">
+        <div
+          className="shop-kho-loai-meta-phu-row"
+          tabIndex={0}
+          onPaste={(e) => {
+            if (mediaBusy) return;
+            const files = imageFilesFromClipboard(e.clipboardData);
+            if (files.length === 0) return;
+            e.preventDefault();
+            e.stopPropagation();
+            pasteArmTargetRef.current = null;
+            setPasteArmed(false);
+            void uploadAnhPhuMany(files);
+          }}
+        >
           {anhPhu.map((a) => (
             <span key={a.id} className="shop-kho-loai-meta-phu-item">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1339,16 +1506,25 @@ export function ShopKhoLoaiMeta({
                 disabled={mediaBusy}
                 aria-label="Dán ảnh thật từ bộ nhớ tạm"
                 title="Dán ảnh"
+                onPointerDown={() => {
+                  if (mediaBusy) return;
+                  pendingClipboardReadRef.current = beginClipboardImageRead();
+                }}
                 onClick={() => {
                   void (async () => {
-                    const files = await readImageFilesFromClipboard();
-                    if (files.length === 0) {
-                      onError(
-                        "Không đọc được ảnh từ bộ nhớ tạm. Hãy copy ảnh rồi thử lại.",
-                      );
+                    const pending = pendingClipboardReadRef.current;
+                    pendingClipboardReadRef.current = null;
+                    const { files, message } =
+                      await resolveClipboardPaste(pending);
+                    if (files.length > 0) {
+                      pasteArmTargetRef.current = null;
+                      setPasteArmed(false);
+                      void uploadAnhPhuMany(files);
                       return;
                     }
-                    void uploadAnhPhuMany(files);
+                    pasteArmTargetRef.current = "phu";
+                    setPasteArmed(true);
+                    onError(message ?? clipboardImageFailureMessage("empty"));
                   })();
                 }}
               >

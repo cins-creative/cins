@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import {
+  Suspense,
+  use,
+  useCallback,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -8,6 +15,7 @@ import {
   HomeEditToolbar,
   HomeLayoutEditProvider,
 } from "@/components/cins/home-adaptive/HomeLayoutBoard";
+import type { HomeLayoutResolvePayload } from "@/components/cins/home-v2/home-layout-resolve";
 import { WorldJourneyFeed } from "@/components/cins/world-journey/WorldJourneyFeed";
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
 import type { SidebarProfile } from "@/components/journey/JourneySidebar";
@@ -26,6 +34,16 @@ import {
   isHomeLayoutEditUrl,
 } from "@/lib/home/home-layout-edit";
 
+type LayoutDraft = {
+  left: ModuleId[];
+  right: ModuleId[];
+  hidden: ModuleId[];
+  newlyInjected: ModuleId[];
+  limits: HomeLayoutItemLimits;
+  presetDaAp: PresetId[];
+  capabilities: HomeCapability[];
+};
+
 type Props = {
   sidebarProfile: SidebarProfile;
   viewerProfileId: string;
@@ -40,6 +58,8 @@ type Props = {
   galleryNextOffset?: number;
   pendingConfirmations?: ReactNode;
   feedPromos?: FeedPromoVariant[];
+  /** Stream promos sau — không chặn paint feed. */
+  feedPromosPromise?: Promise<FeedPromoVariant[]>;
   editingLayout?: boolean;
   layoutPersona: Persona;
   layoutGiaiDoan?: GiaiDoan | null;
@@ -49,9 +69,53 @@ type Props = {
   layoutNewlyInjected?: ModuleId[];
   layoutLimits?: HomeLayoutItemLimits;
   layoutPresetDaAp?: PresetId[];
+  /** Khi có: hydrate layout/capabilities sau critical path (không remount feed). */
+  layoutPromise?: Promise<HomeLayoutResolvePayload>;
   moduleNodes: ReactNode;
+  /** Module ngoài layout mặc định (Suspense RSC). */
+  children?: ReactNode;
   capabilities?: HomeCapability[];
 };
+
+function PromosResolver({
+  promosPromise,
+  onResolve,
+}: {
+  promosPromise: Promise<FeedPromoVariant[]>;
+  onResolve: (promos: FeedPromoVariant[]) => void;
+}) {
+  const promos = use(promosPromise);
+  useEffect(() => {
+    onResolve(promos);
+  }, [promos, onResolve]);
+  return null;
+}
+
+function LayoutResolver({
+  layoutPromise,
+  onResolve,
+}: {
+  layoutPromise: Promise<HomeLayoutResolvePayload>;
+  onResolve: (payload: HomeLayoutResolvePayload) => void;
+}) {
+  const payload = use(layoutPromise);
+  useEffect(() => {
+    onResolve(payload);
+  }, [payload, onResolve]);
+  return null;
+}
+
+function payloadToDraft(payload: HomeLayoutResolvePayload): LayoutDraft {
+  return {
+    left: [...payload.layout.left],
+    right: [...payload.layout.right],
+    hidden: [...payload.layout.hidden],
+    newlyInjected: [...payload.layout.newlyInjected],
+    limits: { ...payload.layout.limits },
+    presetDaAp: [...payload.layout.presetDaAp],
+    capabilities: [...payload.capabilityList],
+  };
+}
 
 /** Bọc feed trang chủ logged-in — overlay compose + tuỳ chỉnh sidebar. */
 export function HomeWorldJourneyClient({
@@ -67,7 +131,8 @@ export function HomeWorldJourneyClient({
   galleryHasMore = false,
   galleryNextOffset = 0,
   pendingConfirmations,
-  feedPromos,
+  feedPromos: feedPromosProp,
+  feedPromosPromise,
   editingLayout = false,
   layoutPersona,
   layoutGiaiDoan = null,
@@ -77,22 +142,40 @@ export function HomeWorldJourneyClient({
   layoutNewlyInjected = [],
   layoutLimits = {},
   layoutPresetDaAp = [],
+  layoutPromise,
   moduleNodes,
-  capabilities = [],
+  children = null,
+  capabilities: capabilitiesProp = [],
 }: Props) {
   const router = useRouter();
-  /** Edit mode client-owned — tránh remount RSC khi vào từ modal. */
-  const [editing, setEditing] = useState(
-    () => editingLayout || isHomeLayoutEditUrl(),
+  /** Edit từ URL / event — OR với prop SSR, không cần sync effect. */
+  const [editingFromClient, setEditingFromClient] = useState(() =>
+    isHomeLayoutEditUrl(),
   );
+  const editing = Boolean(editingLayout) || editingFromClient;
+
+  const layoutFromProps: LayoutDraft = {
+    left: layoutLeft,
+    right: layoutRight,
+    hidden: layoutHidden,
+    newlyInjected: layoutNewlyInjected,
+    limits: layoutLimits,
+    presetDaAp: layoutPresetDaAp,
+    capabilities: capabilitiesProp,
+  };
+
+  /** Chỉ set khi layoutPromise resolve — không ghi đè bằng effect từ props. */
+  const [layoutHydrated, setLayoutHydrated] = useState<LayoutDraft | null>(null);
+  const layoutDraft = layoutHydrated ?? layoutFromProps;
+
+  const [promosHydrated, setPromosHydrated] = useState<
+    FeedPromoVariant[] | null
+  >(null);
+  const feedPromos = promosHydrated ?? feedPromosProp;
 
   useEffect(() => {
-    if (editingLayout) setEditing(true);
-  }, [editingLayout]);
-
-  useEffect(() => {
-    const onEnter = () => setEditing(true);
-    const onPop = () => setEditing(isHomeLayoutEditUrl());
+    const onEnter = () => setEditingFromClient(true);
+    const onPop = () => setEditingFromClient(isHomeLayoutEditUrl());
     window.addEventListener(HOME_LAYOUT_EDIT_ENTER_EVENT, onEnter);
     window.addEventListener("popstate", onPop);
     return () => {
@@ -101,9 +184,17 @@ export function HomeWorldJourneyClient({
     };
   }, []);
 
+  const onLayoutResolve = useCallback((payload: HomeLayoutResolvePayload) => {
+    setLayoutHydrated(payloadToDraft(payload));
+  }, []);
+
+  const onPromosResolve = useCallback((promos: FeedPromoVariant[]) => {
+    setPromosHydrated(promos);
+  }, []);
+
   const exitEditing = useCallback(
     (opts?: { refresh?: boolean }) => {
-      setEditing(false);
+      setEditingFromClient(false);
       clearHomeLayoutEditUrl();
       if (opts?.refresh) {
         /* Soft-refresh nền sau paint — UI đã hiện live preview / skeleton. */
@@ -120,6 +211,13 @@ export function HomeWorldJourneyClient({
     [router],
   );
 
+  const mergedModules = (
+    <>
+      {moduleNodes}
+      {children}
+    </>
+  );
+
   return (
     <JourneyComposeProvider
       ownerId={sidebarProfile.id}
@@ -129,20 +227,36 @@ export function HomeWorldJourneyClient({
       isOwner
       syncComposeUrl={false}
     >
+      {layoutPromise ? (
+        <Suspense fallback={null}>
+          <LayoutResolver
+            layoutPromise={layoutPromise}
+            onResolve={onLayoutResolve}
+          />
+        </Suspense>
+      ) : null}
+      {feedPromosPromise ? (
+        <Suspense fallback={null}>
+          <PromosResolver
+            promosPromise={feedPromosPromise}
+            onResolve={onPromosResolve}
+          />
+        </Suspense>
+      ) : null}
       <HomeLayoutEditProvider
         editing={editing}
         persona={layoutPersona}
         giaiDoan={layoutGiaiDoan}
         viewerProfileId={viewerProfileId}
-        initialLeft={layoutLeft}
-        initialRight={layoutRight}
-        initialHidden={layoutHidden}
-        initialLimits={layoutLimits}
-        initialPresetDaAp={layoutPresetDaAp}
-        newlyInjected={layoutNewlyInjected}
-        moduleNodes={moduleNodes}
+        initialLeft={layoutDraft.left}
+        initialRight={layoutDraft.right}
+        initialHidden={layoutDraft.hidden}
+        initialLimits={layoutDraft.limits}
+        initialPresetDaAp={layoutDraft.presetDaAp}
+        newlyInjected={layoutDraft.newlyInjected}
+        moduleNodes={mergedModules}
         exitEditing={exitEditing}
-        capabilities={capabilities}
+        capabilities={layoutDraft.capabilities}
       >
         <div className={editing ? "ha-home-editing" : undefined}>
           <HomeEditToolbar />

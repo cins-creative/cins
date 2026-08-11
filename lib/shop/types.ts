@@ -202,8 +202,10 @@ export const SHOP_NHOM_ANH_PHU_MAX = 8;
 /** Trần ảnh prefill bài «Giới thiệu sản phẩm» (album ImageGrid). */
 export const SHOP_GIOI_THIEU_ANH_MAX = 24;
 
-/** Cooldown đăng «Giới thiệu sản phẩm» — 1 lần / loại hàng / khoảng này. */
-export const SHOP_GIOI_THIEU_COOLDOWN_DAYS = 3;
+/**
+ * @deprecated Đã bỏ giới hạn lượt (2026-08-11). Giữ hằng = 0 để caller cũ không vỡ.
+ */
+export const SHOP_GIOI_THIEU_COOLDOWN_DAYS = 0;
 
 /**
  * Trần dòng `shop_post_hang` (= biến thể) trên 1 bài Journey.
@@ -316,6 +318,8 @@ export type ShopStorefrontItem = {
   phanLoai2: string | null;
   /** FK `shop_nhom` truc=1 — để seller sửa mô tả nhóm. */
   idNhom: string | null;
+  /** Tên loại hàng (`shop_nhom.nhan`). */
+  tenLoai: string | null;
   /** Mô tả ngắn nhóm phân loại 1 (`shop_nhom.mo_ta`). */
   phanLoaiMoTa: string | null;
 };
@@ -701,6 +705,10 @@ export type ShopQuayHangSearch = {
   nhanBienThe: string;
   phanLoai: string | null;
   phanLoai2: string | null;
+  /** FK loại hàng (`shop_nhom`) — null = chưa gán / «Khác». */
+  idNhom: string | null;
+  /** Tên loại hàng (`shop_nhom.nhan`). */
+  tenLoai: string | null;
   anhUrl: string | null;
   soLuongTon: number;
   soLuongBan: number;

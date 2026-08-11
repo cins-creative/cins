@@ -5,6 +5,8 @@ export type PublicShopListingHang = {
   id: string;
   ten: string;
   anhUrl: string | null;
+  /** Mô tả loại (`shop_nhom.mo_ta`) — dùng card «Mặt hàng». */
+  moTa?: string | null;
   /** Có khi là mẫu (`shop_san_pham`) gắn loại. */
   idNhom?: string | null;
   /** Giá gợi ý — `shop_nhom.gia_mac_dinh` (loại) hoặc kế thừa từ loại (mẫu). */
@@ -51,6 +53,8 @@ export type PublicShopListingItem = {
   searchHaystack: string;
   /** Shop có voucher công khai đang chạy. */
   coVoucher?: boolean;
+  /** Shop có combo đang chạy (discount filter tab Shop — không cần scan catalog). */
+  coCombo?: boolean;
   /** Dòng ticker voucher trên card shop — vd. «Voucher giảm giá 30k từ 400k». */
   voucherTickerLines?: string[];
 };

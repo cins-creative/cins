@@ -46,6 +46,8 @@ type Props = {
   sellerSlug?: string | null;
   /** Catalog sẵn — bỏ fetch post-hang / mat-hang. */
   hangItems?: ShopPostHangItem[];
+  /** Compose preview — chỉ xem ticker, không giỏ / không gọi API. */
+  previewOnly?: boolean;
 };
 
 type PreviewState = {
@@ -78,8 +80,9 @@ export function ShopKioskBlock({
   sellerName = null,
   sellerSlug = null,
   hangItems,
+  previewOnly = false,
 }: Props) {
-  const isShopCart = Boolean(cuaHangId?.trim());
+  const isShopCart = Boolean(cuaHangId?.trim()) && !previewOnly;
   const postId = milestoneId?.trim() || "";
   const { openChat } = useCinsChat();
 
@@ -349,6 +352,7 @@ export function ShopKioskBlock({
     Boolean(viewerProfileId) &&
     Boolean(sellerUserId) &&
     viewerProfileId === sellerUserId;
+  const cartLocked = previewOnly || isOwner;
 
   useEffect(() => {
     setPortalReady(true);
@@ -456,7 +460,7 @@ export function ShopKioskBlock({
 
   /** Đọc giỏ chung, lọc số lượng theo seller này. */
   const loadGio = useCallback(async () => {
-    if (!viewerProfileId || isOwner || !sellerUserId) return;
+    if (previewOnly || !viewerProfileId || isOwner || !sellerUserId) return;
     try {
       const res = await fetch("/api/shop/gio-chung", { cache: "no-store" });
       const json = (await res.json().catch(() => null)) as {
@@ -470,34 +474,37 @@ export function ShopKioskBlock({
     } catch {
       /* ignore */
     }
-  }, [viewerProfileId, isOwner, sellerUserId]);
+  }, [previewOnly, viewerProfileId, isOwner, sellerUserId]);
 
   useEffect(() => {
     void loadHang();
   }, [loadHang]);
 
   useEffect(() => {
+    if (previewOnly) return;
     void loadGio();
-  }, [loadGio]);
+  }, [loadGio, previewOnly]);
 
   /* Đồng bộ khi giỏ chung đổi từ nơi khác (panel topbar, storefront…). */
   useEffect(() => {
+    if (previewOnly) return;
     const onChanged = () => void loadGio();
     window.addEventListener(GIO_CHUNG_CHANGED_EVENT, onChanged);
     return () => window.removeEventListener(GIO_CHUNG_CHANGED_EVENT, onChanged);
-  }, [loadGio]);
+  }, [loadGio, previewOnly]);
 
   /* Cài đặt tắt/bật bán hàng → refetch (API ẩn hàng khi seller tắt). */
   useEffect(() => {
+    if (previewOnly) return;
     const onBanHangChanged = () => void loadHang();
     window.addEventListener("cins:ban-hang-changed", onBanHangChanged);
     return () =>
       window.removeEventListener("cins:ban-hang-changed", onBanHangChanged);
-  }, [loadHang]);
+  }, [loadHang, previewOnly]);
 
   /* Gắn / gỡ sản phẩm trên bài → refetch card bán hàng. */
   useEffect(() => {
-    if (isShopCart) return;
+    if (previewOnly || isShopCart) return;
     const onShopHangChanged = (e: Event) => {
       const detail = (e as CustomEvent<{ milestoneId?: string }>).detail;
       if (detail?.milestoneId && detail.milestoneId !== postId) return;
@@ -507,7 +514,7 @@ export function ShopKioskBlock({
     window.addEventListener("cins:shop-hang-changed", onShopHangChanged);
     return () =>
       window.removeEventListener("cins:shop-hang-changed", onShopHangChanged);
-  }, [loadHang, isShopCart, postId]);
+  }, [loadHang, isShopCart, postId, previewOnly]);
 
   useEffect(() => {
     if (hangItems) {
@@ -728,6 +735,7 @@ export function ShopKioskBlock({
 
   const patchQty = useCallback(
     (idBienThe: string, soLuong: number) => {
+      if (previewOnly) return;
       if (!viewerProfileId) {
         setErr("Đăng nhập để thêm vào giỏ.");
         return;
@@ -769,7 +777,7 @@ export function ShopKioskBlock({
         }, QTY_SYNC_MS),
       );
     },
-    [viewerProfileId, isOwner, flushQtySync],
+    [previewOnly, viewerProfileId, isOwner, flushQtySync],
   );
 
   const messageSeller = useCallback(async () => {
@@ -1000,7 +1008,7 @@ export function ShopKioskBlock({
                                     {it.tienTe}
                                   </strong>
                                 </div>
-                                {!isOwner ? (
+                                {!cartLocked ? (
                                   <div className="shop-kiosk-catalog-action">
                                     <span className="shop-kiosk-catalog-stock">
                                       Bán: {it.soLuongBan}
@@ -1069,7 +1077,9 @@ export function ShopKioskBlock({
                                 ) : (
                                   <div className="shop-kiosk-catalog-action">
                                     <span className="shop-kiosk-catalog-stock">
-                                      Bán: {it.soLuongBan}
+                                      {previewOnly
+                                        ? `Tồn: ${it.soLuongTon}`
+                                        : `Bán: ${it.soLuongBan}`}
                                     </span>
                                   </div>
                                 )}

@@ -57,6 +57,10 @@ export type ComposePreviewDraft = {
     processing?: boolean;
     videoCanvasRatio?: string | null;
   } | null;
+  /** Mock ticker hàng bán (Giới thiệu sản phẩm từ Kho). */
+  shopKioskPreview?: import("@/lib/journey/compose-types").ComposeShopKioskPreview | null;
+  /** Thẻ `#` đã gắn — hiện chip trên card Journey như timeline. */
+  articleTags?: import("@/lib/editor/article-tag").ArticleTagRef[] | null;
 };
 
 export type ComposePreviewMedia = {
@@ -107,6 +111,8 @@ export type ComposePreviewSnapshot = {
   showCoverInPost: boolean;
   /** Tỉ lệ + điểm neo cho Gallery / bài dài. Masonry bỏ qua. */
   coverThumb: CoverThumbMeta | null;
+  /** Thẻ bài viết (`#`) — chip trên card Journey. */
+  articleTags: import("@/lib/editor/article-tag").ArticleTagRef[];
 };
 
 function seedToUrl(seed: string | null | undefined): string | null {
@@ -454,6 +460,9 @@ export function buildComposePreviewSnapshot(
     displayDate: todayDisplayDate(),
     showCoverInPost,
     coverThumb,
+    articleTags: Array.isArray(draft.articleTags)
+      ? draft.articleTags.filter((t) => Boolean(t?.id))
+      : [],
   };
 }
 

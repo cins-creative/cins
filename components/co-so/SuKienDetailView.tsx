@@ -15,7 +15,10 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
+  Suspense,
   useCallback,
   useEffect,
   useId,
@@ -28,8 +31,6 @@ import {
 import { ArticleRichBody } from "@/components/article/ArticleRichBody";
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import type { FeedFriendAttendee } from "@/components/journey/milestone-types";
-import { ShopQuaySuKienPanel } from "@/components/shop/ShopQuaySuKienPanel";
-import { SuKienManagePanel } from "@/components/co-so/SuKienManagePanel";
 import { ShareLinkMenu } from "@/components/social/ShareLinkMenu";
 import { orgLoaiLabel } from "@/lib/cins/home-adaptive/suggestions-display";
 import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-phan-hoi-types";
@@ -40,13 +41,47 @@ import {
   type SuKienLoaiVe,
 } from "@/lib/to-chuc/su-kien-constants";
 import {
+  parseSuKienQuayView,
   SU_KIEN_LISTING_PATH,
+  SU_KIEN_QUAY_VIEW_DEFAULT,
   suKienCardPath,
+  withoutSuKienQuayView,
+  withSuKienQuayView,
 } from "@/lib/to-chuc/su-kien-routes";
 import { formatSuKienDiaDiemDisplay } from "@/lib/truong/contact";
 import {
   hasTruongGioiThieuContent,
 } from "@/lib/truong/gioi-thieu";
+
+const ShopQuaySuKienPanel = dynamic(
+  () =>
+    import("@/components/shop/ShopQuaySuKienPanel").then((m) => ({
+      default: m.ShopQuaySuKienPanel,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <p className="shop-dash-hint" style={{ margin: "12px 0" }}>
+        Đang tải quầy…
+      </p>
+    ),
+  },
+);
+
+const SuKienManagePanel = dynamic(
+  () =>
+    import("@/components/co-so/SuKienManagePanel").then((m) => ({
+      default: m.SuKienManagePanel,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <p className="cso-sk-manage-loading" style={{ margin: "16px 0" }}>
+        Đang tải quản lý…
+      </p>
+    ),
+  },
+);
 
 /** Địa điểm online (link Zoom/Meet…) không có gì để chỉ trên bản đồ. */
 function mapQueryFromDiaDiem(label: string | null): string | null {
@@ -134,7 +169,7 @@ function SuKienDetailMainTabs({
   /** `sk-detail` (trang) hoặc `cso-sk-detail` (panel). */
   classPrefix?: "sk-detail" | "cso-sk-detail";
   viewerProfileId?: string | null;
-  /** `null` → tab đầu tiên khả dụng. */
+  /** `null` → tab đầu (Quầy nếu có, không thì Thông tin). */
   active: SuKienDetailMainTabId | null;
   onActiveChange: (id: SuKienDetailMainTabId) => void;
 }) {
@@ -144,6 +179,7 @@ function SuKienDetailMainTabs({
 
   const tabs = useMemo(() => {
     const next: Array<{ id: SuKienDetailMainTabId; label: string }> = [];
+    /* Quầy trước (nếu có) → Thông tin → Vé. */
     if (hasQuay) next.push({ id: "quay", label: "Quầy sự kiện" });
     next.push({ id: "thong_tin", label: "Thông tin sự kiện" });
     if (showVe) next.push({ id: "ve", label: "Vé sự kiện" });
@@ -196,11 +232,17 @@ function SuKienDetailMainTabs({
           className="sk-detail-tab-panel"
         >
           {activeId === "quay" ? (
-            <ShopQuaySuKienPanel
-              suKienId={suKien.id}
-              canManage={false}
-              viewerProfileId={viewerProfileId}
-            />
+            <Suspense
+              fallback={
+                <p className="shop-dash-hint">Đang tải quầy…</p>
+              }
+            >
+              <ShopQuaySuKienPanel
+                suKienId={suKien.id}
+                canManage={false}
+                viewerProfileId={viewerProfileId}
+              />
+            </Suspense>
           ) : null}
         </div>
       ) : null}
@@ -621,7 +663,15 @@ function SuKienDetailSocialProof({
   );
 }
 
-export function SuKienDetailView({
+export function SuKienDetailView(props: SuKienDetailViewProps) {
+  return (
+    <Suspense fallback={null}>
+      <SuKienDetailViewInner {...props} />
+    </Suspense>
+  );
+}
+
+function SuKienDetailViewInner({
   orgId,
   suKien,
   canManage = false,
@@ -641,7 +691,7 @@ export function SuKienDetailView({
   const { isAuthenticated, openAuthModal } = useAuthGate();
   const [loai, setLoai] = useState<LoaiPhanHoiSuKien | null>(null);
   const [soDangKy, setSoDangKy] = useState(suKien.soDangKy);
-  const [soQuanTam, setSoQuanTam] = useState(0);
+  const [soQuanTam, setSoQuanTam] = useState(suKien.soQuanTam ?? 0);
   const [banBeQuanTam, setBanBeQuanTam] = useState<FeedFriendAttendee[]>([]);
   const [banBeSeThamGia, setBanBeSeThamGia] = useState<FeedFriendAttendee[]>(
     [],
@@ -653,6 +703,10 @@ export function SuKienDetailView({
     canManage && initialPanelTab === "manage" ? "manage" : "detail",
   );
   const [pendingReviewCount, setPendingReviewCount] = useState(0);
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const quayFromUrl = parseSuKienQuayView(searchParams.get("quay"));
   // Gắn tab với id sự kiện thay vì reset trong effect — đổi sự kiện là quay về
   // tab đầu tiên mà không gây thêm một vòng render.
   const [mainTabState, setMainTabState] = useState<{
@@ -660,14 +714,34 @@ export function SuKienDetailView({
     tab: SuKienDetailMainTabId | null;
   }>({ suKienId: suKien.id, tab: null });
   const mainTab =
-    mainTabState.suKienId === suKien.id ? mainTabState.tab : null;
+    mainTabState.suKienId === suKien.id
+      ? (mainTabState.tab ?? (quayFromUrl ? "quay" : null))
+      : quayFromUrl
+        ? "quay"
+        : null;
   const mainColRef = useRef<HTMLDivElement>(null);
 
   const setMainTab = useCallback(
     (tab: SuKienDetailMainTabId) => {
       setMainTabState({ suKienId: suKien.id, tab });
+      if (tab === "quay") {
+        if (!parseSuKienQuayView(searchParams.get("quay"))) {
+          router.replace(
+            withSuKienQuayView(
+              pathname,
+              SU_KIEN_QUAY_VIEW_DEFAULT,
+              searchParams,
+            ),
+            { scroll: false },
+          );
+        }
+      } else if (searchParams.has("quay")) {
+        router.replace(withoutSuKienQuayView(pathname, searchParams), {
+          scroll: false,
+        });
+      }
     },
-    [suKien.id],
+    [suKien.id, pathname, router, searchParams],
   );
 
   /** Dòng «Vé» ở aside → nhảy sang tab vé và cuộn tới nội dung. */
@@ -687,33 +761,47 @@ export function SuKienDetailView({
       setPendingReviewCount(0);
       return;
     }
+    /* Badge chờ duyệt — trì hoãn sau paint; không chặn LCP trang sự kiện. */
     let cancelled = false;
-    void fetch(
-      `/api/org/${encodeURIComponent(orgId)}/su-kien/${encodeURIComponent(suKien.id)}/quan-ly`,
-      { credentials: "include", cache: "no-store" },
-    )
-      .then(async (res) => {
-        if (!res.ok || cancelled) return;
-        const json = (await res.json().catch(() => null)) as {
-          stats?: { soChoDuyetNoiDung?: number };
-        } | null;
-        if (cancelled) return;
-        setPendingReviewCount(
-          typeof json?.stats?.soChoDuyetNoiDung === "number"
-            ? json.stats.soChoDuyetNoiDung
-            : 0,
-        );
-      })
-      .catch(() => {
-        /* giữ số cũ */
-      });
+    const run = () => {
+      if (cancelled) return;
+      void fetch(
+        `/api/org/${encodeURIComponent(orgId)}/su-kien/${encodeURIComponent(suKien.id)}/quan-ly`,
+        { credentials: "include", cache: "no-store" },
+      )
+        .then(async (res) => {
+          if (!res.ok || cancelled) return;
+          const json = (await res.json().catch(() => null)) as {
+            stats?: { soChoDuyetNoiDung?: number };
+          } | null;
+          if (cancelled) return;
+          setPendingReviewCount(
+            typeof json?.stats?.soChoDuyetNoiDung === "number"
+              ? json.stats.soChoDuyetNoiDung
+              : 0,
+          );
+        })
+        .catch(() => {
+          /* giữ số cũ */
+        });
+    };
+    let idleId: number | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    if (typeof requestIdleCallback !== "undefined") {
+      idleId = requestIdleCallback(run, { timeout: 2500 });
+    } else {
+      timeoutId = setTimeout(run, 500);
+    }
     return () => {
       cancelled = true;
+      if (idleId != null && typeof cancelIdleCallback !== "undefined") {
+        cancelIdleCallback(idleId);
+      }
+      if (timeoutId != null) clearTimeout(timeoutId);
     };
   }, [canManage, orgId, suKien.id]);
 
   const refresh = useCallback(() => {
-    setLoaded(false);
     setActionError(null);
     void fetch(
       `/api/org/${encodeURIComponent(orgId)}/su-kien/${encodeURIComponent(suKien.id)}/dang-ky`,
@@ -738,22 +826,25 @@ export function SuKienDetailView({
                 : suKien.soDangKy;
           setSoDangKy(seThamGia);
           setSoQuanTam(
-            typeof data.soQuanTam === "number" ? data.soQuanTam : 0,
+            typeof data.soQuanTam === "number"
+              ? data.soQuanTam
+              : (suKien.soQuanTam ?? 0),
           );
           setBanBeQuanTam(parseFriendList(data.banBeQuanTam));
           setBanBeSeThamGia(parseFriendList(data.banBeSeThamGia));
         }
       })
       .finally(() => setLoaded(true));
-  }, [orgId, suKien.id, suKien.soDangKy]);
+  }, [orgId, suKien.id, suKien.soDangKy, suKien.soQuanTam]);
 
   useEffect(() => {
     setSoDangKy(suKien.soDangKy);
-    setSoQuanTam(0);
+    setSoQuanTam(suKien.soQuanTam ?? 0);
     setBanBeQuanTam([]);
     setBanBeSeThamGia([]);
+    setLoaded(typeof suKien.soQuanTam === "number");
     refresh();
-  }, [suKien.id, suKien.soDangKy, refresh]);
+  }, [suKien.id, suKien.soDangKy, suKien.soQuanTam, refresh]);
 
   function handlePhanHoi(nextLoai: LoaiPhanHoiSuKien) {
     if (!isAuthenticated) {
@@ -953,7 +1044,7 @@ export function SuKienDetailView({
                 alt=""
                 fill
                 className="sk-detail-hero-img"
-                sizes="100vw"
+                sizes="(max-width: 900px) 100vw, 1160px"
                 priority
               />
             ) : (

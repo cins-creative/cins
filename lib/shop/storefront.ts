@@ -131,6 +131,7 @@ export async function listShopStorefrontItems(opts: {
     ),
   ];
   const moTaByNhomId = new Map<string, string | null>();
+  const tenByNhomId = new Map<string, string>();
   if (nhomIds.length > 0) {
     const { data: nhomRows } = await admin
       .from("shop_nhom")
@@ -139,6 +140,8 @@ export async function listShopStorefrontItems(opts: {
       .eq("da_xoa", false);
     for (const n of (nhomRows ?? []) as NhomRow[]) {
       moTaByNhomId.set(n.id, n.mo_ta?.trim() || null);
+      const nhan = n.nhan?.trim();
+      if (nhan) tenByNhomId.set(n.id, nhan);
     }
   }
 
@@ -383,6 +386,7 @@ export async function listShopStorefrontItems(opts: {
       phanLoai: sp.phan_loai?.trim() || null,
       phanLoai2: sp.phan_loai_2?.trim() || null,
       idNhom: sp.id_nhom,
+      tenLoai: sp.id_nhom ? (tenByNhomId.get(sp.id_nhom) ?? null) : null,
       phanLoaiMoTa: sp.id_nhom
         ? (moTaByNhomId.get(sp.id_nhom) ?? null)
         : null,

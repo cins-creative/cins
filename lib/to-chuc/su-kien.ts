@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { countQuayDaDuyet, countQuayDaDuyetBySuKienIds } from "@/lib/shop/quay-count";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
@@ -8,7 +10,10 @@ import { getViewerCoSoVaiTro } from "./co-so-membership";
 import { canManageKhoaHoc } from "./co-so-vai-tro";
 import { normalizeTinhThanhForDb } from "@/lib/truong/contact";
 import { normalizeTruongGioiThieuHtml } from "@/lib/truong/gioi-thieu";
-import { demDangKySeThamGia } from "./su-kien-dang-ky";
+import {
+  demDangKySeThamGia,
+  demPhanHoiSuKien,
+} from "./su-kien-dang-ky";
 import {
   listLoaiVeBySuKienIds,
   listLoaiVeCuaSuKien,
@@ -354,14 +359,15 @@ async function mapPublicDetail(
   if (!org?.slug?.trim() || !org.ten?.trim()) return null;
 
   const orgAvatarId = org.avatar_id ?? org.logo_id;
-  const [counts, loaiVe, quayCount] = await Promise.all([
-    demDangKySeThamGia([data.id]),
+  const [phanHoi, loaiVe, quayCount] = await Promise.all([
+    demPhanHoiSuKien(data.id),
     listLoaiVeCuaSuKien(data.id),
     countQuayDaDuyet(data.id),
   ]);
   return {
     suKien: {
-      ...mapRow(data, counts.get(data.id) ?? 0, loaiVe),
+      ...mapRow(data, phanHoi.soSeThamGia, loaiVe),
+      soQuanTam: phanHoi.soQuanTam,
       hasQuay: quayCount > 0,
     },
     orgId: data.id_to_chuc,
@@ -378,7 +384,7 @@ async function mapPublicDetail(
 const SU_KIEN_PUBLIC_SELECT = `${SU_KIEN_SELECT}, id_to_chuc, org_to_chuc!inner ( id, slug, ten, loai_to_chuc, avatar_id, logo_id )`;
 
 /** Chi tiết sự kiện công khai theo id — legacy / API nội bộ. */
-export async function getSuKienByIdPublic(
+async function getSuKienByIdPublicUncached(
   suKienId: string,
 ): Promise<SuKienPublicDetail | null> {
   const id = suKienId?.trim();
@@ -396,7 +402,7 @@ export async function getSuKienByIdPublic(
 }
 
 /** Chi tiết theo slug URL hoặc UUID (redirect UUID → slug ở page). */
-export async function getSuKienByPublicKey(
+async function getSuKienByPublicKeyUncached(
   key: string,
 ): Promise<SuKienPublicDetail | null> {
   const raw = key?.trim();
@@ -413,6 +419,10 @@ export async function getSuKienByPublicKey(
   if (error || !data) return null;
   return mapPublicDetail(data as SuKienPublicRow);
 }
+
+/** Dedup trong cùng request (metadata + page). */
+export const getSuKienByIdPublic = cache(getSuKienByIdPublicUncached);
+export const getSuKienByPublicKey = cache(getSuKienByPublicKeyUncached);
 
 export async function capNhatSuKien(
   suKienId: string,

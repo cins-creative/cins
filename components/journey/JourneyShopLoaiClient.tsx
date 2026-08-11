@@ -1163,17 +1163,21 @@ export function JourneyShopLoaiClient({
         </span>
       )}
     </nav>
-  ) : ownerId ? (
-    <JourneyShopGuestActions
-      ownerId={ownerId}
-      ownerSlug={ownerSlug}
-      shopSlug={shopSlug}
-      ownerName={ownerName}
-      ownerAvatarUrl={ownerAvatarUrl ?? shop?.avatarUrl ?? null}
-      viewerProfileId={viewerId}
-      shareTitle={detail?.nhan?.trim() || shopLabel}
-    />
   ) : null;
+
+  const guestHeroActions =
+    !isOwner && ownerId ? (
+      <JourneyShopGuestActions
+        ownerId={ownerId}
+        ownerSlug={ownerSlug}
+        shopSlug={shopSlug}
+        cuaHangId={shop?.id ?? null}
+        ownerName={ownerName}
+        ownerAvatarUrl={ownerAvatarUrl ?? shop?.avatarUrl ?? null}
+        viewerProfileId={viewerId}
+        shareTitle={detail?.nhan?.trim() || shopLabel}
+      />
+    ) : null;
 
   const shopChrome = (
     <>
@@ -1183,6 +1187,7 @@ export function JourneyShopLoaiClient({
         shopAvatarUrl={shop?.avatarUrl ?? null}
         shopCoverUrl={shop?.coverUrl ?? null}
         initials={initials}
+        actions={guestHeroActions}
       />
       <div className="j-shop-sf-section-head">
         <span className="j-tlb-streak-slow" aria-hidden="true" />

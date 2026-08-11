@@ -8,6 +8,63 @@ import {
 
 export const SU_KIEN_LISTING_PATH = "/su-kien";
 
+/** Chế độ xem tab Quầy — query `?quay=shop|mat-hang|hang`. */
+export const SU_KIEN_QUAY_VIEWS = ["shop", "mat-hang", "hang"] as const;
+export type SuKienQuayView = (typeof SU_KIEN_QUAY_VIEWS)[number];
+export const SU_KIEN_QUAY_VIEW_DEFAULT: SuKienQuayView = "shop";
+
+export function parseSuKienQuayView(
+  raw: string | null | undefined,
+): SuKienQuayView | null {
+  const v = raw?.trim().toLowerCase();
+  if (v === "shop" || v === "mat-hang" || v === "hang") return v;
+  return null;
+}
+
+/**
+ * Gắn / đổi `?quay=` trên pathname hiện tại (standalone · co-so · cộng đồng).
+ * Giữ các query khác (`manage`, …).
+ */
+export function withSuKienQuayView(
+  pathname: string,
+  view: SuKienQuayView,
+  currentSearch?: string | URLSearchParams | null,
+): string {
+  const params =
+    currentSearch instanceof URLSearchParams
+      ? new URLSearchParams(currentSearch)
+      : new URLSearchParams(currentSearch?.replace(/^\?/, "") ?? "");
+  params.set("quay", view);
+  const qs = params.toString();
+  return qs ? `${pathname}?${qs}` : pathname;
+}
+
+/** Bỏ `?quay=` khi rời tab Quầy. */
+export function withoutSuKienQuayView(
+  pathname: string,
+  currentSearch?: string | URLSearchParams | null,
+): string {
+  const params =
+    currentSearch instanceof URLSearchParams
+      ? new URLSearchParams(currentSearch)
+      : new URLSearchParams(currentSearch?.replace(/^\?/, "") ?? "");
+  params.delete("quay");
+  const qs = params.toString();
+  return qs ? `${pathname}?${qs}` : pathname;
+}
+
+/**
+ * Deep-link tab Quầy trên trang `/su-kien/{slug}`.
+ * VD: `/su-kien/{slug}?quay=hang`
+ */
+export function suKienQuayViewHref(
+  slugOrId: string,
+  view: SuKienQuayView = SU_KIEN_QUAY_VIEW_DEFAULT,
+  currentSearch?: string | URLSearchParams | null,
+): string {
+  return withSuKienQuayView(suKienDetailPath(slugOrId), view, currentSearch);
+}
+
 /** Trang chi tiết sự kiện độc lập: `/su-kien/:slug` (hoặc id khi chưa có slug). */
 export function suKienDetailPath(slugOrId: string): string {
   return `${SU_KIEN_LISTING_PATH}/${encodeURIComponent(slugOrId.trim())}`;

@@ -89,6 +89,8 @@ export type SuKienCardData = {
   cachMuaVe: string | null;
   slotToiDa: number | null;
   soDangKy: number;
+  /** Số quan tâm (SSR public detail) — client refresh sau. */
+  soQuanTam?: number;
   /** Có ≥1 quầy đã duyệt — hiện tab «Quầy sự kiện» không cần probe API. */
   hasQuay?: boolean;
 };

@@ -41,19 +41,29 @@
 
 ## LOG — quyết định đã chốt
 
+### Admin — soft-delete user (chỉ Admin tối cao) (2026-08-11)
+
+- **Chốt:** `/admin/nguoi-dung` có xóa user; gate `canDeleteUsers` = **chỉ `super_admin`**. Soft-delete (`trang_thai_tai_khoan = da_xoa`) + null `auth_user_id` + gỡ `user_quyen_he_thong` + `auth.admin.deleteUser` — **không** hard-delete profile (FK nội dung/shop/quan hệ).
+- **UI:** dialog cảnh báo + gõ đúng slug; chặn xóa chính mình / Admin tối cao; list ẩn user `da_xoa`.
+- *Hệ quả:* `lib/auth/system-role.ts` · `lib/admin/nguoi-dung-roles.ts` · `DELETE /api/admin/nguoi-dung/[id]` · `AdminNguoiDungDeleteDialog`. Docs: `cursor_map_admin.md` · IMPLEMENTATION API/gate.
+
 ### Shop — Giới thiệu sản phẩm chỉ ảnh loại (không ảnh mẫu) (2026-08-11)
 
 - **Chốt:** Prefill album «Giới thiệu sản phẩm» chỉ lấy **ảnh chính** + **ảnh phụ** của loại hàng (`shop_nhom`). **Không** gom ảnh thumbnail mẫu trong grid; **không** video phụ.
 - **UX:** Nút disable khi chưa có ảnh chính/ảnh phụ loại — hint «Thêm ảnh chính hoặc ảnh phụ cho loại hàng trước». Kiosk sau publish vẫn gắn từ mẫu như cũ.
 - *Hệ quả:* `lib/shop/gioi-thieu.ts` (`thuThapAnhLoaiHang`) · `ShopKhoClient`.
 
-### Shop — cooldown «Giới thiệu sản phẩm» 3 ngày / loại (2026-08-10)
+### Shop — bỏ cooldown «Giới thiệu sản phẩm» (2026-08-11)
 
-- **Chốt:** Mỗi loại hàng (`shop_nhom`) chỉ đăng được 1 bài «Giới thiệu sản phẩm» / **3 ngày** — chống spam từ Kho.
-- **DB:** bảng mới `shop_nhom_gioi_thieu` (không ALTER `shop_nhom`). Ghi mốc sau publish thành công (kể cả khi gắn kiosk lỗi).
-- **UX:** nút disable + `title` «Còn X ngày/giờ…»; GET khi mở loại; POST ghi; server 429 là nguồn sự thật.
+- **Chốt:** Không còn giới hạn 1 lần / 3 ngày. Seller giới thiệu lại loại hàng bất kỳ lúc nào.
+- **Giữ:** bảng `shop_nhom_gioi_thieu` chỉ để ghi mốc lần gần nhất (audit); GET luôn `allowed: true`; POST không trả 429.
+- *Hệ quả:* `gioi-thieu-cooldown.ts` · API `shop/nhom/[id]/gioi-thieu` · `ShopKhoClient` (gỡ disable theo hint).
+
+### Shop — cooldown «Giới thiệu sản phẩm» 3 ngày / loại (2026-08-10) — *đã gỡ 2026-08-11*
+
+- ~~**Chốt:** Mỗi loại hàng (`shop_nhom`) chỉ đăng được 1 bài «Giới thiệu sản phẩm» / **3 ngày** — chống spam từ Kho.~~
+- **DB:** bảng `shop_nhom_gioi_thieu` (không ALTER `shop_nhom`). Vẫn ghi mốc sau publish; không còn gate cooldown.
 - **Migration:** `migration_shop_nhom_gioi_thieu.sql` · `npm run migrate:shop-nhom-gioi-thieu`. **Đã chạy** CINs 2026-08-10.
-- *Hệ quả:* `lib/shop/gioi-thieu-cooldown.ts` · `SHOP_GIOI_THIEU_COOLDOWN_DAYS` · API `shop/nhom/[id]/gioi-thieu` · `ShopKhoClient`.
 
 ### Fandom entity — bài viết hạng nhất + thay facet shop (2026-08-10)
 

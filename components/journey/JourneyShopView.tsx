@@ -290,6 +290,7 @@ export function JourneyShopView({
                       ownerId={ownerId}
                       ownerSlug={ownerSlug}
                       shopSlug={shopSlug}
+                      cuaHangId={shop?.id ?? null}
                       ownerName={ownerName}
                       ownerAvatarUrl={ownerAvatarUrl ?? shop?.avatarUrl ?? null}
                       viewerProfileId={viewerProfileId}

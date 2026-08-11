@@ -10,27 +10,25 @@
 // @ts-expect-error `.open-next/worker.js` sinh lúc build
 import { default as handler } from "./.open-next/worker.js";
 
-import { runBillingScheduled } from "./workers/scheduled";
+import {
+  runBillingScheduled,
+  type BillingScheduledEnv,
+} from "./workers/scheduled";
+
+/** Env Worker — không phụ thuộc `@cloudflare/workers-types` (Next typecheck). */
+type WorkerScheduledCtx = { waitUntil: (p: Promise<unknown>) => void };
 
 export default {
   fetch: handler.fetch,
 
   async scheduled(
-    controller: ScheduledController,
-    env: CloudflareEnv,
-    ctx: ExecutionContext,
+    controller: unknown,
+    env: BillingScheduledEnv,
+    ctx: WorkerScheduledCtx,
   ): Promise<void> {
-    await runBillingScheduled(
-      controller,
-      env as CloudflareEnv & {
-        CSDT_PHI_CRON_SECRET?: string;
-        CINS_NOI_BO_SHOP_PHI_SECRET?: string;
-        NEXT_PUBLIC_SITE_URL?: string;
-      },
-      ctx,
-    );
+    await runBillingScheduled(controller, env, ctx);
   },
-} satisfies ExportedHandler<CloudflareEnv>;
+};
 
 /* Re-export nếu adapter bật DO queue / tag cache (mặc định OpenNext). */
 // @ts-expect-error `.open-next/worker.js` sinh lúc build

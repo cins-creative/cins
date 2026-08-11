@@ -12052,6 +12052,10 @@ button.cins-chat-project-card-mark:hover {
 :root[data-theme="dark"] .cins-chat-thread:hover {
   background: rgba(255, 255, 255, 0.06);
 }
+/* Track tab «Bạn bè / Tổ chức / Mua bán» — lõm hơn nền list (neutral-50) */
+:root[data-theme="dark"] .cins-chat-thread-tabs {
+  background: var(--neutral-0, #12151d);
+}
 :root[data-theme="dark"] .cins-chat-thread-tab-unread {
   box-shadow: 0 0 0 1.5px var(--neutral-100, #151a24);
 }

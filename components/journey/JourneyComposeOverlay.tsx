@@ -129,6 +129,8 @@ export function JourneyComposeOverlay({
     compose.kind === "photo" ? compose.prefillDraft : undefined;
   const draftScope =
     compose.kind === "photo" ? compose.draftScope : undefined;
+  const shopKioskPreview =
+    compose.kind === "photo" ? compose.shopKioskPreview : undefined;
   const pendingVideoFile =
     compose.kind === "video" ? compose.pendingFile : undefined;
   const embedPlatform =
@@ -314,6 +316,7 @@ export function JourneyComposeOverlay({
               }
               prefillDraft={prefillDraft}
               draftScope={draftScope}
+              shopKioskPreview={shopKioskPreview}
               congDongCompose={congDongCompose}
               orgBaiDangCompose={orgBaiDangCompose}
               onClose={onClose}

@@ -803,13 +803,17 @@ export function WorldJourneyFeed({
   );
 
   useEffect(() => {
-    /* Không ghi đè kết quả query filter bằng props SSR trang đầu. */
+    /* Không ghi đè kết quả query filter / client fetch bằng props SSR trang đầu.
+     * Journey SSR thường để galleryItems=[] (chỉ seed khi ?view=gallery|video) —
+     * nếu sync khi đang xem Gallery/Video sẽ xóa lưới vừa fetch (trống giả). */
     if (
       filterLoading ||
       activeFilter !== "all" ||
       activeLinhVucSlug ||
       feedSource !== FEED_SOURCE_DEFAULT ||
-      surfaceView === "shop"
+      surfaceView === "shop" ||
+      surfaceView === "gallery" ||
+      surfaceView === "video"
     ) {
       return;
     }
@@ -818,9 +822,12 @@ export function WorldJourneyFeed({
     setNextOffset(feedNextOffset);
     hasMoreRef.current = feedHasMore;
     nextOffsetRef.current = feedNextOffset;
-    setGalleryRows(galleryItems);
-    setGalleryMore(galleryHasMore);
-    setGalleryOffset(galleryNextOffset);
+    /* Chỉ hydrate gallery từ SSR khi props có data (không đè cache client bằng []). */
+    if (galleryItems.length > 0) {
+      setGalleryRows(galleryItems);
+      setGalleryMore(galleryHasMore);
+      setGalleryOffset(galleryNextOffset);
+    }
   }, [
     milestones,
     feedHasMore,

@@ -1,12 +1,20 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { SuKienCreateModal } from "@/components/co-so/SuKienCreateModal";
 import { SuKienDetailView } from "@/components/co-so/SuKienDetailView";
 import type { SuKienCardData } from "@/lib/to-chuc/su-kien-constants";
 import { suKienCardPath } from "@/lib/to-chuc/su-kien-routes";
+
+const SuKienCreateModal = dynamic(
+  () =>
+    import("@/components/co-so/SuKienCreateModal").then((m) => ({
+      default: m.SuKienCreateModal,
+    })),
+  { ssr: false },
+);
 
 type Props = {
   orgId: string;
@@ -98,15 +106,15 @@ export function SuKienStandaloneDetailHost({
         orgHref={orgHref}
         viewerProfileId={viewerProfileId}
       />
-      {canManage ? (
+      {canManage && editing ? (
         <SuKienCreateModal
-          open={Boolean(editing)}
+          open
           orgId={orgId}
           orgTinhThanh={orgTinhThanh}
           editing={editing}
           onClose={() => setEditing(null)}
           onUpdated={handleUpdated}
-          onDelete={editing ? handleDelete : undefined}
+          onDelete={handleDelete}
         />
       ) : null}
     </>

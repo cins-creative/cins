@@ -2102,6 +2102,57 @@ body:has(.shop-dash-gate) .j-chat-dock {
   cursor: not-allowed;
 }
 
+.shop-kho-loai-gioi-thieu.is-warn {
+  border-color: color-mix(in srgb, var(--cins-orange, #fdad4c) 45%, var(--border));
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 14%, var(--bg-surface));
+  color: color-mix(in srgb, var(--cins-orange, #fdad4c) 35%, var(--ink-body));
+}
+
+.shop-kho-gioi-thieu-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--cins-orange, #fdad4c) 35%, var(--border));
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 10%, var(--bg-surface));
+  color: var(--ink-body);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.shop-kho-gioi-thieu-warn svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--cins-orange, #fdad4c);
+}
+
+.shop-kho-loai-card.is-warn .shop-kho-loai-card-media {
+  position: relative;
+}
+
+.shop-kho-loai-card-warn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 92%, #fff);
+  color: #5a3a00;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 18%);
+}
+
+.shop-kho-loai-tax-badge.is-warn {
+  color: color-mix(in srgb, var(--cins-orange, #fdad4c) 40%, var(--ink-body));
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 14%, var(--bg-surface));
+  border-color: color-mix(in srgb, var(--cins-orange, #fdad4c) 35%, var(--border));
+}
+
 .shop-kho-gioi-thieu-toast {
   margin: 0 0 10px;
   padding: 10px 12px;
@@ -3982,19 +4033,22 @@ body:has(.shop-dash-gate) .j-chat-dock {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  padding: 0;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 12px;
   border: 1px solid var(--border, #e4e6eb);
   border-radius: 999px;
   background: var(--bg-surface, #fff);
-  color: var(--ink-muted, rgba(0, 0, 0, 0.55));
+  color: var(--ink-body, #1c1e21);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
 }
 
 .shop-kho-add-images-btn:hover:not(:disabled) {
   border-color: var(--cins-orange, #fdad4c);
-  color: var(--cins-orange, #fdad4c);
+  color: color-mix(in srgb, var(--cins-orange, #fdad4c) 70%, #5c3200);
 }
 
 .shop-kho-add-images-btn:disabled {
@@ -6353,9 +6407,12 @@ body:has(.shop-dash-gate) .j-chat-dock {
   padding-right: 28px;
 }
 
-/* Trang /su-kien/[id] â€” chá»‰ dÆ°á»›i site nav. */
+/* Trang /su-kien/[id] — dính dưới site nav + topbar SK. */
 .sk-detail .shop-quay-tlb.j-tlb {
-  top: var(--site-nav-height, 64px);
+  top: calc(
+    var(--site-nav-height, 64px) + var(--sk-detail-topbar-h, 62px)
+  );
+  z-index: 35;
 }
 
 .shop-quay-tlb.j-tlb > .j-tlb-date {
@@ -6461,15 +6518,200 @@ body:has(.shop-dash-gate) .j-chat-dock {
   overflow: visible;
 }
 
+.shop-quay-hang-catalog .shop-kiosk-catalog-grid {
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.shop-quay-hang-catalog .shop-kiosk-catalog-card {
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: var(--radius-md, 14px);
+  background: var(--bg-surface, #fff);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.shop-quay-hang-catalog .shop-kiosk-catalog-card:hover {
+  border-color: var(--border-strong, #c9ccd3);
+  box-shadow: var(--shadow-xs, 0 1px 2px rgba(15, 23, 42, 0.04));
+}
+
+.shop-quay-hang-catalog .shop-kiosk-catalog-card-body {
+  gap: 5px;
+  flex: 1;
+}
+
+.shop-quay-hang-catalog .shop-kiosk-catalog-card-foot {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 0;
+}
+
+.shop-quay-hang-catalog .shop-kiosk-catalog-card-foot strong {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink-display, rgba(0, 0, 0, 0.88));
+  font-variant-numeric: tabular-nums;
+}
+
+.shop-quay-hang-name-btn {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  max-width: 100%;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-display, rgba(0, 0, 0, 0.88));
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+}
+
+.shop-quay-hang-name-btn:disabled {
+  cursor: default;
+}
+
+.shop-quay-hang-name-btn:not(:disabled):hover {
+  color: var(--cins-blue, #1f74c9);
+}
+
+.shop-quay-hang-name-btn span {
+  font-weight: 500;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+}
+
+.shop-quay-hang-catalog .shop-kiosk-catalog-action {
+  margin-top: auto;
+  padding-top: 2px;
+}
+
+.shop-quay-hang-catalog .shop-kiosk-catalog-stock.is-empty {
+  flex: 1;
+  min-width: 0;
+}
+
+.shop-quay-hang-catalog .shop-kiosk-catalog-add {
+  background: var(--cins-blue, #1f74c9);
+  color: #fff;
+}
+
+.shop-quay-hang-catalog .shop-kiosk-catalog-add:hover:not(:disabled) {
+  background: var(--cins-blue-dark, #1656a0);
+  filter: none;
+}
+
+.shop-quay-hang-catalog .shop-kiosk-catalog-qty {
+  background: var(--cins-blue-soft, #e7f0fb);
+}
+
+.shop-quay-hang-catalog .shop-kiosk-catalog-qty button {
+  color: var(--cins-blue, #1f74c9);
+}
+
+.shop-quay-mat-hang {
+  margin: 0;
+  padding: 12px 4px 8px;
+}
+
+.shop-quay-mat-hang .j-shop-sf-grid {
+  margin: 0;
+}
+
+.shop-quay-mat-hang-seller {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .shop-quay-hang-seller {
-  margin-left: auto;
-  max-width: 46%;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  max-width: 100%;
+  min-width: 0;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+}
+
+.shop-quay-hang-seller:disabled {
+  cursor: default;
+}
+
+.shop-quay-hang-seller:not(:disabled):hover .shop-quay-hang-seller-name {
+  color: var(--cins-blue, #1f74c9);
+}
+
+.shop-quay-hang-seller-avatar {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--bg-muted, #f0f2f5);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.5));
+}
+
+.shop-quay-hang-seller-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.shop-quay-hang-seller-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shop-quay-hang-loai {
+  margin: 0;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 11px;
-  font-weight: 600;
-  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+}
+
+:root[data-theme="dark"] .shop-quay-hang-catalog .shop-kiosk-catalog-card {
+  background: var(--bg-surface, #151a24);
+  border-color: var(--border, #2a3040);
+}
+
+:root[data-theme="dark"] .shop-quay-hang-catalog .shop-kiosk-catalog-card-foot strong,
+:root[data-theme="dark"] .shop-quay-hang-name-btn {
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="dark"] .shop-quay-hang-name-btn:not(:disabled):hover {
+  color: #7eb6ef;
 }
 
 .shop-quay-tlb.j-tlb > .j-surface-view-toggle {
@@ -6479,7 +6721,15 @@ body:has(.shop-dash-gate) .j-chat-dock {
   position: relative;
 }
 
-.shop-quay-tlb.j-tlb > .j-surface-view-toggle::before {
+.shop-quay-tlb.j-tlb > .shop-quay-manage-tabs {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  position: relative;
+}
+
+.shop-quay-tlb.j-tlb > .j-surface-view-toggle::before,
+.shop-quay-tlb.j-tlb > .shop-quay-manage-tabs::before {
   content: "";
   position: absolute;
   top: 50%;
@@ -6514,6 +6764,7 @@ body:has(.shop-dash-gate) .j-chat-dock {
   background: transparent;
   border: 0;
   border-radius: var(--radius-pill, 999px);
+  text-decoration: none;
   cursor: pointer;
   transition:
     color 0.18s ease,
@@ -7464,6 +7715,62 @@ body:has(.shop-dash-gate) .j-chat-dock {
   height: 100%;
 }
 
+.shop-quay-manage-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--bg-page, #f7f8fa);
+  border: 1px solid var(--border, #e4e6eb);
+  flex-shrink: 0;
+  justify-self: end;
+}
+
+.shop-quay-manage-tab {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.55));
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.2;
+}
+
+.shop-quay-manage-tab-count {
+  min-width: 18px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--border, #e4e6eb) 70%, #fff);
+  color: var(--ink-muted, rgba(0, 0, 0, 0.6));
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.shop-quay-manage-tab.is-active {
+  background: var(--bg-surface, #fff);
+  color: var(--ink-display, rgba(0, 0, 0, 0.88));
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.shop-quay-manage-tab.is-active .shop-quay-manage-tab-count {
+  background: var(--cins-orange, #fdad4c);
+  color: #1a1208;
+}
+
+.shop-quay-manage-tab:hover:not(.is-active) {
+  color: var(--cins-orange, #fdad4c);
+}
+
 .shop-quay-manage-subtitle {
   margin: 14px 0 8px;
   font-size: 14px;
@@ -7492,16 +7799,69 @@ body:has(.shop-dash-gate) .j-chat-dock {
 .shop-quay-manage-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
   width: 100%;
-  padding: 0 2px;
+  min-height: 32px;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-.shop-quay-manage-actions button {
+.shop-quay-manage-actions .shop-quay-status {
+  margin-right: auto;
+}
+
+.shop-quay-status {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.shop-quay-status--approved {
+  color: #027a48;
+  background: color-mix(in srgb, #12b76a 12%, var(--bg-surface, #fff));
+  border-color: color-mix(in srgb, #12b76a 28%, transparent);
+}
+
+.shop-quay-manage-actions button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  border-radius: 999px;
+  border: 1px solid var(--border, #e4e6eb);
+  background: var(--bg-surface, #fff);
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.2;
+  padding: 6px 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.shop-quay-manage-actions button:hover:not(:disabled):not(.shop-dash-danger) {
+  background: var(--bg-page, #f7f8fa);
+}
+
+.shop-quay-manage-actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.shop-quay-manage-actions .shop-dash-danger {
+  border-color: transparent;
 }
 
 .shop-quay-manage-grid .shop-quay-evidence {
@@ -8138,6 +8498,44 @@ body:has(.shop-dash-gate) .j-chat-dock {
   .shop-quay-reason-actions
   button:not(.shop-dash-danger):hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="dark"] .shop-quay-manage-actions button:not(.shop-dash-danger) {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border, #2a3040);
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="dark"]
+  .shop-quay-manage-actions
+  button:not(.shop-dash-danger):hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="dark"] .shop-quay-status--approved {
+  color: #6ce9a6;
+  background: color-mix(in srgb, #12b76a 18%, transparent);
+  border-color: color-mix(in srgb, #12b76a 35%, transparent);
+}
+
+:root[data-theme="dark"] .shop-quay-manage-tabs {
+  background: color-mix(in srgb, var(--bg-page, #0f141d) 80%, #1c212c);
+  border-color: var(--border, #2a3040);
+}
+
+:root[data-theme="dark"] .shop-quay-manage-tab.is-active {
+  background: var(--bg-surface, #1c212c);
+  color: var(--ink-display, rgba(255, 255, 255, 0.92));
+}
+
+:root[data-theme="dark"] .shop-quay-manage-tab-count {
+  background: color-mix(in srgb, #fff 12%, transparent);
+  color: var(--ink-muted, rgba(255, 255, 255, 0.55));
+}
+
+:root[data-theme="dark"] .shop-quay-manage-tab.is-active .shop-quay-manage-tab-count {
+  background: var(--cins-orange, #fdad4c);
+  color: #1a1208;
 }
 
 :root[data-theme="dark"] .shop-dash-danger {

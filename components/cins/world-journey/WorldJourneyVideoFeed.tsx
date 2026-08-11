@@ -1,12 +1,8 @@
 "use client";
 
 import {
-  Bookmark,
   Clapperboard,
-  MessageCircle,
-  MoreHorizontal,
-  Share2,
-  ThumbsUp,
+  Play,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -16,12 +12,20 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type ReactNode,
+  type PointerEvent as ReactPointerEvent,
 } from "react";
 
 import { VideoProcessingPlaceholder } from "@/components/journey/VideoProcessingPlaceholder";
+import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButton";
+import { JourneyCommentLink } from "@/components/journey/JourneyCommentLink";
+import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
+import { PostShareMenu } from "@/components/journey/PostActionsRail";
 import { WORLD_JOURNEY_VIDEO_PAGE_SIZE } from "@/lib/cins/worldJourneyFeedConstants";
 import { buildStreamIframeUrl } from "@/lib/cloudflare/stream-embed";
+import {
+  bindStreamPlayer,
+  type StreamPlayer,
+} from "@/lib/cloudflare/stream-player-sdk";
 import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 import { isLikelyPortraitGalleryVideo } from "@/lib/journey/gallery-video-orientation";
@@ -29,7 +33,6 @@ import {
   canvasAspectFromRatio,
   type VideoCanvasRatio,
 } from "@/lib/journey/video-canvas-ratio";
-import { REACTION_EMOJI } from "@/lib/social/reaction-emoji";
 import { SOCIAL_LOAI_ORG_BAI_DANG } from "@/lib/truong/social-constants";
 
 type ReelAspectMode = "portrait" | "landscape";
@@ -98,16 +101,28 @@ function reactionTarget(item: GalleryMainItem): {
   return { loai: SOCIAL_LOAI_DOI_TUONG.COT_MOC, id };
 }
 
-function formatCount(n: number): string {
-  if (n <= 0) return "";
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
-  return String(n);
+function formatReelTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+  const total = Math.floor(seconds);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-/** Src ổn định — play/pause bằng postMessage để không reload khi active. */
+/** Src ổn định — play/pause/seek qua Stream SDK; chrome native tắt để không đè meta. */
 function streamIframeSrc(uid: string): string {
-  return `${buildStreamIframeUrl(uid)}?autoplay=false&muted=true&controls=true&preload=auto`;
+  return `${buildStreamIframeUrl(uid)}?autoplay=false&muted=true&controls=false&preload=auto`;
+}
+
+function postStreamEvent(
+  iframe: HTMLIFrameElement | null,
+  event: "play" | "pause",
+) {
+  try {
+    iframe?.contentWindow?.postMessage(JSON.stringify({ event }), "*");
+  } catch {
+    /* ignore */
+  }
 }
 
 function ReelSlide({
@@ -123,18 +138,29 @@ function ReelSlide({
   const uid = item.streamUid!.trim();
   const poster = item.src || item.videoPreviewSrc || undefined;
   const seededAspect = reelAspectFromItem(item);
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
-  const [busy, setBusy] = useState(false);
   const [aspectMode, setAspectMode] = useState<ReelAspectMode>(
     seededAspect.mode,
   );
   const [aspectRatio, setAspectRatio] = useState(seededAspect.ratio);
+  const [paused, setPaused] = useState(!active);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [scrubbing, setScrubbing] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const playerRef = useRef<StreamPlayer | null>(null);
+  /** User chủ động pause — đừng auto-play lại khi effect active chạy. */
+  const userPausedRef = useRef(false);
+  const scrubbingRef = useRef(false);
+  const activeRef = useRef(active);
+  activeRef.current = active;
   const target = reactionTarget(item);
   const authorHref = item.authorSlug ? `/${item.authorSlug}` : item.href;
   const caption = item.meta?.trim() || item.label?.trim() || "";
   const iframeSrc = active || preload ? streamIframeSrc(uid) : null;
+  const progress =
+    duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
+  const sharePath = item.href?.trim() || null;
+  const shareTitle = item.label?.trim() || caption || "CINs";
 
   useEffect(() => {
     const next = reelAspectFromItem(item);
@@ -160,62 +186,221 @@ function ReelSlide({
     };
   }, [item.videoCanvasRatio, poster]);
 
-  const toggleLike = useCallback(async () => {
-    if (!target || busy) return;
-    const next = !liked;
-    setLiked(next);
-    setLikeCount((c) => Math.max(0, c + (next ? 1 : -1)));
-    setBusy(true);
-    try {
-      const res = await fetch("/api/reactions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          loai_doi_tuong: target.loai,
-          id_doi_tuong: target.id,
-          emoji: REACTION_EMOJI.LIKE,
-          active: next,
-        }),
-      });
-      if (!res.ok) {
-        setLiked(!next);
-        setLikeCount((c) => Math.max(0, c + (next ? -1 : 1)));
-        return;
-      }
-      const json = (await res.json()) as { likeCount?: number };
-      if (typeof json.likeCount === "number") setLikeCount(json.likeCount);
-    } catch {
-      setLiked(!next);
-      setLikeCount((c) => Math.max(0, c + (next ? -1 : 1)));
-    } finally {
-      setBusy(false);
-    }
-  }, [busy, liked, target]);
-
-  /* Giữ iframe đã preload — play/pause qua postMessage (Stream player). */
+  /* Bind Stream SDK → play/pause/seek + timeupdate. */
   useEffect(() => {
     const el = iframeRef.current;
-    if (!el || !iframeSrc) return;
-    const send = () => {
+    if (!el || !iframeSrc) {
+      playerRef.current = null;
+      return;
+    }
+
+    let cancelled = false;
+    let player: StreamPlayer | null = null;
+
+    const onPlay = () => {
+      if (cancelled) return;
+      setPaused(false);
+    };
+    const onPause = () => {
+      if (cancelled) return;
+      setPaused(true);
+    };
+    const onTime = () => {
+      if (cancelled || !player || scrubbingRef.current) return;
+      setCurrentTime(player.currentTime || 0);
+      /* Sync badge với player thật — tránh play qua postMessage mà UI vẫn paused. */
+      if (!player.paused) setPaused(false);
+      const d = player.duration;
+      if (Number.isFinite(d) && d > 0) setDuration(d);
+    };
+    const onMeta = () => {
+      if (cancelled || !player) return;
+      const d = player.duration;
+      if (Number.isFinite(d) && d > 0) setDuration(d);
+      setPaused(player.paused);
+      setCurrentTime(player.currentTime || 0);
+    };
+
+    const detach = () => {
+      if (!player) return;
+      player.removeEventListener("play", onPlay);
+      player.removeEventListener("playing", onPlay);
+      player.removeEventListener("pause", onPause);
+      player.removeEventListener("timeupdate", onTime);
+      player.removeEventListener("durationchange", onMeta);
+      player.removeEventListener("loadedmetadata", onMeta);
+    };
+
+    const playIfActive = (next: StreamPlayer) => {
+      if (!activeRef.current || userPausedRef.current) {
+        onMeta();
+        return;
+      }
+      /* Không gọi onMeta() ngay — player.paused còn true trước khi play() resolve. */
+      setPaused(false);
+      const d = next.duration;
+      if (Number.isFinite(d) && d > 0) setDuration(d);
+      setCurrentTime(next.currentTime || 0);
+      void next.play().catch(() => {
+        next.muted = true;
+        void next.play().catch(() => {
+          postStreamEvent(el, "play");
+        });
+      });
+    };
+
+    const attach = async () => {
       try {
-        el.contentWindow?.postMessage(
-          JSON.stringify({ event: active ? "play" : "pause" }),
-          "*",
-        );
+        const next = await bindStreamPlayer(el);
+        if (cancelled) return;
+        detach();
+        player = next;
+        playerRef.current = next;
+        next.addEventListener("play", onPlay);
+        next.addEventListener("playing", onPlay);
+        next.addEventListener("pause", onPause);
+        next.addEventListener("timeupdate", onTime);
+        next.addEventListener("durationchange", onMeta);
+        next.addEventListener("loadedmetadata", onMeta);
+        playIfActive(next);
       } catch {
-        /* ignore */
+        if (!cancelled) playerRef.current = null;
       }
     };
-    send();
-    el.addEventListener("load", send);
-    const t1 = window.setTimeout(send, 350);
-    const t2 = window.setTimeout(send, 1200);
+
+    const onLoad = () => {
+      void attach();
+    };
+    void attach();
+    el.addEventListener("load", onLoad);
+
     return () => {
-      el.removeEventListener("load", send);
+      cancelled = true;
+      el.removeEventListener("load", onLoad);
+      detach();
+      if (playerRef.current === player) playerRef.current = null;
+    };
+  }, [iframeSrc, uid]);
+
+  /* Slide active → play (trừ khi user đã pause); inactive → pause. */
+  useEffect(() => {
+    const el = iframeRef.current;
+
+    const playActive = () => {
+      if (userPausedRef.current) return;
+      /* Ẩn nút play ngay khi bắt đầu autoplay — đừng chờ event SDK. */
+      setPaused(false);
+      const player = playerRef.current;
+      if (player) {
+        void player.play().catch(() => {
+          player.muted = true;
+          void player.play().catch(() => {
+            postStreamEvent(el, "play");
+          });
+        });
+        return;
+      }
+      postStreamEvent(el, "play");
+    };
+    const pauseInactive = () => {
+      userPausedRef.current = false;
+      setPaused(true);
+      const player = playerRef.current;
+      if (player) {
+        player.pause();
+        return;
+      }
+      postStreamEvent(el, "pause");
+    };
+
+    if (!active) {
+      pauseInactive();
+      return;
+    }
+
+    playActive();
+    const t1 = window.setTimeout(playActive, 350);
+    const t2 = window.setTimeout(playActive, 1200);
+    return () => {
       window.clearTimeout(t1);
       window.clearTimeout(t2);
     };
   }, [active, iframeSrc]);
+
+  const togglePlayback = useCallback(() => {
+    if (!active) return;
+    const el = iframeRef.current;
+    const player = playerRef.current;
+    const isPaused = player ? player.paused : paused;
+    if (isPaused) {
+      userPausedRef.current = false;
+      setPaused(false);
+      if (player) {
+        void player.play().catch(() => {
+          player.muted = true;
+          void player.play();
+        });
+      } else {
+        postStreamEvent(el, "play");
+      }
+      return;
+    }
+    userPausedRef.current = true;
+    setPaused(true);
+    if (player) player.pause();
+    else postStreamEvent(el, "pause");
+  }, [active, paused]);
+
+  const seekToRatio = useCallback((ratio: number) => {
+    const player = playerRef.current;
+    const d = player?.duration || duration;
+    if (!player || !Number.isFinite(d) || d <= 0) return;
+    const next = Math.min(d, Math.max(0, ratio * d));
+    player.currentTime = next;
+    setCurrentTime(next);
+  }, [duration]);
+
+  const onTimelinePointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const track = e.currentTarget;
+      track.setPointerCapture(e.pointerId);
+      scrubbingRef.current = true;
+      setScrubbing(true);
+      const rect = track.getBoundingClientRect();
+      const ratio =
+        rect.width > 0 ? (e.clientX - rect.left) / rect.width : 0;
+      seekToRatio(ratio);
+    },
+    [seekToRatio],
+  );
+
+  const onTimelinePointerMove = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (!scrubbingRef.current) return;
+      e.stopPropagation();
+      const rect = e.currentTarget.getBoundingClientRect();
+      const ratio =
+        rect.width > 0 ? (e.clientX - rect.left) / rect.width : 0;
+      seekToRatio(ratio);
+    },
+    [seekToRatio],
+  );
+
+  const onTimelinePointerUp = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      e.stopPropagation();
+      scrubbingRef.current = false;
+      setScrubbing(false);
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+    },
+    [],
+  );
 
   return (
     <div
@@ -253,6 +438,24 @@ function ReelSlide({
             </div>
           )}
         </div>
+
+        {iframeSrc && !item.videoProcessing ? (
+          <button
+            type="button"
+            className="wj-reel-tap"
+            aria-label={paused ? "Phát video" : "Tạm dừng"}
+            onClick={(e) => {
+              e.stopPropagation();
+              togglePlayback();
+            }}
+          />
+        ) : null}
+
+        {active && paused ? (
+          <div className="wj-reel-pause-badge" aria-hidden>
+            <Play size={28} strokeWidth={2.2} fill="currentColor" />
+          </div>
+        ) : null}
 
         <div className="wj-reel-meta">
           <div className="wj-reel-author">
@@ -306,100 +509,101 @@ function ReelSlide({
           </div>
           {caption ? <p className="wj-reel-caption">{caption}</p> : null}
         </div>
+
+        {iframeSrc && !item.videoProcessing ? (
+          <div
+            className={
+              "wj-reel-timeline" + (scrubbing ? " is-scrubbing" : "")
+            }
+            role="slider"
+            aria-label="Timeline video"
+            aria-valuemin={0}
+            aria-valuemax={Math.round(duration) || 0}
+            aria-valuenow={Math.round(currentTime)}
+            aria-valuetext={`${formatReelTime(currentTime)} / ${formatReelTime(duration)}`}
+            tabIndex={active ? 0 : -1}
+            onPointerDown={onTimelinePointerDown}
+            onPointerMove={onTimelinePointerMove}
+            onPointerUp={onTimelinePointerUp}
+            onPointerCancel={onTimelinePointerUp}
+            onKeyDown={(e) => {
+              if (!duration) return;
+              if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+                e.preventDefault();
+                seekToRatio((currentTime + 2) / duration);
+              } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+                e.preventDefault();
+                seekToRatio((currentTime - 2) / duration);
+              } else if (e.key === "Home") {
+                e.preventDefault();
+                seekToRatio(0);
+              } else if (e.key === "End") {
+                e.preventDefault();
+                seekToRatio(1);
+              } else if (e.key === " " || e.key === "Enter") {
+                e.preventDefault();
+                togglePlayback();
+              }
+            }}
+          >
+            <div className="wj-reel-timeline-track">
+              <div
+                className="wj-reel-timeline-fill"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            {scrubbing || paused ? (
+              <span className="wj-reel-timeline-time">
+                {formatReelTime(currentTime)}
+                {duration > 0 ? ` / ${formatReelTime(duration)}` : ""}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
       </article>
 
-      <div className="wj-reel-rail" aria-label="Tương tác">
-        <ReelAction
-          label="Thích"
-          count={likeCount}
-          active={liked}
-          onClick={() => void toggleLike()}
-        >
-          <ThumbsUp
-            size={26}
-            strokeWidth={liked ? 0 : 2}
-            fill={liked ? "currentColor" : "none"}
-          />
-        </ReelAction>
-        <ReelAction label="Bình luận" href={item.href}>
-          <MessageCircle size={26} strokeWidth={2} />
-        </ReelAction>
-        <ReelAction
-          label="Chia sẻ"
-          onClick={() => {
-            if (!item.href || typeof navigator === "undefined") return;
-            const url = new URL(item.href, window.location.origin).toString();
-            if (navigator.share) {
-              void navigator.share({ url, title: item.label }).catch(() => {});
-            } else if (navigator.clipboard) {
-              void navigator.clipboard.writeText(url);
-            }
-          }}
-        >
-          <Share2 size={26} strokeWidth={2} />
-        </ReelAction>
-        <ReelAction label="Lưu">
-          <Bookmark size={26} strokeWidth={2} />
-        </ReelAction>
-        <ReelAction label="Thêm" href={item.href}>
-          <MoreHorizontal size={26} strokeWidth={2} />
-        </ReelAction>
-      </div>
-    </div>
-  );
-}
-
-function ReelAction({
-  label,
-  count,
-  active,
-  href,
-  onClick,
-  children,
-}: {
-  label: string;
-  count?: number;
-  active?: boolean;
-  href?: string;
-  onClick?: () => void;
-  children: ReactNode;
-}) {
-  const countText = typeof count === "number" ? formatCount(count) : "";
-  const className = `wj-reel-action${active ? " is-on" : ""}`;
-  const inner = (
-    <>
-      <span className="wj-reel-action-icon">{children}</span>
-      {countText ? (
-        <span className="wj-reel-action-count">{countText}</span>
-      ) : null}
-      <span className="sr-only">{label}</span>
-    </>
-  );
-  if (href) {
-    return (
-      <Link
-        href={href}
-        className={className}
-        aria-label={label}
+      {/* Cùng bộ nút timeline: Thích · BL · Lưu · Share (không dislike ở chế độ video) */}
+      <div
+        className="wj-reel-rail jcard-actions"
+        aria-label="Tương tác"
         onClick={(e) => e.stopPropagation()}
       >
-        {inner}
-      </Link>
-    );
-  }
-  return (
-    <button
-      type="button"
-      className={className}
-      aria-label={label}
-      aria-pressed={active}
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick?.();
-      }}
-    >
-      {inner}
-    </button>
+        {target ? (
+          <>
+            <JourneyLikeButton
+              milestoneId={target.id}
+              loaiDoiTuong={target.loai}
+              showCount
+              disableActorsReveal
+            />
+            <JourneyCommentLink
+              commentCount={null}
+              idDoiTuong={target.id}
+              loaiDoiTuong={target.loai}
+              href={sharePath ?? undefined}
+              sharePath={sharePath}
+              shareTitle={shareTitle}
+              disableActorsReveal
+            />
+            <JourneyBookmarkButton
+              milestoneId={target.id}
+              title={shareTitle}
+              loaiDoiTuong={target.loai}
+              showCount
+              disableActorsReveal
+            />
+          </>
+        ) : null}
+        {sharePath ? (
+          <PostShareMenu
+            sharePath={sharePath}
+            shareTitle={shareTitle}
+            className="jcard-share wj-reel-share"
+            buttonClassName="share-btn"
+          />
+        ) : null}
+      </div>
+    </div>
   );
 }
 

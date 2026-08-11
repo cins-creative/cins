@@ -63,7 +63,6 @@ import type {
   CoAuthorReviewProfile,
   FollowAcceptedNotification,
   NotificationFeed,
-  NotificationFilter,
   OrgMilestoneTagApprovedNotification,
   OrgTinNhanMoiNotification,
   MembershipMilestoneResolvedNotification,
@@ -317,15 +316,17 @@ function orgTinNhanMoiNotifyLabel(notice: OrgTinNhanMoiNotification): ReactNode 
 function OrgTinNhanMoiNotifyItem({
   notice,
   onOpened,
+  itemClassName = "j-notify-item",
 }: {
   notice: OrgTinNhanMoiNotification;
   onOpened?: () => void;
+  itemClassName?: string;
 }) {
   return (
     <li>
       <button
         type="button"
-        className="j-notify-item"
+        className={itemClassName}
         onClick={() => {
           onOpened?.();
           if (!notice.orgSlug?.trim()) return;
@@ -365,7 +366,12 @@ function removeCoAuthorInviteFromFeed(
   };
 }
 
-function renderInfoTimelineEntry(entry: InfoTimelineEntry): ReactNode {
+function renderInfoTimelineEntry(
+  entry: InfoTimelineEntry,
+  variant: "unread" | "history" = "history",
+): ReactNode {
+  const itemClassName =
+    variant === "unread" ? "j-notify-item is-unread" : "j-notify-item is-history";
   switch (entry.kind) {
     case "membershipMilestoneResolved":
       return (
@@ -374,6 +380,7 @@ function renderInfoTimelineEntry(entry: InfoTimelineEntry): ReactNode {
           href={entry.item.journeyHref}
           label={membershipMilestoneNotifyLabel(entry.item)}
           time={formatNotifyTime(entry.item.taoLuc)}
+          itemClassName={itemClassName}
           avatar={
             <span
               className={`j-notify-avatar${
@@ -397,6 +404,7 @@ function renderInfoTimelineEntry(entry: InfoTimelineEntry): ReactNode {
           href={entry.item.suKienHref || "#"}
           label={shopQuayNotifyLabel(entry.item)}
           time={formatNotifyTime(entry.item.taoLuc)}
+          itemClassName={itemClassName}
           avatar={
             <span
               className={`j-notify-avatar${
@@ -418,6 +426,7 @@ function renderInfoTimelineEntry(entry: InfoTimelineEntry): ReactNode {
         <OrgTinNhanMoiNotifyItem
           key={entry.item.notificationId}
           notice={entry.item}
+          itemClassName={itemClassName}
         />
       );
     case "orgMilestoneTagApproved":
@@ -427,6 +436,7 @@ function renderInfoTimelineEntry(entry: InfoTimelineEntry): ReactNode {
           href={entry.item.albumHref || "#"}
           label={orgMilestoneTagNotifyLabel(entry.item)}
           time={formatNotifyTime(entry.item.taoLuc)}
+          itemClassName={itemClassName}
           avatar={
             <span className="j-notify-avatar is-verified" aria-hidden>
               <CheckCircle2 size={16} strokeWidth={2} />
@@ -445,6 +455,7 @@ function renderInfoTimelineEntry(entry: InfoTimelineEntry): ReactNode {
             </>
           }
           time={formatNotifyTime(entry.item.taoLuc)}
+          itemClassName={itemClassName}
           avatar={<Avatar request={entry.item} />}
         />
       );
@@ -459,6 +470,7 @@ function renderInfoTimelineEntry(entry: InfoTimelineEntry): ReactNode {
           }
           label={commentNotifyLabel(entry.item)}
           time={formatNotifyTime(entry.item.taoLuc)}
+          itemClassName={itemClassName}
           avatar={<Avatar request={entry.item} />}
         />
       );
@@ -478,6 +490,7 @@ function renderInfoTimelineEntry(entry: InfoTimelineEntry): ReactNode {
             </>
           }
           time={formatNotifyTime(entry.item.taoLuc)}
+          itemClassName={itemClassName}
           avatar={
             <span className="j-notify-avatar is-video" aria-hidden>
               <Video size={16} strokeWidth={1.8} />
@@ -492,6 +505,7 @@ function renderInfoTimelineEntry(entry: InfoTimelineEntry): ReactNode {
           href={entry.item.entityHref}
           label={dongGopFeedbackNotifyLabel(entry.item)}
           time={formatNotifyTime(entry.item.taoLuc)}
+          itemClassName={itemClassName}
           avatar={
             <span className="j-notify-avatar is-edit" aria-hidden>
               <PencilLine size={16} strokeWidth={1.8} />
@@ -506,6 +520,7 @@ function renderInfoTimelineEntry(entry: InfoTimelineEntry): ReactNode {
           href={entry.item.entityHref}
           label={dongGopPromotedNotifyLabel(entry.item)}
           time={formatNotifyTime(entry.item.taoLuc)}
+          itemClassName={itemClassName}
           avatar={
             <span className="j-notify-avatar is-verified" aria-hidden>
               <CheckCircle2 size={16} strokeWidth={1.8} />
@@ -593,6 +608,7 @@ function renderHistoryTimelineEntry(entry: HistoryTimelineEntry): ReactNode {
         <OrgTinNhanMoiNotifyItem
           key={entry.item.notificationId}
           notice={entry.item}
+          itemClassName="j-notify-item is-history"
         />
       );
     case "accepted":
@@ -614,7 +630,6 @@ export function JourneyNotifications({
   const cachedUnread = readUnreadNotificationsCache(viewerProfileId);
   const cachedHistory = readHistoryNotificationsCache(viewerProfileId);
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<NotificationFilter>("unread");
   const [selected, setSelected] = useState<PendingFollowRequest | null>(null);
   const [feed, setFeed] = useState<NotificationFeed>(() =>
     cachedUnread
@@ -817,7 +832,7 @@ export function JourneyNotifications({
             }
           })
           .catch(() => {
-            /* lịch sử load lazy khi chuyển tab */
+            /* lịch sử load lazy khi mở menu */
           });
       }
     } catch {
@@ -830,22 +845,21 @@ export function JourneyNotifications({
     () => countPendingActionItems(feed),
     [feed],
   );
-  const activeFeed = tab === "history" && historyFeed ? historyFeed : feed;
 
   const displayedPendingCount = useMemo(
-    () => countPendingActionItems(activeFeed),
-    [activeFeed],
+    () => countPendingActionItems(feed),
+    [feed],
   );
 
   const unreadInfoItems = useMemo((): InfoNotificationSnapshot => {
     if (open && infoSnapshot) return infoSnapshot;
-    return extractInfoSnapshot(activeFeed);
-  }, [open, infoSnapshot, activeFeed]);
+    return extractInfoSnapshot(feed);
+  }, [open, infoSnapshot, feed]);
 
-  const displayedInfoCount = useMemo(() => {
-    if (tab !== "unread") return 0;
-    return countInfoItems(unreadInfoItems);
-  }, [tab, unreadInfoItems]);
+  const displayedInfoCount = useMemo(
+    () => countInfoItems(unreadInfoItems),
+    [unreadInfoItems],
+  );
 
   const loadHistory = useCallback(
     async (reset = true) => {
@@ -919,7 +933,7 @@ export function JourneyNotifications({
           if (next) setHistoryFeed(next);
         })
         .catch(() => {
-          /* lịch sử load khi chuyển tab */
+          /* lịch sử load khi mở menu */
         });
     });
     return cancelIdle;
@@ -958,10 +972,10 @@ export function JourneyNotifications({
   }, [open, fetchUnreadFeed, dismissInfoNotifications]);
 
   useEffect(() => {
-    if (!open || tab !== "history") return;
+    if (!open) return;
     if (historyEntries.length > 0 || loadingHistory) return;
     void loadHistory(true);
-  }, [open, tab, historyEntries.length, loadingHistory, loadHistory]);
+  }, [open, historyEntries.length, loadingHistory, loadHistory]);
 
   useEffect(() => {
     if (open) return;
@@ -976,7 +990,7 @@ export function JourneyNotifications({
   useEffect(() => {
     if (!open) return;
     setVisibleInfoCount(NOTIFICATION_LIST_PAGE_SIZE);
-  }, [open, tab]);
+  }, [open]);
 
   const refreshUnread = useCallback(() => {
     void fetchUnreadFeed().catch(() => {
@@ -1051,7 +1065,7 @@ export function JourneyNotifications({
       const next = parseFeedPayload(json);
       if (next) applyFeed(next);
       setSelected(null);
-      if (tab === "history") void loadHistory(true);
+      void loadHistory(true);
     });
   };
 
@@ -1113,7 +1127,7 @@ export function JourneyNotifications({
           coAuthorCredits: json.coAuthorCredits as CoAuthorCredit[],
         });
       }
-      if (tab === "history") void loadHistory(true);
+      void loadHistory(true);
     });
   };
 
@@ -1179,8 +1193,8 @@ export function JourneyNotifications({
   const historyTimeline = historyEntries;
 
   const unreadInfoTimeline = useMemo(
-    () => (tab === "unread" ? buildInfoTimeline(unreadInfoItems) : []),
-    [tab, unreadInfoItems],
+    () => buildInfoTimeline(unreadInfoItems),
+    [unreadInfoItems],
   );
 
   const visibleInfoTimeline = useMemo(
@@ -1190,18 +1204,41 @@ export function JourneyNotifications({
 
   const hasMoreInfo = visibleInfoCount < unreadInfoTimeline.length;
 
+  const shownNotificationIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const entry of unreadInfoTimeline) {
+      ids.add(entry.item.notificationId);
+    }
+    for (const invite of feed.congDongInvites) ids.add(invite.notificationId);
+    for (const invite of feed.coSoStaffInvites) ids.add(invite.notificationId);
+    for (const invite of feed.coAuthorInvites) ids.add(invite.notificationId);
+    for (const review of feed.coAuthorReviews) ids.add(review.notificationId);
+    for (const notice of feed.shopQuayPending) ids.add(notice.notificationId);
+    return ids;
+  }, [
+    unreadInfoTimeline,
+    feed.congDongInvites,
+    feed.coSoStaffInvites,
+    feed.coAuthorInvites,
+    feed.coAuthorReviews,
+    feed.shopQuayPending,
+  ]);
+
+  const filteredHistoryTimeline = useMemo(
+    () =>
+      historyTimeline.filter(
+        (entry) => !shownNotificationIds.has(entry.item.notificationId),
+      ),
+    [historyTimeline, shownNotificationIds],
+  );
+
   const listCount =
-    tab === "unread"
-      ? unreadLoaded
-        ? displayedPendingCount + displayedInfoCount
-        : pendingActionCount
-      : historyEntries.length;
+    displayedPendingCount + displayedInfoCount + filteredHistoryTimeline.length;
 
   const showMoreHint =
-    tab === "unread" && unreadLoaded && pendingActionCount > displayedPendingCount;
+    unreadLoaded && pendingActionCount > displayedPendingCount;
 
-  const canLoadMoreList =
-    tab === "history" ? historyHasMore : tab === "unread" && hasMoreInfo;
+  const canLoadMoreList = hasMoreInfo || historyHasMore;
 
   useEffect(() => {
     if (!open || !canLoadMoreList) return;
@@ -1212,13 +1249,13 @@ export function JourneyNotifications({
     const observer = new IntersectionObserver(
       (entries) => {
         if (!entries.some((entry) => entry.isIntersecting)) return;
-        if (tab === "history") {
-          void loadMoreHistory();
+        if (hasMoreInfo) {
+          setVisibleInfoCount((count) =>
+            Math.min(count + NOTIFICATION_LIST_PAGE_SIZE, unreadInfoTimeline.length),
+          );
           return;
         }
-        setVisibleInfoCount((count) =>
-          Math.min(count + NOTIFICATION_LIST_PAGE_SIZE, unreadInfoTimeline.length),
-        );
+        void loadMoreHistory();
       },
       { root, rootMargin: "48px 0px", threshold: 0 },
     );
@@ -1226,11 +1263,11 @@ export function JourneyNotifications({
     return () => observer.disconnect();
   }, [
     open,
-    tab,
     canLoadMoreList,
+    hasMoreInfo,
     loadMoreHistory,
     unreadInfoTimeline.length,
-    historyEntries.length,
+    filteredHistoryTimeline.length,
     visibleInfoCount,
   ]);
 
@@ -1246,48 +1283,24 @@ export function JourneyNotifications({
           <div className="j-notify-head">
             <strong>Thông báo</strong>
             <span>
-              {tab === "unread"
+              {pendingActionCount > 0
                 ? `${pendingActionCount} chưa xử lý`
-                : `${listCount} đã xử lý`}
+                : listCount > 0
+                  ? `${listCount} thông báo`
+                  : "Không có thông báo"}
             </span>
           </div>
 
-          <div className="j-notify-tabs" role="tablist" aria-label="Lọc thông báo">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={tab === "unread"}
-              className={`j-notify-tab${tab === "unread" ? " is-active" : ""}`}
-              onClick={() => setTab("unread")}
-            >
-              Chưa xử lý
-              {pendingActionCount > 0 ? <em>{pendingActionCount}</em> : null}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={tab === "history"}
-              className={`j-notify-tab${tab === "history" ? " is-active" : ""}`}
-              onClick={() => setTab("history")}
-            >
-              Lịch sử
-            </button>
-          </div>
-
-          {(tab === "unread" && loadingUnread) ||
-          (tab === "history" && loadingHistory) ? (
+          {(loadingUnread && listCount === 0) ||
+          (loadingHistory && listCount === 0 && !loadingUnread) ? (
             <p className="j-notify-empty">Đang tải…</p>
           ) : listCount === 0 ? (
             <p className="j-notify-empty">
-              {tab === "unread"
-                ? "Không có thông báo cần xử lý."
-                : "Chưa có lịch sử. Lịch sử gồm: kết nối đã chấp nhận/từ chối, ai đó chấp nhận kết bạn với bạn, bình luận/video đã đọc."}
+              Không có thông báo. Lịch sử gồm kết nối đã xử lý, bình luận/video đã đọc.
             </p>
           ) : (
             <ul ref={listRef} className="j-notify-list">
-              {tab === "unread" ? (
-                <>
-                  {activeFeed.congDongInvites.map((invite) => (
+                  {feed.congDongInvites.map((invite) => (
                     <li key={invite.notificationId}>
                       <div className="j-notify-item is-coauthor-invite j-notify-item--cong-dong">
                         <CongDongInviteMessage
@@ -1325,7 +1338,7 @@ export function JourneyNotifications({
                       </div>
                     </li>
                   ))}
-                  {activeFeed.coSoStaffInvites.map((invite) => (
+                  {feed.coSoStaffInvites.map((invite) => (
                     <li key={invite.notificationId}>
                       <div className="j-notify-item is-coauthor-invite j-notify-item--cso-staff">
                         <CoSoStaffInviteMessage
@@ -1364,7 +1377,7 @@ export function JourneyNotifications({
                       </div>
                     </li>
                   ))}
-                  {activeFeed.coAuthorInvites.map((invite) => {
+                  {feed.coAuthorInvites.map((invite) => {
                     const postHref = coAuthorPostHref(invite);
                     return (
                       <li key={invite.notificationId}>
@@ -1409,7 +1422,7 @@ export function JourneyNotifications({
                       </li>
                     );
                   })}
-                  {activeFeed.coAuthorReviews.map((review) => (
+                  {feed.coAuthorReviews.map((review) => (
                     <li key={review.notificationId}>
                       <CoAuthorReviewNotifyItem
                         review={review}
@@ -1419,7 +1432,7 @@ export function JourneyNotifications({
                       />
                     </li>
                   ))}
-                  {activeFeed.followRequests.map((request) => (
+                  {feed.followRequests.map((request) => (
                     <li key={request.idNguoiDung}>
                       <button
                         type="button"
@@ -1434,7 +1447,7 @@ export function JourneyNotifications({
                       </button>
                     </li>
                   ))}
-                  {activeFeed.shopQuayPending.map((notice) => (
+                  {feed.shopQuayPending.map((notice) => (
                     <li key={notice.notificationId}>
                       <div className="j-notify-item is-coauthor-invite">
                         <span className="j-notify-avatar is-verified" aria-hidden>
@@ -1455,13 +1468,12 @@ export function JourneyNotifications({
                       </div>
                     </li>
                   ))}
-                  {visibleInfoTimeline.map((entry) => renderInfoTimelineEntry(entry))}
-                </>
-              ) : (
-                <>
-                  {historyTimeline.map((entry) => renderHistoryTimelineEntry(entry))}
-                </>
-              )}
+                  {visibleInfoTimeline.map((entry) =>
+                    renderInfoTimelineEntry(entry, "unread"),
+                  )}
+                  {filteredHistoryTimeline.map((entry) =>
+                    renderHistoryTimelineEntry(entry),
+                  )}
               {canLoadMoreList ? (
                 <li ref={sentinelRef} className="j-notify-list-sentinel" aria-hidden />
               ) : null}
@@ -1647,15 +1659,17 @@ function HistoryInfoItem({
   label,
   time,
   avatar,
+  itemClassName = "j-notify-item is-history",
 }: {
   href: string;
   label: ReactNode;
   time: string;
   avatar: ReactNode;
+  itemClassName?: string;
 }) {
   return (
     <li>
-      <Link href={href} className="j-notify-item is-history">
+      <Link href={href} className={itemClassName}>
         {avatar}
         <span>
           {label}

@@ -803,6 +803,7 @@ export function JourneyShopStorefront({
         initials={initials}
         ownerSlug={ownerSlug}
         showBackProfile
+        actions={isOwner ? undefined : guestChrome?.actions}
       />
 
       {!shopClosed ? (
@@ -850,7 +851,7 @@ export function JourneyShopStorefront({
           ) : (
             <span className="j-shop-sf-section-spacer" aria-hidden />
           )}
-          {ownerChrome?.actions ?? guestChrome?.actions}
+          {isOwner ? ownerChrome?.actions : null}
         </div>
       </div>
 

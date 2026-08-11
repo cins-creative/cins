@@ -2,7 +2,9 @@
 
 import {
   Check,
+  LayoutGrid,
   Loader2,
+  MessageCircle,
   Minus,
   Package,
   Plus,
@@ -11,7 +13,9 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
+  Suspense,
   useCallback,
   useDeferredValue,
   useEffect,
@@ -20,19 +24,30 @@ import {
   useState,
 } from "react";
 
+import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { CuaHangListCard } from "@/components/shop/CuaHangListCard";
 import { GIO_CHUNG_CHANGED_EVENT, notifyGioChungAdded } from "@/components/shop/ShopGioChungButton";
+import { avatarHueFromSeed, avatarInitialFromName } from "@/lib/chat/avatar";
 import { getNameInitials } from "@/lib/journey/profile";
 import { normalizeSearchText } from "@/lib/search/normalize";
-import { shopEntryHref } from "@/lib/shop/cua-hang-href";
+import type { PublicShopListingHang } from "@/lib/shop/cua-hang-listing-types";
+import { shopEntryHref, shopLoaiHref } from "@/lib/shop/cua-hang-href";
+import { parseShopNhomMoTa } from "@/lib/shop/nhom-mo-ta";
 import type {
   ShopEvidence,
   ShopGioChung,
   ShopQuayHangSearch,
   ShopQuaySuKien,
 } from "@/lib/shop/types";
+import {
+  parseSuKienQuayView,
+  SU_KIEN_QUAY_VIEW_DEFAULT,
+  type SuKienQuayView,
+  withSuKienQuayView,
+} from "@/lib/to-chuc/su-kien-routes";
 
 import "@/app/cua-hang/cua-hang-listing.css";
+import "@/components/journey/journey-shop-view.css";
 import "./shop-dashboard.css";
 import "./shop-kiosk-block.css";
 
@@ -65,6 +80,7 @@ function hangSearchHaystack(
       h.nhanBienThe,
       h.phanLoai,
       h.phanLoai2,
+      h.tenLoai,
       seller?.ten,
       seller?.slug,
     ]
@@ -86,6 +102,7 @@ type QuayHangCard = ShopQuayHangSearch & {
   quayId: string;
   shopHref: string | null;
   sellerName: string | null;
+  sellerAvatarUrl: string | null;
   sellerSlug: string | null;
   /** Chủ quầy = seller (product owner). */
   idNguoiBan: string;
@@ -118,7 +135,12 @@ function collectHangCards(
         ...h,
         quayId: item.id,
         shopHref,
-        sellerName: item.nguoiDungTen?.trim() || null,
+        sellerName:
+          item.shop?.ten?.trim() || item.nguoiDungTen?.trim() || null,
+        sellerAvatarUrl:
+          item.shop?.avatarUrl?.trim() ||
+          item.nguoiDungAvatarUrl?.trim() ||
+          null,
         sellerSlug: item.nguoiDungSlug?.trim() || null,
         idNguoiBan: item.idNguoiDung,
       });
@@ -127,17 +149,129 @@ function collectHangCards(
   return out;
 }
 
-function groupHangByLoai(
-  cards: ReadonlyArray<QuayHangCard>,
-): Array<{ loai: string; items: QuayHangCard[] }> {
-  const map = new Map<string, QuayHangCard[]>();
-  for (const c of cards) {
-    const loai = c.phanLoai?.trim() || "Khác";
-    const list = map.get(loai) ?? [];
-    list.push(c);
-    map.set(loai, list);
+type QuayMatHangCard = {
+  id: string;
+  quayId: string;
+  nhan: string;
+  moTa: string | null;
+  anhUrl: string | null;
+  giaHienThi: number | null;
+  tienTe: string;
+  hetHang: boolean;
+  noiBat: boolean;
+  soLuongBan: number;
+  href: string;
+  sellerName: string | null;
+};
+
+function formatQuayMatHangGia(gia: number, tienTe: string): string {
+  const n = Number.isFinite(gia) ? gia : 0;
+  try {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: tienTe === "VND" ? "VND" : tienTe || "VND",
+      maximumFractionDigits: tienTe === "VND" ? 0 : 2,
+    }).format(n);
+  } catch {
+    return `${n.toLocaleString("vi-VN")} ${tienTe || "VND"}`;
   }
-  return [...map.entries()].map(([loai, items]) => ({ loai, items }));
+}
+
+function QuayMatHangMoTa({ moTa }: { moTa: string }) {
+  const blocks = parseShopNhomMoTa(moTa);
+  const first = blocks.find((b) => b.type === "p");
+  const text =
+    first && first.type === "p" ? first.text.trim() : moTa.trim();
+  if (!text) return null;
+  return <p className="j-shop-sf-type-desc">{text}</p>;
+}
+
+function hangFromShopCatalog(
+  shopHang: ReadonlyArray<PublicShopListingHang>,
+): PublicShopListingHang[] {
+  const seen = new Set<string>();
+  const out: PublicShopListingHang[] = [];
+  for (const h of shopHang) {
+    const id = h.id?.trim();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push(h);
+  }
+  return out;
+}
+
+function collectMatHangCards(
+  items: ReadonlyArray<ShopQuaySuKien>,
+  query: string,
+): QuayMatHangCard[] {
+  const q = normalizeSearchText(query);
+  const out: QuayMatHangCard[] = [];
+  const seen = new Set<string>();
+  for (const item of items) {
+    if (item.trangThai !== "da_duyet") continue;
+    const shop = item.shop;
+    if (!shop) continue;
+    const ownerSlug = shop.ownerSlug?.trim();
+    const shopSlug = shop.shopSlug?.trim();
+    if (!ownerSlug || !shopSlug) continue;
+    const catalog = hangFromShopCatalog([
+      ...shop.featuredHang,
+      ...shop.catalogHang,
+    ]);
+    const sellerName =
+      shop.ten?.trim() || item.nguoiDungTen?.trim() || null;
+    for (const h of catalog) {
+      if (
+        q &&
+        !normalizeSearchText(
+          [h.ten, h.moTa, sellerName, shop.ownerSlug].filter(Boolean).join(" "),
+        ).includes(q)
+      ) {
+        continue;
+      }
+      const key = `${h.id}:${item.id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({
+        id: h.id,
+        quayId: item.id,
+        nhan: h.ten,
+        moTa: h.moTa?.trim() || null,
+        anhUrl: h.anhUrl,
+        giaHienThi:
+          h.giaHienThi != null && Number.isFinite(h.giaHienThi)
+            ? h.giaHienThi
+            : null,
+        tienTe: h.tienTe?.trim() || "VND",
+        hetHang: h.hetHang === true,
+        noiBat: h.noiBat === true,
+        soLuongBan: h.soLuongBan ?? 0,
+        href: shopLoaiHref(ownerSlug, shopSlug, h.id),
+        sellerName,
+      });
+    }
+  }
+  return out;
+}
+
+function mulberry32(seed: number): () => number {
+  let a = seed | 0;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function seededShuffle<T>(arr: ReadonlyArray<T>, seed: number): T[] {
+  const rand = mulberry32(seed);
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rand() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
 }
 
 type Props = {
@@ -173,6 +307,57 @@ function QuayUserMeta({ q }: { q: ShopQuaySuKien }) {
         ) : null}
       </span>
     </div>
+  );
+}
+
+/** Nút nhắn tin 1-1 với chủ shop quầy (tab Đã duyệt). */
+function QuayManageChatButton({ q }: { q: ShopQuaySuKien }) {
+  const { openChat, viewerProfileId } = useCinsChat();
+  const [busy, setBusy] = useState(false);
+  const ownerId = q.idNguoiDung.trim();
+  const isSelf = Boolean(viewerProfileId) && viewerProfileId === ownerId;
+  const displayName =
+    q.shop?.ten?.trim() ||
+    q.nguoiDungTen?.trim() ||
+    q.shop?.ownerTen?.trim() ||
+    q.nguoiDungSlug?.trim() ||
+    "Shop";
+  const slug =
+    q.shop?.ownerSlug?.trim() || q.nguoiDungSlug?.trim() || undefined;
+  const avatarUrl =
+    q.shop?.avatarUrl?.trim() || q.nguoiDungAvatarUrl?.trim() || null;
+
+  const onClick = () => {
+    if (!ownerId || isSelf || busy) return;
+    setBusy(true);
+    void openChat({
+      targetUserId: ownerId,
+      tab: "nguoi_la",
+      peerPreview: {
+        name: displayName,
+        slug,
+        avatarUrl,
+        avatarInitial: avatarInitialFromName(displayName),
+        avatarHue: avatarHueFromSeed(ownerId),
+      },
+    }).finally(() => setBusy(false));
+  };
+
+  return (
+    <button
+      type="button"
+      disabled={isSelf || busy || !ownerId}
+      title={isSelf ? "Không nhắn tin cho chính mình" : "Nhắn tin với shop"}
+      aria-label="Nhắn tin với shop"
+      onClick={onClick}
+    >
+      {busy ? (
+        <Loader2 className="shop-spin" size={14} />
+      ) : (
+        <MessageCircle size={14} strokeWidth={2.25} aria-hidden />
+      )}
+      Nhắn tin
+    </button>
   );
 }
 
@@ -276,6 +461,96 @@ function EvidenceBlock({ items }: { items: ShopEvidence[] }) {
   );
 }
 
+function QuayMatHangCatalogView({
+  cards,
+}: {
+  cards: ReadonlyArray<QuayMatHangCard>;
+}) {
+  const shuffleSeedRef = useRef((Math.random() * 0x100000000) >>> 0);
+  const shuffleSeed = shuffleSeedRef.current;
+  const cardsKey = useMemo(
+    () => cards.map((c) => `${c.id}:${c.quayId}`).join("|"),
+    [cards],
+  );
+  const shuffledOrder = useMemo(
+    () => seededShuffle(cardsKey ? cardsKey.split("|") : [], shuffleSeed),
+    [cardsKey, shuffleSeed],
+  );
+  const shuffledCards = useMemo(() => {
+    const byKey = new Map(
+      cards.map((c) => [`${c.id}:${c.quayId}`, c] as const),
+    );
+    return shuffledOrder
+      .map((k) => byKey.get(k))
+      .filter((c): c is QuayMatHangCard => c !== undefined);
+  }, [cards, shuffledOrder]);
+
+  if (cards.length === 0) {
+    return (
+      <p className="shop-dash-hint">Không có mặt hàng khớp tìm kiếm.</p>
+    );
+  }
+
+  return (
+    <section
+      className="j-shop-sf-group shop-quay-mat-hang"
+      aria-label="Mặt hàng các quầy"
+    >
+      <ul className="j-shop-sf-grid">
+        {shuffledCards.map((card) => {
+          const giaLabel =
+            card.giaHienThi != null
+              ? formatQuayMatHangGia(card.giaHienThi, card.tienTe)
+              : "Chưa có giá";
+          return (
+            <li key={`${card.id}:${card.quayId}`}>
+              <Link
+                href={card.href}
+                className={`j-shop-sf-card j-shop-sf-type-card${
+                  card.hetHang ? " is-soldout" : ""
+                }`}
+              >
+                <span className="j-shop-sf-card-media" aria-hidden>
+                  {card.anhUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={card.anhUrl} alt="" loading="lazy" />
+                  ) : (
+                    <span className="j-shop-sf-card-ph" />
+                  )}
+                  {card.hetHang ? (
+                    <span className="j-shop-sf-soldout">Hết hàng</span>
+                  ) : null}
+                </span>
+                <span className="j-shop-sf-card-body">
+                  <span className="j-shop-sf-card-name">{card.nhan}</span>
+                  {card.moTa ? <QuayMatHangMoTa moTa={card.moTa} /> : null}
+                  <span className="j-shop-sf-type-meta">
+                    {card.sellerName ? (
+                      <span className="shop-quay-mat-hang-seller">
+                        {card.sellerName}
+                      </span>
+                    ) : null}
+                    {card.soLuongBan > 0 ? (
+                      <span>Đã bán {card.soLuongBan.toLocaleString("vi-VN")}</span>
+                    ) : null}
+                  </span>
+                  <span
+                    className={`j-shop-sf-card-price${
+                      card.giaHienThi == null ? " is-empty" : ""
+                    }`}
+                  >
+                    {giaLabel}
+                  </span>
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 function QuayHangCatalogView({
   cards,
   onOpen,
@@ -285,7 +560,25 @@ function QuayHangCatalogView({
   onOpen: (shopHref: string) => void;
   viewerProfileId: string | null;
 }) {
-  const groups = groupHangByLoai(cards);
+  /* Seed sinh một lần mỗi lần mount — F5 ra thứ tự khác, re-render thì giữ nguyên. */
+  const shuffleSeedRef = useRef((Math.random() * 0x100000000) >>> 0);
+  const shuffleSeed = shuffleSeedRef.current;
+  const cardsKey = useMemo(
+    () => cards.map((c) => `${c.hangId}:${c.quayId}`).join("|"),
+    [cards],
+  );
+  const shuffledOrder = useMemo(
+    () => seededShuffle(cardsKey ? cardsKey.split("|") : [], shuffleSeed),
+    [cardsKey, shuffleSeed],
+  );
+  const shuffledCards = useMemo(() => {
+    const byKey = new Map(
+      cards.map((c) => [`${c.hangId}:${c.quayId}`, c] as const),
+    );
+    return shuffledOrder
+      .map((k) => byKey.get(k))
+      .filter((c): c is QuayHangCard => c !== undefined);
+  }, [cards, shuffledOrder]);
   const [qtyByBt, setQtyByBt] = useState<Map<string, number>>(new Map());
   const [cartErr, setCartErr] = useState<string | null>(null);
 
@@ -419,7 +712,7 @@ function QuayHangCatalogView({
     [flushQtySync],
   );
 
-  if (groups.length === 0) {
+  if (cards.length === 0) {
     return (
       <p className="shop-dash-hint">Không có hàng khớp tìm kiếm.</p>
     );
@@ -435,20 +728,15 @@ function QuayHangCatalogView({
           {cartErr}
         </p>
       ) : null}
-      {groups.map((group) => (
-        <section key={group.loai} className="shop-kiosk-catalog-group">
-          <h4 className="shop-kiosk-catalog-group-title">
-            {group.loai}
-            <span>{group.items.length}</span>
-          </h4>
-          <ul className="shop-kiosk-catalog-grid">
-            {group.items.map((it) => {
+      <ul className="shop-kiosk-catalog-grid">
+            {shuffledCards.map((it) => {
               const outOfStock = it.hetHang || it.soLuongTon <= 0;
               const showLowStock =
                 !outOfStock &&
                 Number.isFinite(it.soLuongTon) &&
                 it.soLuongTon > 0 &&
                 it.soLuongTon < 5;
+              const showSold = it.soLuongBan > 0;
               const qty = qtyByBt.get(it.idBienThe) ?? 0;
               const canInc = !outOfStock && qty < it.soLuongTon;
               const isOwnItem =
@@ -456,8 +744,18 @@ function QuayHangCatalogView({
               const openShop = () => {
                 if (it.shopHref) onOpen(it.shopHref);
               };
+              const thumbBadge = outOfStock ? (
+                <span className="shop-kiosk-catalog-soldout">Hết hàng</span>
+              ) : showLowStock ? (
+                <span className="shop-kiosk-catalog-low-stock">
+                  Còn {it.soLuongTon}
+                </span>
+              ) : null;
               return (
-                <li key={`${it.hangId}:${it.quayId}`} className="shop-kiosk-catalog-card">
+                <li
+                  key={`${it.hangId}:${it.quayId}`}
+                  className={`shop-kiosk-catalog-card${outOfStock ? " is-soldout" : ""}`}
+                >
                   {it.anhUrl ? (
                     <button
                       type="button"
@@ -468,11 +766,7 @@ function QuayHangCatalogView({
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={it.anhUrl} alt="" loading="lazy" />
-                      {showLowStock ? (
-                        <span className="shop-kiosk-catalog-low-stock">
-                          SL:{it.soLuongTon}
-                        </span>
-                      ) : null}
+                      {thumbBadge}
                     </button>
                   ) : (
                     <button
@@ -482,34 +776,72 @@ function QuayHangCatalogView({
                       disabled={!it.shopHref}
                       aria-label={`Xem shop bán ${it.tenSanPham}`}
                     >
-                      {showLowStock ? (
-                        <span className="shop-kiosk-catalog-low-stock">
-                          SL:{it.soLuongTon}
-                        </span>
-                      ) : null}
+                      {thumbBadge}
                     </button>
                   )}
                   <div className="shop-kiosk-catalog-card-body">
-                    <div className="shop-kiosk-catalog-card-name">
+                    <div className="shop-kiosk-catalog-card-foot">
+                      <strong>
+                        {it.giaHienThi.toLocaleString("vi-VN")}{" "}
+                        {it.tienTe === "VND" ? "đ" : it.tienTe}
+                      </strong>
+                    </div>
+                    <button
+                      type="button"
+                      className="shop-kiosk-catalog-card-name shop-quay-hang-name-btn"
+                      onClick={openShop}
+                      disabled={!it.shopHref}
+                      title={
+                        it.nhanBienThe !== "Mặc định"
+                          ? `${it.tenSanPham} · ${it.nhanBienThe}`
+                          : it.tenSanPham
+                      }
+                    >
                       {it.tenSanPham}
                       {it.nhanBienThe !== "Mặc định" ? (
                         <span> · {it.nhanBienThe}</span>
                       ) : null}
-                    </div>
-                    <div className="shop-kiosk-catalog-card-foot">
-                      <strong>
-                        {it.giaHienThi.toLocaleString("vi-VN")} {it.tienTe}
-                      </strong>
-                    </div>
-                    <div className="shop-kiosk-catalog-action">
-                      <span className="shop-kiosk-catalog-stock">
-                        Bán: {it.soLuongBan}
-                      </span>
-                      {it.sellerName ? (
-                        <span className="shop-quay-hang-seller">
+                    </button>
+                    {it.tenLoai ? (
+                      <div className="shop-quay-hang-loai" title={it.tenLoai}>
+                        {it.tenLoai}
+                      </div>
+                    ) : null}
+                    {it.sellerName ? (
+                      <button
+                        type="button"
+                        className="shop-quay-hang-seller"
+                        onClick={openShop}
+                        disabled={!it.shopHref}
+                        aria-label={`Xem shop ${it.sellerName}`}
+                      >
+                        <span
+                          className="shop-quay-hang-seller-avatar"
+                          aria-hidden
+                        >
+                          {it.sellerAvatarUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={it.sellerAvatarUrl} alt="" />
+                          ) : (
+                            getNameInitials(
+                              it.sellerName,
+                              it.sellerSlug ?? "S",
+                            )
+                          )}
+                        </span>
+                        <span className="shop-quay-hang-seller-name">
                           {it.sellerName}
                         </span>
-                      ) : null}
+                      </button>
+                    ) : null}
+                    <div className="shop-kiosk-catalog-action">
+                      {showSold ? (
+                        <span className="shop-kiosk-catalog-stock">
+                          Đã bán {it.soLuongBan}
+                        </span>
+                      ) : (
+                        <span className="shop-kiosk-catalog-stock is-empty" />
+                      )}
                       {viewerProfileId && !isOwnItem ? (
                         qty > 0 ? (
                           <div className="shop-kiosk-qty shop-kiosk-catalog-qty">
@@ -559,20 +891,38 @@ function QuayHangCatalogView({
                 </li>
               );
             })}
-          </ul>
-        </section>
-      ))}
+      </ul>
     </div>
   );
 }
 
-export function ShopQuaySuKienPanel({
+export function ShopQuaySuKienPanel(props: Props) {
+  return (
+    <Suspense
+      fallback={
+        <p className="shop-dash-hint">
+          <Loader2 className="shop-spin" size={14} /> Đang tải quầy…
+        </p>
+      }
+    >
+      <ShopQuaySuKienPanelInner {...props} />
+    </Suspense>
+  );
+}
+
+function ShopQuaySuKienPanelInner({
   suKienId,
   canManage = false,
   alwaysShow = false,
   onPendingCountChange,
   viewerProfileId: viewerProfileIdProp,
 }: Props) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const quayFromUrl = parseSuKienQuayView(searchParams.get("quay"));
+  const browseMode: SuKienQuayView =
+    !canManage && quayFromUrl ? quayFromUrl : SU_KIEN_QUAY_VIEW_DEFAULT;
+
   const [items, setItems] = useState<ShopQuaySuKien[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewerProfileId, setViewerProfileId] = useState<string | null>(
@@ -581,17 +931,22 @@ export function ShopQuaySuKienPanel({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
-  /** Chế độ lưới: shop (cửa hàng) · hàng (sản phẩm). */
-  const [browseMode, setBrowseMode] = useState<"shop" | "hang">("shop");
   const [hangLoading, setHangLoading] = useState(false);
   const [hangLoaded, setHangLoaded] = useState(false);
   const hangInflightRef = useRef(false);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalogLoaded, setCatalogLoaded] = useState(false);
+  const catalogInflightRef = useRef(false);
   const [reasonTarget, setReasonTarget] = useState<{
     id: string;
     mode: "reject" | "revoke";
   } | null>(null);
   const [reasonText, setReasonText] = useState("");
   const [actionErr, setActionErr] = useState<string | null>(null);
+  /** Tab quản lý nội dung: chờ duyệt (mặc định) · đã duyệt. */
+  const [manageTab, setManageTab] = useState<"cho_duyet" | "da_duyet">(
+    "cho_duyet",
+  );
 
   useEffect(() => {
     if (viewerProfileIdProp !== undefined) {
@@ -603,11 +958,16 @@ export function ShopQuaySuKienPanel({
     setLoading(true);
     setHangLoaded(false);
     hangInflightRef.current = false;
+    setCatalogLoaded(false);
+    catalogInflightRef.current = false;
     try {
-      const q = canManage ? "?pending=1" : "";
-      const res = await fetch(`/api/su-kien/${suKienId}/quay${q}`, {
-        cache: "no-store",
-      });
+      const q = new URLSearchParams();
+      if (canManage) q.set("pending", "1");
+      const qs = q.toString();
+      const res = await fetch(
+        `/api/su-kien/${suKienId}/quay${qs ? `?${qs}` : ""}`,
+        { cache: "no-store" },
+      );
       const json = (await res.json().catch(() => null)) as {
         items?: ShopQuaySuKien[];
       } | null;
@@ -624,6 +984,37 @@ export function ShopQuaySuKienPanel({
   useEffect(() => {
     void load();
   }, [load]);
+
+  const ensureCatalog = useCallback(async () => {
+    if (canManage || catalogLoaded || catalogInflightRef.current) return;
+    catalogInflightRef.current = true;
+    setCatalogLoading(true);
+    try {
+      const res = await fetch(
+        `/api/su-kien/${encodeURIComponent(suKienId)}/quay?catalog=1`,
+        { cache: "no-store" },
+      );
+      const json = (await res.json().catch(() => null)) as {
+        items?: ShopQuaySuKien[];
+      } | null;
+      const next = json?.items ?? [];
+      setItems((prev) => {
+        const hangBySeller = new Map(
+          prev
+            .filter((p) => p.hangSearch?.length)
+            .map((p) => [p.idNguoiDung, p.hangSearch!] as const),
+        );
+        return next.map((item) => ({
+          ...item,
+          hangSearch: hangBySeller.get(item.idNguoiDung) ?? item.hangSearch,
+        }));
+      });
+      setCatalogLoaded(true);
+    } finally {
+      catalogInflightRef.current = false;
+      setCatalogLoading(false);
+    }
+  }, [canManage, catalogLoaded, suKienId]);
 
   const ensureHang = useCallback(async () => {
     if (canManage || hangLoaded || hangInflightRef.current) return;
@@ -667,8 +1058,9 @@ export function ShopQuaySuKienPanel({
   }, [canManage, hangLoaded, suKienId, viewerProfileIdProp]);
 
   useEffect(() => {
+    if (browseMode === "mat-hang") void ensureCatalog();
     if (browseMode === "hang") void ensureHang();
-  }, [browseMode, ensureHang]);
+  }, [browseMode, ensureCatalog, ensureHang]);
 
   async function respond(
     id: string,
@@ -733,12 +1125,35 @@ export function ShopQuaySuKienPanel({
     () => filteredItems.filter((i) => i.trangThai === "cho_xu_ly"),
     [filteredItems],
   );
+  const pendingTotal = useMemo(
+    () => items.filter((i) => i.trangThai === "cho_xu_ly").length,
+    [items],
+  );
+  const approvedTotal = useMemo(
+    () => items.filter((i) => i.trangThai === "da_duyet").length,
+    [items],
+  );
   const searchActive = normalizeSearchText(deferredSearch).length > 0;
+
+  function switchManageTab(next: "cho_duyet" | "da_duyet") {
+    if (next === manageTab) return;
+    setManageTab(next);
+    setReasonTarget(null);
+    setReasonText("");
+    setActionErr(null);
+  }
+
   const showHangCatalog = browseMode === "hang" && !canManage;
+  const showMatHangCatalog = browseMode === "mat-hang" && !canManage;
   const hangCards = useMemo(
     () =>
       showHangCatalog ? collectHangCards(items, deferredSearch) : [],
     [showHangCatalog, items, deferredSearch],
+  );
+  const matHangCards = useMemo(
+    () =>
+      showMatHangCatalog ? collectMatHangCards(items, deferredSearch) : [],
+    [showMatHangCatalog, items, deferredSearch],
   );
 
   const openShopStorefront = useCallback((shopHref: string) => {
@@ -782,12 +1197,16 @@ export function ShopQuaySuKienPanel({
                 placeholder={
                   browseMode === "hang"
                     ? "Tìm hàng, phân loại…"
-                    : "Tìm shop…"
+                    : browseMode === "mat-hang"
+                      ? "Tìm mặt hàng…"
+                      : "Tìm shop…"
                 }
                 aria-label={
                   browseMode === "hang"
                     ? "Tìm theo tên sản phẩm hoặc phân loại"
-                    : "Tìm theo tên shop"
+                    : browseMode === "mat-hang"
+                      ? "Tìm theo tên mặt hàng"
+                      : "Tìm theo tên shop"
                 }
                 autoComplete="off"
                 spellCheck={false}
@@ -812,25 +1231,74 @@ export function ShopQuaySuKienPanel({
             role="group"
             aria-label="Chế độ xem quầy"
           >
-            <button
-              type="button"
+            <Link
+              href={withSuKienQuayView(pathname, "shop", searchParams)}
+              replace
+              scroll={false}
               className={`j-svt-btn${browseMode === "shop" ? " active" : ""}`}
-              aria-pressed={browseMode === "shop"}
+              aria-current={browseMode === "shop" ? "page" : undefined}
               title="Xem theo cửa hàng"
-              onClick={() => setBrowseMode("shop")}
             >
               <Store size={15} strokeWidth={2} aria-hidden />
               Shop
-            </button>
-            <button
-              type="button"
+            </Link>
+            <Link
+              href={withSuKienQuayView(pathname, "mat-hang", searchParams)}
+              replace
+              scroll={false}
+              className={`j-svt-btn${browseMode === "mat-hang" ? " active" : ""}`}
+              aria-current={browseMode === "mat-hang" ? "page" : undefined}
+              title="Xem theo mặt hàng"
+            >
+              <LayoutGrid size={15} strokeWidth={2} aria-hidden />
+              Mặt hàng
+            </Link>
+            <Link
+              href={withSuKienQuayView(pathname, "hang", searchParams)}
+              replace
+              scroll={false}
               className={`j-svt-btn${browseMode === "hang" ? " active" : ""}`}
-              aria-pressed={browseMode === "hang"}
+              aria-current={browseMode === "hang" ? "page" : undefined}
               title="Xem theo hàng"
-              onClick={() => setBrowseMode("hang")}
             >
               <Package size={15} strokeWidth={2} aria-hidden />
               Hàng
+            </Link>
+          </div>
+        ) : null}
+        {canManage ? (
+          <div
+            className="shop-quay-manage-tabs"
+            role="tablist"
+            aria-label="Trạng thái duyệt quầy"
+          >
+            <button
+              type="button"
+              role="tab"
+              id="shop-quay-tab-cho-duyet"
+              aria-selected={manageTab === "cho_duyet"}
+              aria-controls="shop-quay-panel-cho-duyet"
+              className={`shop-quay-manage-tab${
+                manageTab === "cho_duyet" ? " is-active" : ""
+              }`}
+              onClick={() => switchManageTab("cho_duyet")}
+            >
+              Chờ duyệt
+              <span className="shop-quay-manage-tab-count">{pendingTotal}</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              id="shop-quay-tab-da-duyet"
+              aria-selected={manageTab === "da_duyet"}
+              aria-controls="shop-quay-panel-da-duyet"
+              className={`shop-quay-manage-tab${
+                manageTab === "da_duyet" ? " is-active" : ""
+              }`}
+              onClick={() => switchManageTab("da_duyet")}
+            >
+              Đã duyệt
+              <span className="shop-quay-manage-tab-count">{approvedTotal}</span>
             </button>
           </div>
         ) : null}
@@ -853,6 +1321,20 @@ export function ShopQuaySuKienPanel({
               {searchActive
                 ? "Không có hàng khớp tìm kiếm."
                 : "Chưa có hàng trên các quầy."}
+            </p>
+          )
+        ) : showMatHangCatalog ? (
+          catalogLoading && !catalogLoaded ? (
+            <p className="shop-dash-hint">
+              <Loader2 className="shop-spin" size={14} /> Đang tải mặt hàng…
+            </p>
+          ) : matHangCards.length ? (
+            <QuayMatHangCatalogView cards={matHangCards} />
+          ) : (
+            <p className="shop-dash-hint">
+              {searchActive
+                ? "Không có mặt hàng khớp tìm kiếm."
+                : "Chưa có mặt hàng trên các quầy."}
             </p>
           )
         ) : approved.length ? (
@@ -886,179 +1368,201 @@ export function ShopQuaySuKienPanel({
             </p>
           ) : null}
 
-          {approved.length ? (
-            <div className="ch-list-grid shop-quay-manage-grid">
-              {approved.map((q) => {
-                const asking = reasonTarget?.id === q.id;
-                return (
-                  <div
-                    key={q.id}
-                    className={
-                      asking
-                        ? "shop-quay-manage-item is-reason"
-                        : "shop-quay-manage-item"
-                    }
-                  >
-                    <div className="shop-quay-manage-shop">
-                      {q.shop ? (
-                        <CuaHangListCard shop={q.shop} query={deferredSearch} />
-                      ) : (
-                        <QuayUserMeta q={q} />
-                      )}
-                    </div>
-                    <div className="shop-quay-manage-actions">
-                      <span className="shop-dash-hint">Đã duyệt</span>
-                      <button
-                        type="button"
-                        className="shop-dash-danger"
-                        disabled={busyId === q.id}
-                        onClick={() => openReason(q.id, "revoke")}
+          <div
+            id="shop-quay-panel-cho-duyet"
+            role="tabpanel"
+            aria-labelledby="shop-quay-tab-cho-duyet"
+            hidden={manageTab !== "cho_duyet"}
+          >
+            {manageTab === "cho_duyet" ? (
+              pending.length > 0 ? (
+                <div className="ch-list-grid shop-quay-manage-grid shop-quay-manage-grid--pending">
+                  {pending.map((q) => {
+                    const asking = reasonTarget?.id === q.id;
+                    return (
+                      <div
+                        key={q.id}
+                        className={
+                          asking
+                            ? "shop-quay-manage-item is-reason"
+                            : "shop-quay-manage-item"
+                        }
                       >
-                        Gỡ
-                      </button>
-                    </div>
-                    {asking ? (
-                      <div className="shop-quay-reason-box">
-                        <textarea
-                          rows={2}
-                          value={reasonText}
-                          onChange={(e) => setReasonText(e.target.value)}
-                          placeholder="Lý do gỡ khỏi sự kiện…"
-                          autoFocus
-                        />
-                        <div className="shop-quay-reason-actions">
+                        <div className="shop-quay-manage-shop">
+                          {q.shop ? (
+                            <CuaHangListCard
+                              shop={q.shop}
+                              query={deferredSearch}
+                            />
+                          ) : (
+                            <QuayShopFallbackLink q={q} />
+                          )}
+                        </div>
+                        <div className="shop-quay-manage-actions">
                           <button
                             type="button"
                             disabled={busyId === q.id}
-                            onClick={() => {
-                              setReasonTarget(null);
-                              setReasonText("");
-                            }}
+                            onClick={() => void respond(q.id, "approve")}
+                            aria-label="Duyệt"
                           >
-                            Huỷ
+                            <Check size={14} />
+                            Duyệt
                           </button>
                           <button
                             type="button"
                             className="shop-dash-danger"
-                            disabled={busyId === q.id || !reasonText.trim()}
-                            onClick={() => void confirmReason()}
+                            disabled={busyId === q.id}
+                            onClick={() => openReason(q.id, "reject")}
+                            aria-label="Từ chối"
                           >
-                            {busyId === q.id ? (
-                              <Loader2 className="shop-spin" size={14} />
-                            ) : (
-                              "Xác nhận gỡ"
-                            )}
+                            <X size={14} />
+                            Từ chối
                           </button>
                         </div>
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="shop-dash-hint">
-              {searchActive
-                ? "Không có quầy đã duyệt khớp tìm kiếm."
-                : "Chưa có quầy được duyệt."}
-            </p>
-          )}
 
-          {pending.length > 0 ? (
-            <>
-              <h4 className="shop-quay-manage-subtitle">
-                Chờ duyệt ({pending.length})
-              </h4>
-              <div className="ch-list-grid shop-quay-manage-grid shop-quay-manage-grid--pending">
-                {pending.map((q) => {
-                  const asking = reasonTarget?.id === q.id;
-                  return (
-                    <div
-                      key={q.id}
-                      className={
-                        asking
-                          ? "shop-quay-manage-item is-reason"
-                          : "shop-quay-manage-item"
-                      }
-                    >
-                      <div className="shop-quay-manage-shop">
-                        {q.shop ? (
-                          <CuaHangListCard shop={q.shop} query={deferredSearch} />
-                        ) : (
-                          <QuayShopFallbackLink q={q} />
-                        )}
-                      </div>
-                      <div className="shop-quay-manage-actions">
-                        <button
-                          type="button"
-                          disabled={busyId === q.id}
-                          onClick={() => void respond(q.id, "approve")}
-                          aria-label="Duyệt"
-                        >
-                          <Check size={14} />
-                          Duyệt
-                        </button>
-                        <button
-                          type="button"
-                          className="shop-dash-danger"
-                          disabled={busyId === q.id}
-                          onClick={() => openReason(q.id, "reject")}
-                          aria-label="Từ chối"
-                        >
-                          <X size={14} />
-                          Từ chối
-                        </button>
-                      </div>
-
-                      {asking ? (
-                        <div className="shop-quay-reason-box">
-                          <textarea
-                            rows={2}
-                            value={reasonText}
-                            onChange={(e) => setReasonText(e.target.value)}
-                            placeholder="Lý do từ chối…"
-                            autoFocus
-                          />
-                          <div className="shop-quay-reason-actions">
-                            <button
-                              type="button"
-                              disabled={busyId === q.id}
-                              onClick={() => {
-                                setReasonTarget(null);
-                                setReasonText("");
-                              }}
-                            >
-                              Huỷ
-                            </button>
-                            <button
-                              type="button"
-                              className="shop-dash-danger"
-                              disabled={busyId === q.id || !reasonText.trim()}
-                              onClick={() => void confirmReason()}
-                            >
-                              {busyId === q.id ? (
-                                <Loader2 className="shop-spin" size={14} />
-                              ) : (
-                                "Xác nhận từ chối"
-                              )}
-                            </button>
+                        {asking ? (
+                          <div className="shop-quay-reason-box">
+                            <textarea
+                              rows={2}
+                              value={reasonText}
+                              onChange={(e) => setReasonText(e.target.value)}
+                              placeholder="Lý do từ chối…"
+                              autoFocus
+                            />
+                            <div className="shop-quay-reason-actions">
+                              <button
+                                type="button"
+                                disabled={busyId === q.id}
+                                onClick={() => {
+                                  setReasonTarget(null);
+                                  setReasonText("");
+                                }}
+                              >
+                                Huỷ
+                              </button>
+                              <button
+                                type="button"
+                                className="shop-dash-danger"
+                                disabled={busyId === q.id || !reasonText.trim()}
+                                onClick={() => void confirmReason()}
+                              >
+                                {busyId === q.id ? (
+                                  <Loader2 className="shop-spin" size={14} />
+                                ) : (
+                                  "Xác nhận từ chối"
+                                )}
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      ) : null}
+                        ) : null}
 
-                      <EvidenceBlock items={q.bangChung} />
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          ) : alwaysShow ? (
-            <p className="shop-dash-hint" style={{ marginTop: 10 }}>
-              {searchActive
-                ? "Không có quầy chờ duyệt khớp tìm kiếm."
-                : "Không có quầy đang chờ duyệt."}
-            </p>
-          ) : null}
+                        <EvidenceBlock items={q.bangChung} />
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="shop-dash-hint">
+                  {searchActive
+                    ? "Không có quầy chờ duyệt khớp tìm kiếm."
+                    : "Không có quầy đang chờ duyệt."}
+                </p>
+              )
+            ) : null}
+          </div>
+
+          <div
+            id="shop-quay-panel-da-duyet"
+            role="tabpanel"
+            aria-labelledby="shop-quay-tab-da-duyet"
+            hidden={manageTab !== "da_duyet"}
+          >
+            {manageTab === "da_duyet" ? (
+              approved.length ? (
+                <div className="ch-list-grid shop-quay-manage-grid">
+                  {approved.map((q) => {
+                    const asking = reasonTarget?.id === q.id;
+                    return (
+                      <div
+                        key={q.id}
+                        className={
+                          asking
+                            ? "shop-quay-manage-item is-reason"
+                            : "shop-quay-manage-item"
+                        }
+                      >
+                        <div className="shop-quay-manage-shop">
+                          {q.shop ? (
+                            <CuaHangListCard
+                              shop={q.shop}
+                              query={deferredSearch}
+                            />
+                          ) : (
+                            <QuayUserMeta q={q} />
+                          )}
+                        </div>
+                        <div className="shop-quay-manage-actions">
+                          <span className="shop-quay-status shop-quay-status--approved">
+                            Đã duyệt
+                          </span>
+                          <QuayManageChatButton q={q} />
+                          <button
+                            type="button"
+                            className="shop-dash-danger"
+                            disabled={busyId === q.id}
+                            onClick={() => openReason(q.id, "revoke")}
+                          >
+                            Gỡ
+                          </button>
+                        </div>
+                        {asking ? (
+                          <div className="shop-quay-reason-box">
+                            <textarea
+                              rows={2}
+                              value={reasonText}
+                              onChange={(e) => setReasonText(e.target.value)}
+                              placeholder="Lý do gỡ khỏi sự kiện…"
+                              autoFocus
+                            />
+                            <div className="shop-quay-reason-actions">
+                              <button
+                                type="button"
+                                disabled={busyId === q.id}
+                                onClick={() => {
+                                  setReasonTarget(null);
+                                  setReasonText("");
+                                }}
+                              >
+                                Huỷ
+                              </button>
+                              <button
+                                type="button"
+                                className="shop-dash-danger"
+                                disabled={busyId === q.id || !reasonText.trim()}
+                                onClick={() => void confirmReason()}
+                              >
+                                {busyId === q.id ? (
+                                  <Loader2 className="shop-spin" size={14} />
+                                ) : (
+                                  "Xác nhận gỡ"
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="shop-dash-hint">
+                  {searchActive
+                    ? "Không có quầy đã duyệt khớp tìm kiếm."
+                    : "Chưa có quầy được duyệt."}
+                </p>
+              )
+            ) : null}
+          </div>
         </>
       )}
     </section>

@@ -16810,14 +16810,14 @@ button.j-user-pop-close svg {
   border-radius: 0;
   padding: 0;
   background: transparent;
-  color: #9333ea;
+  color: var(--cins-blue, #1f74c9);
   font-size: 12px;
   font-weight: 600;
   text-decoration: none;
   transition: color 0.12s;
 }
 .tag:hover {
-  color: #7c3aed;
+  color: color-mix(in srgb, var(--cins-blue, #1f74c9) 78%, #0b3a6b);
 }
 
 /* Article tag tooltip — portal trên body, tránh clip bởi .j-m-card overflow */

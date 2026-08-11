@@ -67,8 +67,8 @@ export function JourneyShopSfHero({
             <h2>{shopName}</h2>
             {shopMoTa ? <p>{shopMoTa}</p> : null}
           </div>
+          {actions}
         </div>
-        {actions}
       </div>
     </header>
   );

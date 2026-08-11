@@ -1845,14 +1845,29 @@
 .j-notify-item.is-history {
   background: var(--neutral-100);
   opacity: 0.92;
+  color: var(--ink-muted);
 }
 
 .j-notify-item.is-history:hover {
   opacity: 1;
+  color: var(--ink-body);
+}
+
+.j-notify-item.is-unread {
+  background: color-mix(in srgb, var(--cins-blue) 10%, var(--neutral-50));
+  border-color: color-mix(in srgb, var(--cins-blue) 28%, transparent);
+  box-shadow: inset 3px 0 0 var(--cins-blue);
+}
+
+.j-notify-item.is-unread:hover {
+  background: var(--cins-blue-soft);
+  border-color: color-mix(in srgb, var(--cins-blue) 45%, var(--border));
 }
 
 .j-notify-item.is-pending {
   border-color: color-mix(in srgb, var(--cins-blue) 32%, transparent);
+  background: color-mix(in srgb, var(--cins-blue) 12%, var(--neutral-50));
+  box-shadow: inset 3px 0 0 var(--cins-blue);
 }
 
 .j-notify-head {

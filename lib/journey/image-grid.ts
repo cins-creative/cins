@@ -238,6 +238,13 @@ export const MASONRY_MAX_COLUMNS = 3;
 /** Số ảnh tối đa trên một hàng Justified. */
 export const JUSTIFIED_MAX_PER_ROW = 3;
 /**
+ * Mục tiêu tổng aspect (Σ width/height) mỗi hàng Justified khi chunk album ≥6.
+ * Hàng cao ≈ W / 3.9 ≈ 0.256·W. Chọn k ∈ {1,2,3} sao cho k·avgAspect gần nhất
+ * (không gian log) → ngưỡng avgAspect: ≤1.59 giữ 3, 1.59–2.76 → 2, >2.76 → 1.
+ * Bảo thủ: 4:3 / 3:2 vẫn 3 ảnh/hàng; screenshot ~16:9+ mới xuống 2.
+ */
+export const TARGET_JUSTIFIED_ROW_ASPECT_SUM = 3.9;
+/**
  * Canvas album: tách hàng khi một hàng thấp hơn khung 16:9 (tránh album dẹp lép).
  * Chiều cao từng hàng sau tách vẫn theo tỉ lệ ảnh (`justifiedRowStyle`) —
  * không ép lại canvas 16:9 (ép sẽ crop ảnh user).
@@ -382,6 +389,30 @@ function splitBalancedJustifiedRow(cells: AlbumCell[]): AlbumCell[][] {
 }
 
 /**
+ * Số ảnh/hàng cho nhánh chunk album ≥6: chọn k ∈ {1,2,3} sao cho
+ * k·avgAspect gần TARGET_JUSTIFIED_ROW_ASPECT_SUM nhất (đo trong không gian log).
+ */
+export function justifiedPerRow(
+  cells: ReadonlyArray<{ aspect: number }>,
+): 1 | 2 | 3 {
+  if (cells.length === 0) return JUSTIFIED_MAX_PER_ROW;
+  const aspectSum = cells.reduce((sum, cell) => sum + cell.aspect, 0);
+  const avgAspect = aspectSum / cells.length;
+  if (!(avgAspect > 0)) return JUSTIFIED_MAX_PER_ROW;
+
+  let bestK: 1 | 2 | 3 = JUSTIFIED_MAX_PER_ROW;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (const k of [1, 2, 3] as const) {
+    const distance = Math.abs(Math.log((k * avgAspect) / TARGET_JUSTIFIED_ROW_ASPECT_SUM));
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestK = k;
+    }
+  }
+  return bestK;
+}
+
+/**
  * Chia cells thành các hàng Justified (khớp icon editor: 5 → 2+3).
  * Export để ImageGrid tách lại khi đo được tỉ lệ intrinsic (metadata hay sai).
  */
@@ -411,9 +442,10 @@ export function splitJustifiedRows(cells: AlbumCell[]): AlbumCell[][] {
   if (cells.length === 5) {
     return [cells.slice(0, 2), cells.slice(2, 5)];
   }
+  const perRow = justifiedPerRow(cells);
   const rows: AlbumCell[][] = [];
-  for (let i = 0; i < cells.length; i += JUSTIFIED_MAX_PER_ROW) {
-    rows.push(cells.slice(i, i + JUSTIFIED_MAX_PER_ROW));
+  for (let i = 0; i < cells.length; i += perRow) {
+    rows.push(cells.slice(i, i + perRow));
   }
   return rows;
 }

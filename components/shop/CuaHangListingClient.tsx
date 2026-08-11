@@ -22,14 +22,24 @@ import type {
   PublicShopListingItem,
 } from "@/lib/shop/cua-hang-listing-types";
 import { shopLoaiHref, shopLoaiMauHref } from "@/lib/shop/cua-hang-href";
-import { useChListLazyBatch } from "@/lib/shop/use-ch-list-lazy-batch";
+import { useChListLazyBatch, CH_LIST_SHOP_LAZY_BATCH } from "@/lib/shop/use-ch-list-lazy-batch";
+
+type BrowseMode = "shop" | "hang";
 
 type Props = {
   shops: PublicShopListingItem[];
   taxonomy: CuaHangHubTaxonomy;
+  browseMode: BrowseMode;
 };
 
-type BrowseMode = "shop" | "hang";
+function listingTabHref(
+  mode: BrowseMode,
+  searchParams: URLSearchParams,
+): string {
+  const base = mode === "shop" ? "/cua-hang/shop" : "/cua-hang/hang";
+  const qs = searchParams.toString();
+  return qs ? `${base}?${qs}` : base;
+}
 
 type HangHit = {
   key: string;
@@ -599,14 +609,7 @@ function formatHangGia(gia: number | null, tienTe: string): string | null {
 }
 
 function shopHasUuDai(shop: PublicShopListingItem): boolean {
-  if (shop.coVoucher) return true;
-  const hasCombo = (items: PublicShopListingHang[]) =>
-    items.some((h) => h.coCombo === true);
-  return (
-    hasCombo(shop.featuredHang) ||
-    hasCombo(shop.catalogHang) ||
-    hasCombo(shop.catalogMau)
-  );
+  return shop.coVoucher === true || shop.coCombo === true;
 }
 
 function shopProfileMatches(shop: PublicShopListingItem, q: string): boolean {
@@ -823,12 +826,14 @@ function HangHitCard({ hit }: { hit: HangHit }) {
   );
 }
 
-export function CuaHangListingClient({ shops, taxonomy }: Props) {
+export function CuaHangListingClient({
+  shops,
+  taxonomy,
+  browseMode,
+}: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-
-  const [browseMode, setBrowseMode] = useState<BrowseMode>("hang");
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -1042,11 +1047,13 @@ export function CuaHangListingClient({ shops, taxonomy }: Props) {
     visible: lazyVisibleShops,
     sentinelRef: shopSentinelRef,
     hasMore: hasMoreShops,
-  } = useChListLazyBatch(visibleShops, shopLazyKey);
+  } = useChListLazyBatch(visibleShops, shopLazyKey, CH_LIST_SHOP_LAZY_BATCH);
 
   return (
     <div className="ch-list-page">
-      <h1 className="ch-list-sr-only">Cửa hàng</h1>
+      <h1 className="ch-list-sr-only">
+        {browseMode === "shop" ? "Danh sách cửa hàng" : "Danh sách sản phẩm"}
+      </h1>
 
       <CuaHangSanVoucher />
 
@@ -1127,26 +1134,26 @@ export function CuaHangListingClient({ shops, taxonomy }: Props) {
               role="tablist"
               aria-label="Chế độ xem cửa hàng"
             >
-              <button
-                type="button"
+              <Link
+                href={listingTabHref("shop", searchParams)}
+                scroll={false}
                 role="tab"
                 aria-selected={browseMode === "shop"}
                 className={`ch-list-toolbar-tab${browseMode === "shop" ? " is-active" : ""}`}
-                onClick={() => setBrowseMode("shop")}
               >
                 <Store size={16} strokeWidth={2} aria-hidden />
                 Shop
-              </button>
-              <button
-                type="button"
+              </Link>
+              <Link
+                href={listingTabHref("hang", searchParams)}
+                scroll={false}
                 role="tab"
                 aria-selected={browseMode === "hang"}
                 className={`ch-list-toolbar-tab${browseMode === "hang" ? " is-active" : ""}`}
-                onClick={() => setBrowseMode("hang")}
               >
                 <Package size={16} strokeWidth={2} aria-hidden />
                 Hàng
-              </button>
+              </Link>
             </div>
 
             <button

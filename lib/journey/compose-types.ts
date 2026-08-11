@@ -1,5 +1,6 @@
 import { isTier1EmbedPlatformId } from "@/lib/editor/embed-providers";
 import type { ComposeEditorDraft } from "@/lib/journey/compose-editor-draft";
+import type { ShopPostHangItem } from "@/lib/shop/types";
 
 export type ComposeCreateKind = "article" | "photo" | "video" | "milestone" | "embed";
 
@@ -8,6 +9,13 @@ export type ComposeIntent = "minimal" | "photo" | "video" | "full" | "embed";
 
 /** Nháp compose chưa có `v`/`savedAt` — dùng prefill (vd. Giới thiệu sản phẩm). */
 export type ComposePrefillDraft = Omit<ComposeEditorDraft, "v" | "savedAt">;
+
+/** Mock ticker kiosk trên ComposePreviewPanel (Giới thiệu sản phẩm). */
+export type ComposeShopKioskPreview = {
+  items: ShopPostHangItem[];
+  /** Gợi ý thiếu hàng / hết hàng / cắt trần — hiện dưới ticker. */
+  hint?: string | null;
+};
 
 export type JourneyComposeState =
   | { kind: "article"; intent?: ComposeIntent }
@@ -18,6 +26,8 @@ export type JourneyComposeState =
       prefillDraft?: ComposePrefillDraft;
       /** Hậu tố draft key (vd. `shop-nhom:{id}`) — tránh đè nháp album thường. */
       draftScope?: string;
+      /** Preview hàng bán sẽ gắn sau publish. */
+      shopKioskPreview?: ComposeShopKioskPreview | null;
     }
   | { kind: "video"; pendingFile?: File }
   | {
