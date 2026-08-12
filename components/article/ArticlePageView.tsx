@@ -14,7 +14,6 @@ import { ArticleJsonLd } from "@/components/article/ArticleJsonLd";
 import { InlineArticleDraftBar } from "@/components/article/InlineArticleDraftBar";
 import { ArticleNgheView } from "@/components/article/nghe/ArticleNgheView";
 import { MonHocArticleView } from "@/components/article/mon-hoc/MonHocArticleView";
-import { ArticleSidebar } from "@/components/article/ArticleSidebar";
 import { TacPhamSection } from "@/components/article/TacPhamSection";
 import { TruongDaoTaoSection } from "@/components/article/TruongDaoTaoSection";
 
@@ -100,7 +99,6 @@ export function ArticlePageView({
               <TruongDaoTaoSection rows={truongRows} />
               <TacPhamSection items={tacPham} />
             </main>
-            <ArticleSidebar lienQuan={lienQuan} />
           </div>
         </div>
         {draftUiEnabled ? (
@@ -124,7 +122,6 @@ export function ArticlePageView({
             <ArticleContent markdown={markdown} />
             <TacPhamSection items={tacPham} />
           </main>
-          <ArticleSidebar lienQuan={lienQuan} />
         </div>
       </div>
       {draftUiEnabled ? (

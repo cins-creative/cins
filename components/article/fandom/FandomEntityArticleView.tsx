@@ -4,18 +4,12 @@ import { EntityArticleAttribution } from "@/components/article/entity/EntityArti
 import { EntityArticleDiscussion } from "@/components/article/entity/EntityArticleDiscussion";
 import { EntityArticleHeader } from "@/components/article/entity/EntityArticleHeader";
 import { EntityArticleLayout } from "@/components/article/entity/EntityArticleLayout";
-import {
-  buildFandomSidebarTabs,
-  fandomDefaultSidebarTab,
-} from "@/components/article/fandom/buildFandomSidebarTabs";
 import { NgheLeadRich } from "@/components/article/nghe/NgheLeadRich";
 import { NgheLeadVideo } from "@/components/article/nghe/NgheLeadVideo";
-import { NgheSidebarTabs } from "@/components/article/nghe/NgheSidebarTabs";
 import { resolveHubArticleImages } from "@/lib/bai-viet/thumbnail";
 import { buildArticleLeadSource } from "@/lib/articles/article-lead-source";
 import { articlePublicHref } from "@/lib/articles/article-href";
 import { resolveArticleVideoUrl } from "@/lib/articles/lead-video-url";
-import { partitionFandomRelated } from "@/lib/articles/partition-fandom-related";
 import { splitArticleTitleEm } from "@/lib/articles/split-title-em";
 import {
   fetchArticleAttribution,
@@ -29,14 +23,12 @@ import { listDongGopForEntityTab } from "@/lib/article/dong-gop/public-list";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type {
   ArticleBaiViet,
-  ArticleCard,
   TacPhamGalleryItem,
 } from "@/lib/articles/types";
 import type { TagAggSort, TagAggUser } from "@/lib/tag/aggregation-types";
 
 type Props = {
   article: ArticleBaiViet;
-  lienQuan: ArticleCard[];
   tacPham: TacPhamGalleryItem[];
   entityTaggedUsers?: TagAggUser[];
   entityMilestones?: ReadonlyArray<MilestoneItem>;
@@ -46,7 +38,6 @@ type Props = {
 
 export async function FandomEntityArticleView({
   article,
-  lienQuan,
   tacPham,
   entityTaggedUsers = [],
   entityMilestones = [],
@@ -95,9 +86,6 @@ export async function FandomEntityArticleView({
     },
   );
 
-  const { keywords, phanMem, fandoms } = partitionFandomRelated(lienQuan);
-  const sidebarTabs = buildFandomSidebarTabs(keywords, phanMem, fandoms);
-
   const content = (
     <div className="nghe-lead-panel entity-lead-panel" data-rich-lead-slot="true">
       {leadVideoUrl ? <NgheLeadVideo url={leadVideoUrl} /> : null}
@@ -109,19 +97,6 @@ export async function FandomEntityArticleView({
         </p>
       )}
     </div>
-  );
-
-  const sidebar = (
-    <>
-      {sidebarTabs.length > 0 ? (
-        <NgheSidebarTabs
-          tabs={sidebarTabs}
-          defaultTabId={fandomDefaultSidebarTab(keywords, phanMem, fandoms)}
-        />
-      ) : (
-        <p className="nghe-side-empty">Chưa có mục liên quan.</p>
-      )}
-    </>
   );
 
   return (
@@ -169,7 +144,6 @@ export async function FandomEntityArticleView({
             tacPham={tacPham}
           />
         }
-        sidebar={sidebar}
       />
     </div>
   );

@@ -8,6 +8,7 @@ import {
   unpackContribNoiDung,
   type ContribHeroMeta,
 } from "@/lib/article/dong-gop/contrib-document";
+import { resolveDongGopEditorInitialHtml } from "@/lib/article/dong-gop/skeleton";
 import {
   hideDongGopByOwner,
   showDongGopByOwner,
@@ -195,7 +196,11 @@ export async function loadOwnContributionEditorAction(input: {
     return { ok: false, message: "Không tìm thấy bài viết liên quan." };
   }
 
-  const noiDung = row.noi_dung ?? "";
+  const noiDung = resolveDongGopEditorInitialHtml({
+    loaiBaiViet: article.loai_bai_viet,
+    entityTitle: article.tieu_de,
+    existingNoiDung: row.noi_dung,
+  });
   const unpacked = unpackContribNoiDung(noiDung);
 
   return {

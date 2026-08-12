@@ -301,6 +301,10 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
       setBusy(false);
     }
   }
+
+  return (
+    <>
+      <header className="page-header">
         <h1 className="page-title">Danh mục hàng</h1>
         <div className="page-header-actions">
           <button type="button" className="btn btn-ghost" onClick={() => {

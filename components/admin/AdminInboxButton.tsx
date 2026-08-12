@@ -3,10 +3,14 @@
 import Link from "next/link";
 import {
   BadgeCheck,
+  Bot,
   Briefcase,
   FilePenLine,
   Flag,
+  FolderTree,
   MessageSquareText,
+  Scale,
+  Store,
 } from "lucide-react";
 import {
   useCallback,
@@ -18,7 +22,11 @@ import {
 import { createPortal } from "react-dom";
 
 import type { AdminInboxStats } from "@/lib/admin/admin-inbox-stats-types";
-import { EMPTY_ADMIN_INBOX_STATS } from "@/lib/admin/admin-inbox-stats-types";
+import {
+  EMPTY_ADMIN_INBOX_STATS,
+  formatAdminInboxBadge,
+  parseAdminInboxStats,
+} from "@/lib/admin/admin-inbox-stats-types";
 import {
   ADMIN_INBOX_VISIBLE_CHANGE_EVENT,
   readAdminInboxVisible,
@@ -68,34 +76,31 @@ const ROWS: InboxRow[] = [
     href: "/admin/noi-dung-dang/cho-xac-thuc",
     icon: BadgeCheck,
   },
+  {
+    key: "moShop",
+    label: "Lead mở shop",
+    href: "/admin/mo-shop",
+    icon: Store,
+  },
+  {
+    key: "tranhChap",
+    label: "Tranh chấp shop",
+    href: "/admin/tranh-chap",
+    icon: Scale,
+  },
+  {
+    key: "danhMuc",
+    label: "Danh mục hàng chờ",
+    href: "/admin/danh-muc",
+    icon: FolderTree,
+  },
+  {
+    key: "nickSeeding",
+    label: "Bản thảo seeding chờ duyệt",
+    href: "/admin/tai-khoan-ai",
+    icon: Bot,
+  },
 ];
-
-function formatBadge(count: number): string {
-  return count > 99 ? "99+" : String(count);
-}
-
-function parseStatsPayload(json: unknown): AdminInboxStats | null {
-  if (!json || typeof json !== "object") return null;
-  const stats = (json as { stats?: unknown }).stats;
-  if (!stats || typeof stats !== "object") return null;
-  const s = stats as Record<string, unknown>;
-  const baoCao = typeof s.baoCao === "number" ? s.baoCao : null;
-  const gopY = typeof s.gopY === "number" ? s.gopY : null;
-  const dongGop = typeof s.dongGop === "number" ? s.dongGop : null;
-  const noiDungChoXacThuc =
-    typeof s.noiDungChoXacThuc === "number" ? s.noiDungChoXacThuc : null;
-  const total = typeof s.total === "number" ? s.total : null;
-  if (
-    baoCao == null ||
-    gopY == null ||
-    dongGop == null ||
-    noiDungChoXacThuc == null ||
-    total == null
-  ) {
-    return null;
-  }
-  return { baoCao, gopY, dongGop, noiDungChoXacThuc, total };
-}
 
 export function AdminInboxButton({ initialStats }: Props) {
   const [stats, setStats] = useState<AdminInboxStats>(
@@ -117,7 +122,7 @@ export function AdminInboxButton({ initialStats }: Props) {
       const res = await fetch("/api/admin/inbox-stats", { cache: "no-store" });
       if (!res.ok) return;
       const json = (await res.json().catch(() => null)) as unknown;
-      const next = parseStatsPayload(json);
+      const next = parseAdminInboxStats(json);
       if (next) setStats(next);
     } finally {
       setLoading(false);
@@ -244,7 +249,7 @@ export function AdminInboxButton({ initialStats }: Props) {
           <p className="admin-inbox-empty">Không có việc cần xử lý.</p>
         ) : (
           <ul className="admin-inbox-list">
-            {ROWS.map((row) => {
+            {ROWS.filter((row) => stats[row.key] > 0).map((row) => {
               const count = stats[row.key];
               const Icon = row.icon;
               return (
@@ -253,7 +258,7 @@ export function AdminInboxButton({ initialStats }: Props) {
                     href={row.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`admin-inbox-item${count > 0 ? " has-count" : ""}`}
+                    className="admin-inbox-item has-count"
                     onClick={() => setOpen(false)}
                   >
                     <span className="admin-inbox-item-ico" aria-hidden>
@@ -265,13 +270,9 @@ export function AdminInboxButton({ initialStats }: Props) {
                         <span className="admin-inbox-item-hint">{row.hint}</span>
                       ) : null}
                     </span>
-                    {count > 0 ? (
-                      <span className="admin-inbox-item-badge">
-                        {formatBadge(count)}
-                      </span>
-                    ) : (
-                      <span className="admin-inbox-item-zero">0</span>
-                    )}
+                    <span className="admin-inbox-item-badge">
+                      {formatAdminInboxBadge(count)}
+                    </span>
                   </Link>
                 </li>
               );
@@ -295,7 +296,7 @@ export function AdminInboxButton({ initialStats }: Props) {
       >
         <Briefcase size={16} strokeWidth={1.9} aria-hidden />
         {total > 0 ? (
-          <span className="admin-inbox-count">{formatBadge(total)}</span>
+          <span className="admin-inbox-count">{formatAdminInboxBadge(total)}</span>
         ) : null}
       </button>
 

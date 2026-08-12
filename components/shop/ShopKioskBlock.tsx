@@ -58,8 +58,10 @@ type PreviewState = {
 
 /** Debounce sync giỏ — gộp nhiều lần bấm ± thành 1 PATCH. */
 const QTY_SYNC_MS = 200;
-/** Tạm dừng sau kéo/cuộn user trước khi ticker chạy lại. */
+/** Tạm dừng sau cuộn user (touch/wheel) trước khi ticker chạy lại. */
 const TICKER_RESUME_MS = 1200;
+/** Sau thả kéo: tốc độ 0 → cruise, cubic ease-out. */
+const TICKER_RESUME_EASE_MS = 1500;
 /** Clamp dt rAF — tab vừa hồi tỉnh không nhảy một phát. */
 const TICKER_DT_MAX_MS = 64;
 const TICKER_SPEED_DEFAULT = 28;
@@ -70,6 +72,13 @@ const TICKER_COPIES_MAX = 24;
 
 function canIncreaseLineQty(soLuongTon: number, currentQty: number): boolean {
   return currentQty < Math.max(0, soLuongTon);
+}
+
+/** Cubic ease-out — rời 0 nhanh (chạy ngay) rồi tiệm cận cruise. */
+function tickerResumeEase(t: number): number {
+  const x = t <= 0 ? 0 : t >= 1 ? 1 : t;
+  const inv = 1 - x;
+  return 1 - inv * inv * inv;
 }
 
 export function ShopKioskBlock({
@@ -145,6 +154,8 @@ export function ShopKioskBlock({
   const tickerRafRef = useRef<number | null>(null);
   const tickerLastTsRef = useRef<number | null>(null);
   const tickerSpeedRef = useRef(TICKER_SPEED_DEFAULT);
+  /** Timestamp rAF lúc bắt đầu ease sau thả kéo; null = cruise. */
+  const tickerEaseStartRef = useRef<number | null>(null);
   const tickerReducedMotionRef = useRef(false);
   /** Hẹn giờ gỡ từng lý do drag / user-scroll. */
   const tickerResumeTimersRef = useRef(
@@ -261,6 +272,7 @@ export function ShopKioskBlock({
         clearTimeout(resumeTimer);
         tickerResumeTimersRef.current.delete("drag");
       }
+      tickerEaseStartRef.current = null;
       tickerHoldReasonsRef.current.add("drag");
       tickerDragRef.current = {
         pointerId: e.pointerId,
@@ -311,10 +323,16 @@ export function ShopKioskBlock({
       }
       if (drag.active) tickerSuppressClickRef.current = true;
       setTickerDragging(false);
-      /* Giữ "drag" thêm ~1.2s rồi mới cho ticker chạy lại. */
-      scheduleTickerHoldClear("drag");
+      /* Thả → chạy lại ngay; tốc độ ease 0 → cruise trong 1.5s. */
+      const resumeTimer = tickerResumeTimersRef.current.get("drag");
+      if (resumeTimer) {
+        clearTimeout(resumeTimer);
+        tickerResumeTimersRef.current.delete("drag");
+      }
+      tickerHoldReasonsRef.current.delete("drag");
+      tickerEaseStartRef.current = 0;
     },
-    [scheduleTickerHoldClear],
+    [],
   );
 
   /** onScroll: neo loop + phát hiện cuộn user (touch/wheel). */
@@ -601,7 +619,22 @@ export function ShopKioskBlock({
       if (dt > TICKER_DT_MAX_MS) dt = TICKER_DT_MAX_MS;
       if (dt <= 0) return;
 
-      let pos = tickerPosRef.current + tickerSpeedRef.current * (dt / 1000);
+      let speed = tickerSpeedRef.current;
+      let easeStart = tickerEaseStartRef.current;
+      if (easeStart != null) {
+        if (easeStart === 0) {
+          tickerEaseStartRef.current = ts;
+          easeStart = ts;
+        }
+        const u = (ts - easeStart) / TICKER_RESUME_EASE_MS;
+        if (u >= 1) {
+          tickerEaseStartRef.current = null;
+        } else {
+          speed *= tickerResumeEase(u);
+        }
+      }
+
+      let pos = tickerPosRef.current + speed * (dt / 1000);
       const oneSet = tickerSetWidthRef.current;
       /* Wrap trên ref — không đọc lại scrollLeft (tránh forced reflow). */
       if (oneSet > 0 && pos >= oneSet * 2) {

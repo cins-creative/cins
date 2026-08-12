@@ -811,28 +811,6 @@ button.nghe-hero-draft-edit[data-nghe-draft-active="true"] {
   gap: 10px;
 }
 
-.contrib-editor-related {
-  padding-top: 14px;
-  border-top: 1px solid var(--border, #e2e8f0);
-}
-
-.contrib-editor-related__title {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--ink-display, #0f172a);
-}
-
-.contrib-editor-related__list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.contrib-editor-meta__related-ro {
-  margin-top: 10px;
-}
-
 .contrib-related-chips {
   list-style: none;
   margin: 4px 0 0;

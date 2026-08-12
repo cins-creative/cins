@@ -19,7 +19,6 @@ import {
 import type { TagAggSort, TagAggUser } from "@/lib/tag/aggregation-types";
 import {
   NgheRelCard,
-  NgheRelItem,
   NgheRelTile,
 } from "@/components/article/nghe/NgheRelParts";
 import {
@@ -28,10 +27,6 @@ import {
 } from "@/components/article/nghe/static/NgheStaticParts";
 import { NgheLeadRich } from "@/components/article/nghe/NgheLeadRich";
 import { NgheLeadVideo } from "@/components/article/nghe/NgheLeadVideo";
-import {
-  NgheSidebarTabs,
-  type NgheSidebarTabConfig,
-} from "@/components/article/nghe/NgheSidebarTabs";
 
 type NgheLayoutStaticProps = {
   leadSource?: string | null;
@@ -57,7 +52,7 @@ type NgheLayoutStaticProps = {
   loginNext?: string;
 };
 
-/** Khung trang nghề — header cố định + tab nội dung/thảo luận + sidebar. */
+/** Khung trang nghề — header cố định + tab nội dung/thảo luận. */
 export function NgheLayoutStatic({
   leadSource,
   lienQuan = [],
@@ -91,99 +86,10 @@ export function NgheLayoutStatic({
     (c) => String(c.loai_bai_viet) === "phan_mem",
   );
   const useDbSwTiles = phanMemLienQuan.length > 0;
-  const keywordLienQuan = lienQuan.filter(
-    (c) => String(c.loai_bai_viet) === "keyword",
-  );
-  const useDbKeywords = keywordLienQuan.length > 0;
-  const nganhLienQuan = lienQuan.filter(
-    (c) => String(c.loai_bai_viet) === "nganh_dao_tao",
-  );
-  const useDbNganh = nganhLienQuan.length > 0;
   const monHocLienQuan = lienQuan.filter(
     (c) => String(c.loai_bai_viet) === "mon_hoc",
   );
   const useDbCourseCards = monHocLienQuan.length > 0;
-
-  const sidebarTabs: NgheSidebarTabConfig[] = [];
-  if (useDbNganh) {
-    sidebarTabs.push({
-      id: "nganh",
-      label: "Ngành học",
-      header: (
-        <div className="rel-header">
-          <h4>Ngành học vào nghề</h4>
-        </div>
-      ),
-      body: (
-        <div className="rel-list">
-          {nganhLienQuan.map((card, i) => (
-            <NgheRelItem
-              key={card.id}
-              card={card}
-              tipClass={i % 2 === 0 ? "tip-left" : "tip-right"}
-              showTag={false}
-              showSummary={false}
-            />
-          ))}
-        </div>
-      ),
-    });
-  }
-  if (useDbKeywords) {
-    sidebarTabs.push({
-      id: "keyword",
-      label: "Kỹ thuật",
-      header: (
-        <div className="rel-header">
-          <h4>
-            Keyword liên quan{" "}
-            <em>{`${keywordLienQuan.length} kỹ thuật`}</em>
-          </h4>
-          <span className="hint">Hover để xem mô tả</span>
-        </div>
-      ),
-      body: (
-        <div className="rel-list">
-          {keywordLienQuan.map((card, i) => (
-            <NgheRelItem
-              key={card.id}
-              card={card}
-              tipClass={i % 2 === 0 ? "tip-left" : "tip-right"}
-              showTag={false}
-              showSummary={false}
-            />
-          ))}
-        </div>
-      ),
-    });
-  }
-  if (useDbJobCards) {
-    sidebarTabs.push({
-      id: "nghe",
-      label: "Nghề liên quan",
-      header: (
-        <div className="rel-header">
-          <h4>
-            Nghề liên quan <em>cùng pipeline</em>
-          </h4>
-          <span className="hint">Hover để xem thu nhập &amp; mảng việc</span>
-        </div>
-      ),
-      body: (
-        <div className="rel-list">
-          {ngheLienQuan.map((card, i) => (
-            <NgheRelItem
-              key={card.id}
-              card={card}
-              tipClass={i % 2 === 0 ? "tip-left" : "tip-right"}
-              showTag={false}
-              showSummary={false}
-            />
-          ))}
-        </div>
-      ),
-    });
-  }
 
   const leadPanel =
     leadBlock ??
@@ -277,24 +183,6 @@ export function NgheLayoutStatic({
     </>
   );
 
-  const sidebar = (
-    <>
-      {sidebarTabs.length > 0 ? (
-        <NgheSidebarTabs tabs={sidebarTabs} defaultTabId="nganh" />
-      ) : null}
-
-      <div className="side-card side-card-quiz">
-        <h4 className="side-card-quiz-title">Bạn phù hợp với nghề này?</h4>
-        <p className="side-card-quiz-text">
-          Làm bài quiz 3 phút để biết tỷ lệ phù hợp của bạn với nghề này.
-        </p>
-        <button type="button" className="tb-cta nghe-quiz-cta">
-          Làm quiz miễn phí →
-        </button>
-      </div>
-    </>
-  );
-
   return (
     <EntityArticleLayout
       pageClassName="ent-page--nghe"
@@ -315,7 +203,6 @@ export function NgheLayoutStatic({
           showSectionHeading={false}
         />
       }
-      sidebar={sidebar}
     />
   );
 }

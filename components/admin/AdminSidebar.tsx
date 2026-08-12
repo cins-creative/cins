@@ -7,6 +7,13 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import type { AdminTopbarProfile } from "@/components/admin/AdminTopbar";
 import { getNameInitials } from "@/lib/journey/profile";
+import type { AdminInboxStats } from "@/lib/admin/admin-inbox-stats-types";
+import {
+  EMPTY_ADMIN_INBOX_STATS,
+  adminInboxCountForHref,
+  formatAdminInboxBadge,
+  parseAdminInboxStats,
+} from "@/lib/admin/admin-inbox-stats-types";
 
 const NAV = [
   { section: "Nội dung" },
@@ -203,15 +210,48 @@ function NavIcon({ name }: { name: string }) {
 export function AdminSidebar({
   profile = null,
   roleLabel = "Admin",
+  initialInboxStats = EMPTY_ADMIN_INBOX_STATS,
 }: {
   profile?: AdminTopbarProfile | null;
   roleLabel?: string;
+  initialInboxStats?: AdminInboxStats;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [inboxStats, setInboxStats] = useState<AdminInboxStats>(
+    initialInboxStats,
+  );
   const panelRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
   const currentLabel = activeLabel(pathname);
+
+  useEffect(() => {
+    setInboxStats(initialInboxStats);
+  }, [initialInboxStats]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function refresh() {
+      try {
+        const res = await fetch("/api/admin/inbox-stats", { cache: "no-store" });
+        if (!res.ok) return;
+        const json = (await res.json().catch(() => null)) as unknown;
+        const next = parseAdminInboxStats(json);
+        if (!cancelled && next) setInboxStats(next);
+      } catch {
+        /* giữ số SSR */
+      }
+    }
+    void refresh();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
 
   useEffect(() => {
     setOpen(false);
@@ -267,11 +307,21 @@ export function AdminSidebar({
             <span className="admin-nav-top-trigger-kicker">Menu admin</span>
             <strong>{currentLabel}</strong>
           </span>
-          <ChevronDown
-            size={18}
-            className="admin-nav-top-trigger-chevron"
-            aria-hidden
-          />
+          <span className="admin-nav-top-trigger-end">
+            {inboxStats.total > 0 ? (
+              <span
+                className="nav-badge"
+                aria-label={`${inboxStats.total} việc cần xử lý`}
+              >
+                {formatAdminInboxBadge(inboxStats.total)}
+              </span>
+            ) : null}
+            <ChevronDown
+              size={18}
+              className="admin-nav-top-trigger-chevron"
+              aria-hidden
+            />
+          </span>
         </button>
 
         <nav id={menuId} className="sidebar-nav">
@@ -285,6 +335,7 @@ export function AdminSidebar({
             }
             const active =
               pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const count = adminInboxCountForHref(inboxStats, item.href);
             return (
               <Link
                 key={item.href}
@@ -294,6 +345,14 @@ export function AdminSidebar({
               >
                 <NavIcon name={item.icon} />
                 <span className="nav-item-label">{item.label}</span>
+                {count > 0 ? (
+                  <span
+                    className="nav-badge"
+                    aria-label={`${count} mục cần xử lý`}
+                  >
+                    {formatAdminInboxBadge(count)}
+                  </span>
+                ) : null}
               </Link>
             );
           })}

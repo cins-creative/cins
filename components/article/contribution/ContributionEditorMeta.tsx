@@ -5,14 +5,7 @@ import { ClipboardPaste, ImagePlus, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { NgheLeadVideo } from "@/components/article/nghe/NgheLeadVideo";
-import { TagInput, type TagInputValue } from "@/components/tag/TagInput";
-import {
-  relatedTagsByLoai,
-  replaceRelatedTagsLoai,
-  type ContribHeroMeta,
-  type ContribRelatedTag,
-} from "@/lib/article/dong-gop/contrib-document";
-import { relatedFieldsForLoaiBaiViet } from "@/lib/article/dong-gop/related-fields";
+import { type ContribHeroMeta } from "@/lib/article/dong-gop/contrib-document";
 import { resolveArticleThumbnailOnlySync } from "@/lib/bai-viet/thumbnail";
 import { extractCfImageIdFromDeliveryUrl } from "@/lib/cloudflare/image-id-from-url";
 import { parseLeadVideoUrl } from "@/lib/articles/lead-video-url";
@@ -21,16 +14,13 @@ import {
   readImageFileFromClipboard,
 } from "@/lib/files/clipboard-images";
 import { uploadNganhInlineImage } from "@/lib/nganh/upload-inline-image";
-import type { PickableTagLoai } from "@/lib/tag/tag-loai";
 import { getYoutubeId } from "@/lib/youtube";
 
 export const CONTRIB_TOM_TAT_MAX = 280;
-const CONTRIB_RELATED_MAX = 8;
 
 type Props = {
   hero: ContribHeroMeta;
   canEdit: boolean;
-  loaiBaiViet: string;
   onChange: (patch: Partial<ContribHeroMeta>) => void;
 };
 
@@ -53,14 +43,6 @@ function imageIdFromUploadUrl(url: string): string {
   return extractCfImageIdFromDeliveryUrl(url) ?? url;
 }
 
-function toTagInputValue(tags: ContribRelatedTag[]): TagInputValue[] {
-  return tags.map((t) => ({
-    id: t.id,
-    tieu_de: t.tieu_de,
-    loai_bai_viet: t.loai_bai_viet,
-  }));
-}
-
 /** Đang gõ trong ô chữ / editor nội dung → không cướp Ctrl+V. */
 function isEditablePasteTarget(): boolean {
   const el = document.activeElement as HTMLElement | null;
@@ -73,7 +55,6 @@ function isEditablePasteTarget(): boolean {
 export function ContributionEditorMeta({
   hero,
   canEdit,
-  loaiBaiViet,
   onChange,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -85,28 +66,9 @@ export function ContributionEditorMeta({
   const videoReady = Boolean(parseLeadVideoUrl(videoUrl));
   const thumbUrl = thumbPreviewUrl(hero.thumbnail, localThumb);
   const tomTatLen = hero.tom_tat.length;
-  const relatedTags = hero.related_tags ?? [];
-  const relatedFields = relatedFieldsForLoaiBaiViet(loaiBaiViet);
 
   function patchVideo(next: string) {
     onChange({ video_url: normalizePastedVideoUrl(next) });
-  }
-
-  function patchRelatedLoai(
-    loai: PickableTagLoai,
-    next: { id: string; tieu_de: string; loai_bai_viet: PickableTagLoai }[],
-  ) {
-    onChange({
-      related_tags: replaceRelatedTagsLoai(
-        relatedTags,
-        loai,
-        next.map((t) => ({
-          id: t.id,
-          tieu_de: t.tieu_de,
-          loai_bai_viet: loai,
-        })),
-      ),
-    });
   }
 
   const onThumbFile = useCallback(
@@ -186,22 +148,6 @@ export function ContributionEditorMeta({
               <dd>{hero.tom_tat}</dd>
             </>
           ) : null}
-          {relatedFields.map((field) => {
-            const tags = relatedTagsByLoai(relatedTags, field.loai);
-            if (tags.length === 0) return null;
-            return (
-              <div key={field.loai} className="contrib-editor-meta__related-ro">
-                <dt>{field.label}</dt>
-                <dd>
-                  <ul className="contrib-related-chips">
-                    {tags.map((t) => (
-                      <li key={t.id}>{t.tieu_de}</li>
-                    ))}
-                  </ul>
-                </dd>
-              </div>
-            );
-          })}
         </dl>
         {videoReady ? (
           <div className="contrib-editor-meta__video">
@@ -390,33 +336,6 @@ export function ContributionEditorMeta({
           </div>
         ) : null}
       </section>
-
-      {relatedFields.length > 0 ? (
-        <section
-          className="contrib-editor-meta__block contrib-editor-related"
-          aria-label="Thẻ liên quan"
-        >
-          <p className="contrib-editor-related__title">Thẻ liên quan</p>
-          <div className="contrib-editor-related__list">
-            {relatedFields.map((field) => (
-              <div key={field.loai} className="contrib-editor-field-stack">
-                <label className="contrib-editor-field-label">{field.label}</label>
-                <TagInput
-                  value={toTagInputValue(
-                    relatedTagsByLoai(relatedTags, field.loai),
-                  )}
-                  onChange={(next) => patchRelatedLoai(field.loai, next)}
-                  loaiFilterFixed={field.loai}
-                  maxTags={CONTRIB_RELATED_MAX}
-                  showLimitHint={false}
-                  placeholder={field.placeholder}
-                  variant="modal"
-                />
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
     </div>
   );
 }

@@ -2,10 +2,14 @@
 
 import {
   ExternalLink,
+  FileText,
+  GitMerge,
+  Hash,
   Loader2,
   MoreVertical,
   Pencil,
   Search,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -36,6 +40,14 @@ function loaiLabel(loai: string): string {
   if (loai === "phan_mem") return "Phần mềm";
   if (loai === "fandom") return "Phân loại";
   return "Khái niệm";
+}
+
+function loaiFilterCount(
+  rows: AdminTagListRow[],
+  loai: AdminTagLoaiFilter,
+): number {
+  if (loai === "all") return rows.length;
+  return rows.filter((r) => r.loai_bai_viet === loai).length;
 }
 
 function formatDate(iso: string): string {
@@ -231,203 +243,319 @@ export function AdminTagScreen() {
     }
   };
 
+  const pageRows = data?.rows ?? [];
+
   return (
     <div className="admin-tag-page">
-      <header className="admin-page-header">
-        <div>
-          <h1 className="admin-page-title">Quản lý Tag</h1>
-          <p className="admin-page-sub">
-            Quản lý tag cộng đồng — gộp trùng, sửa mô tả. Không verify CINs.
+      <header className="page-header admin-tag-head">
+        <div className="admin-tag-head-copy">
+          <h1 className="page-title">Quản lý Tag</h1>
+          <p className="admin-tag-sub">
+            Tag cộng đồng — gộp trùng, sửa mô tả. Không verify CINs.
           </p>
         </div>
       </header>
 
-      <div className="admin-toolbar admin-tag-toolbar">
-        <div className="admin-tag-filter-row">
-          <div className="admin-tag-filter-group" role="group" aria-label="Loại tag">
-            {LOAI_FILTERS.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                className={`admin-tag-pill${params.loai === f.id ? " is-active" : ""}`}
-                onClick={() =>
-                  setParams((p) => ({ ...p, loai: f.id, page: 1 }))
-                }
+      <div className="page-body admin-tag-body">
+        <div className="admin-tag-stats" aria-label="Tóm tắt tag">
+          <article className="admin-tag-stat">
+            <span className="admin-tag-stat-k">Tổng tag</span>
+            <strong className="admin-tag-stat-v">
+              {loading ? "—" : data?.total ?? 0}
+            </strong>
+          </article>
+          <article className="admin-tag-stat">
+            <span className="admin-tag-stat-k">Trên trang</span>
+            <strong className="admin-tag-stat-v">
+              {loading ? "—" : pageRows.length}
+            </strong>
+          </article>
+          <article className="admin-tag-stat admin-tag-stat--people">
+            <span className="admin-tag-stat-k">Người (trang)</span>
+            <strong className="admin-tag-stat-v">
+              {loading
+                ? "—"
+                : pageRows.reduce((n, r) => n + r.so_nguoi_tagged, 0)}
+            </strong>
+          </article>
+          <article className="admin-tag-stat admin-tag-stat--works">
+            <span className="admin-tag-stat-k">Tác phẩm (trang)</span>
+            <strong className="admin-tag-stat-v">
+              {loading
+                ? "—"
+                : pageRows.reduce((n, r) => n + r.so_tac_pham_tagged, 0)}
+            </strong>
+          </article>
+        </div>
+
+        <section className="admin-tag-panel">
+          <div className="admin-tag-toolbar">
+            <label className="admin-tag-search">
+              <Search size={16} strokeWidth={2} aria-hidden />
+              <input
+                type="search"
+                placeholder="Tìm theo tên tag…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </label>
+
+            <div className="admin-tag-toolbar-row">
+              <div
+                className="admin-tag-filters"
+                role="group"
+                aria-label="Loại tag"
               >
-                {f.label}
-              </button>
-            ))}
+                {LOAI_FILTERS.map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    className={`admin-tag-filter${params.loai === f.id ? " is-active" : ""}`}
+                    onClick={() =>
+                      setParams((p) => ({ ...p, loai: f.id, page: 1 }))
+                    }
+                  >
+                    {f.label}
+                    {!loading && params.loai === "all" ? (
+                      <span className="admin-tag-filter-count">
+                        {loaiFilterCount(pageRows, f.id)}
+                      </span>
+                    ) : null}
+                  </button>
+                ))}
+              </div>
+
+              <label className="admin-tag-sort">
+                <span className="admin-tag-sort-label">Sắp xếp</span>
+                <select
+                  value={params.sort}
+                  onChange={(e) =>
+                    setParams((p) => ({
+                      ...p,
+                      sort: e.target.value as AdminTagSort,
+                      page: 1,
+                    }))
+                  }
+                >
+                  {SORT_OPTIONS.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <p className="admin-tag-result">
+              {loading ? (
+                <>
+                  <Loader2
+                    size={14}
+                    strokeWidth={2}
+                    className="admin-tag-spin"
+                    aria-hidden
+                  />{" "}
+                  Đang tải…
+                </>
+              ) : (
+                <>
+                  Hiển thị <strong>{pageRows.length}</strong> / {data?.total ?? 0}
+                  {params.q.trim() ? (
+                    <>
+                      {" "}
+                      · tìm &ldquo;{params.q.trim()}&rdquo;
+                    </>
+                  ) : null}
+                </>
+              )}
+            </p>
           </div>
-        </div>
-        <div className="admin-toolbar__row">
-          <label className="admin-search admin-tag-search">
-            <Search size={16} aria-hidden />
-            <input
-              type="search"
-              placeholder="Tìm tag…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </label>
-          <label className="admin-tag-sort">
-            <span>Sort</span>
-            <select
-              value={params.sort}
-              onChange={(e) =>
-                setParams((p) => ({
-                  ...p,
-                  sort: e.target.value as AdminTagSort,
-                  page: 1,
-                }))
-              }
-            >
-              {SORT_OPTIONS.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </div>
 
-      {error ? <p className="admin-tag-error">{error}</p> : null}
+          {error ? (
+            <p className="admin-tag-error" role="alert">{error}</p>
+          ) : null}
 
-      <div className="admin-table-wrap">
-        <table className="admin-table admin-tag-table">
-          <thead>
-            <tr>
-              <th>Tag</th>
-              <th>Loại</th>
-              <th>Người</th>
-              <th>Tác phẩm</th>
-              <th>Mô tả</th>
-              <th aria-label="Hành động" />
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={6} className="admin-table-empty">
-                  <Loader2 size={18} className="ed-spin" aria-hidden /> Đang tải…
-                </td>
-              </tr>
-            ) : !data?.rows.length ? (
-              <tr>
-                <td colSpan={6} className="admin-table-empty">
-                  Không có tag phù hợp bộ lọc.
-                </td>
-              </tr>
-            ) : (
-              data.rows.map((row) => (
-                <tr key={row.id}>
-                  <td>
-                    <div className="admin-tag-name-cell">
-                      <span className="admin-tag-name">{row.tieu_de}</span>
-                      <small className="admin-tag-date">
-                        {formatDate(row.tao_luc)}
-                      </small>
-                    </div>
-                  </td>
-                  <td>{loaiLabel(row.loai_bai_viet)}</td>
-                  <td>{row.so_nguoi_tagged}</td>
-                  <td>{row.so_tac_pham_tagged}</td>
-                  <td className="admin-tag-tom-tat">
-                    {row.tom_tat?.trim() || "—"}
-                  </td>
-                  <td>
-                    <div className="admin-tag-actions">
-                      <button
-                        type="button"
-                        className="admin-tag-btn"
-                        aria-label="Sửa mô tả"
-                        onClick={() => {
-                          setEditRow(row);
-                          setEditTomTat(row.tom_tat ?? "");
-                        }}
-                      >
-                        <Pencil size={14} aria-hidden />
-                      </button>
-                      <div className="admin-tag-menu-wrap">
-                        <button
-                          type="button"
-                          className="admin-tag-btn"
-                          aria-label="Thêm hành động"
-                          onClick={() =>
-                            setMenuOpenId((id) =>
-                              id === row.id ? null : row.id,
-                            )
-                          }
+          <div className="admin-tag-table-wrap">
+            <table className="admin-tag-table">
+              <thead>
+                <tr>
+                  <th className="admin-tag-th-tag">Tag</th>
+                  <th className="admin-tag-th-loai">Loại</th>
+                  <th className="admin-tag-th-num">Người</th>
+                  <th className="admin-tag-th-num">Tác phẩm</th>
+                  <th className="admin-tag-th-desc">Mô tả</th>
+                  <th className="admin-tag-th-actions">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} className="admin-table-empty">
+                      <Loader2 size={18} className="admin-tag-spin" aria-hidden />
+                      Đang tải…
+                    </td>
+                  </tr>
+                ) : !pageRows.length ? (
+                  <tr>
+                    <td colSpan={6} className="admin-table-empty">
+                      Không có tag phù hợp bộ lọc.
+                    </td>
+                  </tr>
+                ) : (
+                  pageRows.map((row) => (
+                    <tr key={row.id} className="admin-tag-row">
+                      <td>
+                        <div className="admin-tag-cell-tag">
+                          <span
+                            className="admin-tag-cell-icon"
+                            aria-hidden
+                          >
+                            <Hash size={14} strokeWidth={2.2} />
+                          </span>
+                          <span className="admin-tag-cell-copy">
+                            <span className="admin-tag-cell-name">
+                              {row.tieu_de}
+                            </span>
+                            <span className="admin-tag-cell-meta">
+                              <span className="admin-tag-cell-slug">
+                                @{row.slug}
+                              </span>
+                              <span className="admin-tag-cell-date">
+                                {formatDate(row.tao_luc)}
+                              </span>
+                            </span>
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <span
+                          className={`admin-tag-loai admin-tag-loai--${row.loai_bai_viet}`}
                         >
-                          <MoreVertical size={14} aria-hidden />
-                        </button>
-                        {menuOpenId === row.id ? (
-                          <div className="admin-tag-menu" role="menu">
+                          {loaiLabel(row.loai_bai_viet)}
+                        </span>
+                      </td>
+                      <td className="admin-tag-num">
+                        <span className="admin-tag-metric">
+                          <Users size={12} aria-hidden />
+                          {row.so_nguoi_tagged}
+                        </span>
+                      </td>
+                      <td className="admin-tag-num">
+                        <span className="admin-tag-metric">
+                          <FileText size={12} aria-hidden />
+                          {row.so_tac_pham_tagged}
+                        </span>
+                      </td>
+                      <td className="admin-tag-tom-tat">
+                        {row.tom_tat?.trim() ? (
+                          <span className="admin-tag-tom-tat-text">
+                            {row.tom_tat.trim()}
+                          </span>
+                        ) : (
+                          <span className="admin-tag-tom-tat-empty">
+                            Chưa có mô tả
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        <div className="admin-tag-actions">
+                          <button
+                            type="button"
+                            className="admin-tag-action"
+                            aria-label={`Sửa mô tả ${row.tieu_de}`}
+                            title="Sửa mô tả"
+                            onClick={() => {
+                              setEditRow(row);
+                              setEditTomTat(row.tom_tat ?? "");
+                            }}
+                          >
+                            <Pencil size={14} strokeWidth={2} aria-hidden />
+                          </button>
+                          <Link
+                            href={articlePublicHref(
+                              row.loai_bai_viet,
+                              row.slug,
+                            )}
+                            className="admin-tag-action"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Mở trang aggregation"
+                            aria-label={`Mở trang ${row.tieu_de}`}
+                          >
+                            <ExternalLink size={14} strokeWidth={2} aria-hidden />
+                          </Link>
+                          <div className="admin-tag-menu-wrap">
                             <button
                               type="button"
-                              role="menuitem"
-                              onClick={() => {
-                                setMenuOpenId(null);
-                                setMergeSource(row);
-                                setMergeQuery("");
-                                void loadMergeOptions(row, "");
-                              }}
+                              className="admin-tag-action"
+                              aria-label="Thêm hành động"
+                              onClick={() =>
+                                setMenuOpenId((id) =>
+                                  id === row.id ? null : row.id,
+                                )
+                              }
                             >
-                              Gộp vào tag khác
+                              <MoreVertical size={14} strokeWidth={2} aria-hidden />
                             </button>
-                            <Link
-                              href={articlePublicHref(
-                                row.loai_bai_viet,
-                                row.slug,
-                              )}
-                              className="admin-tag-menu-link"
-                              role="menuitem"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={() => setMenuOpenId(null)}
-                            >
-                              <ExternalLink size={14} aria-hidden />
-                              Mở trang aggregation
-                            </Link>
+                            {menuOpenId === row.id ? (
+                              <div className="admin-tag-menu" role="menu">
+                                <button
+                                  type="button"
+                                  role="menuitem"
+                                  onClick={() => {
+                                    setMenuOpenId(null);
+                                    setMergeSource(row);
+                                    setMergeQuery("");
+                                    void loadMergeOptions(row, "");
+                                  }}
+                                >
+                                  <GitMerge size={14} aria-hidden />
+                                  Gộp vào tag khác
+                                </button>
+                              </div>
+                            ) : null}
                           </div>
-                        ) : null}
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
 
-      {data && data.total > data.limit ? (
-        <div className="admin-tag-pagination">
-          <button
-            type="button"
-            className="admin-tag-btn"
-            disabled={params.page <= 1 || loading}
-            onClick={() =>
-              setParams((p) => ({ ...p, page: Math.max(1, p.page - 1) }))
-            }
-          >
-            Trước
-          </button>
-          <span>
-            Trang {params.page} / {totalPages} · {data.total} tag
-          </span>
-          <button
-            type="button"
-            className="admin-tag-btn"
-            disabled={params.page >= totalPages || loading}
-            onClick={() =>
-              setParams((p) => ({ ...p, page: p.page + 1 }))
-            }
-          >
-            Sau
-          </button>
-        </div>
-      ) : null}
+          {data && data.total > data.limit ? (
+            <footer className="admin-tag-footer">
+              <button
+                type="button"
+                className="admin-tag-btn"
+                disabled={params.page <= 1 || loading}
+                onClick={() =>
+                  setParams((p) => ({ ...p, page: Math.max(1, p.page - 1) }))
+                }
+              >
+                Trước
+              </button>
+              <span className="admin-tag-footer-meta">
+                Trang <strong>{params.page}</strong> / {totalPages}
+                <span className="admin-tag-footer-total">
+                  · {data.total} tag
+                </span>
+              </span>
+              <button
+                type="button"
+                className="admin-tag-btn"
+                disabled={params.page >= totalPages || loading}
+                onClick={() =>
+                  setParams((p) => ({ ...p, page: p.page + 1 }))
+                }
+              >
+                Sau
+              </button>
+            </footer>
+          ) : null}
+        </section>
+      </div>
 
       {editRow ? (
         <div

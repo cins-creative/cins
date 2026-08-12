@@ -231,7 +231,6 @@ export function ContributionEditor({
                 <ContributionEditorMeta
                   hero={hero}
                   canEdit={canEdit}
-                  loaiBaiViet={loaiBaiViet}
                   onChange={patchHero}
                 />
               </aside>

@@ -4,11 +4,6 @@ import { EntityArticleHeader } from "@/components/article/entity/EntityArticleHe
 import { EntityArticleLayout } from "@/components/article/entity/EntityArticleLayout";
 import { NgheLeadRich } from "@/components/article/nghe/NgheLeadRich";
 import { NgheLeadVideo } from "@/components/article/nghe/NgheLeadVideo";
-import { NgheSidebarTabs } from "@/components/article/nghe/NgheSidebarTabs";
-import {
-  buildSoftwareSidebarTabs,
-  softwareDefaultSidebarTab,
-} from "@/components/article/software/buildSoftwareSidebarTabs";
 import { SoftwareCompareTable } from "@/components/article/software/SoftwareCompareTable";
 import { resolveHubArticleImages } from "@/lib/bai-viet/thumbnail";
 import { buildArticleLeadSource } from "@/lib/articles/article-lead-source";
@@ -69,11 +64,10 @@ export async function SoftwareEntityArticleView({
   const verified = false;
   const publisher = meta?.nha_phat_hanh?.trim() || null;
 
-  const { nghe, keywords, similar } = partitionSoftwareRelated(lienQuan);
+  const { similar } = partitionSoftwareRelated(lienQuan);
   const comparePeers = await enrichCardsWithThumbs(
     similar.filter((p) => p.id !== article.id),
   );
-  const sidebarTabs = buildSoftwareSidebarTabs(nghe, keywords, similar);
   const titleMain = article.tieu_de.trim();
 
   const content = (
@@ -98,26 +92,6 @@ export async function SoftwareEntityArticleView({
       />
     ) : null;
 
-  const sidebar = (
-    <>
-      {sidebarTabs.length > 0 ? (
-        <NgheSidebarTabs
-          tabs={sidebarTabs}
-          defaultTabId={softwareDefaultSidebarTab(nghe, keywords, similar)}
-        />
-      ) : (
-        <p className="nghe-side-empty">Chưa có mục liên quan.</p>
-      )}
-
-      {publisher ? (
-        <div className="ent-side-meta">
-          <h4 className="ent-side-meta-title">Nhà phát hành</h4>
-          <p className="ent-side-meta-value">{publisher}</p>
-        </div>
-      ) : null}
-    </>
-  );
-
   return (
     <div className="article-page arv2 arv2-nghe arv2-software">
       <ArticleJsonLd article={article} slugPath={slugPath} />
@@ -131,6 +105,7 @@ export async function SoftwareEntityArticleView({
             summary={article.tom_tat}
             thumbnailUrl={iconUrl}
             verified={verified}
+            contextLabel={publisher}
           />
         }
         content={content}
@@ -143,7 +118,6 @@ export async function SoftwareEntityArticleView({
             viewerProfileId={viewerProfileId}
           />
         }
-        sidebar={sidebar}
       />
     </div>
   );

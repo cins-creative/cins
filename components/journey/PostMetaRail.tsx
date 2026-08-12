@@ -16,10 +16,12 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
 import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
+import { ShopKioskBlock } from "@/components/shop/ShopKioskBlock";
 import type {
   MilestonePostAuthor,
   MilestonePostContributor,
@@ -96,6 +98,7 @@ export function PostMetaRail({
   commentsRail,
   onMilestoneUpdated,
 }: Props) {
+  const { viewerProfileId } = useCinsChat();
   const typeLabel = TYPE_LABEL[milestone.loaiMoc] ?? "Cột mốc";
   const TypeIcon = TYPE_ICON[milestone.loaiMoc] ?? UserCircle2;
   const vis = VIS_LABEL[milestone.cheDoHienThi] ?? VIS_LABEL.public;
@@ -205,6 +208,17 @@ export function PostMetaRail({
           </div>
         </div>
       ) : null}
+
+      <div className="post-rail-blk post-rail-blk--shop">
+        <ShopKioskBlock
+          milestoneId={milestone.id}
+          sellerUserId={owner.id}
+          viewerProfileId={viewerProfileId}
+          sellerName={owner.tenHienThi}
+          sellerAvatarUrl={ownerAvatarUrl}
+          sellerSlug={owner.slug}
+        />
+      </div>
 
       {people.length > 0 ? (
         <div className="post-rail-blk post-rail-blk--people">

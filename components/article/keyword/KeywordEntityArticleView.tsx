@@ -4,15 +4,10 @@ import { EntityArticleAttribution } from "@/components/article/entity/EntityArti
 import { EntityArticleDiscussion } from "@/components/article/entity/EntityArticleDiscussion";
 import { EntityArticleHeader } from "@/components/article/entity/EntityArticleHeader";
 import { EntityArticleLayout } from "@/components/article/entity/EntityArticleLayout";
-import {
-  buildKeywordSidebarTabs,
-  keywordDefaultSidebarTab,
-} from "@/components/article/keyword/buildKeywordSidebarTabs";
 import { KeywordNganhSection } from "@/components/article/keyword/KeywordNganhSection";
 import { KeywordRelatedBlogs } from "@/components/article/keyword/KeywordRelatedBlogs";
 import { NgheLeadRich } from "@/components/article/nghe/NgheLeadRich";
 import { NgheLeadVideo } from "@/components/article/nghe/NgheLeadVideo";
-import { NgheSidebarTabs } from "@/components/article/nghe/NgheSidebarTabs";
 import { resolveHubArticleImages } from "@/lib/bai-viet/thumbnail";
 import { buildArticleLeadSource } from "@/lib/articles/article-lead-source";
 import { articlePublicHref } from "@/lib/articles/article-href";
@@ -94,9 +89,7 @@ export async function KeywordEntityArticleView({
     },
   );
 
-  const { nghe, phanMem, keywords, nganh, blogs, other } =
-    partitionKeywordRelated(lienQuan);
-  const sidebarTabs = buildKeywordSidebarTabs(nghe, phanMem, keywords);
+  const { nganh, blogs, other } = partitionKeywordRelated(lienQuan);
 
   const content = (
     <div className="nghe-lead-panel entity-lead-panel" data-rich-lead-slot="true">
@@ -122,19 +115,6 @@ export async function KeywordEntityArticleView({
       />
     </>
   ) : null;
-
-  const sidebar = (
-    <>
-      {sidebarTabs.length > 0 ? (
-        <NgheSidebarTabs
-          tabs={sidebarTabs}
-          defaultTabId={keywordDefaultSidebarTab(nghe, phanMem, keywords)}
-        />
-      ) : (
-        <p className="nghe-side-empty">Chưa có mục liên quan.</p>
-      )}
-    </>
-  );
 
   return (
     <div className="article-page arv2 arv2-nghe arv2-keyword">
@@ -182,7 +162,6 @@ export async function KeywordEntityArticleView({
             tacPham={tacPham}
           />
         }
-        sidebar={sidebar}
       />
     </div>
   );

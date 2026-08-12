@@ -7,7 +7,7 @@ type Props = {
   header: ReactNode;
   /** Card nội dung chính (lead). */
   content: ReactNode;
-  /** Khối liên quan lớn — nằm dưới nội dung trong cột chính. */
+  /** Khối phụ dưới nội dung trong cột chính (so sánh, khóa học…). */
   contentExtra?: ReactNode;
   discussion: ReactNode;
   /** Tab đóng góp cộng đồng (tuỳ chọn). */
@@ -18,14 +18,12 @@ type Props = {
   entityKindLabel?: string;
   isLoggedIn?: boolean;
   loginNext?: string;
-  /** Rail phải — danh sách liên quan gọn + CTA. */
-  sidebar?: ReactNode;
   /** Bật mục lục trái trong tab Nội dung. */
   showToc?: boolean;
   pageClassName?: string;
 };
 
-/** Khung trang nội dung — hero + tab nội dung/thảo luận + rail. */
+/** Khung trang nội dung — hero + tab nội dung/thảo luận (một cột). */
 export function EntityArticleLayout({
   header,
   content,
@@ -36,7 +34,6 @@ export function EntityArticleLayout({
   entityKindLabel,
   isLoggedIn = false,
   loginNext = "",
-  sidebar,
   showToc = true,
   pageClassName = "",
 }: Props) {
@@ -66,7 +63,6 @@ export function EntityArticleLayout({
               loginNext={loginNext}
             />
           </div>
-          {sidebar ? <aside className="ent-rail article-side">{sidebar}</aside> : null}
         </div>
       </div>
     </article>

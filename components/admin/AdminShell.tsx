@@ -3,8 +3,11 @@ import {
   AdminTopbar,
   type AdminTopbarProfile,
 } from "@/components/admin/AdminTopbar";
+import { countAdminInboxStats } from "@/lib/admin/admin-inbox-stats";
+import { EMPTY_ADMIN_INBOX_STATS } from "@/lib/admin/admin-inbox-stats-types";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import {
+  canManageUsers,
   getCurrentUserSystemRole,
   systemRoleLabel,
 } from "@/lib/auth/system-role";
@@ -29,11 +32,18 @@ export async function AdminShell({ children }: Props) {
     : null;
 
   const roleLabel = systemRoleLabel(role);
+  const inboxStats = canManageUsers(role)
+    ? await countAdminInboxStats().catch(() => EMPTY_ADMIN_INBOX_STATS)
+    : EMPTY_ADMIN_INBOX_STATS;
 
   return (
     <div className="cins-admin">
       <div className="admin-layout">
-        <AdminSidebar profile={profile} roleLabel={roleLabel} />
+        <AdminSidebar
+          profile={profile}
+          roleLabel={roleLabel}
+          initialInboxStats={inboxStats}
+        />
         <div className="main">
           <AdminTopbar profile={profile} roleLabel={roleLabel} />
           {children}

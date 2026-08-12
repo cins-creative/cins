@@ -7,12 +7,7 @@ import { EntityArticleLayout } from "@/components/article/entity/EntityArticleLa
 import { NgheLeadRich } from "@/components/article/nghe/NgheLeadRich";
 import { NgheLeadVideo } from "@/components/article/nghe/NgheLeadVideo";
 import { NgheRelatedSections } from "@/components/article/nghe/NgheRelatedSections";
-import { NgheSidebarTabs } from "@/components/article/nghe/NgheSidebarTabs";
-import {
-  buildMonHocSidebarTabs,
-  monHocDefaultSidebarTab,
-  pickMonHocCourseCards,
-} from "@/components/article/mon-hoc/buildMonHocSidebarTabs";
+import { pickMonHocCourseCards } from "@/components/article/mon-hoc/buildMonHocSidebarTabs";
 import { MonHocCoursesSection } from "@/components/article/mon-hoc/MonHocCoursesSection";
 import { resolveHubArticleImages } from "@/lib/bai-viet/thumbnail";
 import { buildArticleLeadSource } from "@/lib/articles/article-lead-source";
@@ -74,7 +69,6 @@ export async function MonHocArticleView({
     article.tieu_de_eng?.trim() ||
     null;
   const linhVuc = article.linh_vuc?.ten?.trim();
-  const sidebarTabs = buildMonHocSidebarTabs(lienQuan, article.id);
   const monCourses = pickMonHocCourseCards(lienQuan, article.id);
   const { nghe, phanMem } = partitionNgheRelated(lienQuan);
   const galleryItems =
@@ -121,21 +115,6 @@ export async function MonHocArticleView({
         parsedSectionCount={1}
         parsedTitles={[]}
       />
-    </>
-  );
-
-  const sidebar = (
-    <>
-      <NgheSidebarTabs
-        tabs={sidebarTabs}
-        defaultTabId={monHocDefaultSidebarTab(lienQuan, article.id)}
-      />
-      <div className="side-card side-card-quiz">
-        <h4 className="side-card-quiz-title">Khám phá lộ trình học</h4>
-        <p className="side-card-quiz-text">
-          Xem thêm môn học, ngành đào tạo và nghề nghiệp liên quan trên CINs.
-        </p>
-      </div>
     </>
   );
 
@@ -186,7 +165,6 @@ export async function MonHocArticleView({
             tacPham={galleryItems}
           />
         }
-        sidebar={sidebar}
       />
       {draftUiEnabled ? (
         <InlineArticleDraftBar

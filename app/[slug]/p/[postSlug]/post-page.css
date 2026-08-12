@@ -1305,6 +1305,25 @@
   border-top: 1px solid var(--border);
 }
 
+/* Kiosk trống (chưa fetch / bài không gắn hàng) — không chiếm chỗ, không kẻ vạch. */
+.cins-post-view .post-rail-blk--shop:not(:has(.shop-kiosk)) {
+  display: none;
+}
+
+/* Ticker hàng bán trên rail hẹp — scale theo bề ngang khối, không theo viewport. */
+.cins-post-view .post-rail-blk--shop {
+  container-type: inline-size;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.cins-post-view .post-rail-blk--shop .shop-kiosk,
+.cins-post-view .post-rail-blk--shop .shop-kiosk--ticker {
+  margin: 0;
+  --shop-kiosk-ticker-size: clamp(72px, 26cqi, 120px);
+  --shop-kiosk-ticker-label-size: clamp(36px, 12cqi, 56px);
+}
+
 /* Block "Đóng góp" — nền tint nhẹ để tách khỏi các block nội dung khác */
 .cins-post-view .post-rail-blk--people {
   background: var(--neutral-50, #f5f6f8);

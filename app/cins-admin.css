@@ -144,14 +144,17 @@
 
 .cins-admin .nav-badge {
   margin-left: auto;
-  background: var(--danger);
-  color: var(--neutral-0);
+  flex-shrink: 0;
+  min-width: 18px;
+  background: var(--danger, #e11d48);
+  color: #fff;
   font-size: 10px;
   font-weight: var(--weight-bold);
   padding: 2px 7px;
   border-radius: var(--radius-pill);
   font-family: var(--font-mono);
   line-height: 1.2;
+  text-align: center;
 }
 
 .cins-admin .sidebar-bottom {
@@ -3627,6 +3630,13 @@
     min-width: 0;
   }
 
+  .cins-admin .admin-nav-top-trigger-end {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
   .cins-admin .admin-nav-top-trigger-kicker {
     font-size: 10px;
     font-family: var(--font-mono);
@@ -4956,107 +4966,455 @@
 
 /* ── Admin tag management ── */
 .cins-admin .admin-tag-page {
-  padding: var(--space-6, 24px);
+  min-width: 0;
+}
+
+.cins-admin .admin-tag-head {
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.cins-admin .admin-tag-head-copy {
+  min-width: 0;
+}
+
+.cins-admin .admin-tag-sub {
+  margin: 6px 0 0;
+  max-width: 52ch;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--fg-3);
+}
+
+.cins-admin .admin-tag-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cins-admin .admin-tag-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .cins-admin .admin-tag-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .cins-admin .admin-tag-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cins-admin .admin-tag-stat {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.cins-admin .admin-tag-stat-k {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-4);
+}
+
+.cins-admin .admin-tag-stat-v {
+  display: block;
+  margin-top: 4px;
+  font-size: 20px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  color: var(--fg-1);
+  line-height: 1.2;
+}
+
+.cins-admin .admin-tag-stat--people {
+  border-color: #bfdbfe;
+  background: linear-gradient(180deg, #eff6ff 0%, var(--bg-surface) 100%);
+}
+
+.cins-admin .admin-tag-stat--people .admin-tag-stat-v {
+  color: #1d4ed8;
+}
+
+.cins-admin .admin-tag-stat--works {
+  border-color: #bbf7d0;
+  background: linear-gradient(180deg, #f0fdf4 0%, var(--bg-surface) 100%);
+}
+
+.cins-admin .admin-tag-stat--works .admin-tag-stat-v {
+  color: #15803d;
+}
+
+.cins-admin .admin-tag-panel {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
 }
 
 .cins-admin .admin-tag-toolbar {
+  display: flex;
   flex-direction: column;
-  align-items: stretch;
   gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(
+    180deg,
+    var(--neutral-50) 0%,
+    var(--bg-surface) 100%
+  );
 }
 
-.cins-admin .admin-tag-filter-row {
+.cins-admin .admin-tag-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-surface);
+  color: var(--fg-4);
+  transition:
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.cins-admin .admin-tag-search:focus-within {
+  border-color: var(--cins-blue);
+  box-shadow: 0 0 0 3px var(--cins-blue-soft);
+  color: var(--cins-blue);
+}
+
+.cins-admin .admin-tag-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: 10px 0;
+  font: inherit;
+  font-size: 13px;
+  color: var(--fg-1);
+  outline: none;
+}
+
+.cins-admin .admin-tag-toolbar-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 20px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
 }
 
-.cins-admin .admin-tag-filter-group {
+.cins-admin .admin-tag-filters {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
 
-.cins-admin .admin-tag-pill {
+.cins-admin .admin-tag-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 1px solid var(--border);
   background: var(--bg-surface);
-  color: var(--fg-2);
+  color: var(--fg-3);
   font: inherit;
   font-size: 12px;
   font-weight: 700;
-  padding: 6px 12px;
+  padding: 6px 10px;
   border-radius: 999px;
   cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease,
+    color 0.12s ease;
 }
 
-.cins-admin .admin-tag-pill.is-active,
-.cins-admin .admin-tag-pill:hover {
+.cins-admin .admin-tag-filter.is-active,
+.cins-admin .admin-tag-filter:hover {
   border-color: color-mix(in srgb, var(--cins-blue) 35%, transparent);
   background: var(--cins-blue-soft);
   color: var(--cins-blue-dark);
 }
 
-.cins-admin .admin-tag-search {
-  min-width: 220px;
+.cins-admin .admin-tag-filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cins-blue) 14%, transparent);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.6;
 }
 
 .cins-admin .admin-tag-sort {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--fg-3);
+}
+
+.cins-admin .admin-tag-sort-label {
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .cins-admin .admin-tag-sort select {
   font: inherit;
+  font-size: 12px;
+  font-weight: 600;
   padding: 6px 10px;
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--bg-surface);
   color: var(--fg-1);
+  cursor: pointer;
 }
 
-.cins-admin .admin-tag-table th,
+.cins-admin .admin-tag-result {
+  margin: 0;
+  font-size: 12px;
+  color: var(--fg-4);
+}
+
+.cins-admin .admin-tag-result strong {
+  color: var(--fg-2);
+  font-family: var(--font-mono);
+}
+
+.cins-admin .admin-tag-spin {
+  display: inline-block;
+  vertical-align: -2px;
+  animation: admin-to-chuc-spin 0.8s linear infinite;
+}
+
+.cins-admin .admin-tag-error {
+  margin: 0;
+  padding: 10px 16px;
+  border-bottom: 1px solid color-mix(in srgb, var(--danger) 25%, transparent);
+  background: color-mix(in srgb, var(--danger) 10%, var(--bg-surface));
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.cins-admin .admin-tag-table-wrap {
+  overflow-x: auto;
+}
+
+.cins-admin .admin-tag-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+.cins-admin .admin-tag-table th {
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--fg-4);
+  background: var(--neutral-50);
+  border-bottom: 1px solid var(--border);
+}
+
+.cins-admin .admin-tag-th-num {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.cins-admin .admin-tag-th-loai {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.cins-admin .admin-tag-th-actions {
+  text-align: right;
+  width: 1%;
+  white-space: nowrap;
+}
+
 .cins-admin .admin-tag-table td {
+  padding: 10px 12px;
   vertical-align: middle;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  line-height: 1.35;
 }
 
-.cins-admin .admin-tag-name-cell {
+.cins-admin .admin-tag-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.cins-admin .admin-tag-row:hover td {
+  background: rgba(31, 116, 201, 0.03);
+}
+
+.cins-admin .admin-tag-cell-tag {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cins-admin .admin-tag-cell-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--neutral-100, #f1f2f5);
+  color: var(--fg-3);
+}
+
+.cins-admin .admin-tag-cell-copy {
+  min-width: 0;
+}
+
+.cins-admin .admin-tag-cell-name {
+  display: block;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--fg-1);
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+}
+
+.cins-admin .admin-tag-cell-meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 8px;
+  gap: 6px 10px;
+  margin-top: 3px;
 }
 
-.cins-admin .admin-tag-verified-icon {
-  color: var(--cins-blue);
+.cins-admin .admin-tag-cell-slug {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--fg-4);
+  line-height: 1.25;
+}
+
+.cins-admin .admin-tag-cell-date {
+  font-size: 10px;
+  color: var(--fg-4);
+}
+
+.cins-admin .admin-tag-loai {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.cins-admin .admin-tag-loai--keyword {
+  background: #e7f0fb;
+  color: #1656a0;
+}
+
+.cins-admin .admin-tag-loai--phan_mem {
+  background: #d9fbed;
+  color: #0e6b4d;
+}
+
+.cins-admin .admin-tag-loai--fandom {
+  background: #ecddfe;
+  color: #7c3aed;
+}
+
+.cins-admin .admin-tag-num {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--fg-2);
+}
+
+.cins-admin .admin-tag-metric {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--neutral-50);
+  color: var(--fg-2);
+}
+
+.cins-admin .admin-tag-metric svg {
+  color: var(--fg-4);
   flex-shrink: 0;
 }
 
-.cins-admin .admin-tag-name {
-  font-weight: 700;
-  color: var(--ink-display);
-}
-
-.cins-admin .admin-tag-date {
-  width: 100%;
-  font-size: 11px;
-  color: var(--fg-3);
-}
-
 .cins-admin .admin-tag-tom-tat {
-  max-width: 280px;
-  font-size: 13px;
+  max-width: 320px;
+}
+
+.cins-admin .admin-tag-tom-tat-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 12px;
   color: var(--fg-3);
-  line-height: 1.4;
+  line-height: 1.45;
+}
+
+.cins-admin .admin-tag-tom-tat-empty {
+  font-size: 12px;
+  color: var(--fg-4);
+  font-style: italic;
 }
 
 .cins-admin .admin-tag-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 4px;
+}
+
+.cins-admin .admin-tag-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fg-3);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.cins-admin .admin-tag-action:hover {
+  border-color: var(--border);
+  background: var(--neutral-50);
+  color: var(--cins-blue-dark);
 }
 
 .cins-admin .admin-tag-btn {
@@ -5065,7 +5423,7 @@
   justify-content: center;
   gap: 4px;
   min-height: 32px;
-  padding: 0 10px;
+  padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--bg-surface);
@@ -5104,8 +5462,7 @@
   box-shadow: var(--shadow-md);
 }
 
-.cins-admin .admin-tag-menu button,
-.cins-admin .admin-tag-menu-link {
+.cins-admin .admin-tag-menu button {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -5117,33 +5474,36 @@
   font: inherit;
   font-size: 13px;
   color: var(--ink-display);
-  text-decoration: none;
   cursor: pointer;
   text-align: left;
 }
 
-.cins-admin .admin-tag-menu button:hover,
-.cins-admin .admin-tag-menu-link:hover {
+.cins-admin .admin-tag-menu button:hover {
   background: var(--cins-blue-soft);
 }
 
-.cins-admin .admin-tag-error {
-  margin: 0 0 12px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--danger) 12%, var(--bg-surface));
-  color: var(--danger);
-  font-size: 13px;
-}
-
-.cins-admin .admin-tag-pagination {
+.cins-admin .admin-tag-footer {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 16px;
-  margin-top: 16px;
-  font-size: 13px;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--neutral-50);
+}
+
+.cins-admin .admin-tag-footer-meta {
+  font-size: 12px;
   color: var(--fg-3);
+}
+
+.cins-admin .admin-tag-footer-meta strong {
+  font-family: var(--font-mono);
+  color: var(--fg-2);
+}
+
+.cins-admin .admin-tag-footer-total {
+  color: var(--fg-4);
 }
 
 .cins-admin .admin-tag-modal-backdrop {
@@ -9315,10 +9675,10 @@
   color: var(--fg-2);
 }
 .cins-admin .admin-gd-detail {
-  border: 1px solid var(--border, #e5e7eb);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 1rem 1.1rem;
-  background: var(--bg-1, #fff);
+  background: var(--bg-surface);
   position: sticky;
   top: 0.75rem;
   max-height: calc(100vh - 6rem);
@@ -9327,11 +9687,13 @@
 .cins-admin .admin-gd-detail h2 {
   margin: 0 0 0.75rem;
   font-size: 1.05rem;
+  color: var(--ink-display);
 }
 .cins-admin .admin-gd-detail h3 {
   margin: 1rem 0 0.4rem;
   font-size: 0.9rem;
   font-weight: 600;
+  color: var(--fg-1);
 }
 .cins-admin .admin-gd-detail-empty {
   color: var(--fg-3);
@@ -9379,7 +9741,7 @@
   display: block;
   max-width: 100%;
   border-radius: 8px;
-  border: 1px solid var(--border, #e5e7eb);
+  border: 1px solid var(--border);
 }
 .cins-admin .admin-gd-note {
   margin: 0;
@@ -9389,7 +9751,8 @@
   font-family: inherit;
   padding: 0.5rem 0.65rem;
   border-radius: 8px;
-  background: var(--bg-2, #f8fafc);
+  background: var(--neutral-100);
+  color: var(--fg-2);
 }
 
 .cins-admin .admin-gd-shop-summary {
@@ -9404,15 +9767,15 @@
   flex-direction: column;
   gap: 4px;
   padding: 12px 14px;
-  border: 1px solid var(--border, #e5e7eb);
+  border: 1px solid var(--border);
   border-radius: 10px;
-  background: var(--bg-1, #fff);
+  background: var(--bg-surface);
 }
 
 .cins-admin .admin-gd-shop-stat-k {
   font-size: 11px;
   font-weight: 650;
-  color: var(--fg-4, #94a3b8);
+  color: var(--fg-4);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -9420,13 +9783,13 @@
 .cins-admin .admin-gd-shop-stat strong {
   font-size: 18px;
   font-weight: 700;
-  color: var(--fg-1, #0f172a);
+  color: var(--fg-1);
   font-variant-numeric: tabular-nums;
 }
 
 .cins-admin .admin-gd-shop-stat-hint {
   font-size: 11px;
-  color: var(--fg-4, #94a3b8);
+  color: var(--fg-4);
 }
 
 .cins-admin .admin-gd-shop-table .admin-gd-num {
@@ -9468,6 +9831,43 @@
   .cins-admin .admin-gd-shop-summary {
     grid-template-columns: 1fr;
   }
+}
+
+/* Admin giao dịch — dark theme (token --bg-1/--bg-2 cũ không tồn tại) */
+:root[data-theme="dark"] .cins-admin .admin-gd-detail,
+:root[data-theme="dark"] .cins-admin .admin-gd-shop-stat {
+  background: var(--bg-surface);
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] .cins-admin .admin-gd-detail h2,
+:root[data-theme="dark"] .cins-admin .admin-gd-detail h3 {
+  color: var(--ink-display);
+}
+
+:root[data-theme="dark"] .cins-admin .admin-gd-note {
+  background: var(--neutral-100);
+  color: var(--fg-2);
+}
+
+:root[data-theme="dark"] .cins-admin .admin-gd-quote {
+  background: color-mix(in srgb, var(--cins-priv-accent, #fdad4c) 12%, var(--bg-surface));
+  border-left-color: var(--cins-priv-accent, #fdad4c);
+  color: var(--fg-2);
+}
+
+:root[data-theme="dark"] .cins-admin .admin-gd-badge.is-ok {
+  background: color-mix(in srgb, #34c98a 16%, var(--bg-surface));
+  color: #4ade80;
+}
+
+:root[data-theme="dark"] .cins-admin .admin-gd-badge.is-pause {
+  background: color-mix(in srgb, #f4b74e 14%, var(--bg-surface));
+  color: #fbbf24;
+}
+
+:root[data-theme="dark"] .cins-admin .admin-gd-user-link {
+  color: var(--cins-blue-dark);
 }
 
 /* ── Schema DB explorer (/admin/schema) — Be Vietnam Pro only ───── */

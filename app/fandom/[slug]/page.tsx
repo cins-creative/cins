@@ -6,7 +6,6 @@ import { CinsShell } from "@/components/cins/CinsShell";
 import { SiteFooter } from "@/components/cins/SiteFooter";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import {
-  fetchRelatedArticles,
   fetchTacPhamGalleryForArticle,
   getArticleById,
   getFandomArticleBySlug,
@@ -89,19 +88,16 @@ export default async function FandomDetailPage({ params, searchParams }: Props) 
   const session = await getCurrentSessionAndProfile();
   const viewerProfileId = session?.profile?.id ?? null;
 
-  const [lienQuan, tacPham, entityTaggedUsers, entityMilestones] =
-    await Promise.all([
-      fetchRelatedArticles(article.id),
-      fetchTacPhamGalleryForArticle(article.id),
-      fetchEntityTaggedUsers(article.id),
-      fetchEntityMilestones(article.id, sort, viewerProfileId),
-    ]);
+  const [tacPham, entityTaggedUsers, entityMilestones] = await Promise.all([
+    fetchTacPhamGalleryForArticle(article.id),
+    fetchEntityTaggedUsers(article.id),
+    fetchEntityMilestones(article.id, sort, viewerProfileId),
+  ]);
 
   return (
     <CinsShell data-screen-label={`Fandom-${slug}`}>
       <FandomEntityArticleView
         article={article}
-        lienQuan={lienQuan}
         tacPham={tacPham}
         entityTaggedUsers={entityTaggedUsers}
         entityMilestones={entityMilestones}
