@@ -2491,11 +2491,26 @@
 .cins-admin .table-wrap--articles .cell-thumb {
   width: 68px;
   padding: 7px 8px 7px 12px;
+  position: relative;
+  overflow: visible;
 }
 
 .cins-admin .table-wrap--articles .admin-article-thumb {
   width: 52px;
   border-radius: 6px;
+  transition:
+    width 0.16s ease,
+    box-shadow 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.cins-admin .table-wrap--articles .admin-article-thumb--has-img:hover,
+.cins-admin .table-wrap--articles .admin-article-thumb--has-img:focus-within {
+  width: 104px;
+  aspect-ratio: 4 / 3;
+  z-index: 30;
+  box-shadow: var(--shadow-md);
+  border-color: color-mix(in srgb, var(--cins-blue) 35%, var(--border));
 }
 
 .cins-admin .table-wrap--articles .admin-article-thumb__ph {
@@ -8360,6 +8375,8 @@
 .cins-admin .ndd-list-col-thumb {
   width: 104px;
   padding-right: 4px;
+  position: relative;
+  overflow: visible;
 }
 .cins-admin .ndd-list-col-score {
   width: 88px;
@@ -8379,11 +8396,22 @@
 .cins-admin .ndd-list-thumb {
   display: block;
   width: 88px;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 4 / 3;
   border-radius: 8px;
   overflow: hidden;
-  border: 1px solid #e2e8f0;
-  background: #f1f5f9;
+  border: 1px solid var(--border);
+  background: var(--neutral-100);
+  transition:
+    width 0.16s ease,
+    box-shadow 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.cins-admin .ndd-list-thumb:hover {
+  width: 120px;
+  aspect-ratio: 4 / 3;
+  box-shadow: var(--shadow-sm);
+  border-color: color-mix(in srgb, var(--cins-blue) 35%, var(--border));
 }
 .cins-admin .ndd-list-thumb img {
   width: 100%;
@@ -8396,7 +8424,7 @@
   place-items: center;
   width: 100%;
   height: 100%;
-  color: #94a3b8;
+  color: var(--fg-4);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -9737,11 +9765,28 @@
   color: var(--fg-3);
   margin: 0;
 }
-.cins-admin .admin-gd-receipt img {
+.cins-admin .admin-gd-receipt {
   display: block;
   max-width: 100%;
+  aspect-ratio: 4 / 3;
   border-radius: 8px;
+  overflow: hidden;
   border: 1px solid var(--border);
+  background: var(--neutral-100);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.cins-admin .admin-gd-receipt:hover {
+  border-color: color-mix(in srgb, var(--cins-blue) 38%, var(--border));
+  box-shadow: var(--shadow-sm);
+}
+.cins-admin .admin-gd-receipt img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 .cins-admin .admin-gd-note {
   margin: 0;

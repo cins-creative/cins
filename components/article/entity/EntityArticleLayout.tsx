@@ -14,6 +14,8 @@ type Props = {
   contribution?: ReactNode;
   /** Tab Nội dung chưa có bài chính — ẩn tab, mặc định Thảo luận. */
   canonicalEmpty?: boolean;
+  /** Tab mở mặc định khi không có `?tab=` trên URL. */
+  defaultTab?: "content" | "contribution" | "discussion";
   /** Nhãn loại entity — truyền xuống tabs (tương thích API). */
   entityKindLabel?: string;
   isLoggedIn?: boolean;
@@ -31,6 +33,7 @@ export function EntityArticleLayout({
   discussion,
   contribution,
   canonicalEmpty = false,
+  defaultTab,
   entityKindLabel,
   isLoggedIn = false,
   loginNext = "",
@@ -58,6 +61,7 @@ export function EntityArticleLayout({
               contribution={contribution}
               discussion={discussion}
               canonicalEmpty={canonicalEmpty}
+              defaultTab={defaultTab}
               entityKindLabel={entityKindLabel}
               isLoggedIn={isLoggedIn}
               loginNext={loginNext}

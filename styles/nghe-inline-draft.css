@@ -678,14 +678,47 @@ button.nghe-hero-draft-edit[data-nghe-draft-active="true"] {
   position: relative;
   display: block;
   width: 100%;
-  max-height: 180px;
+  height: auto;
+  flex-shrink: 0;
   margin: 0;
   padding: 0;
   border: 1px dashed var(--border-strong, #c9ccd3);
   border-radius: 10px;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
-  background: var(--bg-surface, #fff);
+  background: var(--bg-surface);
+}
+
+.contrib-editor-meta__thumb-ratio {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(14, 17, 23, 0.72);
+  color: #fff;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  pointer-events: none;
+}
+
+.contrib-editor-meta__thumb-picker.is-empty .contrib-editor-meta__thumb-ratio {
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 18%, var(--bg-surface));
+  color: var(--cins-blue-dark, #1656a0);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cins-blue, #1f74c9) 28%, transparent);
+}
+
+:root[data-theme="dark"] .contrib-editor-meta__thumb-picker.is-empty .contrib-editor-meta__thumb-ratio {
+  background: color-mix(in srgb, var(--cins-blue) 22%, var(--bg-surface));
+  color: var(--cins-blue-dark);
 }
 
 .contrib-editor-meta__thumb-picker.has-thumb {
@@ -711,8 +744,8 @@ button.nghe-hero-draft-edit[data-nghe-draft-active="true"] {
   gap: 4px;
   padding: 12px 12px 52px;
   font-size: 12px;
-  color: var(--ink-muted, #64748b);
-  background: color-mix(in srgb, var(--neutral-50, #f8fafc) 70%, var(--bg-surface, #fff));
+  color: var(--ink-muted);
+  background: color-mix(in srgb, var(--neutral-50) 70%, var(--bg-surface));
   pointer-events: none;
 }
 
@@ -720,6 +753,14 @@ button.nghe-hero-draft-edit[data-nghe-draft-active="true"] {
   font-size: 13px;
   font-weight: 600;
   color: var(--ink-body, #475569);
+}
+
+.contrib-editor-meta__thumb-empty-ratio {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ink-muted);
 }
 
 .contrib-editor-meta__thumb-actions {
@@ -870,10 +911,6 @@ button.nghe-hero-draft-edit[data-nghe-draft-active="true"] {
 
   .contrib-editor-meta {
     gap: 16px;
-  }
-
-  .contrib-editor-meta__thumb-picker {
-    max-height: 160px;
   }
 
   .contrib-editor-meta__thumb-picker.has-thumb .contrib-editor-meta__thumb-actions {

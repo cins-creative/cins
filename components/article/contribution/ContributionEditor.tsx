@@ -171,7 +171,7 @@ export function ContributionEditor({
         return;
       }
       afterSuccess("cho_duyet", result.id);
-      setMsg("Đã gửi duyệt — curator sẽ xem bản của bạn.");
+      onClose();
     });
   }
 

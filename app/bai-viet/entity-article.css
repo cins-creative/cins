@@ -952,8 +952,8 @@ a.ent-contributors-name:hover {
   border-top: 1px solid var(--border);
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--bg-muted, #f1f5f9) 55%, #fff) 0%,
-    #fff 48px
+    color-mix(in srgb, var(--bg-muted) 55%, var(--bg-surface)) 0%,
+    var(--bg-surface) 48px
   );
 }
 
@@ -1070,7 +1070,7 @@ a.ent-contributors-name:hover {
   padding: 4px 10px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: var(--bg-muted, #f8fafc);
+  background: var(--bg-muted);
   font-size: 12px;
   font-weight: 600;
   color: var(--ink-body);
@@ -1274,8 +1274,8 @@ a.ent-contributors-name:hover {
   font-size: 13px;
   line-height: 1.55;
   color: var(--ink-body);
-  background: #fff7e6;
-  border: 1px solid #ffd591;
+  background: color-mix(in srgb, var(--warning, #f4a52a) 14%, var(--bg-surface));
+  border: 1px solid color-mix(in srgb, var(--warning, #f4a52a) 42%, var(--border));
   border-radius: var(--radius-md);
 }
 
@@ -1334,6 +1334,52 @@ a.ent-contributors-name:hover {
   margin-top: var(--space-3);
   font-weight: 700;
   color: var(--ink-title);
+}
+
+/* ---------- Đóng góp topic — dark theme ---------- */
+:root[data-theme="dark"] .contrib-topic {
+  background: var(--bg-surface);
+  border-color: var(--border);
+  box-shadow: var(--shadow-xs);
+}
+
+:root[data-theme="dark"] .contrib-topic-head:hover {
+  background: color-mix(in srgb, var(--cins-blue) 10%, transparent);
+}
+
+:root[data-theme="dark"] .contrib-topic-panel {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--neutral-100) 90%, var(--bg-surface)) 0%,
+    var(--bg-surface) 48px
+  );
+}
+
+:root[data-theme="dark"] .contrib-topic-head-thumb,
+:root[data-theme="dark"] .contrib-topic-thumb {
+  background: var(--neutral-100);
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] .contrib-topic-main-star {
+  color: #fbbf24;
+}
+
+:root[data-theme="dark"] .contrib-tab-curator-note {
+  background: color-mix(in srgb, var(--warning) 16%, var(--bg-surface));
+  border-color: color-mix(in srgb, var(--warning) 40%, var(--border));
+  color: var(--fg-2);
+}
+
+:root[data-theme="dark"] .contrib-topic-related .contrib-related-chips li {
+  background: var(--neutral-100);
+  border-color: var(--border);
+  color: var(--fg-2);
+}
+
+:root[data-theme="dark"] .contrib-tab-avatar--fallback {
+  background: var(--neutral-100);
+  color: var(--fg-3);
 }
 
 /* ============================================================

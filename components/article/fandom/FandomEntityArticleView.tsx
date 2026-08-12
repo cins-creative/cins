@@ -104,6 +104,7 @@ export async function FandomEntityArticleView({
       <ArticleJsonLd article={article} slugPath={slugPath} />
       <EntityArticleLayout
         pageClassName="ent-page--fandom"
+        defaultTab="discussion"
         header={
           <EntityArticleHeader
             kind="fandom"

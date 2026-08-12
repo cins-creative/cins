@@ -5,6 +5,20 @@ import type { ReactNode } from "react";
 
 type TabId = "content" | "contribution" | "discussion";
 
+function resolveDefaultTab(
+  defaultTab: TabId | undefined,
+  showContentTab: boolean,
+  hasContribution: boolean,
+): TabId {
+  const preferred =
+    defaultTab ?? (showContentTab ? "content" : "discussion");
+  if (preferred === "content" && !showContentTab) return "discussion";
+  if (preferred === "contribution" && !hasContribution) {
+    return showContentTab ? "content" : "discussion";
+  }
+  return preferred;
+}
+
 type Props = {
   content: ReactNode;
   discussion: ReactNode;
@@ -14,6 +28,8 @@ type Props = {
   discussionLabel?: string;
   /** Tab Nội dung chưa có bài chính — ẩn tab, mặc định mở Thảo luận. */
   canonicalEmpty?: boolean;
+  /** Tab mở mặc định khi không có `?tab=` (mặc định: Nội dung nếu có tab Nội dung). */
+  defaultTab?: TabId;
   /** Nhãn loại entity — vd. «Khái niệm», «Nghề» (giữ prop cho caller cũ). */
   entityKindLabel?: string;
   isLoggedIn?: boolean;
@@ -29,6 +45,7 @@ export function NgheMainContentTabs({
   contributionLabel = "Đóng góp",
   discussionLabel = "Thảo luận",
   canonicalEmpty = false,
+  defaultTab,
 }: Props) {
   const uid = useId().replace(/:/g, "");
   const hasContribution = contribution != null;
@@ -60,7 +77,7 @@ export function NgheMainContentTabs({
   ]);
 
   const [active, setActive] = useState<TabId>(() =>
-    showContentTab ? "content" : "discussion",
+    resolveDefaultTab(defaultTab, showContentTab, hasContribution),
   );
 
   useEffect(() => {

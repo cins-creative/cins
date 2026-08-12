@@ -176,14 +176,20 @@ export function ContributionEditorMeta({
         <div
           className={`contrib-editor-meta__thumb-picker${thumbUrl ? " has-thumb" : " is-empty"}${thumbBusy ? " is-busy" : ""}`}
           role="group"
-          aria-label="Ảnh bìa"
+          aria-label="Ảnh bìa, tỉ lệ 4:3"
         >
+          <span className="contrib-editor-meta__thumb-ratio" aria-hidden>
+            4:3
+          </span>
           {thumbUrl ? (
             <Image src={thumbUrl} alt="" fill sizes="360px" unoptimized />
           ) : (
             <span className="contrib-editor-meta__thumb-empty">
               <span className="contrib-editor-meta__thumb-empty-title">
                 Thêm ảnh bìa
+              </span>
+              <span className="contrib-editor-meta__thumb-empty-ratio">
+                Khung 4:3
               </span>
             </span>
           )}
