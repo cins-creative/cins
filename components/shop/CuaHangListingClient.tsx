@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Check, Package, Search, SlidersHorizontal, Store, X } from "lucide-react";
+import { Check, LayoutGrid, Package, Search, SlidersHorizontal, Store, X } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -24,7 +24,7 @@ import type {
 import { shopLoaiHref, shopLoaiMauHref } from "@/lib/shop/cua-hang-href";
 import { useChListLazyBatch, CH_LIST_SHOP_LAZY_BATCH } from "@/lib/shop/use-ch-list-lazy-batch";
 
-type BrowseMode = "shop" | "hang";
+type BrowseMode = "shop" | "mat-hang" | "hang";
 
 type Props = {
   shops: PublicShopListingItem[];
@@ -36,7 +36,12 @@ function listingTabHref(
   mode: BrowseMode,
   searchParams: URLSearchParams,
 ): string {
-  const base = mode === "shop" ? "/cua-hang/shop" : "/cua-hang/hang";
+  const base =
+    mode === "shop"
+      ? "/cua-hang/shop"
+      : mode === "mat-hang"
+        ? "/cua-hang/mat-hang"
+        : "/cua-hang/hang";
   const qs = searchParams.toString();
   return qs ? `${base}?${qs}` : base;
 }
@@ -55,6 +60,7 @@ type HangHit = {
   noiBat: boolean;
   soLuongBan: number;
   hetHang: boolean;
+  dangTamDong: boolean;
   danhMucSlug: string | null;
   facets: Record<string, string[]>;
   coCombo: boolean;
@@ -644,7 +650,8 @@ function hangFromLoai(
     tienTe: hang.tienTe ?? "VND",
     noiBat: hang.noiBat === true,
     soLuongBan: Math.max(0, Math.trunc(hang.soLuongBan ?? 0)),
-    hetHang: hang.hetHang !== false,
+    hetHang: hang.hetHang === true,
+    dangTamDong: shop.dangTamDong === true,
     danhMucSlug: hang.danhMucSlug ?? null,
     facets: hang.facets ?? {},
     coCombo: hang.coCombo === true,
@@ -673,6 +680,7 @@ function hangFromMau(
     noiBat: false,
     soLuongBan: Math.max(0, Math.trunc(mau.soLuongBan ?? 0)),
     hetHang: mau.hetHang === true,
+    dangTamDong: shop.dangTamDong === true,
     danhMucSlug: mau.danhMucSlug ?? null,
     facets: mau.facets ?? {},
     coCombo: mau.coCombo === true,
@@ -680,14 +688,15 @@ function hangFromMau(
   };
 }
 
-/** Feature → còn hàng → có ảnh → đã bán nhiều. */
+/** Giống quầy: đang bán → còn hàng → bán chạy → có ảnh → nổi bật. */
 function compareHangPriority(a: HangHit, b: HangHit): number {
-  if (a.noiBat !== b.noiBat) return a.noiBat ? -1 : 1;
+  if (a.dangTamDong !== b.dangTamDong) return a.dangTamDong ? 1 : -1;
   if (a.hetHang !== b.hetHang) return a.hetHang ? 1 : -1;
-  const aImg = a.anhUrl ? 1 : 0;
-  const bImg = b.anhUrl ? 1 : 0;
-  if (aImg !== bImg) return bImg - aImg;
   if (a.soLuongBan !== b.soLuongBan) return b.soLuongBan - a.soLuongBan;
+  const aImg = a.anhUrl ? 0 : 1;
+  const bImg = b.anhUrl ? 0 : 1;
+  if (aImg !== bImg) return aImg - bImg;
+  if (a.noiBat !== b.noiBat) return a.noiBat ? -1 : 1;
   return a.ten.localeCompare(b.ten, "vi", { sensitivity: "base" });
 }
 
@@ -723,22 +732,42 @@ function interleaveByShop(hits: HangHit[]): HangHit[] {
   return out;
 }
 
+function collectMatHangHits(
+  shops: PublicShopListingItem[],
+  q: string,
+): HangHit[] {
+  const hits: HangHit[] = [];
+  for (const shop of shops) {
+    const loai = shop.catalogHang;
+    if (loai.length > 0) {
+      for (const hang of loai) {
+        if (q && !hangMatchesQuery(hang, q)) continue;
+        hits.push(hangFromLoai(shop, hang));
+      }
+      continue;
+    }
+    /* Shop không có loại → hiện mẫu (giống quầy mat-hang fallback). */
+    for (const mau of shop.catalogMau) {
+      if (q && !hangMatchesQuery(mau, q)) continue;
+      hits.push(hangFromMau(shop, mau));
+    }
+  }
+  const mixed = interleaveByShop(hits);
+  if (q && mixed.length > HANG_SEARCH_LIMIT) {
+    return mixed.slice(0, HANG_SEARCH_LIMIT);
+  }
+  return mixed;
+}
+
 function collectHangHits(
   shops: PublicShopListingItem[],
   q: string,
 ): HangHit[] {
   const hits: HangHit[] = [];
   for (const shop of shops) {
-    for (const hang of shop.catalogHang) {
-      if (q && !hangMatchesQuery(hang, q)) continue;
-      hits.push(hangFromLoai(shop, hang));
-    }
-    /* Search: thêm mẫu khớp tên — browse mặc định chỉ loại. */
-    if (q) {
-      for (const mau of shop.catalogMau) {
-        if (!hangMatchesQuery(mau, q)) continue;
-        hits.push(hangFromMau(shop, mau));
-      }
+    for (const mau of shop.catalogMau) {
+      if (q && !hangMatchesQuery(mau, q)) continue;
+      hits.push(hangFromMau(shop, mau));
     }
   }
   const mixed = interleaveByShop(hits);
@@ -854,7 +883,9 @@ export function CuaHangListingClient({
 
   const q = normalizeQuery(query);
   const searching = Boolean(q);
+  const showMatHang = browseMode === "mat-hang";
   const showHang = browseMode === "hang";
+  const showProductGrid = showMatHang || showHang;
 
   useEffect(() => {
     if (!searchOpen) return;
@@ -948,22 +979,29 @@ export function CuaHangListingClient({
   const hasListFilter = hasTaxonomyFilter || discountOnly;
 
   const visibleShops = useMemo(() => {
-    if (showHang) return [];
+    if (showProductGrid) return [];
     let list = shops.filter((shop) => shopMatchesQuery(shop, q));
     if (discountOnly) list = list.filter(shopHasUuDai);
-    if (!q) return list;
+    /* Giống quầy Shop: đang bán → có voucher → … */
     return [...list].sort((a, b) => {
+      if (a.dangTamDong !== b.dangTamDong) return a.dangTamDong ? 1 : -1;
+      const aV =
+        a.coVoucher === true || (a.voucherTickerLines?.length ?? 0) > 0;
+      const bV =
+        b.coVoucher === true || (b.voucherTickerLines?.length ?? 0) > 0;
+      if (aV !== bV) return aV ? -1 : 1;
+      if (!q) return 0;
       const aProfile = shopProfileMatches(a, q) ? 0 : 1;
       const bProfile = shopProfileMatches(b, q) ? 0 : 1;
-      if (aProfile !== bProfile) return aProfile - bProfile;
-      return 0;
+      return aProfile - bProfile;
     });
-  }, [shops, q, showHang, discountOnly]);
+  }, [shops, q, showProductGrid, discountOnly]);
 
-  const hangHitsRaw = useMemo(
-    () => (showHang ? collectHangHits(shops, q) : []),
-    [shops, q, showHang],
-  );
+  const hangHitsRaw = useMemo(() => {
+    if (showMatHang) return collectMatHangHits(shops, q);
+    if (showHang) return collectHangHits(shops, q);
+    return [];
+  }, [shops, q, showMatHang, showHang]);
 
   const hangHitsScoped = useMemo(() => {
     if (!discountOnly) return hangHitsRaw;
@@ -999,17 +1037,21 @@ export function CuaHangListingClient({
     return out;
   }, [hangHitsScoped, taxonomy.facets]);
 
-  const empty = showHang
+  const empty = showProductGrid
     ? hangHits.length === 0
     : searching
       ? visibleShops.length === 0
       : shops.length === 0;
 
-  const searchPlaceholder = showHang
-    ? "Tìm hàng, phân loại…"
+  const searchPlaceholder = showProductGrid
+    ? showMatHang
+      ? "Tìm mặt hàng…"
+      : "Tìm hàng…"
     : "Tìm shop…";
-  const searchAria = showHang
-    ? "Tìm theo tên sản phẩm hoặc phân loại"
+  const searchAria = showProductGrid
+    ? showMatHang
+      ? "Tìm theo tên mặt hàng"
+      : "Tìm theo tên hàng"
     : "Tìm theo tên shop";
 
   const visibleDanhMuc = taxonomy.danhMuc.filter(
@@ -1027,14 +1069,14 @@ export function CuaHangListingClient({
 
   const hangLazyKey = useMemo(
     () =>
-      `${showHang}|${q}|${discountOnly}|${selectedDanhMuc.join(",")}|${facetSig}|${hangHits.length}|${hangHits[0]?.key ?? ""}|${hangHits.at(-1)?.key ?? ""}`,
-    [showHang, q, discountOnly, selectedDanhMuc, facetSig, hangHits],
+      `${browseMode}|${q}|${discountOnly}|${selectedDanhMuc.join(",")}|${facetSig}|${hangHits.length}|${hangHits[0]?.key ?? ""}|${hangHits.at(-1)?.key ?? ""}`,
+    [browseMode, q, discountOnly, selectedDanhMuc, facetSig, hangHits],
   );
 
   const shopLazyKey = useMemo(
     () =>
-      `${showHang}|${q}|${discountOnly}|${visibleShops.length}|${visibleShops[0]?.id ?? ""}|${visibleShops.at(-1)?.id ?? ""}`,
-    [showHang, q, discountOnly, visibleShops],
+      `${browseMode}|${q}|${discountOnly}|${visibleShops.length}|${visibleShops[0]?.id ?? ""}|${visibleShops.at(-1)?.id ?? ""}`,
+    [browseMode, q, discountOnly, visibleShops],
   );
 
   const {
@@ -1122,8 +1164,8 @@ export function CuaHangListingClient({
                 <p className="ch-list-result-meta" aria-live="polite">
                   {empty
                     ? "Không có kết quả"
-                    : showHang
-                      ? `${hangHits.length} hàng`
+                    : showProductGrid
+                      ? `${hangHits.length} ${showMatHang ? "mặt hàng" : "hàng"}`
                       : `${visibleShops.length} cửa hàng`}
                 </p>
               ) : null}
@@ -1143,6 +1185,16 @@ export function CuaHangListingClient({
               >
                 <Store size={16} strokeWidth={2} aria-hidden />
                 Shop
+              </Link>
+              <Link
+                href={listingTabHref("mat-hang", searchParams)}
+                scroll={false}
+                role="tab"
+                aria-selected={browseMode === "mat-hang"}
+                className={`ch-list-toolbar-tab${browseMode === "mat-hang" ? " is-active" : ""}`}
+              >
+                <LayoutGrid size={16} strokeWidth={2} aria-hidden />
+                Mặt hàng
               </Link>
               <Link
                 href={listingTabHref("hang", searchParams)}
@@ -1170,7 +1222,7 @@ export function CuaHangListingClient({
               <span className="ch-list-discount-switch-label">Discount</span>
             </button>
 
-            {showHang && shops.length > 0 ? (
+            {showProductGrid && shops.length > 0 ? (
               <div
                 className="ch-list-toolbar-filters"
                 role="group"
@@ -1204,9 +1256,9 @@ export function CuaHangListingClient({
           <div className="ch-list-empty">
             <p>
               {searching || hasListFilter
-                ? showHang
+                ? showProductGrid
                   ? searching
-                    ? `Không tìm thấy sản phẩm khớp «${query.trim()}».`
+                    ? `Không tìm thấy ${showMatHang ? "mặt hàng" : "hàng"} khớp «${query.trim()}».`
                     : discountOnly
                       ? "Không có sản phẩm combo / ưu đãi khớp bộ lọc."
                       : "Không có sản phẩm khớp bộ lọc."
@@ -1215,13 +1267,20 @@ export function CuaHangListingClient({
                     : discountOnly
                       ? "Không có shop có combo hoặc voucher."
                       : "Không tìm thấy cửa hàng."
-                : showHang
-                  ? "Chưa có sản phẩm nào đang hiển thị."
+                : showProductGrid
+                  ? showMatHang
+                    ? "Chưa có mặt hàng nào đang hiển thị."
+                    : "Chưa có hàng nào đang hiển thị."
                   : "Chưa có cửa hàng nào đang hiển thị."}
             </p>
           </div>
-        ) : showHang ? (
-          <section className="ch-list-section" aria-label="Danh sách sản phẩm">
+        ) : showProductGrid ? (
+          <section
+            className="ch-list-section"
+            aria-label={
+              showMatHang ? "Danh sách mặt hàng" : "Danh sách hàng"
+            }
+          >
             <div className="ch-list-hang-grid">
               {lazyHangHits.map((hit) => (
                 <HangHitCard key={hit.key} hit={hit} />

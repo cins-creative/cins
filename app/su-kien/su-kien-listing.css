@@ -244,6 +244,14 @@
   margin-bottom: 8px;
 }
 
+.sk-list-grid .evb-card-meta > span .evb-card-meta-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--cins-blue, #1f74c9);
+  stroke-width: 2;
+}
+
 .sk-list-grid .evb-card-org {
   display: inline-flex;
   align-items: center;
@@ -509,6 +517,8 @@
   --sk-detail-line: rgba(15, 20, 25, 0.1);
   --sk-detail-surface: #f4f7fb;
   --sk-detail-av-ring: #fff;
+  /* Khớp chiều cao topbar thật (JS ResizeObserver cập nhật). */
+  --sk-detail-topbar-h: 55px;
   width: 100%;
   box-sizing: border-box;
   min-height: calc(100dvh - 64px);

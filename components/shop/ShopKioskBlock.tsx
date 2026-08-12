@@ -22,6 +22,7 @@ import {
 import { createPortal } from "react-dom";
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
+import { ShopCatalogThumbPlaceholder } from "@/components/shop/ShopCatalogThumbPlaceholder";
 import {
   GIO_CHUNG_CHANGED_EVENT,
   notifyGioChungAdded,
@@ -992,6 +993,9 @@ export function ShopKioskBlock({
                                 </button>
                               ) : (
                                 <div className="shop-kiosk-catalog-thumb is-empty">
+                                  <ShopCatalogThumbPlaceholder
+                                    seed={it.tenSanPham}
+                                  />
                                   {lowStockBadge}
                                 </div>
                               )}

@@ -26,12 +26,13 @@ import {
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { CuaHangListCard } from "@/components/shop/CuaHangListCard";
+import { ShopCatalogThumbPlaceholder } from "@/components/shop/ShopCatalogThumbPlaceholder";
 import { GIO_CHUNG_CHANGED_EVENT, notifyGioChungAdded } from "@/components/shop/ShopGioChungButton";
 import { avatarHueFromSeed, avatarInitialFromName } from "@/lib/chat/avatar";
 import { getNameInitials } from "@/lib/journey/profile";
 import { normalizeSearchText } from "@/lib/search/normalize";
 import type { PublicShopListingHang } from "@/lib/shop/cua-hang-listing-types";
-import { shopEntryHref, shopLoaiHref } from "@/lib/shop/cua-hang-href";
+import { shopEntryHref, shopLoaiHref, shopLoaiMauHref } from "@/lib/shop/cua-hang-href";
 import { parseShopNhomMoTa } from "@/lib/shop/nhom-mo-ta";
 import type {
   ShopEvidence,
@@ -98,6 +99,23 @@ function filterQuayBySearch(
   return items.filter((item) => quaySearchHaystack(item).includes(q));
 }
 
+/** Đang bán trước · có voucher trước (giống ưu tiên hub /cua-hang + voucher). */
+function compareQuayShopCards(a: ShopQuaySuKien, b: ShopQuaySuKien): number {
+  const aPaused = a.shop?.dangTamDong === true;
+  const bPaused = b.shop?.dangTamDong === true;
+  if (aPaused !== bPaused) return aPaused ? 1 : -1;
+
+  const aVoucher =
+    a.shop?.coVoucher === true ||
+    (a.shop?.voucherTickerLines?.length ?? 0) > 0;
+  const bVoucher =
+    b.shop?.coVoucher === true ||
+    (b.shop?.voucherTickerLines?.length ?? 0) > 0;
+  if (aVoucher !== bVoucher) return aVoucher ? -1 : 1;
+
+  return 0;
+}
+
 type QuayHangCard = ShopQuayHangSearch & {
   quayId: string;
   shopHref: string | null;
@@ -106,6 +124,7 @@ type QuayHangCard = ShopQuayHangSearch & {
   sellerSlug: string | null;
   /** Chủ quầy = seller (product owner). */
   idNguoiBan: string;
+  dangTamDong: boolean;
 };
 
 function collectHangCards(
@@ -118,6 +137,7 @@ function collectHangCards(
   for (const item of items) {
     if (item.trangThai !== "da_duyet") continue;
     const shopHref = quayShopHref(item);
+    const dangTamDong = item.shop?.dangTamDong === true;
     for (const h of item.hangSearch ?? []) {
       if (
         q &&
@@ -143,6 +163,7 @@ function collectHangCards(
           null,
         sellerSlug: item.nguoiDungSlug?.trim() || null,
         idNguoiBan: item.idNguoiDung,
+        dangTamDong,
       });
     }
   }
@@ -158,8 +179,11 @@ type QuayMatHangCard = {
   giaHienThi: number | null;
   tienTe: string;
   hetHang: boolean;
+  /** Shop đang tạm dừng bán. */
+  dangTamDong: boolean;
   noiBat: boolean;
   soLuongBan: number;
+  soLuongTon: number;
   href: string;
   sellerName: string | null;
 };
@@ -214,12 +238,16 @@ function collectMatHangCards(
     const ownerSlug = shop.ownerSlug?.trim();
     const shopSlug = shop.shopSlug?.trim();
     if (!ownerSlug || !shopSlug) continue;
-    const catalog = hangFromShopCatalog([
+    /* Ưu tiên loại (nhóm); shop chỉ có mẫu → hiện mẫu để không trống lưới. */
+    const loai = hangFromShopCatalog([
       ...shop.featuredHang,
       ...shop.catalogHang,
     ]);
+    const mau = hangFromShopCatalog(shop.catalogMau ?? []);
+    const catalog = loai.length > 0 ? loai : mau;
     const sellerName =
       shop.ten?.trim() || item.nguoiDungTen?.trim() || null;
+    const dangTamDong = shop.dangTamDong === true;
     for (const h of catalog) {
       if (
         q &&
@@ -232,6 +260,11 @@ function collectMatHangCards(
       const key = `${h.id}:${item.id}`;
       if (seen.has(key)) continue;
       seen.add(key);
+      const idNhom = h.idNhom?.trim();
+      const href = idNhom
+        ? shopLoaiMauHref(ownerSlug, shopSlug, idNhom, h.id)
+        : shopLoaiHref(ownerSlug, shopSlug, h.id);
+      const hetHang = h.hetHang === true;
       out.push({
         id: h.id,
         quayId: item.id,
@@ -243,15 +276,116 @@ function collectMatHangCards(
             ? h.giaHienThi
             : null,
         tienTe: h.tienTe?.trim() || "VND",
-        hetHang: h.hetHang === true,
+        hetHang,
+        dangTamDong,
         noiBat: h.noiBat === true,
         soLuongBan: h.soLuongBan ?? 0,
-        href: shopLoaiHref(ownerSlug, shopSlug, h.id),
+        soLuongTon: hetHang ? 0 : 1,
+        href,
         sellerName,
       });
     }
   }
-  return out;
+  if (out.length > 0) return out;
+  /* Fallback: gom từ hangSearch (biến thể) khi catalog loại/mẫu trống. */
+  return collectMatHangCardsFromHangSearch(items, query);
+}
+
+/** Một card / sản phẩm từ biến thể quầy — khi không có catalog loại. */
+function collectMatHangCardsFromHangSearch(
+  items: ReadonlyArray<ShopQuaySuKien>,
+  query: string,
+): QuayMatHangCard[] {
+  const q = normalizeSearchText(query);
+  const byKey = new Map<string, QuayMatHangCard>();
+  for (const item of items) {
+    if (item.trangThai !== "da_duyet") continue;
+    const shopHref = quayShopHref(item);
+    if (!shopHref) continue;
+    const sellerName =
+      item.shop?.ten?.trim() || item.nguoiDungTen?.trim() || null;
+    const dangTamDong = item.shop?.dangTamDong === true;
+    for (const h of item.hangSearch ?? []) {
+      if (
+        q &&
+        !hangSearchHaystack(h, {
+          ten: item.nguoiDungTen,
+          slug: item.nguoiDungSlug,
+        }).includes(q)
+      ) {
+        continue;
+      }
+      const productKey = (h.idSanPham || h.hangId || h.idBienThe).trim();
+      if (!productKey) continue;
+      const key = `${productKey}:${item.id}`;
+      const ton = Number.isFinite(h.soLuongTon) ? h.soLuongTon : 0;
+      const ban = Number.isFinite(h.soLuongBan) ? h.soLuongBan : 0;
+      const prev = byKey.get(key);
+      if (!prev) {
+        byKey.set(key, {
+          id: productKey,
+          quayId: item.id,
+          nhan: h.tenSanPham,
+          moTa: h.tenLoai?.trim() || null,
+          anhUrl: h.anhUrl,
+          giaHienThi: h.giaHienThi,
+          tienTe: h.tienTe?.trim() || "VND",
+          hetHang: h.hetHang === true || ton <= 0,
+          dangTamDong,
+          noiBat: false,
+          soLuongBan: ban,
+          soLuongTon: Math.max(0, ton),
+          href: shopHref,
+          sellerName,
+        });
+        continue;
+      }
+      /* Gộp biến thể: cộng tồn/đã bán, giữ ảnh nếu đang thiếu. */
+      prev.soLuongTon += Math.max(0, ton);
+      prev.soLuongBan += ban;
+      prev.hetHang = prev.soLuongTon <= 0;
+      if (!prev.anhUrl?.trim() && h.anhUrl?.trim()) {
+        prev.anhUrl = h.anhUrl;
+      }
+      if (prev.giaHienThi == null && h.giaHienThi != null) {
+        prev.giaHienThi = h.giaHienThi;
+      }
+    }
+  }
+  return [...byKey.values()];
+}
+
+/** Ưu tiên: đang bán → còn hàng → bán chạy → có ảnh. Shuffle phá tie. */
+function sortQuayCatalogCards<
+  T extends {
+    anhUrl?: string | null;
+    hetHang?: boolean;
+    dangTamDong?: boolean;
+    soLuongTon?: number;
+    soLuongBan?: number;
+  },
+>(cards: ReadonlyArray<T>, seed: number): T[] {
+  const shuffled = seededShuffle(cards, seed);
+  return [...shuffled].sort((a, b) => {
+    const aPaused = a.dangTamDong === true;
+    const bPaused = b.dangTamDong === true;
+    if (aPaused !== bPaused) return aPaused ? 1 : -1;
+
+    const aOut =
+      a.hetHang === true ||
+      (typeof a.soLuongTon === "number" && a.soLuongTon <= 0);
+    const bOut =
+      b.hetHang === true ||
+      (typeof b.soLuongTon === "number" && b.soLuongTon <= 0);
+    if (aOut !== bOut) return aOut ? 1 : -1;
+
+    const sold = (b.soLuongBan ?? 0) - (a.soLuongBan ?? 0);
+    if (sold !== 0) return sold;
+
+    const ai = a.anhUrl?.trim() ? 0 : 1;
+    const bi = b.anhUrl?.trim() ? 0 : 1;
+    return ai - bi;
+  });
 }
 
 function mulberry32(seed: number): () => number {
@@ -468,22 +602,10 @@ function QuayMatHangCatalogView({
 }) {
   const shuffleSeedRef = useRef((Math.random() * 0x100000000) >>> 0);
   const shuffleSeed = shuffleSeedRef.current;
-  const cardsKey = useMemo(
-    () => cards.map((c) => `${c.id}:${c.quayId}`).join("|"),
-    [cards],
+  const shuffledCards = useMemo(
+    () => sortQuayCatalogCards(cards, shuffleSeed),
+    [cards, shuffleSeed],
   );
-  const shuffledOrder = useMemo(
-    () => seededShuffle(cardsKey ? cardsKey.split("|") : [], shuffleSeed),
-    [cardsKey, shuffleSeed],
-  );
-  const shuffledCards = useMemo(() => {
-    const byKey = new Map<string, QuayMatHangCard>(
-      cards.map((c) => [`${c.id}:${c.quayId}`, c]),
-    );
-    return shuffledOrder
-      .map((k) => byKey.get(k))
-      .filter((c): c is QuayMatHangCard => c !== undefined);
-  }, [cards, shuffledOrder]);
 
   if (cards.length === 0) {
     return (
@@ -515,7 +637,7 @@ function QuayMatHangCatalogView({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={card.anhUrl} alt="" loading="lazy" />
                   ) : (
-                    <span className="j-shop-sf-card-ph" />
+                    <ShopCatalogThumbPlaceholder seed={card.nhan} />
                   )}
                   {card.hetHang ? (
                     <span className="j-shop-sf-soldout">Hết hàng</span>
@@ -563,22 +685,11 @@ function QuayHangCatalogView({
   /* Seed sinh một lần mỗi lần mount — F5 ra thứ tự khác, re-render thì giữ nguyên. */
   const shuffleSeedRef = useRef((Math.random() * 0x100000000) >>> 0);
   const shuffleSeed = shuffleSeedRef.current;
-  const cardsKey = useMemo(
-    () => cards.map((c) => `${c.hangId}:${c.quayId}`).join("|"),
-    [cards],
+  /* Shuffle trực tiếp mảng card (key = idBienThe) — tránh Map theo hangId nuốt biến thể. */
+  const shuffledCards = useMemo(
+    () => sortQuayCatalogCards(cards, shuffleSeed),
+    [cards, shuffleSeed],
   );
-  const shuffledOrder = useMemo(
-    () => seededShuffle(cardsKey ? cardsKey.split("|") : [], shuffleSeed),
-    [cardsKey, shuffleSeed],
-  );
-  const shuffledCards = useMemo(() => {
-    const byKey = new Map<string, QuayHangCard>(
-      cards.map((c) => [`${c.hangId}:${c.quayId}`, c]),
-    );
-    return shuffledOrder
-      .map((k) => byKey.get(k))
-      .filter((c): c is QuayHangCard => c !== undefined);
-  }, [cards, shuffledOrder]);
   const [qtyByBt, setQtyByBt] = useState<Map<string, number>>(new Map());
   const [cartErr, setCartErr] = useState<string | null>(null);
 
@@ -753,7 +864,7 @@ function QuayHangCatalogView({
               ) : null;
               return (
                 <li
-                  key={`${it.hangId}:${it.quayId}`}
+                  key={`${it.idBienThe}:${it.quayId}`}
                   className={`shop-kiosk-catalog-card${outOfStock ? " is-soldout" : ""}`}
                 >
                   {it.anhUrl ? (
@@ -776,6 +887,7 @@ function QuayHangCatalogView({
                       disabled={!it.shopHref}
                       aria-label={`Xem shop bán ${it.tenSanPham}`}
                     >
+                      <ShopCatalogThumbPlaceholder seed={it.tenSanPham} />
                       {thumbBadge}
                     </button>
                   )}
@@ -963,6 +1075,8 @@ function ShopQuaySuKienPanelInner({
     try {
       const q = new URLSearchParams();
       if (canManage) q.set("pending", "1");
+      /* Catalog + voucher ticker luôn có trên card (API quay gắn sẵn). */
+      if (!canManage) q.set("catalog", "1");
       const qs = q.toString();
       const res = await fetch(
         `/api/su-kien/${suKienId}/quay${qs ? `?${qs}` : ""}`,
@@ -972,12 +1086,30 @@ function ShopQuaySuKienPanelInner({
         items?: ShopQuaySuKien[];
       } | null;
       const next = json?.items ?? [];
-      setItems(next);
+      /* Giữ hangSearch cũ nếu API chưa trả (tránh race ghi đè). */
+      setItems((prev) => {
+        const hangBySeller = new Map(
+          prev
+            .filter((p) => p.hangSearch?.length)
+            .map((p) => [p.idNguoiDung, p.hangSearch!] as const),
+        );
+        return next.map((item) => ({
+          ...item,
+          hangSearch:
+            item.hangSearch?.length
+              ? item.hangSearch
+              : (hangBySeller.get(item.idNguoiDung) ?? item.hangSearch),
+        }));
+      });
+      if (!canManage) setCatalogLoaded(true);
+      const hasHang = next.some((i) => (i.hangSearch?.length ?? 0) > 0);
+      setHangLoaded(hasHang);
       onPendingCountChange?.(
         next.filter((i) => i.trangThai === "cho_xu_ly").length,
       );
     } finally {
       setLoading(false);
+      hangInflightRef.current = false;
     }
   }, [suKienId, canManage, onPendingCountChange]);
 
@@ -1058,7 +1190,11 @@ function ShopQuaySuKienPanelInner({
   }, [canManage, hangLoaded, suKienId, viewerProfileIdProp]);
 
   useEffect(() => {
-    if (browseMode === "mat-hang") void ensureCatalog();
+    if (browseMode === "mat-hang") {
+      void ensureCatalog();
+      /* hangSearch fallback khi catalog loại/mẫu trống. */
+      void ensureHang();
+    }
     if (browseMode === "hang") void ensureHang();
   }, [browseMode, ensureCatalog, ensureHang]);
 
@@ -1118,7 +1254,10 @@ function ShopQuaySuKienPanelInner({
     [items, deferredSearch],
   );
   const approved = useMemo(
-    () => filteredItems.filter((i) => i.trangThai === "da_duyet"),
+    () =>
+      filteredItems
+        .filter((i) => i.trangThai === "da_duyet")
+        .sort(compareQuayShopCards),
     [filteredItems],
   );
   const pending = useMemo(
@@ -1324,7 +1463,8 @@ function ShopQuaySuKienPanelInner({
             </p>
           )
         ) : showMatHangCatalog ? (
-          catalogLoading && !catalogLoaded ? (
+          (catalogLoading && !catalogLoaded) ||
+          (hangLoading && !hangLoaded && matHangCards.length === 0) ? (
             <p className="shop-dash-hint">
               <Loader2 className="shop-spin" size={14} /> Đang tải mặt hàng…
             </p>

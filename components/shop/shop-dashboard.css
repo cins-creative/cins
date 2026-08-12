@@ -6407,10 +6407,10 @@ body:has(.shop-dash-gate) .j-chat-dock {
   padding-right: 28px;
 }
 
-/* Trang /su-kien/[id] — dính dưới site nav + topbar SK. */
+/* Trang /su-kien/[id] — dính sát mép dưới site nav + topbar SK. */
 .sk-detail .shop-quay-tlb.j-tlb {
   top: calc(
-    var(--site-nav-height, 64px) + var(--sk-detail-topbar-h, 62px)
+    var(--site-nav-height, 64px) + var(--sk-detail-topbar-h, 55px)
   );
   z-index: 35;
 }

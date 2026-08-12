@@ -8,14 +8,17 @@ const EMPTY_TAXONOMY: CuaHangHubTaxonomy = {
   facets: [],
 };
 
+type BrowseMode = "shop" | "mat-hang" | "hang";
+
 export async function CuaHangListingLoader({
   browseMode,
 }: {
-  browseMode: "shop" | "hang";
+  browseMode: BrowseMode;
 }) {
+  const needCatalog = browseMode === "mat-hang" || browseMode === "hang";
   const [shops, taxonomy] = await Promise.all([
-    listPublicShopCuaHang(browseMode),
-    browseMode === "hang"
+    listPublicShopCuaHang(needCatalog ? "hang" : "shop"),
+    needCatalog
       ? loadCuaHangHubTaxonomy()
       : Promise.resolve(EMPTY_TAXONOMY),
   ]);

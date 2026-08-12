@@ -2188,8 +2188,44 @@ a.shop-kiosk-catalog-kicker-link:hover {
 }
 
 .shop-kiosk-catalog-thumb.is-empty {
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  background: #efefef;
+}
+
+.shop-kiosk-catalog-thumb.is-empty:disabled {
   cursor: default;
-  background: color-mix(in srgb, var(--border, #e4e6eb) 35%, #fff);
+}
+
+/* Mockup vector icon ảnh mặc định (khung · núi · mặt trời) */
+.shop-catalog-thumb-ph {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background: #efefef;
+}
+
+.shop-catalog-thumb-ph-glyph {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.j-shop-sf-card-media .shop-catalog-thumb-ph {
+  position: absolute;
+  inset: 0;
+}
+
+:root[data-theme="dark"] .shop-kiosk-catalog-thumb.is-empty {
+  background: color-mix(in srgb, #fff 6%, var(--bg-surface, #1a1d24));
+}
+
+:root[data-theme="dark"] .shop-catalog-thumb-ph {
+  background: color-mix(in srgb, #fff 8%, var(--bg-surface, #1a1d24));
+  opacity: 0.85;
 }
 
 .shop-kiosk-catalog-thumb-btn img {

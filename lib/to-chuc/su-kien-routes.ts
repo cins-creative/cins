@@ -11,7 +11,8 @@ export const SU_KIEN_LISTING_PATH = "/su-kien";
 /** Chế độ xem tab Quầy — query `?quay=shop|mat-hang|hang`. */
 export const SU_KIEN_QUAY_VIEWS = ["shop", "mat-hang", "hang"] as const;
 export type SuKienQuayView = (typeof SU_KIEN_QUAY_VIEWS)[number];
-export const SU_KIEN_QUAY_VIEW_DEFAULT: SuKienQuayView = "shop";
+/** Mặc định: lưới mặt hàng (không phải danh sách shop). */
+export const SU_KIEN_QUAY_VIEW_DEFAULT: SuKienQuayView = "mat-hang";
 
 export function parseSuKienQuayView(
   raw: string | null | undefined,

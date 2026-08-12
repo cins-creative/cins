@@ -95,8 +95,8 @@ export async function listQuaySuKien(
     /** Gắn catalog hàng (nặng) — mặc định false; dùng endpoint `/quay/hang`. */
     includeHang?: boolean;
     /**
-     * Catalog loại/mẫu trên card shop — mặc định false (chế độ Shop).
-     * Bật khi chế độ «Mặt hàng» (`?catalog=1`).
+     * Catalog loại/mẫu + voucher ticker trên card shop.
+     * Luôn gắn khi list quầy (đồng bộ /cua-hang); flag giữ cho API `?catalog=1`.
      */
     includeCatalog?: boolean;
   },
@@ -125,7 +125,12 @@ export async function listQuaySuKien(
 
   const sellerIds = [...new Set(items.map((i) => i.idNguoiDung))];
   const includeHang = opts?.includeHang === true;
-  const includeCatalog = opts?.includeCatalog === true;
+  /**
+   * Card shop cần featuredHang + voucherTickerLines (giống /cua-hang).
+   * `includeCatalog: false` trước đây bỏ trống ticker → không hiện thanh voucher.
+   * Luôn gắn catalog đầy đủ; `?catalog=1` giữ tương thích client cũ.
+   */
+  const includeCatalog = true;
   const [shopByOwner, hangBySeller] = await Promise.all([
     listShopListingCardsByOwnerIds(sellerIds, { includeCatalog }),
     includeHang
@@ -199,7 +204,7 @@ async function loadHangSearchBySeller(
       });
       const cards: ShopQuayHangSearch[] = [];
       for (const it of items) {
-        if (!it.idBienThe || it.giaHienThi == null) continue;
+        if (!it.idBienThe) continue;
         cards.push({
           hangId: it.hangId ?? `shop:${it.idBienThe}`,
           idBienThe: it.idBienThe,
@@ -213,7 +218,7 @@ async function loadHangSearchBySeller(
           anhUrl: it.anhUrl,
           soLuongTon: it.soLuongTon,
           soLuongBan: it.soLuongBan,
-          giaHienThi: it.giaHienThi,
+          giaHienThi: it.giaHienThi ?? 0,
           tienTe: it.tienTe,
           hetHang: it.hetHang,
         });

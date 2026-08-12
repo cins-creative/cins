@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, ImageIcon, MapPin, Search } from "lucide-react";
+import { CalendarDays, Clock, ImageIcon, MapPin, Search } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -56,18 +56,44 @@ function eventDate(iso: string): { month: string; day: string } {
   };
 }
 
+/** Đồng hồ địa phương 00:00 = sự kiện chỉ có ngày (không bật giờ cụ thể). */
+function isLocalMidnight(d: Date): boolean {
+  return d.getHours() === 0 && d.getMinutes() === 0;
+}
+
+function formatDateLabel(d: Date): string {
+  return new Intl.DateTimeFormat("vi-VN", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(d);
+}
+
 function formatTimeRange(batDau: string, ketThuc: string | null): string {
   const start = new Date(batDau);
   if (Number.isNaN(start.getTime())) return "";
+  const startMid = isLocalMidnight(start);
   const timeFmt = new Intl.DateTimeFormat("vi-VN", {
     hour: "2-digit",
     minute: "2-digit",
   });
-  const startStr = timeFmt.format(start);
-  if (!ketThuc) return startStr;
+  if (!ketThuc) {
+    return startMid ? formatDateLabel(start) : timeFmt.format(start);
+  }
   const end = new Date(ketThuc);
-  if (Number.isNaN(end.getTime())) return startStr;
-  return `${startStr} – ${timeFmt.format(end)}`;
+  if (Number.isNaN(end.getTime())) {
+    return startMid ? formatDateLabel(start) : timeFmt.format(start);
+  }
+  const endMid = isLocalMidnight(end);
+  const sameDay = start.toDateString() === end.toDateString();
+  // Ngày-only (T00:00): hiện ngày cụ thể, không "00:00" / "Cả ngày".
+  if (startMid && endMid) {
+    if (sameDay) return formatDateLabel(start);
+    return `${formatDateLabel(start)} → ${formatDateLabel(end)}`;
+  }
+  if (startMid) return `đến ${timeFmt.format(end)}`;
+  return `${timeFmt.format(start)} – ${timeFmt.format(end)}`;
 }
 
 function normalize(value: string): string {
@@ -173,10 +199,25 @@ function SuKienListCard({
         <Link href={href} className="evb-card-hit evb-card-hit--content" prefetch={false}>
           {time || location ? (
             <div className="evb-card-meta">
-              {time ? <span>🕐 {time}</span> : null}
+              {time ? (
+                <span>
+                  <Clock
+                    className="evb-card-meta-icon"
+                    size={16}
+                    strokeWidth={2}
+                    aria-hidden
+                  />
+                  {time}
+                </span>
+              ) : null}
               {location ? (
                 <span>
-                  <MapPin size={13} strokeWidth={2} aria-hidden />
+                  <MapPin
+                    className="evb-card-meta-icon"
+                    size={16}
+                    strokeWidth={2}
+                    aria-hidden
+                  />
                   {location}
                 </span>
               ) : null}

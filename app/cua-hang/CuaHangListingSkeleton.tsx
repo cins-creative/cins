@@ -1,8 +1,8 @@
 type Props = {
-  mode?: "shop" | "hang";
+  mode?: "shop" | "mat-hang" | "hang";
 };
 
-export function CuaHangListingSkeleton({ mode = "hang" }: Props) {
+export function CuaHangListingSkeleton({ mode = "mat-hang" }: Props) {
   return (
     <div className="ch-list-page ch-list-page--loading" aria-busy="true">
       <div className="ch-list-toolbar">

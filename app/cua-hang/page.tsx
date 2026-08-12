@@ -4,7 +4,7 @@ type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-/** Hub mặc định — tab Hàng (browse sản phẩm). */
+/** Hub mặc định — tab Mặt hàng (giống quầy sự kiện). */
 export default async function CuaHangIndexPage({ searchParams }: Props) {
   const sp = await searchParams;
   const params = new URLSearchParams();
@@ -15,5 +15,5 @@ export default async function CuaHangIndexPage({ searchParams }: Props) {
     }
   }
   const qs = params.toString();
-  redirect(qs ? `/cua-hang/hang?${qs}` : "/cua-hang/hang");
+  redirect(qs ? `/cua-hang/mat-hang?${qs}` : "/cua-hang/mat-hang");
 }

@@ -720,6 +720,25 @@ function SuKienDetailViewInner({
         ? "quay"
         : null;
   const mainColRef = useRef<HTMLDivElement>(null);
+  const detailRootRef = useRef<HTMLElement>(null);
+  const topbarRef = useRef<HTMLDivElement>(null);
+
+  /** Đồng bộ --sk-detail-topbar-h để toolbar Quầy sticky sát mép dưới topbar. */
+  useEffect(() => {
+    const root = detailRootRef.current;
+    const bar = topbarRef.current;
+    if (!root || !bar || typeof ResizeObserver === "undefined") return;
+    const sync = () => {
+      const h = bar.getBoundingClientRect().height;
+      if (h > 0) {
+        root.style.setProperty("--sk-detail-topbar-h", `${Math.ceil(h)}px`);
+      }
+    };
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(bar);
+    return () => ro.disconnect();
+  }, [panelTab, variant]);
 
   const setMainTab = useCallback(
     (tab: SuKienDetailMainTabId) => {
@@ -979,8 +998,8 @@ function SuKienDetailViewInner({
   if (variant === "page") {
     if (panelTab === "manage" && canManage) {
       return (
-        <article className="sk-detail" aria-labelledby={titleId}>
-          <div className="sk-detail-topbar">
+        <article ref={detailRootRef} className="sk-detail" aria-labelledby={titleId}>
+          <div ref={topbarRef} className="sk-detail-topbar">
             <BackControl
               onBack={onBack}
               href={resolvedBack}
@@ -1009,8 +1028,8 @@ function SuKienDetailViewInner({
     }
 
     return (
-      <article className="sk-detail" aria-labelledby={titleId}>
-        <div className="sk-detail-topbar">
+      <article ref={detailRootRef} className="sk-detail" aria-labelledby={titleId}>
+        <div ref={topbarRef} className="sk-detail-topbar">
           <BackControl
             onBack={onBack}
             href={resolvedBack}

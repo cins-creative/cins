@@ -34,7 +34,9 @@ export async function GET(request: Request, ctx: Ctx) {
   const items = await listQuaySuKien(suKienId, {
     includePending,
     actorId: session?.profile?.id,
-    includeCatalog: wantCatalog,
+    includeCatalog: wantCatalog || !includePending,
+    /* Public: gắn hangSearch sẵn — tránh race lazy /quay/hang bị load() ghi đè. */
+    includeHang: !includePending,
   });
   return NextResponse.json({ items });
 }
