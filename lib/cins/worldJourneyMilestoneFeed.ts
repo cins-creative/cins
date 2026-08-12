@@ -21,7 +21,7 @@ export function worldJourneyMilestoneCardKind(
   );
 }
 
-/** Chỉ bài viết dài — unfold inline; ảnh/video mở lightbox/player trên card. */
+/** Bài viết dài — mở popup trên feed (không xổ inline). */
 export function canWorldJourneyInlineExpandOnFeed(
   milestone: MilestoneItem,
 ): boolean {

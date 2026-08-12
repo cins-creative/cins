@@ -9,6 +9,8 @@ import {
   type ShopDangKyMoHinhThuc,
   type ShopDangKyMoKenh,
 } from "@/lib/shop/dang-ky-mo-constants";
+import type { ShopDangKyMoHangGioiThieu } from "@/lib/shop/dang-ky-mo-types";
+import { isShopDangKyMoFull } from "@/lib/shop/dang-ky-mo-slots";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export type {
@@ -25,6 +27,7 @@ export {
 } from "@/lib/shop/dang-ky-mo-constants";
 
 const MAX_TEN = 120;
+const MAX_MO_TA_SHOP = 2000;
 const MAX_LIEN_HE = 200;
 const MAX_EMAIL = 200;
 const MAX_GHI_CHU = 2000;
@@ -38,12 +41,24 @@ const MAX_NGUON = 200;
 const MAX_GT = 120;
 const MAX_UA = 500;
 const MAX_LOAI = 12;
+const MAX_MO_TA_HANG = 200;
+const MAX_TEN_MAT_HANG = 120;
+const MAX_GIA_BAN_HANG = 80;
+const MAX_HANG_GIOI_THIEU = 20;
 
 export type CreateShopDangKyMoInput = {
   tenShop: string;
+  moTa?: string | null;
   tenLienHe?: string | null;
   loaiHang?: string[];
   hinhThucBan?: string | null;
+  mxhBanHangLinks?: string[];
+  hangGioiThieu?: {
+    tenMatHang?: string | null;
+    moTa?: string | null;
+    giaBan?: string | null;
+    link?: string | null;
+  }[];
   resourceLinksText?: string | null;
   ghiChu?: string | null;
   kenhLienHe: string;
@@ -124,6 +139,40 @@ function normalizeLoaiHang(raw: unknown): string[] {
   return out;
 }
 
+function parseUrlArray(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  for (const item of raw) {
+    if (typeof item !== "string") continue;
+    const t = item.trim().slice(0, MAX_LINK);
+    if (!t || out.includes(t)) continue;
+    out.push(t);
+    if (out.length >= MAX_LINKS) break;
+  }
+  return out;
+}
+
+function normalizeHangGioiThieu(
+  raw: unknown,
+): ShopDangKyMoHangGioiThieu[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ShopDangKyMoHangGioiThieu[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const tenMatHang =
+      trimTo((item as { tenMatHang?: string }).tenMatHang, MAX_TEN_MAT_HANG) ??
+      "";
+    const moTa = trimTo((item as { moTa?: string }).moTa, MAX_MO_TA_HANG) ?? "";
+    const giaBan =
+      trimTo((item as { giaBan?: string }).giaBan, MAX_GIA_BAN_HANG) ?? "";
+    const link = trimTo((item as { link?: string }).link, MAX_LINK);
+    if (!link) continue;
+    out.push({ tenMatHang, moTa, giaBan, link });
+    if (out.length >= MAX_HANG_GIOI_THIEU) break;
+  }
+  return out;
+}
+
 /** Tạo lead đăng ký mở shop (public). Insert qua service role. */
 export async function createShopDangKyMo(
   input: CreateShopDangKyMoInput,
@@ -151,11 +200,14 @@ export async function createShopDangKyMo(
     };
   }
 
-  const email = trimTo(input.email, MAX_EMAIL)?.toLowerCase() ?? null;
-  if (!email || !isEmail(email)) {
+  const email =
+    kenhLienHe === "email"
+      ? (trimTo(lienHeGiaTri, MAX_EMAIL)?.toLowerCase() ?? null)
+      : trimTo(input.email, MAX_EMAIL)?.toLowerCase() ?? null;
+  if (kenhLienHe === "email" && (!email || !isEmail(email))) {
     return {
       ok: false,
-      error: "Vui lòng nhập email hợp lệ (dùng để bàn giao shop).",
+      error: "Vui lòng nhập email hợp lệ ở ô liên hệ.",
       code: "EMAIL",
     };
   }
@@ -165,6 +217,14 @@ export async function createShopDangKyMo(
       ok: false,
       error: "Bạn cần đồng ý điều khoản và cho phép dùng ảnh để dựng shop.",
       code: "DONG_Y",
+    };
+  }
+
+  if (await isShopDangKyMoFull()) {
+    return {
+      ok: false,
+      error: "Đã hết suất đăng ký — CINs sẽ mở đợt tiếp theo.",
+      code: "HET_SUAT",
     };
   }
 
@@ -192,7 +252,12 @@ export async function createShopDangKyMo(
   }
 
   const loaiHang = normalizeLoaiHang(input.loaiHang);
-  const resourceLinks = parseLinks(input.resourceLinksText);
+  const mxhBanHangLinks = parseUrlArray(input.mxhBanHangLinks);
+  const hangGioiThieu = normalizeHangGioiThieu(input.hangGioiThieu);
+  const resourceLinks =
+    hangGioiThieu.length > 0
+      ? hangGioiThieu.map((item) => item.link)
+      : parseLinks(input.resourceLinksText);
   const now = new Date().toISOString();
 
   const admin = createServiceRoleClient();
@@ -200,9 +265,17 @@ export async function createShopDangKyMo(
     .from("shop_dang_ky_mo")
     .insert({
       ten_shop: tenShop,
+      mo_ta: trimTo(input.moTa, MAX_MO_TA_SHOP),
       ten_lien_he: trimTo(input.tenLienHe, MAX_TEN),
       loai_hang: loaiHang,
       hinh_thuc_ban: hinhThucBan,
+      nen_tang_mxh: mxhBanHangLinks,
+      hang_gioi_thieu: hangGioiThieu.map((item) => ({
+        ten_mat_hang: item.tenMatHang,
+        mo_ta: item.moTa,
+        gia_ban: item.giaBan,
+        link: item.link,
+      })),
       resource_links: resourceLinks,
       ghi_chu: trimTo(input.ghiChu, MAX_GHI_CHU),
       kenh_lien_he: kenhLienHe,

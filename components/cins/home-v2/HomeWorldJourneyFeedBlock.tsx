@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 
 import { HomeWorldJourneyClient } from "@/components/cins/home-v2/HomeWorldJourneyClient";
-import { HomeWorldJourneyExtraModules } from "@/components/cins/home-v2/HomeWorldJourneyExtraModules";
 import { HomePendingConfirmations } from "@/components/cins/home-v2/HomePendingConfirmations";
 import { renderHomeModules } from "@/components/cins/home-adaptive/HomeModuleColumn";
 import type { HomeModuleCtx } from "@/components/cins/home-adaptive/types";
@@ -34,8 +33,6 @@ import {
 } from "@/lib/journey/profile";
 import { fetchOwnerBySlug } from "@/lib/journey/profile-page-fetch";
 
-import type { HomeLayoutResolvePayload } from "@/components/cins/home-v2/home-layout-resolve";
-
 type Props = {
   session: SessionAndProfile;
   giaiDoan: GiaiDoan;
@@ -46,8 +43,9 @@ type Props = {
 };
 
 /**
- * Critical path: owner + feed (+ gallery/video theo view).
- * Layout / capabilities / promos chạy song song nhưng không chặn paint cột giữa.
+ * Critical path: owner + feed + layout id list (+ gallery/video theo view).
+ * Layout/caps chạy **song song** với feed (Promise.all → max). Mỗi module sidebar
+ * vẫn Suspense riêng — không chờ data từng khối.
  */
 export async function HomeWorldJourneyFeedBlock({
   session,
@@ -57,16 +55,23 @@ export async function HomeWorldJourneyFeedBlock({
   includeShopFeed = false,
   editingLayout = false,
 }: Props) {
-  const viewerId = session.profile.id;
-  const slug = session.profile.slug;
-  if (!slug) return null;
+  const profile = session.profile;
+  if (!profile?.slug) return null;
+  const viewerId = profile.id;
+  const slug = profile.slug;
 
   const editing = editingLayout && !includeGallery && !includeVideo;
   const filterChips = buildWorldJourneyFilterChips();
   const persona = resolvePersona(giaiDoan);
   const seeking = resolveSeeking(giaiDoan);
 
-  const layoutPromise: Promise<HomeLayoutResolvePayload> = Promise.all([
+  /*
+   * Layout + caps chạy song song với feed (Promise.all → max, không cộng dồn).
+   * Bắt buộc resolve trước khi dựng moduleNodes: nếu chỉ seed default rồi hydrate
+   * layout đã lưu sau, ExtraModules nằm trong Suspense không vào childMap → 2 cột
+   * trống (CSS ẩn slot không có [data-ha-module]).
+   */
+  const layoutPromise = Promise.all([
     loadHomeLayoutRaw(viewerId),
     loadHomeCapabilities(viewerId),
   ]).then(([homeLayoutRaw, capabilities]) => {
@@ -103,7 +108,6 @@ export async function HomeWorldJourneyFeedBlock({
           nextOffset: 0,
         });
 
-  /* Edit mode cần layout + promos đúng trước kéo thả — await cùng critical. */
   const [ownerResult, feedPage, galleryPage, layoutResolved, editPromos] =
     await Promise.all([
       fetchOwnerBySlug(slug),
@@ -112,26 +116,15 @@ export async function HomeWorldJourneyFeedBlock({
         shopOnly: includeShopFeed,
       }),
       galleryPromise,
-      editing ? layoutPromise : Promise.resolve(null),
+      layoutPromise,
       editing ? promosPromise : Promise.resolve(undefined),
     ]);
 
   const { owner, error } = ownerResult;
   if (error || !owner) return null;
 
-  const layoutDefault = resolveHomeLayout(
-    persona,
-    seeking,
-    null,
-    null,
-    giaiDoan,
-  );
-  const layout = layoutResolved?.layout ?? layoutDefault;
-  const capabilityList = layoutResolved?.capabilityList ?? [];
-  const defaultModuleIds = [...layoutDefault.left, ...layoutDefault.right];
-  const moduleIds = editing
-    ? [...layout.left, ...layout.right]
-    : defaultModuleIds;
+  const { layout, capabilityList } = layoutResolved;
+  const moduleIds = [...layout.left, ...layout.right];
 
   const moduleCtx: HomeModuleCtx = {
     viewerId,
@@ -155,7 +148,6 @@ export async function HomeWorldJourneyFeedBlock({
       layoutNewlyInjected={layout.newlyInjected}
       layoutLimits={layout.limits}
       layoutPresetDaAp={layout.presetDaAp}
-      layoutPromise={editing ? undefined : layoutPromise}
       feedPromosPromise={editing ? undefined : promosPromise}
       feedPromos={editPromos}
       moduleNodes={renderHomeModules(moduleIds, moduleCtx)}
@@ -193,19 +185,6 @@ export async function HomeWorldJourneyFeedBlock({
       galleryHasMore={galleryPage.hasMore}
       galleryNextOffset={galleryPage.nextOffset}
       capabilities={capabilityList}
-    >
-      {editing ? null : (
-        <Suspense fallback={null}>
-          <HomeWorldJourneyExtraModules
-            viewerId={viewerId}
-            viewerSlug={owner.slug}
-            persona={persona}
-            seeking={seeking}
-            giaiDoan={giaiDoan}
-            defaultModuleIds={defaultModuleIds}
-          />
-        </Suspense>
-      )}
-    </HomeWorldJourneyClient>
+    />
   );
 }

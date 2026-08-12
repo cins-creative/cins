@@ -5,24 +5,38 @@ import {
   CreditCard,
   Link2,
   Loader2,
+  MessageCircle,
+  Package,
+  PenLine,
+  Plus,
   Send,
+  Share2,
   Store,
-  Wallet,
+  X,
   type LucideIcon,
 } from "lucide-react";
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useId, useMemo, useState, type FormEvent } from "react";
 
 import {
-  SHOP_DANG_KY_MO_HINH_THUC,
   SHOP_DANG_KY_MO_KENH,
   SHOP_DANG_KY_MO_KENH_LABEL,
-  type ShopDangKyMoHinhThuc,
   type ShopDangKyMoKenh,
 } from "@/lib/shop/dang-ky-mo-constants";
+import {
+  MO_SHOP_SECTION_HELP,
+  type MoShopSectionHelpImage,
+} from "@/lib/shop/mo-shop-form-help";
+import type { ShopDangKyMoHangGioiThieu } from "@/lib/shop/dang-ky-mo-types";
+
+const MAX_LINK_ROWS = 20;
+const MAX_HANG_ROWS = 20;
 
 type Props = {
   initialGt: string;
   initialTu: string;
+  slotsRemaining?: number;
+  slotsLimit?: number;
+  onSubmitted?: () => void;
 };
 
 type ThankYou = {
@@ -30,10 +44,11 @@ type ThankYou = {
   lienHeGiaTri: string;
 };
 
-const HINH_THUC_LABEL: Record<ShopDangKyMoHinhThuc, string> = {
-  co_san: "Có sẵn",
-  preorder: "Preorder",
-  ca_hai: "Cả hai",
+type HangGioiThieuRow = {
+  tenMatHang: string;
+  moTa: string;
+  giaBan: string;
+  link: string;
 };
 
 function lienHePlaceholder(kenh: ShopDangKyMoKenh): string {
@@ -53,21 +68,90 @@ function lienHePlaceholder(kenh: ShopDangKyMoKenh): string {
   }
 }
 
+function SectionHelpHint({ helpImage }: { helpImage: MoShopSectionHelpImage }) {
+  const popoverId = useId();
+  const [rootEl, setRootEl] = useState<HTMLSpanElement | null>(null);
+  const [open, setOpen] = useState(false);
+  const canHover = useMemo(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(hover: hover) and (pointer: fine)").matches,
+    [],
+  );
+
+  useEffect(() => {
+    if (!open || canHover) return;
+    function onDocPointerDown(e: PointerEvent) {
+      if (!rootEl?.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("pointerdown", onDocPointerDown);
+    return () => document.removeEventListener("pointerdown", onDocPointerDown);
+  }, [open, canHover, rootEl]);
+
+  return (
+    <span
+      ref={setRootEl}
+      className={`mo-shop-section-help${open ? " is-open" : ""}`}
+    >
+      <button
+        type="button"
+        className="mo-shop-section-help-btn"
+        aria-expanded={open}
+        aria-controls={popoverId}
+        aria-label="Xem ví dụ minh hoạ"
+        onMouseEnter={() => {
+          if (canHover) setOpen(true);
+        }}
+        onMouseLeave={() => {
+          if (canHover) setOpen(false);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+            setOpen(false);
+          }
+        }}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!canHover) setOpen((prev) => !prev);
+        }}
+      >
+        ?
+      </button>
+      <div
+        id={popoverId}
+        className="mo-shop-section-help-popover"
+        role="tooltip"
+        hidden={!open}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={helpImage.src} alt={helpImage.alt} loading="lazy" />
+      </div>
+    </span>
+  );
+}
+
 function FormSectionHead({
   id,
   step,
   icon: Icon,
   title,
   lead,
+  helpImage,
 }: {
   id: string;
   step: number;
   icon: LucideIcon;
   title: string;
   lead: string;
+  helpImage?: MoShopSectionHelpImage;
 }) {
+  const preview = helpImage ?? MO_SHOP_SECTION_HELP[step];
+
   return (
     <div className="mo-shop-section-head">
+      {preview ? <SectionHelpHint helpImage={preview} /> : null}
       <div className="mo-shop-section-head-icon" aria-hidden>
         <Icon size={18} strokeWidth={2.1} />
       </div>
@@ -82,59 +166,179 @@ function FormSectionHead({
   );
 }
 
-function SubSectionHead({
-  icon: Icon,
-  title,
-  required,
+function LinkRowsField({
+  label,
+  optional,
+  hint,
+  links,
+  maxRows,
+  addLabel,
+  removeAriaPrefix,
+  placeholder,
+  namePrefix,
+  onAdd,
+  onChange,
+  onRemove,
 }: {
-  icon: LucideIcon;
-  title: string;
-  required?: boolean;
+  label: string;
+  optional?: boolean;
+  hint: string;
+  links: string[];
+  maxRows: number;
+  addLabel: string;
+  removeAriaPrefix: string;
+  placeholder: string;
+  namePrefix: string;
+  onAdd: () => void;
+  onChange: (index: number, value: string) => void;
+  onRemove: (index: number) => void;
 }) {
   return (
-    <p className="mo-shop-subhead">
-      <span className="mo-shop-subhead-icon" aria-hidden>
-        <Icon size={15} strokeWidth={2.1} />
-      </span>
-      <span className="mo-shop-subhead-text">
-        {title}
-        {required ? (
-          <>
-            {" "}
-            <span className="mo-shop-req">*</span>
-          </>
+    <div className="mo-shop-field">
+      <span className="mo-shop-label">
+        {label}{" "}
+        {optional ? (
+          <span className="mo-shop-optional">(tuỳ chọn)</span>
         ) : null}
       </span>
-    </p>
+      {links.length > 0 ? (
+        <ul className="mo-shop-link-list">
+          {links.map((link, index) => (
+            <li key={index} className="mo-shop-link-row">
+              <input
+                className="mo-shop-input"
+                type="url"
+                name={`${namePrefix}-${index}`}
+                value={link}
+                onChange={(e) => onChange(index, e.target.value)}
+                placeholder={placeholder}
+                maxLength={2000}
+                autoComplete="url"
+              />
+              <button
+                type="button"
+                className="mo-shop-link-remove"
+                onClick={() => onRemove(index)}
+                aria-label={`${removeAriaPrefix} ${index + 1}`}
+                title="Xóa"
+              >
+                <X size={16} strokeWidth={2.2} aria-hidden />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {links.length < maxRows ? (
+        <button type="button" className="mo-shop-link-add" onClick={onAdd}>
+          <Plus size={16} strokeWidth={2.4} aria-hidden />
+          {addLabel}
+        </button>
+      ) : (
+        <span className="mo-shop-hint">Đã đạt tối đa {maxRows} link.</span>
+      )}
+      <span className="mo-shop-hint">{hint}</span>
+    </div>
   );
 }
 
-export function MoShopForm({ initialGt, initialTu }: Props) {
+export function MoShopForm({
+  initialGt,
+  initialTu,
+  slotsRemaining,
+  slotsLimit,
+  onSubmitted,
+}: Props) {
+  const slotLimited = slotsRemaining !== undefined;
+  const slotsFull = slotLimited && slotsRemaining <= 0;
   const openedAt = useMemo(() => Date.now(), []);
   const [tenShop, setTenShop] = useState("");
-  const [tenLienHe, setTenLienHe] = useState("");
-  const [hinhThucBan, setHinhThucBan] = useState<ShopDangKyMoHinhThuc | "">(
-    "",
-  );
-  const [resourceLinksText, setResourceLinksText] = useState("");
+  const [moTaShop, setMoTaShop] = useState("");
+  const [mxhBanHangLinks, setMxhBanHangLinks] = useState<string[]>([]);
+  const [hangGioiThieu, setHangGioiThieu] = useState<HangGioiThieuRow[]>([]);
   const [kenhLienHe, setKenhLienHe] = useState<ShopDangKyMoKenh>("zalo");
   const [lienHeGiaTri, setLienHeGiaTri] = useState("");
-  const [email, setEmail] = useState("");
   const [nganHang, setNganHang] = useState("");
   const [soTaiKhoan, setSoTaiKhoan] = useState("");
   const [tenChuTk, setTenChuTk] = useState("");
-  const [daCoTaiKhoan, setDaCoTaiKhoan] = useState(false);
-  const [linkProfileCins, setLinkProfileCins] = useState("");
   const [ghiChu, setGhiChu] = useState("");
   const [dongY, setDongY] = useState(false);
   const [website, setWebsite] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [thankYou, setThankYou] = useState<ThankYou | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
+
+  const shareFormUrl = useMemo(() => {
+    if (typeof window === "undefined") return "/mo-shop";
+    return `${window.location.origin}/mo-shop`;
+  }, [thankYou]);
+
+  async function copyShareFormLink() {
+    try {
+      await navigator.clipboard.writeText(shareFormUrl);
+      setShareCopied(true);
+      window.setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      setShareCopied(false);
+    }
+  }
+
+  function setMxhLinkAt(index: number, value: string) {
+    setMxhBanHangLinks((prev) => {
+      const next = prev.slice();
+      next[index] = value;
+      return next;
+    });
+  }
+
+  function addMxhLinkRow() {
+    setMxhBanHangLinks((prev) =>
+      prev.length >= MAX_LINK_ROWS ? prev : [...prev, ""],
+    );
+  }
+
+  function removeMxhLinkAt(index: number) {
+    setMxhBanHangLinks((prev) => {
+      const next = prev.slice();
+      next.splice(index, 1);
+      return next;
+    });
+  }
+
+  function setHangGioiThieuAt(
+    index: number,
+    patch: Partial<HangGioiThieuRow>,
+  ) {
+    setHangGioiThieu((prev) => {
+      const next = prev.slice();
+      next[index] = { ...next[index]!, ...patch };
+      return next;
+    });
+  }
+
+  function addHangGioiThieuRow() {
+    setHangGioiThieu((prev) =>
+      prev.length >= MAX_HANG_ROWS
+        ? prev
+        : [...prev, { tenMatHang: "", moTa: "", giaBan: "", link: "" }],
+    );
+  }
+
+  function removeHangGioiThieuAt(index: number) {
+    setHangGioiThieu((prev) => {
+      const next = prev.slice();
+      next.splice(index, 1);
+      return next;
+    });
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    if (slotsFull) {
+      setError("Đã hết suất đăng ký — CINs sẽ mở đợt tiếp theo.");
+      return;
+    }
     if (!dongY) {
       setError("Bạn cần tick đồng ý ở cuối form trước khi gửi.");
       return;
@@ -149,24 +353,32 @@ export function MoShopForm({ initialGt, initialTu }: Props) {
         initialTu ? `tu=${initialTu}` : null,
         initialGt ? `gt=${initialGt}` : null,
       ].filter(Boolean);
+      const cleanHangGioiThieu: ShopDangKyMoHangGioiThieu[] = hangGioiThieu
+        .map((item) => ({
+          tenMatHang: item.tenMatHang.trim(),
+          moTa: item.moTa.trim(),
+          giaBan: item.giaBan.trim(),
+          link: item.link.trim(),
+        }))
+        .filter((item) => item.link.length > 0);
       const res = await fetch("/api/mo-shop", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tenShop,
-          tenLienHe: tenLienHe || null,
+          moTa: moTaShop || null,
+          tenLienHe: null,
           loaiHang: [],
-          hinhThucBan: hinhThucBan || null,
-          resourceLinksText,
+          mxhBanHangLinks: mxhBanHangLinks
+            .map((link) => link.trim())
+            .filter(Boolean),
+          hangGioiThieu: cleanHangGioiThieu,
           ghiChu: ghiChu || null,
           kenhLienHe,
           lienHeGiaTri,
-          email,
           nganHang,
           soTaiKhoan,
           tenChuTk,
-          daCoTaiKhoan,
-          linkProfileCins: linkProfileCins || null,
           nguoiGioiThieu: initialGt || null,
           dongYDieuKhoan: dongY,
           dongYDungAnh: dongY,
@@ -189,6 +401,7 @@ export function MoShopForm({ initialGt, initialTu }: Props) {
         kenhLienHe: data.kenhLienHe ?? kenhLienHe,
         lienHeGiaTri: data.lienHeGiaTri ?? lienHeGiaTri,
       });
+      onSubmitted?.();
     } catch {
       setError("Mạng đang lỗi — thử lại sau nhé.");
     } finally {
@@ -216,6 +429,39 @@ export function MoShopForm({ initialGt, initialTu }: Props) {
           . Không phải email tự động — nếu lâu chưa thấy tin thì nhắn lại đúng
           kênh này.
         </p>
+
+        <div className="mo-shop-thanks-share">
+          <div className="mo-shop-thanks-share-head">
+            <span className="mo-shop-thanks-share-icon" aria-hidden>
+              <Share2 size={17} strokeWidth={2.2} />
+            </span>
+            <div>
+              <p className="mo-shop-thanks-share-title">
+                Gửi link form cho artist khác
+              </p>
+              <p className="mo-shop-thanks-share-lead">
+                Chia sẻ form mở shop này với một artist khác — mỗi người hoàn
+                thành đăng ký là một suất riêng.
+              </p>
+            </div>
+          </div>
+          <div className="mo-shop-thanks-share-row">
+            <input
+              className="mo-shop-thanks-share-url"
+              type="text"
+              readOnly
+              value={shareFormUrl}
+              aria-label="Link form mở shop CINs"
+            />
+            <button
+              type="button"
+              className={`mo-shop-thanks-share-copy${shareCopied ? " is-copied" : ""}`}
+              onClick={() => void copyShareFormLink()}
+            >
+              {shareCopied ? "Đã copy" : "Copy link"}
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -228,8 +474,8 @@ export function MoShopForm({ initialGt, initialTu }: Props) {
             id="mo-shop-s1"
             step={1}
             icon={Store}
-            title="Shop"
-            lead="Tên hiển thị và cách bạn thường bán."
+            title="Tên shop"
+            lead="Tên và mô tả ngắn hiển thị trên CINs."
           />
 
           <label className="mo-shop-field">
@@ -250,87 +496,233 @@ export function MoShopForm({ initialGt, initialTu }: Props) {
 
           <label className="mo-shop-field">
             <span className="mo-shop-label">
-              Tên để gọi{" "}
+              Mô tả shop{" "}
               <span className="mo-shop-optional">(tuỳ chọn)</span>
             </span>
-            <input
-              className="mo-shop-input"
-              name="tenLienHe"
-              autoComplete="name"
-              maxLength={120}
-              value={tenLienHe}
-              onChange={(e) => setTenLienHe(e.target.value)}
-              placeholder="Nếu khác tên shop"
+            <textarea
+              className="mo-shop-textarea mo-shop-textarea--short"
+              name="moTaShop"
+              rows={3}
+              maxLength={2000}
+              value={moTaShop}
+              onChange={(e) => setMoTaShop(e.target.value)}
+              placeholder="VD: Shop acrylic & print fanart, preorder theo đợt, ship toàn quốc…"
             />
           </label>
-
-          <div className="mo-shop-field">
-            <span className="mo-shop-label">
-              Hình thức bán{" "}
-              <span className="mo-shop-optional">(tuỳ chọn)</span>
-            </span>
-            <div
-              className="mo-shop-chips"
-              role="radiogroup"
-              aria-label="Hình thức bán"
-            >
-              {SHOP_DANG_KY_MO_HINH_THUC.map((id) => {
-                const active = hinhThucBan === id;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    className={`mo-shop-chip${active ? " is-active" : ""}`}
-                    aria-pressed={active}
-                    onClick={() =>
-                      setHinhThucBan((prev) => (prev === id ? "" : id))
-                    }
-                  >
-                    {HINH_THUC_LABEL[id]}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </section>
 
         <section className="mo-shop-form-section" aria-labelledby="mo-shop-s2">
           <FormSectionHead
             id="mo-shop-s2"
             step={2}
-            icon={Link2}
-            title="Link hàng"
-            lead="Album, Drive, Carrd, IG, Shopee… — mỗi dòng một link. CINs lấy ảnh từ đó."
+            icon={Share2}
+            title="Nền tảng MXH bạn dùng để bán hàng"
+            lead="Facebook, Instagram, Shopee, TikTok… — mỗi dòng một link shop hoặc trang bán."
           />
 
-          <label className="mo-shop-field">
-            <span className="mo-shop-label">
-              Link <span className="mo-shop-optional">(tuỳ chọn)</span>
-            </span>
-            <textarea
-              className="mo-shop-textarea"
-              name="resourceLinks"
-              rows={4}
-              maxLength={8000}
-              value={resourceLinksText}
-              onChange={(e) => setResourceLinksText(e.target.value)}
-              placeholder={
-                "https://drive.google.com/…\nhttps://facebook.com/album/…"
-              }
-            />
-            <span className="mo-shop-hint">
-              Chưa có link public — để trống, CINs nhắn xin ảnh sau.
-            </span>
-          </label>
+          <LinkRowsField
+            label="Link nền tảng"
+            optional
+            links={mxhBanHangLinks}
+            maxRows={MAX_LINK_ROWS}
+            addLabel="Thêm link nền tảng"
+            removeAriaPrefix="Xóa link nền tảng"
+            placeholder="https://instagram.com/… hoặc https://shopee.vn/…"
+            namePrefix="mxhBanHangLink"
+            hint="Chưa có link public — bỏ trống, CINs nhắn xin sau."
+            onAdd={addMxhLinkRow}
+            onChange={setMxhLinkAt}
+            onRemove={removeMxhLinkAt}
+          />
         </section>
 
         <section className="mo-shop-form-section" aria-labelledby="mo-shop-s3">
           <FormSectionHead
             id="mo-shop-s3"
             step={3}
-            icon={Wallet}
-            title="Liên hệ & nhận tiền"
-            lead="Kênh nhắn khi shop nháp xong. STK gắn vào shop — khách chuyển thẳng cho bạn."
+            icon={Package}
+            title="Các loại mặt hàng bạn bán"
+            lead="Mô tả ngắn loại hàng + link ảnh hoặc file PSD — CINs dùng để dựng shop."
+          />
+
+          <div className="mo-shop-field">
+            <span className="mo-shop-label">
+              Mặt hàng giới thiệu{" "}
+              <span className="mo-shop-optional">(tuỳ chọn)</span>
+            </span>
+            {hangGioiThieu.length > 0 ? (
+              <ul className="mo-shop-hang-list">
+                {hangGioiThieu.map((item, index) => (
+                  <li key={index} className="mo-shop-hang-card">
+                    <div className="mo-shop-hang-card-head">
+                      <span className="mo-shop-hang-card-title">
+                        {item.tenMatHang.trim() || `Mặt hàng ${index + 1}`}
+                      </span>
+                      <button
+                        type="button"
+                        className="mo-shop-hang-card-remove"
+                        onClick={() => removeHangGioiThieuAt(index)}
+                        aria-label={`Xóa mặt hàng ${index + 1}`}
+                        title="Xóa"
+                      >
+                        <X size={15} strokeWidth={2.2} aria-hidden />
+                      </button>
+                    </div>
+                    <label className="mo-shop-field">
+                      <span className="mo-shop-label">Tên mặt hàng</span>
+                      <input
+                        className="mo-shop-input"
+                        name={`hangTen-${index}`}
+                        value={item.tenMatHang}
+                        onChange={(e) =>
+                          setHangGioiThieuAt(index, {
+                            tenMatHang: e.target.value,
+                          })
+                        }
+                        placeholder="VD: Standee Miku, Badge enamel set…"
+                        maxLength={120}
+                      />
+                    </label>
+                    <label className="mo-shop-field">
+                      <span className="mo-shop-label">Mô tả loại hàng</span>
+                      <textarea
+                        className="mo-shop-textarea mo-shop-textarea--short"
+                        name={`hangMoTa-${index}`}
+                        rows={3}
+                        value={item.moTa}
+                        onChange={(e) =>
+                          setHangGioiThieuAt(index, { moTa: e.target.value })
+                        }
+                        placeholder="VD: Acrylic standee 5×7cm, in UV, có charm kèm…"
+                        maxLength={200}
+                      />
+                      <span className="mo-shop-hint">
+                        Nếu bạn có mô tả trong nơi nào khác thì dán link cũng được.
+                      </span>
+                    </label>
+                    <label className="mo-shop-field">
+                      <span className="mo-shop-label">
+                        Giá bán{" "}
+                        <span className="mo-shop-optional">(tuỳ chọn)</span>
+                      </span>
+                      <input
+                        className="mo-shop-input"
+                        name={`hangGiaBan-${index}`}
+                        value={item.giaBan}
+                        onChange={(e) =>
+                          setHangGioiThieuAt(index, { giaBan: e.target.value })
+                        }
+                        placeholder="VD: 150.000đ, 80k, preorder 200k…"
+                        maxLength={80}
+                      />
+                    </label>
+                    <label className="mo-shop-field">
+                      <span className="mo-shop-label">Link ảnh / PSD</span>
+                      <input
+                        className="mo-shop-input"
+                        type="url"
+                        name={`hangLink-${index}`}
+                        value={item.link}
+                        onChange={(e) =>
+                          setHangGioiThieuAt(index, { link: e.target.value })
+                        }
+                        placeholder="https://drive.google.com/…"
+                        maxLength={2000}
+                        autoComplete="url"
+                      />
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {hangGioiThieu.length < MAX_HANG_ROWS ? (
+              <button
+                type="button"
+                className="mo-shop-link-add"
+                onClick={addHangGioiThieuRow}
+              >
+                <Plus size={16} strokeWidth={2.4} aria-hidden />
+                Thêm mặt hàng
+              </button>
+            ) : (
+              <span className="mo-shop-hint">
+                Đã đạt tối đa {MAX_HANG_ROWS} mặt hàng.
+              </span>
+            )}
+            <span className="mo-shop-hint">
+              Chưa có ảnh public — bỏ trống, CINs nhắn xin file sau.
+            </span>
+          </div>
+        </section>
+
+        <section className="mo-shop-form-section" aria-labelledby="mo-shop-s4">
+          <FormSectionHead
+            id="mo-shop-s4"
+            step={4}
+            icon={CreditCard}
+            title="STK nhận tiền"
+            lead="STK gắn vào shop — khách chuyển khoản thẳng cho bạn khi mua hàng."
+          />
+
+          <div className="mo-shop-stk">
+            <div className="mo-shop-stk-grid">
+              <label className="mo-shop-field">
+                <span className="mo-shop-label">
+                  Ngân hàng <span className="mo-shop-req">*</span>
+                </span>
+                <input
+                  className="mo-shop-input"
+                  name="nganHang"
+                  required
+                  maxLength={120}
+                  value={nganHang}
+                  onChange={(e) => setNganHang(e.target.value)}
+                  placeholder="VD: Vietcombank"
+                />
+              </label>
+              <label className="mo-shop-field">
+                <span className="mo-shop-label">
+                  Số tài khoản <span className="mo-shop-req">*</span>
+                </span>
+                <input
+                  className="mo-shop-input"
+                  name="soTaiKhoan"
+                  required
+                  inputMode="numeric"
+                  maxLength={40}
+                  value={soTaiKhoan}
+                  onChange={(e) => setSoTaiKhoan(e.target.value)}
+                />
+              </label>
+              <label className="mo-shop-field mo-shop-field--span">
+                <span className="mo-shop-label">
+                  Tên chủ tài khoản <span className="mo-shop-req">*</span>
+                </span>
+                <input
+                  className="mo-shop-input"
+                  name="tenChuTk"
+                  required
+                  maxLength={120}
+                  value={tenChuTk}
+                  onChange={(e) => setTenChuTk(e.target.value)}
+                  placeholder="Viết hoa, không dấu"
+                />
+              </label>
+            </div>
+            <p className="mo-shop-hint mo-shop-hint--stk">
+              Khi khách hàng mua sẽ có người chuyển khoản về STK thật của bạn
+              (phí 0%).
+            </p>
+          </div>
+        </section>
+
+        <section className="mo-shop-form-section" aria-labelledby="mo-shop-s5">
+          <FormSectionHead
+            id="mo-shop-s5"
+            step={5}
+            icon={MessageCircle}
+            title="Thông tin liên hệ"
+            lead="Khi cần thêm thông tin hoặc thông báo build hoàn thành thì CINs liên hệ bạn qua đâu?"
           />
 
           <div className="mo-shop-field">
@@ -364,112 +756,37 @@ export function MoShopForm({ initialGt, initialTu }: Props) {
               />
             </div>
           </div>
+        </section>
+
+        <section className="mo-shop-form-section" aria-labelledby="mo-shop-s6">
+          <FormSectionHead
+            id="mo-shop-s6"
+            step={6}
+            icon={PenLine}
+            title="Góp ý thêm"
+            lead="Điều gì form chưa hỏi — bạn cứ viết thêm để CINs hiểu shop của mình hơn."
+          />
 
           <label className="mo-shop-field">
             <span className="mo-shop-label">
-              Email <span className="mo-shop-req">*</span>
-            </span>
-            <input
-              className="mo-shop-input"
-              type="email"
-              name="email"
-              autoComplete="email"
-              required
-              maxLength={200}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Bàn giao shop về tài khoản CINs"
-            />
-          </label>
-
-          <div className="mo-shop-stk">
-            <SubSectionHead
-              icon={CreditCard}
-              title="Tài khoản ngân hàng"
-              required
-            />
-            <div className="mo-shop-stk-grid">
-              <label className="mo-shop-field">
-                <span className="mo-shop-label">Ngân hàng</span>
-                <input
-                  className="mo-shop-input"
-                  name="nganHang"
-                  required
-                  maxLength={120}
-                  value={nganHang}
-                  onChange={(e) => setNganHang(e.target.value)}
-                  placeholder="VD: Vietcombank"
-                />
-              </label>
-              <label className="mo-shop-field">
-                <span className="mo-shop-label">Số tài khoản</span>
-                <input
-                  className="mo-shop-input"
-                  name="soTaiKhoan"
-                  required
-                  inputMode="numeric"
-                  maxLength={40}
-                  value={soTaiKhoan}
-                  onChange={(e) => setSoTaiKhoan(e.target.value)}
-                />
-              </label>
-              <label className="mo-shop-field mo-shop-field--span">
-                <span className="mo-shop-label">Tên chủ tài khoản</span>
-                <input
-                  className="mo-shop-input"
-                  name="tenChuTk"
-                  required
-                  maxLength={120}
-                  value={tenChuTk}
-                  onChange={(e) => setTenChuTk(e.target.value)}
-                  placeholder="Viết hoa, không dấu"
-                />
-              </label>
-            </div>
-          </div>
-
-          <label className="mo-shop-check">
-            <input
-              type="checkbox"
-              checked={daCoTaiKhoan}
-              onChange={(e) => setDaCoTaiKhoan(e.target.checked)}
-            />
-            <span>Đã có tài khoản CINs</span>
-          </label>
-          {daCoTaiKhoan ? (
-            <label className="mo-shop-field">
-              <span className="mo-shop-label">Link profile CINs</span>
-              <input
-                className="mo-shop-input"
-                name="linkProfileCins"
-                maxLength={500}
-                value={linkProfileCins}
-                onChange={(e) => setLinkProfileCins(e.target.value)}
-                placeholder="https://cins.vn/ten-ban"
-              />
-            </label>
-          ) : null}
-
-          <label className="mo-shop-field">
-            <span className="mo-shop-label">
-              Ghi chú <span className="mo-shop-optional">(tuỳ chọn)</span>
+              Góp ý <span className="mo-shop-optional">(tuỳ chọn)</span>
             </span>
             <textarea
               className="mo-shop-textarea mo-shop-textarea--short"
               name="ghiChu"
-              rows={2}
+              rows={3}
               maxLength={2000}
               value={ghiChu}
               onChange={(e) => setGhiChu(e.target.value)}
-              placeholder="Điều gì form chưa hỏi — cứ viết thêm"
+              placeholder="VD: Giá tham khảo, lịch mở đơn, style shop bạn thích…"
             />
           </label>
         </section>
 
         <section className="mo-shop-form-section mo-shop-form-section--submit">
           <FormSectionHead
-            id="mo-shop-s4"
-            step={4}
+            id="mo-shop-s7"
+            step={7}
             icon={Send}
             title="Gửi form"
             lead="Đồng ý điều khoản rồi bấm gửi — CINs sẽ liên hệ preview shop cho bạn."
@@ -513,13 +830,15 @@ export function MoShopForm({ initialGt, initialTu }: Props) {
           <button
             type="submit"
             className="mo-shop-submit"
-            disabled={submitting}
+            disabled={submitting || slotsFull}
           >
             {submitting ? (
               <>
                 <Loader2 size={17} className="mo-shop-spin" aria-hidden />
                 Đang gửi…
               </>
+            ) : slotsFull ? (
+              "Đã hết suất"
             ) : (
               "Gửi thông tin"
             )}

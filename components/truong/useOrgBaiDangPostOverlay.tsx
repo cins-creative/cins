@@ -3,9 +3,10 @@
 import { useCallback, useMemo, useState } from "react";
 
 import { OrgBaiDangPostModal } from "@/components/truong/OrgBaiDangPostModal";
+import type { OrgBaiDangOverlayOwner } from "@/lib/truong/org-bai-dang-from-milestone";
 import type { TruongBaiDang, TruongListItem } from "@/lib/truong/types";
 
-type OrgOwner = Pick<
+type OrgOwner = OrgBaiDangOverlayOwner | Pick<
   TruongListItem,
   "avatar_id" | "logo_id" | "avatar_src" | "ten" | "slug" | "org_loai"
 >;

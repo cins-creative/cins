@@ -32,7 +32,7 @@ export function JourneyUnfoldArticleContent({
   if (blocksOnly) {
     const unfoldBlocks = blocksForArticleCardUnfold(tomTat, blocks);
     if (unfoldBlocks.length === 0) return null;
-    return <PostBlockRenderer blocks={unfoldBlocks} />;
+    return <PostBlockRenderer blocks={unfoldBlocks} showAllImages />;
   }
   const showTitle = shouldShowMilestoneCardTitle(title, blocks, tomTat);
   const unfoldTomTat =
@@ -52,7 +52,7 @@ export function JourneyUnfoldArticleContent({
           as="div"
         />
       ) : null}
-      <PostBlockRenderer blocks={blocks} />
+      <PostBlockRenderer blocks={blocks} showAllImages />
     </>
   );
 }

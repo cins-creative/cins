@@ -3,26 +3,23 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { OrgBaiDangJourneyCard } from "@/components/truong/OrgBaiDangJourneyCard";
-import type { TruongBaiDang, TruongListItem } from "@/lib/truong/types";
-
-type OrgOwner = Pick<
-  TruongListItem,
-  "avatar_id" | "logo_id" | "avatar_src" | "ten" | "slug" | "org_loai"
->;
+import { OrgBaiDangPostSplitBody } from "@/components/truong/OrgBaiDangPostSplitBody";
+import type { OrgBaiDangOverlayOwner } from "@/lib/truong/org-bai-dang-from-milestone";
+import type { TruongBaiDang } from "@/lib/truong/types";
 
 type Props = {
   /** Bài đang mở. `null` = đóng. */
   post: TruongBaiDang | null;
   onClose(): void;
-  owner?: OrgOwner | null;
+  owner?: OrgBaiDangOverlayOwner | null;
   /** Showcase lens — chỉ block nội dung. */
   contentOnly?: boolean;
 };
 
 /**
  * Overlay chi tiết bài đăng org — cùng shell visual với `PostModalShell`
- * / `JourneyPostModal` (`.j-post-overlay` + `.j-post-sheet`).
+ * / `JourneyPostModal` (`.j-post-overlay` + `.j-post-sheet`), layout split
+ * (nội dung trái · author + bình luận phải).
  */
 export function OrgBaiDangPostModal({
   post,
@@ -101,11 +98,10 @@ export function OrgBaiDangPostModal({
         ref={sheetRef}
         onClick={(e) => e.stopPropagation()}
       >
-        <OrgBaiDangJourneyCard
+        <OrgBaiDangPostSplitBody
           key={post.id}
           post={post}
           owner={owner}
-          initialExpanded
           contentOnly={contentOnly}
         />
       </article>

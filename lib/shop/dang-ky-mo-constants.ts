@@ -1,5 +1,7 @@
 /** Constants form /mo-shop — dùng được ở client (không import server-only). */
 
+export const SHOP_DANG_KY_MO_SUBMIT_LIMIT = 30;
+
 export const SHOP_DANG_KY_MO_KENH = [
   "zalo",
   "messenger",
@@ -50,6 +52,38 @@ export const SHOP_DANG_KY_MO_LOAI_HANG_LABEL: Record<
   print: "Print / poster",
   plush: "Plush / soft toy",
   apparel: "Áo / apparel",
+  khac: "Khác",
+};
+
+export const SHOP_DANG_KY_MO_NEN_TANG = [
+  "facebook",
+  "instagram",
+  "tiktok",
+  "zalo",
+  "shopee",
+  "lazada",
+  "discord",
+  "threads",
+  "carrd",
+  "khac",
+] as const;
+
+export type ShopDangKyMoNenTang =
+  (typeof SHOP_DANG_KY_MO_NEN_TANG)[number];
+
+export const SHOP_DANG_KY_MO_NEN_TANG_LABEL: Record<
+  ShopDangKyMoNenTang,
+  string
+> = {
+  facebook: "Facebook",
+  instagram: "Instagram",
+  tiktok: "TikTok",
+  zalo: "Zalo",
+  shopee: "Shopee",
+  lazada: "Lazada",
+  discord: "Discord",
+  threads: "Threads",
+  carrd: "Carrd / website",
   khac: "Khác",
 };
 

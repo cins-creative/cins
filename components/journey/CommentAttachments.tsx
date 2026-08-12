@@ -51,16 +51,21 @@ export function CommentAttachments({ imageIds }: Props) {
     <div
       className={`post-comments-attachments post-comments-attachments--${Math.min(imageIds.length, 4)}`}
     >
-      {imageIds.map((id) => (
-        <CommentAttachmentItem
-          key={id}
-          image={{
-            id,
-            width: GRID_IMAGE_DEFAULT_WIDTH,
-            height: GRID_IMAGE_DEFAULT_HEIGHT,
-          }}
-        />
-      ))}
+      {imageIds.map((idOrUrl) => {
+        const isRemote =
+          idOrUrl.startsWith("http://") || idOrUrl.startsWith("https://");
+        return (
+          <CommentAttachmentItem
+            key={idOrUrl}
+            image={{
+              id: isRemote ? "preview" : idOrUrl,
+              width: GRID_IMAGE_DEFAULT_WIDTH,
+              height: GRID_IMAGE_DEFAULT_HEIGHT,
+              ...(isRemote ? { previewSrc: idOrUrl } : {}),
+            }}
+          />
+        );
+      })}
     </div>
   );
 }

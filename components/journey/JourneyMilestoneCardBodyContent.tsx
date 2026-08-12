@@ -335,11 +335,12 @@ export function JourneyMilestoneCardBodyContent({
     videoEmbedUrlForArticle &&
       classifyStreamVideoUrl(videoEmbedUrlForArticle),
   );
-  /* Stream + bài viết dài: hiện full peek (video + block dưới), không chỉ embed.
-     Bài đã có ảnh bìa: ưu tiên thumbnail cover (không khung embed đen 16:9).
-     Đã xổ nội dung: embed nằm trong unfold — ẩn peek trùng. */
+  /* Peek block trên card = kiểu «xổ sớm» trước unfold. Khi đã mở popup
+     (expandTrigger.enabled) không dump nội dung dài lên timeline. */
+  const opensArticlePopup = Boolean(expandTrigger?.enabled);
   const showArticleEmbedBlocksPeek =
     isArticle &&
+    !opensArticlePopup &&
     !isContentOpen &&
     !hasCoverPreview &&
     !isEmbedInteractivePeek &&
@@ -353,6 +354,7 @@ export function JourneyMilestoneCardBodyContent({
 
   const articleNeedsDepth =
     isArticle &&
+    !opensArticlePopup &&
     (isEmbedInteractivePeek ||
       showArticleEmbedBlocksPeek ||
       hasHostedVideoInArticle ||
@@ -377,10 +379,13 @@ export function JourneyMilestoneCardBodyContent({
     !peekIsTextOnly &&
     !showArticleEmbedBlocksPeek &&
     !isContentOpen;
+  /* Popup path không peek block — vẫn cần CTA «Xem đầy đủ» khi không có cover. */
   const showArticleTextDepth =
-    articleNeedsDepth &&
-    (articlePeekBlocks.length === 0 || peekIsTextOnly) &&
-    !isContentOpen;
+    !isContentOpen &&
+    ((articleNeedsDepth &&
+      (articlePeekBlocks.length === 0 || peekIsTextOnly)) ||
+      (opensArticlePopup && showExpandTrigger && !hasCoverPreview));
+
   /**
    * Thumbnail trên card article: hiện khi có cover (đã lọc theo
    * `shouldShowCoverOnPostCard` ở tầng media). Khi unfold bài video Bunny:

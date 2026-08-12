@@ -73,6 +73,7 @@ import { ChatRoomMocsPanel } from "@/components/cins/ChatRoomWorkspacePanels";
 import { ChatQuanLyHocVienPanel } from "@/components/cins/ChatQuanLyHocVienPanel";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
 import { MsIcon } from "@/components/cins/MsIcon";
+import { importGifToCloudflare } from "@/lib/gif/client";
 import { ChatReplyComposeBar } from "@/components/cins/ChatReplyComposeBar";
 import {
   buildThreadMenuActions,
@@ -4076,6 +4077,47 @@ export function CinsChatOverlay({
     [appendOptimisticMessages, submitRoomMessage],
   );
 
+  const sendGif = useCallback(
+    async (
+      thread: ChatThread,
+      payload: { previewUrl: string; url: string; id?: string },
+    ) => {
+      const optimistic = createOptimisticChatMessage({
+        body: "",
+        kind: "media",
+        imageId: null,
+        imageUrl: payload.previewUrl,
+      });
+      appendOptimisticMessages(thread, [optimistic]);
+      try {
+        const imported = await importGifToCloudflare({
+          url: payload.url,
+          id: payload.id,
+        });
+        await submitRoomMessage(
+          thread,
+          { cloudflare_image_id: imported.imageId },
+          optimistic.id,
+        );
+      } catch (error) {
+        setThreads((prev) =>
+          prev.map((t) =>
+            t.id === thread.id
+              ? {
+                  ...t,
+                  messages: t.messages.filter((m) => m.id !== optimistic.id),
+                }
+              : t,
+          ),
+        );
+        setLoadError(
+          error instanceof Error ? error.message : "Không gửi được GIF.",
+        );
+      }
+    },
+    [appendOptimisticMessages, submitRoomMessage],
+  );
+
   const sendPendingCard = useCallback(
     (thread: ChatThread, card: ChatContextCard): Promise<boolean> => {
       setPendingCardByRoom((prev) => {
@@ -5399,6 +5441,11 @@ export function CinsChatOverlay({
                   if (!active) return;
                   setStickerPickerOpen(false);
                   void sendSticker(active, item);
+                }}
+                onSendGif={(payload) => {
+                  if (!active) return;
+                  setStickerPickerOpen(false);
+                  void sendGif(active, payload);
                 }}
               />
             ) : null}

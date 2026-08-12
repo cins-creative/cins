@@ -1,7 +1,10 @@
 # PLAN — Tab GIF trong ChatStickerPicker (Tenor-shape → Giphy)
 
-> **Phase:** PLANNING · **Ngày:** 2026-08-11 · **Build đề xuất:** Grok 4.5 (Medium), từng Step.
+> **Phase:** BUILDING · **Ngày plan:** 2026-08-11 · **Build:** 2026-08-12 (Grok 4.5).
 > Scope: picker meme/chat + API proxy GIF + gửi tin. Không đụng Journey schema, org, canvas, shop.
+>
+> **Đã ship Step 1–4:** `/api/gif/*` · tab GIF trong `ChatStickerPicker` · wire chat + CommentBlock.
+> Cần `GIPHY_API_KEY` trong `.env.local` (+ Worker secret) — thiếu thì tab hiện “Chưa bật GIF”.
 
 ---
 

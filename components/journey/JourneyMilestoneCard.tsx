@@ -43,9 +43,7 @@ import {
 } from "@/lib/cins/share-drag";
 import { useCoarsePointer } from "@/lib/ui/use-coarse-pointer";
 import { JourneyMilestoneUnfold } from "@/components/journey/JourneyMilestoneUnfold";
-import { JourneyUnfoldArticleContent } from "@/components/journey/JourneyUnfoldArticleContent";
 import { VerifiedTick } from "@/components/journey/VerifiedTick";
-import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
 import { POST_COMMENTS_SYNC_EVENT } from "@/lib/journey/comments-sync-client";
 import {
   captureExpandScrollPin,
@@ -54,7 +52,6 @@ import {
   type ExpandScrollPin,
 } from "@/lib/journey/expand-scroll-pin";
 import {
-  isMilestoneArticleCard,
   milestoneCardContentKind,
   milestoneCardPhotoGrid,
 } from "@/lib/journey/milestone-card-kind";
@@ -64,6 +61,8 @@ import {
   useJourneyCommentsSheetMode,
 } from "@/components/journey/JourneyCommentsSheet";
 import { useJourneyPostOverlay } from "@/components/journey/useJourneyPostOverlay";
+import { useOrgBaiDangDirectPostOverlay } from "@/components/truong/useOrgBaiDangDirectPostOverlay";
+import { orgBaiDangStubFromMilestoneCard } from "@/lib/truong/org-bai-dang-from-milestone";
 import { JourneyOrgAttachTrigger } from "@/components/journey/JourneyOrgAttachTrigger";
 import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButton";
 import { JourneyMilestoneInlineControls } from "@/components/journey/JourneyMilestoneInlineControls";
@@ -532,9 +531,11 @@ export function JourneyMilestoneCard({
   const [banHangEnabled, setBanHangEnabled] = useState(false);
   const coarsePointer = useCoarsePointer();
   const commentsSheetMode = useJourneyCommentsSheetMode();
-  /* Mobile: bài dài → popup full (JourneyPostModal), không xổ timeline. */
+  /* Bài viết dài → popup (JourneyPostModal / OrgBaiDangPostModal), không xổ timeline. */
   const { openPost: openArticlePopup, overlay: articlePopupOverlay } =
     useJourneyPostOverlay();
+  const { openPost: openOrgArticlePopup, overlay: orgArticlePopupOverlay } =
+    useOrgBaiDangDirectPostOverlay();
 
   useEffect(() => {
     if (!isOwner || !viewerProfileId) {
@@ -914,9 +915,8 @@ export function JourneyMilestoneCard({
     isArticle && articleCardEmbedInteractivePeek(body, noiDungBlocks);
   const articleHasExpandableContent =
     isArticle && articleCardHasExpandableContent(body, noiDungBlocks);
-  /* Chỉ bài viết dài — desktop xổ/thu nội dung; mobile (sheet mode) mở popup.
-     Ảnh·video·bình luận không dùng sticky «Thu gọn». */
-  const supportsInlineUnfold =
+  /* Bài viết dài — click mở popup (không xổ inline đẩy feed). */
+  const supportsArticlePopup =
     articleHasExpandableContent && !embedInteractivePeek;
   const useFeedCompactMedia = feedCompactMedia && cardContentKind === "photo";
   const cardReadMoreHref =
@@ -938,26 +938,18 @@ export function JourneyMilestoneCard({
   const [unfoldReady, setUnfoldReady] = useState(false);
   /** Mobile: bình luận = bottom sheet, không xổ card. */
   const [commentsSheetOpen, setCommentsSheetOpen] = useState(false);
-  const showContent = inlineExpand?.showContent ?? false;
+  /* Article dài không còn xổ nội dung — chỉ bình luận (nếu có) còn dùng khối unfold. */
+  const showContent = false;
   const showCommentsRaw = inlineExpand?.showComments ?? false;
-  /* Sheet mode: chỉ xổ nội dung; bình luận đi bottom sheet — không xổ xuống. */
+  /* Sheet mode: bình luận đi bottom sheet — không xổ xuống. */
   const showComments = showCommentsRaw && !commentsSheetMode;
-  const showUnfold = showContent || showComments;
+  const showUnfold = showComments;
   const unfoldOpen = showUnfold && unfoldReady;
   const showChiChuUnfold =
     isTextCard && chiChuCollapsible && chiChuExpanded;
-  const showUnfoldToggle = Boolean(
-    (supportsInlineUnfold && showContent) || showChiChuUnfold,
-  );
-  const isContentOpen = supportsInlineUnfold && showContent;
-  /* Khối xổ inline render khi: bài viết (xổ nội dung) HOẶC bất kỳ loại card nào
-     đang mở bình luận. Ảnh/video/text không hỗ trợ xổ nội dung nhưng vẫn cho
-     bình luận inline — nếu chỉ gate theo `supportsInlineUnfold` thì action bar
-     (đã dời vào khối xổ) lẫn khối bình luận đều biến mất, khiến media "fill" chỗ
-     trống. */
-  const canRenderInlineUnfold = Boolean(
-    inlineExpand && (supportsInlineUnfold || showComments),
-  );
+  const showUnfoldToggle = Boolean(showChiChuUnfold);
+  /* Khối xổ inline: chỉ khi mở bình luận (ảnh/video/text). Article dài → popup. */
+  const canRenderInlineUnfold = Boolean(inlineExpand && showComments);
   const pinActionsAboveComments = Boolean(
     inlineExpand && showUnfold && showComments,
   );
@@ -1473,36 +1465,71 @@ export function JourneyMilestoneCard({
 
   function handleExpandTrigger(e: React.MouseEvent<HTMLElement>) {
     if (
-      !supportsInlineUnfold ||
-      !inlineExpand ||
-      isContentOpen ||
+      !supportsArticlePopup ||
       shouldIgnoreExpandTrigger(e.target as Element)
     ) {
       return;
     }
     trackContentOpen();
-    /* Mobile / viewport hẹp: popup full bài — tránh xổ dài phá feed.
-       org_bai_dang không load được qua JourneyPostModal → giữ xổ inline. */
-    if (commentsSheetMode && !orgBaiDangRef) {
-      openArticlePopup(milestoneId, { href: viewerPostHref });
+    /* Bài viết dài → popup; không xổ inline đẩy timeline. */
+    if (orgBaiDangRef) {
+      const { post, owner } = orgBaiDangStubFromMilestoneCard({
+        orgBaiDangRef,
+        title,
+        body,
+        noiDungBlocks,
+        createdAt: milestone.createdAt,
+        coverSrc: preview?.src,
+        orgAvatarSrc:
+          attribution?.avatarUrl ??
+          entityPosterAvatar ??
+          milestone.lensOwnerAvatarUrl ??
+          null,
+        articleTags: liveArticleTags,
+        tags: tags.map((t) => ({
+          label: t.label,
+          slug: t.label,
+        })),
+        coAuthorCredits,
+        commentCount: liveCommentCount,
+      });
+      openOrgArticlePopup(post, { href: viewerPostHref, owner });
       return;
     }
-    expandScrollPinRef.current = captureExpandScrollPin(articleRef.current);
-    inlineExpand.onToggleContent();
+    openArticlePopup(milestoneId, { href: viewerPostHref });
   }
 
   function handleExpandKeyDown(e: React.KeyboardEvent<HTMLElement>) {
-    if (!supportsInlineUnfold || !inlineExpand || isContentOpen) return;
+    if (!supportsArticlePopup) return;
     if (e.key !== "Enter" && e.key !== " ") return;
     if (shouldIgnoreExpandTrigger(e.target as Element)) return;
     e.preventDefault();
     trackContentOpen();
-    if (commentsSheetMode && !orgBaiDangRef) {
-      openArticlePopup(milestoneId, { href: viewerPostHref });
+    if (orgBaiDangRef) {
+      const { post, owner } = orgBaiDangStubFromMilestoneCard({
+        orgBaiDangRef,
+        title,
+        body,
+        noiDungBlocks,
+        createdAt: milestone.createdAt,
+        coverSrc: preview?.src,
+        orgAvatarSrc:
+          attribution?.avatarUrl ??
+          entityPosterAvatar ??
+          milestone.lensOwnerAvatarUrl ??
+          null,
+        articleTags: liveArticleTags,
+        tags: tags.map((t) => ({
+          label: t.label,
+          slug: t.label,
+        })),
+        coAuthorCredits,
+        commentCount: liveCommentCount,
+      });
+      openOrgArticlePopup(post, { href: viewerPostHref, owner });
       return;
     }
-    expandScrollPinRef.current = captureExpandScrollPin(articleRef.current);
-    inlineExpand.onToggleContent();
+    openArticlePopup(milestoneId, { href: viewerPostHref });
   }
 
   const jcardAuthors = showAuthorsStrip ? (
@@ -1805,10 +1832,10 @@ export function JourneyMilestoneCard({
               className={
                 "j-m-card jcard j-bookmark-frame-card jcard--" +
                 cardShellKind +
-                (supportsInlineUnfold ? " has-unfold" : "") +
+                (supportsArticlePopup ? " has-unfold" : "") +
                 (showUnfold
                   ? " is-expanded"
-                  : supportsInlineUnfold
+                  : supportsArticlePopup
                     ? " is-collapsed"
                     : "")
               }
@@ -1821,12 +1848,12 @@ export function JourneyMilestoneCard({
             className={
               "j-m-card jcard jcard--" +
               cardShellKind +
-              (supportsInlineUnfold ? " has-unfold" : "") +
+              (supportsArticlePopup ? " has-unfold" : "") +
               (showUnfold
                 ? " is-expanded"
-                : supportsInlineUnfold
-                  ? " is-collapsed"
-                  : "")
+                : supportsArticlePopup
+                    ? " is-collapsed"
+                    : "")
             }
           >
             {renderMilestoneCardInterior()}
@@ -1850,6 +1877,7 @@ export function JourneyMilestoneCard({
         />
       ) : null}
       {articlePopupOverlay}
+      {orgArticlePopupOverlay}
     </article>
   );
 
@@ -1977,10 +2005,7 @@ export function JourneyMilestoneCard({
     const collapseUnfold = () => {
       if (showChiChuUnfold) {
         setChiChuExpanded(false);
-        return;
       }
-      /* Thu gọn nội dung — không đóng bình luận nếu đang mở. */
-      inlineExpand?.onToggleContent();
     };
     /* Sticky đầu `.j-m-card-main` — dock đáy viewport khi cuộn bài dài. */
     const unfoldToggle = showUnfoldToggle ? (
@@ -2569,17 +2594,15 @@ export function JourneyMilestoneCard({
               }
               articleTags={liveArticleTags}
               expandTrigger={
-                supportsInlineUnfold && inlineExpand && !isContentOpen
+                supportsArticlePopup
                   ? {
                       enabled: true,
-                      expanded: isContentOpen,
+                      expanded: false,
                       ariaLabel: `Xem đầy đủ: ${showCardTitle ? title : cardCaption || title}`,
                       onClick: handleExpandTrigger,
                       onKeyDown: handleExpandKeyDown,
                     }
-                  : supportsInlineUnfold && inlineExpand
-                    ? { enabled: false, expanded: isContentOpen }
-                    : undefined
+                  : undefined
               }
               onTagLinkClick={(e) => e.stopPropagation()}
             />
@@ -2603,49 +2626,28 @@ export function JourneyMilestoneCard({
               aria-hidden={!showUnfold}
             >
               {unfoldMounted ? (
-                orgBaiDangRef && showContent && noiDungBlocks?.length ? (
-                  <div className="j-m-card-unfold-inner">
-                    <div className="cins-editor-page cins-post-view j-m-unfold-post">
-                      {isMilestoneArticleCard(
-                        noiDungBlocks,
-                        hasCoverPreview,
-                        body,
-                      ) ? (
-                        <JourneyUnfoldArticleContent
-                          blocksOnly
-                          title={title}
-                          tomTat={body}
-                          blocks={noiDungBlocks}
-                        />
-                      ) : (
-                        <PostBlockRenderer blocks={noiDungBlocks} />
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <JourneyMilestoneUnfold
-                    active={showUnfold}
-                    showBlocks={showContent}
-                    showComments={showComments}
-                    commentsFocus={showComments}
-                    postOwnerSlug={inlineExpand!.postOwnerSlug}
-                    postSlug={postSlug}
-                    milestoneId={milestoneId}
-                    actionsBeforeComments={
-                      pinActionsAboveComments ? (
-                        <>
-                          {authorsInUnfold ? jcardAuthors : null}
-                          {jcardActions}
-                        </>
-                      ) : undefined
-                    }
-                    inlineSkip={{
-                      byline: true,
-                      tags: liveArticleTags.length > 0,
-                      contributors: showAuthorsStrip,
-                    }}
-                  />
-                )
+                <JourneyMilestoneUnfold
+                  active={showUnfold}
+                  showBlocks={false}
+                  showComments={showComments}
+                  commentsFocus={showComments}
+                  postOwnerSlug={inlineExpand!.postOwnerSlug}
+                  postSlug={postSlug}
+                  milestoneId={milestoneId}
+                  actionsBeforeComments={
+                    pinActionsAboveComments ? (
+                      <>
+                        {authorsInUnfold ? jcardAuthors : null}
+                        {jcardActions}
+                      </>
+                    ) : undefined
+                  }
+                  inlineSkip={{
+                    byline: true,
+                    tags: liveArticleTags.length > 0,
+                    contributors: showAuthorsStrip,
+                  }}
+                />
               ) : null}
             </div>
           ) : null}

@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Receipt } from "lucide-react";
 
-import { MoShopForm } from "@/components/shop/MoShopForm";
 import { MoShopBodyFlat } from "@/components/shop/MoShopBodyFlat";
+import { MoShopFoot, MoShopLayout } from "@/components/shop/MoShopLayout";
 import { CinsShell } from "@/components/cins/CinsShell";
 import { getPhiDangApDungShop } from "@/lib/billing/phi-chinh-sach";
+import { getShopDangKyMoSlotStatus } from "@/lib/shop/dang-ky-mo-slots";
 
 import "@/app/mo-shop/mo-shop.css";
 
@@ -58,54 +57,20 @@ export default async function MoShopPage({
   const tu = oneParam(sp.tu).slice(0, 80);
 
   const phi = await getPhiDangApDungShop();
+  const slots = await getShopDangKyMoSlotStatus();
 
   return (
     <CinsShell className="cins-shell--mo-shop" data-screen-label="Mo-shop">
       <MoShopBodyFlat>
         <div className="mo-shop-page">
-          <div className="mo-shop-layout">
-            <aside className="mo-shop-aside">
-              <header className="mo-shop-intro">
-                <p className="mo-shop-kicker">Mở shop · CINs dựng hộ</p>
-                <h1 className="mo-shop-title">
-                  Gửi link hàng, CINs lo phần còn lại
-                </h1>
-                <p className="mo-shop-sub">
-                  Form ~2 phút. Chi tiết shop, ảnh, giá — trao đổi qua inbox
-                  như bạn vẫn hay làm.
-                </p>
-              </header>
+          <MoShopLayout
+            initialGt={gt}
+            initialTu={tu}
+            phiTyLePercent={phi.tyLePercent}
+            initialSlots={slots}
+          />
 
-              <h2 className="mo-shop-aside-heading">
-                <Receipt size={15} strokeWidth={2.1} aria-hidden />
-                Thông tin nhanh
-              </h2>
-              <dl className="mo-shop-facts">
-                <div>
-                  <dt>Phí nền tảng</dt>
-                  <dd>{phi.tyLePercent}%</dd>
-                </div>
-                <div>
-                  <dt>Thanh toán</dt>
-                  <dd>Khách chuyển thẳng STK bạn</dd>
-                </div>
-                <div>
-                  <dt>Quyền sở hữu</dt>
-                  <dd>Shop thuộc bạn; duyệt xong mới public</dd>
-                </div>
-              </dl>
-            </aside>
-
-            <div className="mo-shop-main">
-              <MoShopForm initialGt={gt} initialTu={tu} />
-            </div>
-          </div>
-
-          <nav className="mo-shop-foot" aria-label="Liên kết phụ">
-            <Link href="/chinh-sach/phi-san">Chính sách phí</Link>
-            <Link href="/termandservice">Điều khoản</Link>
-            <Link href="/ho-tro">Trợ giúp</Link>
-          </nav>
+          <MoShopFoot />
         </div>
       </MoShopBodyFlat>
     </CinsShell>

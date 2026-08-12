@@ -80,6 +80,7 @@ export async function POST(request: NextRequest) {
 
   const result = await createShopDangKyMo({
     tenShop: str("tenShop") ?? "",
+    moTa: str("moTa"),
     tenLienHe: str("tenLienHe"),
     loaiHang: Array.isArray(body?.loaiHang)
       ? (body.loaiHang as unknown[]).filter(
@@ -87,6 +88,14 @@ export async function POST(request: NextRequest) {
         )
       : [],
     hinhThucBan: str("hinhThucBan"),
+    mxhBanHangLinks: Array.isArray(body?.mxhBanHangLinks)
+      ? (body.mxhBanHangLinks as unknown[]).filter(
+          (x): x is string => typeof x === "string",
+        )
+      : [],
+    hangGioiThieu: Array.isArray(body?.hangGioiThieu)
+      ? (body.hangGioiThieu as unknown[])
+      : [],
     resourceLinksText: str("resourceLinksText"),
     ghiChu: str("ghiChu"),
     kenhLienHe: str("kenhLienHe") ?? "",

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { sendSignupOtpViaResend } from "@/lib/auth/send-signup-otp-resend";
 import { sendSignupConfirmationOtp } from "@/lib/auth/send-signup-otp";
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
 
@@ -29,6 +30,7 @@ function clientIp(request: NextRequest): string {
 
 /**
  * POST /api/auth/resend-signup-otp — gửi (hoặc gửi lại) mã OTP xác nhận đăng ký.
+ * Ưu tiên Resend API (`cins-app`) + Admin `generateLink`; fallback SMTP Auth nếu Resend lỗi.
  * Không tiết lộ email có tồn tại hay không khi thành công.
  */
 export async function POST(request: NextRequest) {
@@ -63,15 +65,28 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const viaResend = await sendSignupOtpViaResend(email);
+  if (viaResend.ok) {
+    return NextResponse.json({
+      ok: true,
+      verifyType: viaResend.verifyType,
+      via: "resend",
+    });
+  }
+
+  /* Resend lỗi cấu hình/gửi → fallback SMTP Auth (Custom SMTP). */
   const supabase = createPublicSupabaseClient();
   const result = await sendSignupConfirmationOtp(supabase, email);
 
   if (!result.ok) {
     return NextResponse.json(
-      { error: result.message, retryAfterSec: result.retryAfterSec },
+      {
+        error: viaResend.message || result.message,
+        retryAfterSec: viaResend.retryAfterSec ?? result.retryAfterSec,
+      },
       { status: 422 },
     );
   }
 
-  return NextResponse.json({ ok: true, verifyType: result.verifyType });
+  return NextResponse.json({ ok: true, verifyType: result.verifyType, via: "smtp" });
 }

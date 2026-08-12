@@ -97,12 +97,18 @@ export function EmailOtpVerification({
       setSendingInitial(false);
       if (result.ok) {
         setVerifyType(result.verifyType);
-        setNotice("Đã gửi mã mới. Kiểm tra hộp thư và mục Spam/Quảng cáo.");
+        setNotice("Đã gửi mã. Kiểm tra hộp thư và mục Spam/Quảng cáo.");
         setCooldown(EMAIL_OTP_RESEND_COOLDOWN_SEC);
+      } else if (result.retryAfterSec) {
+        /*
+         * Vừa `signUp` xong thường bị “wait N seconds” — mail Confirm signup
+         * nhiều khả năng đã gửi. Không hiện lỗi đỏ; cho đợi rồi «Gửi lại mã».
+         */
+        setNotice("Đã gửi mã. Kiểm tra hộp thư và mục Spam/Quảng cáo.");
+        setCooldown(result.retryAfterSec);
+        setError(null);
       } else {
         setError(result.message);
-        /* Supabase còn đang chặn → khoá nút cho tới đúng lúc gửi lại được. */
-        if (result.retryAfterSec) setCooldown(result.retryAfterSec);
       }
     })();
   }, [email, sendOnMount]);

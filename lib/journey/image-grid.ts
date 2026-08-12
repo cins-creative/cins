@@ -457,8 +457,8 @@ export function splitJustifiedRows(cells: AlbumCell[]): AlbumCell[][] {
  * - masonry: cột dọc theo tỉ lệ ảnh
  * - columns2: lưới vuông 2 cột cố định
  * - square: lưới ô vuông (2–6 / compose 7+)
- * - stack: xếp dọc full-width
- * - >6 ảnh ở feed: hiện 6 ô đầu, ô cuối phủ "+N" (trừ showAll / stack compose)
+ * - stack: xếp dọc full-width (Behance) — luôn xổ đủ ảnh, không +N
+ * - >6 ảnh ở feed (layout khác stack): hiện 6 ô đầu, ô cuối phủ "+N" (trừ showAll)
  */
 export function resolveAlbumLayout(
   images: GridImage[],
@@ -467,6 +467,8 @@ export function resolveAlbumLayout(
 ): AlbumLayout {
   const total = images.length;
   const albumMode = normalizeAlbumLayoutMode(mode);
+  /* Stack = strip dọc Behance — cắt 6 + overlay vô nghĩa; luôn hiện đủ. */
+  const effectiveShowAll = showAll || albumMode === "stack";
 
   if (total === 1) {
     return {
@@ -476,8 +478,8 @@ export function resolveAlbumLayout(
     };
   }
 
-  const displayCount = albumGridDisplayCount(total, showAll);
-  const remaining = albumGridRemainingCount(total, showAll);
+  const displayCount = albumGridDisplayCount(total, effectiveShowAll);
+  const remaining = albumGridRemainingCount(total, effectiveShowAll);
   const overlaySlotIndex = remaining > 0 ? displayCount - 1 : null;
   const displayImages = images.slice(0, displayCount);
   const cells = displayImages.map(toCell);
@@ -512,7 +514,7 @@ export function resolveAlbumLayout(
   if (albumMode === "square") {
     return {
       kind: "square",
-      layoutCount: albumGridLayoutCount(total, showAll),
+      layoutCount: albumGridLayoutCount(total, effectiveShowAll),
       displayImages,
       remaining,
       overlaySlotIndex,

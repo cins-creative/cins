@@ -38,8 +38,10 @@ import {
 } from "@/app/[slug]/journey/actions";
 import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
+import type { ChatSendGifPayload } from "@/components/cins/ChatStickerPicker";
 import { MsIcon } from "@/components/cins/MsIcon";
 import { CommentAttachments } from "@/components/journey/CommentAttachments";
+import { importGifToCloudflare } from "@/lib/gif/client";
 import { CommentMentionText } from "@/components/journey/CommentMentionText";
 import { CommentReactionPill } from "@/components/journey/CommentReactionPill";
 import { CommentVoteButtons } from "@/components/journey/CommentVoteButtons";
@@ -118,6 +120,7 @@ export function CommentBlock(props: CommentBlockProps) {
     comments,
     viewerCanComment,
     onCommentAdded,
+    onCommentRemoved,
     sectionId = "post-comments",
     submitComment,
     pinCompose = false,
@@ -220,12 +223,80 @@ export function CommentBlock(props: CommentBlockProps) {
     });
   }
 
+  function handleSendGif(
+    payload: ChatSendGifPayload,
+    idToChuc: string | null,
+  ) {
+    const replyId = replyTo?.id ?? null;
+    const tempId = `optimistic:gif:${crypto.randomUUID()}`;
+    setErr(null);
+    onCommentAdded({
+      id: tempId,
+      noiDung: "",
+      taoLuc: new Date().toISOString(),
+      idCha: replyId,
+      anhDinhKem: [payload.previewUrl],
+      author: null,
+      isOwn: true,
+      reactions: [],
+      replies: [],
+      daXoa: false,
+      ghimLuc: null,
+    });
+    setText("");
+    setReplyTo(null);
+    setComposeResetKey((k) => k + 1);
+
+    void (async () => {
+      try {
+        const imported = await importGifToCloudflare({
+          url: payload.url,
+          id: payload.id,
+        });
+        const res = submitComment
+          ? await submitComment("", replyId, [imported.imageId], idToChuc)
+          : await addMilestoneCommentV1(milestoneId, "", {
+              replyToId: replyId,
+              anhDinhKem: [imported.imageId],
+              idToChuc,
+            });
+        onCommentRemoved(tempId);
+        if (!res.ok) {
+          setErr(res.error);
+          return;
+        }
+        onCommentAdded({
+          id: res.data.id,
+          noiDung: res.data.noiDung,
+          taoLuc: res.data.taoLuc,
+          idCha: res.data.idCha ?? null,
+          anhDinhKem: res.data.anhDinhKem ?? [imported.imageId],
+          author: res.data.author
+            ? { ...res.data.author, badge: null }
+            : null,
+          isOwn: true,
+          reactions: [],
+          replies: [],
+          daXoa: false,
+          ghimLuc: null,
+        });
+        if (!submitComment) emitNotificationsChanged();
+      } catch (error) {
+        onCommentRemoved(tempId);
+        setErr(
+          error instanceof Error ? error.message : "Không gửi được GIF.",
+        );
+      }
+    })();
+  }
+
   const composeProps = {
     text,
     setText,
     replyTo,
     onCancelReply: cancelReply,
     onSend: handleSend,
+    onSendGif: handleSendGif,
     pending,
     inputRef,
     composeResetKey,
@@ -335,6 +406,10 @@ type ComposeProps = {
     imageIds: string[];
     idToChuc?: string | null;
   }) => void;
+  onSendGif?: (
+    payload: ChatSendGifPayload,
+    idToChuc: string | null,
+  ) => void;
   pending: boolean;
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
   composeResetKey?: number;
@@ -494,6 +569,7 @@ function CommentComposeForm({
   replyTo,
   onCancelReply,
   onSend,
+  onSendGif,
   pending,
   inputRef,
   inline = false,
@@ -744,6 +820,15 @@ function CommentComposeForm({
     [pending, sendPayload],
   );
 
+  const sendGif = useCallback(
+    (payload: ChatSendGifPayload) => {
+      if (pending || !onSendGif) return;
+      setStickerPickerOpen(false);
+      onSendGif(payload, idToChuc);
+    },
+    [pending, onSendGif, idToChuc],
+  );
+
   const readyImageIds = attachments
     .map((a) => a.imageId)
     .filter((id): id is string => Boolean(id));
@@ -915,6 +1000,7 @@ function CommentComposeForm({
           onClose={() => setStickerPickerOpen(false)}
           disabled={pending}
           onSend={sendMeme}
+          onSendGif={onSendGif ? sendGif : undefined}
         />
       </div>
     ) : null;
@@ -1201,7 +1287,7 @@ function CommentComposeForm({
               type="button"
               className="post-comments-meme-btn"
               data-sticker-trigger
-              aria-label="Meme của tôi"
+              aria-label="Meme / GIF"
               aria-expanded={stickerPickerOpen}
               disabled={pending}
               onClick={() => setStickerPickerOpen((open) => !open)}

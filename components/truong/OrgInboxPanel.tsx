@@ -18,6 +18,7 @@ import {
 import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems";
 import { ChatReplyComposeBar } from "@/components/cins/ChatReplyComposeBar";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
+import { importGifToCloudflare } from "@/lib/gif/client";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { MsIcon } from "@/components/cins/MsIcon";
 import { useChatRoomMessageActions } from "@/components/cins/useChatRoomMessageActions";
@@ -56,6 +57,7 @@ import { tinHienVoiViewer } from "@/lib/chat/visibility";
 import { replaceOptimisticAlbumWithRealMessages } from "@/lib/chat/replace-album-batch";
 import type { ChatMessage, ChatMessageReplyPreview } from "@/lib/chat/types";
 import { userEmojiDeliveryUrl } from "@/lib/user-emoji/delivery-url";
+import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
 import type { UserEmojiMuc } from "@/lib/user-emoji/types";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
 import { formatInboxTime } from "@/lib/truong/message-inbox-mock";
@@ -665,6 +667,43 @@ export function OrgInboxPanel({
     });
   }
 
+  function sendGif(payload: {
+    previewUrl: string;
+    url: string;
+    id?: string;
+  }) {
+    if (!selected || pending) return;
+    const studentUserId = selected.studentUserId;
+    const optimistic = createOptimisticChatMessage({
+      body: "",
+      kind: "media",
+      imageId: null,
+      imageUrl: payload.previewUrl,
+    });
+    appendMessages([optimistic]);
+    startTransition(() => {
+      void (async () => {
+        try {
+          const imported = await importGifToCloudflare({
+            url: payload.url,
+            id: payload.id,
+          });
+          const ok = await submitInboxPayload(
+            studentUserId,
+            { cloudflare_image_id: imported.imageId },
+            optimistic.id,
+          );
+          if (!ok) return;
+        } catch (error) {
+          setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+          toast(
+            error instanceof Error ? error.message : "Không gửi được GIF.",
+          );
+        }
+      })();
+    });
+  }
+
   useEffect(() => {
     if (!panelRef) return;
     panelRef.current = {
@@ -755,6 +794,7 @@ export function OrgInboxPanel({
               sendReply(text, images, filesByLocalId, inFlightUploads, replyTo)
             }
             onSendSticker={sendSticker}
+            onSendGif={sendGif}
             onRefresh={() => void loadThreads({ silent: true })}
           />
         ) : (
@@ -841,6 +881,7 @@ function ThreadDetail({
   onReplyChange,
   onSend,
   onSendSticker,
+  onSendGif,
   onRefresh,
 }: {
   thread: OrgInboxThread;
@@ -867,6 +908,11 @@ function ThreadDetail({
     replyTo: ChatMessage | null,
   ) => void;
   onSendSticker: (item: UserEmojiMuc) => void;
+  onSendGif: (payload: {
+    previewUrl: string;
+    url: string;
+    id?: string;
+  }) => void;
   onRefresh: () => void;
 }) {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -1095,6 +1141,10 @@ function ThreadDetail({
             onSend={(item) => {
               setStickerPickerOpen(false);
               onSendSticker(item);
+            }}
+            onSendGif={(payload) => {
+              setStickerPickerOpen(false);
+              onSendGif(payload);
             }}
           />
         ) : null}

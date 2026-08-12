@@ -42,6 +42,7 @@ import { OrgBaiDangLikeButton } from "@/components/truong/OrgBaiDangLikeButton";
 import { OrgBaiDangLoaiBadge } from "@/components/truong/OrgBaiDangLoaiBadge";
 import { OrgBaiDangPublishedDate } from "@/components/truong/OrgBaiDangPublishedDate";
 import { OrgBaiDangScheduledBadge } from "@/components/truong/OrgBaiDangScheduledBadge";
+import { useOrgBaiDangDirectPostOverlay } from "@/components/truong/useOrgBaiDangDirectPostOverlay";
 import { baiDangUsesBlocks } from "@/lib/truong/bai-dang-blocks";
 import { TruongBaiDangPostActions } from "@/components/truong/inline/TruongBaiDangEdit";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
@@ -166,6 +167,10 @@ export function OrgBaiDangJourneyCard({
     if (!school?.slug) return null;
     return orgBaiDangPermalinkForSchool(school, post.id, pathname);
   }, [school, post.id, pathname]);
+  const { openPost: openArticlePopup, overlay: articlePopupOverlay } =
+    useOrgBaiDangDirectPostOverlay({
+      owner: school ?? owner,
+    });
   const [liveArticleTags, setLiveArticleTags] = useState<ArticleTagRef[]>(
     () => [...(post.articleTags ?? [])],
   );
@@ -234,6 +239,10 @@ export function OrgBaiDangJourneyCard({
   const [commentCount, setCommentCount] = useState(post.commentCount ?? 0);
   const [viewerCommented, setViewerCommented] = useState(false);
   const articleRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    setExpanded(Boolean(initialExpanded));
+  }, [initialExpanded, post.id]);
 
   useEffect(() => {
     setCommentCount(post.commentCount ?? 0);
@@ -319,11 +328,12 @@ export function OrgBaiDangJourneyCard({
   }, [usesBlocks, blocks, legacyPhotoGrid]);
 
   const supportsInlineUnfold = useUnifiedMediaBody && isArticleCard;
+  /** Timeline: popup; trong modal (`initialExpanded`) mới xổ nội dung inline. */
+  const showUnfold = supportsInlineUnfold && expanded && initialExpanded;
 
   const legacyCardExpand = !useUnifiedMediaBody && canExpand && !usesBlocks;
   const year = baiDangYear(post.tao_luc);
   const month = post.tao_luc ? new Date(post.tao_luc).getMonth() + 1 : null;
-  const showUnfold = supportsInlineUnfold && expanded;
   const cardBodyForDisplay = useMemo(() => {
     if (usesBlocks) {
       const fromBlocks = plainTextCardPlain(post.tom_tat, blocks);
@@ -356,35 +366,38 @@ export function OrgBaiDangJourneyCard({
     return null;
   }, [cardCaption, post.tom_tat, post.noi_dung]);
 
+  function openFullPost() {
+    trackOpenContent();
+    openArticlePopup(post, {
+      href: sharePath,
+      owner: school ?? owner,
+    });
+  }
+
   function onCardClick(e: React.MouseEvent) {
-    if (!legacyCardExpand) return;
+    if (!legacyCardExpand || initialExpanded) return;
     const t = e.target as HTMLElement;
     if (t.closest("a, button")) return;
-    setExpanded((v) => {
-      if (!v) trackOpenContent();
-      return !v;
-    });
+    openFullPost();
   }
 
   function onBlocksExpandTrigger(e: React.MouseEvent<HTMLElement>) {
     if (
       !supportsInlineUnfold ||
-      expanded ||
+      initialExpanded ||
       shouldIgnoreExpandTrigger(e.target as Element)
     ) {
       return;
     }
-    trackOpenContent();
-    setExpanded(true);
+    openFullPost();
   }
 
   function onBlocksExpandKeyDown(e: React.KeyboardEvent<HTMLElement>) {
-    if (!supportsInlineUnfold || expanded) return;
+    if (!supportsInlineUnfold || initialExpanded) return;
     if (e.key !== "Enter" && e.key !== " ") return;
     if (shouldIgnoreExpandTrigger(e.target as Element)) return;
     e.preventDefault();
-    trackOpenContent();
-    setExpanded(true);
+    openFullPost();
   }
 
   const blocksCardClassName = [
@@ -407,8 +420,9 @@ export function OrgBaiDangJourneyCard({
       data-content-kind={cardKind}
       data-scheduled={showScheduledUi ? "true" : undefined}
     >
+      {articlePopupOverlay}
       <div className="j-m-body-wrap">
-        {showUnfold || showChiChuUnfold ? (
+        {showChiChuUnfold || (showUnfold && !initialExpanded) ? (
           <div className="jcard-unfold-sticky">
             <button
               type="button"
@@ -501,16 +515,14 @@ export function OrgBaiDangJourneyCard({
                   chiChuCollapsible ? setChiChuExpanded : undefined
                 }
                 expandTrigger={
-                  supportsInlineUnfold
-                    ? expanded
-                      ? { enabled: false, expanded: true }
-                      : {
-                          enabled: true,
-                          expanded: false,
-                          ariaLabel: `Mở bài viết: ${post.tieu_de}`,
-                          onClick: onBlocksExpandTrigger,
-                          onKeyDown: onBlocksExpandKeyDown,
-                        }
+                  supportsInlineUnfold && !initialExpanded
+                    ? {
+                        enabled: true,
+                        expanded: false,
+                        ariaLabel: `Mở bài viết: ${post.tieu_de}`,
+                        onClick: onBlocksExpandTrigger,
+                        onKeyDown: onBlocksExpandKeyDown,
+                      }
                     : undefined
                 }
               />
@@ -600,9 +612,9 @@ export function OrgBaiDangJourneyCard({
                 </div>
               ) : null}
 
-              {legacyCardExpand ? (
+              {legacyCardExpand && !initialExpanded ? (
                 <span className="org-tl-read" aria-hidden>
-                  {expanded ? "Thu gọn ↑" : "Xem thêm ↓"}
+                  Xem thêm ↓
                 </span>
               ) : null}
             </div>

@@ -77,6 +77,14 @@ export function AdminMoShopDetailScreen({ item }: Props) {
           <h2 className="mo-shop-admin-panel-title">Thông tin lead</h2>
           <dl className="mo-shop-admin-dl">
             <div>
+              <dt>Tên shop</dt>
+              <dd>{item.tenShop}</dd>
+            </div>
+            <div>
+              <dt>Mô tả shop</dt>
+              <dd className="mo-shop-admin-pre">{item.moTa || "—"}</dd>
+            </div>
+            <div>
               <dt>Tên gọi</dt>
               <dd>{item.tenLienHe || "—"}</dd>
             </div>
@@ -89,6 +97,24 @@ export function AdminMoShopDetailScreen({ item }: Props) {
               </dd>
             </div>
             <div>
+              <dt>Link MXH bán hàng</dt>
+              <dd>
+                {item.mxhBanHangLinks.length > 0 ? (
+                  <ul className="mo-shop-admin-links">
+                    {item.mxhBanHangLinks.map((url) => (
+                      <li key={url}>
+                        <a href={url} target="_blank" rel="noopener noreferrer">
+                          {url}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  "—"
+                )}
+              </dd>
+            </div>
+            <div>
               <dt>Liên hệ</dt>
               <dd>
                 {SHOP_DANG_KY_MO_KENH_LABEL[item.kenhLienHe]} ·{" "}
@@ -98,7 +124,11 @@ export function AdminMoShopDetailScreen({ item }: Props) {
             <div>
               <dt>Email</dt>
               <dd>
-                <a href={`mailto:${item.email}`}>{item.email}</a>
+                {item.email ? (
+                  <a href={`mailto:${item.email}`}>{item.email}</a>
+                ) : (
+                  "—"
+                )}
               </dd>
             </div>
             <div>
@@ -127,7 +157,31 @@ export function AdminMoShopDetailScreen({ item }: Props) {
             </div>
           </dl>
 
-          <h3 className="mo-shop-admin-panel-sub">Link hàng</h3>
+          <h3 className="mo-shop-admin-panel-sub">Mặt hàng giới thiệu</h3>
+          {item.hangGioiThieu.length === 0 ? (
+            <p className="mo-shop-admin-muted">Không có mặt hàng.</p>
+          ) : (
+            <ul className="mo-shop-admin-hang-list">
+              {item.hangGioiThieu.map((hang, index) => (
+                <li key={`${hang.link}-${index}`} className="mo-shop-admin-hang-item">
+                  <p className="mo-shop-admin-hang-mota">
+                    {hang.tenMatHang || hang.moTa || `Mặt hàng ${index + 1}`}
+                  </p>
+                  {hang.tenMatHang && hang.moTa ? (
+                    <p className="mo-shop-admin-hang-sub">{hang.moTa}</p>
+                  ) : null}
+                  {hang.giaBan ? (
+                    <p className="mo-shop-admin-hang-sub">Giá: {hang.giaBan}</p>
+                  ) : null}
+                  <a href={hang.link} target="_blank" rel="noopener noreferrer">
+                    {hang.link}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <h3 className="mo-shop-admin-panel-sub">Link hàng (legacy)</h3>
           {item.resourceLinks.length === 0 ? (
             <p className="mo-shop-admin-muted">Không có link.</p>
           ) : (

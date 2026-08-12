@@ -1228,6 +1228,12 @@
   border-top: 1px solid var(--border);
 }
 
+/* Popup org bài đăng — comments full-bleed ngang rail. */
+.cins-post-view.org-baidang-post-split.post-canvas--split .post-rail-blk--comments {
+  padding-left: 0;
+  padding-right: 0;
+}
+
 .cins-post-view .post-comments--pin-compose {
   flex: 1 1 auto;
   min-height: 0;
@@ -5518,6 +5524,10 @@
     order: 7;
     border-top: 1px solid var(--border);
     padding-inline: 20px;
+  }
+
+  .cins-post-view.org-baidang-post-split.post-canvas--split .post-rail-blk--comments {
+    padding-inline: 0;
   }
 
   .cins-post-view .post-rail-blk--author {

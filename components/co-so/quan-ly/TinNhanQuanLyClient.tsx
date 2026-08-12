@@ -13,6 +13,7 @@ import {
 import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems";
 import { ChatReplyComposeBar } from "@/components/cins/ChatReplyComposeBar";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
+import { importGifToCloudflare } from "@/lib/gif/client";
 import { MsIcon } from "@/components/cins/MsIcon";
 import { useChatRoomMessageActions } from "@/components/cins/useChatRoomMessageActions";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
@@ -61,6 +62,7 @@ import { useChatRealtime } from "@/lib/chat/use-chat-realtime";
 import { tinHienVoiViewer } from "@/lib/chat/visibility";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
 import { userEmojiDeliveryUrl } from "@/lib/user-emoji/delivery-url";
+import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
 import type { UserEmojiMuc } from "@/lib/user-emoji/types";
 import {
   useCallback,
@@ -996,6 +998,41 @@ function CoSoRoomsPane({
     });
   }
 
+  function sendGif(payload: {
+    previewUrl: string;
+    url: string;
+    id?: string;
+  }) {
+    if (!selectedRoomId || pending) return;
+    const optimistic = createOptimisticChatMessage({
+      body: "",
+      kind: "media",
+      imageId: null,
+      imageUrl: payload.previewUrl,
+    });
+    setMessages((prev) => reconcileChatMessage(prev, optimistic));
+    startTransition(() => {
+      void (async () => {
+        try {
+          const imported = await importGifToCloudflare({
+            url: payload.url,
+            id: payload.id,
+          });
+          await submitRoomPayload(
+            selectedRoomId,
+            { cloudflare_image_id: imported.imageId },
+            optimistic.id,
+          );
+        } catch (error) {
+          setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+          onToast(
+            error instanceof Error ? error.message : "Không gửi được GIF.",
+          );
+        }
+      })();
+    });
+  }
+
   return (
     <div className="tdh-message-inbox-layout cso-tin-nhan-inbox">
       <aside className="tdh-message-inbox-list-pane">
@@ -1150,6 +1187,7 @@ function CoSoRoomsPane({
             onReplyChange={setReply}
             onSend={sendReply}
             onSendSticker={sendSticker}
+            onSendGif={sendGif}
             avatarUrl={selected.avatarUrl}
             avatarHue={selected.avatarHue}
             avatarInitial={selected.avatarInitial}
@@ -1179,6 +1217,7 @@ function RoomComposeDetail({
   onReplyChange,
   onSend,
   onSendSticker,
+  onSendGif,
   avatarUrl,
   avatarHue,
   avatarInitial,
@@ -1206,6 +1245,11 @@ function RoomComposeDetail({
     replyTo: ChatMessage | null,
   ) => void;
   onSendSticker: (item: UserEmojiMuc) => void;
+  onSendGif: (payload: {
+    previewUrl: string;
+    url: string;
+    id?: string;
+  }) => void;
   avatarUrl?: string | null;
   avatarHue: number;
   avatarInitial: string;
@@ -1404,6 +1448,10 @@ function RoomComposeDetail({
             onSend={(item) => {
               setStickerPickerOpen(false);
               onSendSticker(item);
+            }}
+            onSendGif={(payload) => {
+              setStickerPickerOpen(false);
+              onSendGif(payload);
             }}
           />
         ) : null}

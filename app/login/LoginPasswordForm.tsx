@@ -8,7 +8,6 @@ import { EmailOtpVerification } from "@/components/auth/EmailOtpVerification";
 import { authOriginMismatchMessage } from "@/lib/auth/auth-origin";
 import { EMAIL_OTP_LENGTH } from "@/lib/auth/email-otp";
 import { stashOAuthIntent } from "@/lib/auth/oauth-intent-client";
-import { isExistingUnconfirmedSignup } from "@/lib/auth/send-signup-otp";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 type Mode = "login" | "register";
@@ -93,7 +92,7 @@ export function LoginPasswordForm({
     setBusyState(false);
   }
 
-  /** `sendOnMount=false` khi `signUp` vừa gửi OTP rồi — tránh 2 email. */
+  /** `sendOnMount=true` sau đăng ký / chưa confirm — API đảm bảo có mã (rate-limit = coi như đã gửi). */
   function openOtpStep(targetEmail: string, sendOnMount = true) {
     setPendingEmail(targetEmail.trim());
     setOtpSendOnMount(sendOnMount);
@@ -169,11 +168,13 @@ export function LoginPasswordForm({
     }
 
     /*
-     * signUp mới → Supabase đã gửi 1 OTP (Confirm signup).
-     * Email đã tồn tại / fake user (identities=[]) → Supabase không gửi → cần resend.
+     * Luôn mở OTP + gửi/đảm bảo gửi qua API.
+     * - User mới: signUp có thể đã gửi; resend trong vài giây thường bị rate-limit
+     *   → EmailOtpVerification coi đó là đã gửi (không báo lỗi).
+     * - Email đã tồn tại chưa confirm / fake user (identities=[]): signUp không gửi
+     *   → API resend / signInWithOtp mới gửi được mã.
      */
-    const needResend = isExistingUnconfirmedSignup(data.user);
-    openOtpStep(email.trim(), needResend);
+    openOtpStep(email.trim(), true);
     setPassword("");
   }
 

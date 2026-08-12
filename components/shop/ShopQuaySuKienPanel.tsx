@@ -477,8 +477,8 @@ function QuayMatHangCatalogView({
     [cardsKey, shuffleSeed],
   );
   const shuffledCards = useMemo(() => {
-    const byKey = new Map(
-      cards.map((c) => [`${c.id}:${c.quayId}`, c] as const),
+    const byKey = new Map<string, QuayMatHangCard>(
+      cards.map((c) => [`${c.id}:${c.quayId}`, c]),
     );
     return shuffledOrder
       .map((k) => byKey.get(k))
@@ -572,8 +572,8 @@ function QuayHangCatalogView({
     [cardsKey, shuffleSeed],
   );
   const shuffledCards = useMemo(() => {
-    const byKey = new Map(
-      cards.map((c) => [`${c.hangId}:${c.quayId}`, c] as const),
+    const byKey = new Map<string, QuayHangCard>(
+      cards.map((c) => [`${c.hangId}:${c.quayId}`, c]),
     );
     return shuffledOrder
       .map((k) => byKey.get(k))

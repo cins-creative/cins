@@ -34,6 +34,7 @@ import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems
 import { ChatReplyComposeBar } from "@/components/cins/ChatReplyComposeBar";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
 import { MsIcon } from "@/components/cins/MsIcon";
+import { importGifToCloudflare } from "@/lib/gif/client";
 
 const PhongHocMeeting = dynamic(
   () =>
@@ -105,6 +106,7 @@ import type {
   ChatThread,
 } from "@/lib/chat/types";
 import { userEmojiDeliveryUrl } from "@/lib/user-emoji/delivery-url";
+import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
 import type { UserEmojiMuc } from "@/lib/user-emoji/types";
 
 function messageToReplyPreview(msg: ChatMessage): ChatMessageReplyPreview {
@@ -2105,6 +2107,49 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     [appendOptimisticMessages, miniThread, submitRoomMessage],
   );
 
+  const sendGif = useCallback(
+    async (payload: { previewUrl: string; url: string; id?: string }) => {
+      if (!miniThread) return;
+      const roomId = miniThread.roomId;
+      setLoadError(null);
+      shouldScrollToBottomRef.current = true;
+      const optimistic = createOptimisticChatMessage({
+        body: "",
+        kind: "media",
+        imageId: null,
+        imageUrl: payload.previewUrl,
+      });
+      appendOptimisticMessages(roomId, [optimistic]);
+      try {
+        const imported = await importGifToCloudflare({
+          url: payload.url,
+          id: payload.id,
+        });
+        await submitRoomMessage(
+          roomId,
+          { cloudflare_image_id: imported.imageId },
+          optimistic.id,
+        );
+      } catch (error) {
+        setRoomStates((prev) => {
+          const current = prev[roomId];
+          if (!current) return prev;
+          return {
+            ...prev,
+            [roomId]: {
+              ...current,
+              messages: current.messages.filter((m) => m.id !== optimistic.id),
+            },
+          };
+        });
+        setLoadError(
+          error instanceof Error ? error.message : "Không gửi được GIF.",
+        );
+      }
+    },
+    [appendOptimisticMessages, miniThread, submitRoomMessage],
+  );
+
   const sendMessage = useCallback(() => {
     if (!miniThread || !canSend) return;
 
@@ -2446,6 +2491,10 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                 onSend={(item) => {
                   setStickerPickerOpen(false);
                   void sendSticker(item);
+                }}
+                onSendGif={(payload) => {
+                  setStickerPickerOpen(false);
+                  void sendGif(payload);
                 }}
               />
             ) : null}

@@ -42,6 +42,7 @@ import {
   HOME_LAYOUT_ITEM_LIMIT_MAX,
   HOME_LAYOUT_ITEM_LIMIT_MIN,
   clampItemLimit,
+  isModuleId,
   type HomeLayoutItemLimits,
 } from "@/lib/cins/home-adaptive/layout-prefs";
 import {
@@ -148,18 +149,31 @@ const CLIENT_LIMIT_MODULES = new Set<ModuleId>([
 
 function collectChildMap(children: ReactNode): Map<string, ReactElement> {
   const map = new Map<string, ReactElement>();
-  Children.forEach(children, (child) => {
-    if (!isValidElement(child)) return;
-    const props = child.props as { "data-ha-module"?: string };
-    const fromData = props["data-ha-module"];
-    const fromKey =
-      child.key != null
-        ? String(child.key).replace(/^\.\$/, "").replace(/^\./, "")
-        : null;
-    const key = fromData || fromKey;
-    if (!key) return;
-    map.set(key, child);
-  });
+  const walk = (node: ReactNode) => {
+    Children.forEach(node, (child) => {
+      if (!isValidElement(child)) return;
+      const props = child.props as {
+        "data-ha-module"?: string;
+        children?: ReactNode;
+      };
+      const fromData = props["data-ha-module"];
+      if (fromData) {
+        map.set(fromData, child);
+        return;
+      }
+      const fromKey =
+        child.key != null
+          ? String(child.key).replace(/^\.\$/, "").replace(/^\./, "")
+          : null;
+      if (fromKey && isModuleId(fromKey)) {
+        map.set(fromKey, child);
+        return;
+      }
+      /* Fragment / Suspense / wrapper — ExtraModules stream nằm trong đây. */
+      if (props.children != null) walk(props.children);
+    });
+  };
+  walk(children);
   return map;
 }
 
@@ -771,6 +785,21 @@ export function HomeLayoutEditProvider({
   );
 }
 
+/** Bọc fallback để CSS `:has([data-ha-module] > *)` không ẩn slot trống tạm. */
+function ModuleSlotFallback({
+  id,
+  children,
+}: {
+  id: ModuleId;
+  children: ReactNode;
+}) {
+  return (
+    <div data-ha-module={id} style={{ display: "contents" }}>
+      {children}
+    </div>
+  );
+}
+
 function SlotBody({ id, meta }: { id: ModuleId; meta: ModuleMeta }) {
   const ctx = useLayoutEdit();
   const content = ctx.childMap.get(id);
@@ -790,17 +819,27 @@ function SlotBody({ id, meta }: { id: ModuleId; meta: ModuleMeta }) {
     const preview = ctx.previews.get(id);
     if (preview?.status === "ok" && preview.forLimit === limit) {
       return (
-        <HomeModuleLivePreview
-          payload={preview.payload}
-          viewerProfileId={ctx.viewerProfileId}
-        />
+        <ModuleSlotFallback id={id}>
+          <HomeModuleLivePreview
+            payload={preview.payload}
+            viewerProfileId={ctx.viewerProfileId}
+          />
+        </ModuleSlotFallback>
       );
     }
     if (preview?.status === "loading" || !preview) {
-      return <HomeModulePreviewSkeleton id={id} />;
+      return (
+        <ModuleSlotFallback id={id}>
+          <HomeModulePreviewSkeleton id={id} />
+        </ModuleSlotFallback>
+      );
     }
     if (preview?.status === "error") {
-      return <ModulePlaceholder meta={meta} failed />;
+      return (
+        <ModuleSlotFallback id={id}>
+          <ModulePlaceholder meta={meta} failed />
+        </ModuleSlotFallback>
+      );
     }
   }
 
@@ -809,23 +848,37 @@ function SlotBody({ id, meta }: { id: ModuleId; meta: ModuleMeta }) {
   const preview = ctx.previews.get(id);
   if (preview?.status === "ok") {
     return (
-      <HomeModuleLivePreview
-        payload={preview.payload}
-        viewerProfileId={ctx.viewerProfileId}
-      />
+      <ModuleSlotFallback id={id}>
+        <HomeModuleLivePreview
+          payload={preview.payload}
+          viewerProfileId={ctx.viewerProfileId}
+        />
+      </ModuleSlotFallback>
     );
   }
 
   // Khối vừa thêm / chờ soft-refresh — hiện skeleton cả ngoài edit.
   if (preview?.status === "loading") {
-    return <HomeModulePreviewSkeleton id={id} />;
+    return (
+      <ModuleSlotFallback id={id}>
+        <HomeModulePreviewSkeleton id={id} />
+      </ModuleSlotFallback>
+    );
   }
   if (preview?.status === "error") {
-    return <ModulePlaceholder meta={meta} failed />;
+    return (
+      <ModuleSlotFallback id={id}>
+        <ModulePlaceholder meta={meta} failed />
+      </ModuleSlotFallback>
+    );
   }
 
   /* Ngoài edit vẫn skeleton — chờ preview API hoặc SSR stream, không để trống. */
-  return <HomeModulePreviewSkeleton id={id} />;
+  return (
+    <ModuleSlotFallback id={id}>
+      <HomeModulePreviewSkeleton id={id} />
+    </ModuleSlotFallback>
+  );
 }
 
 /** Cho phép xóa hết để gõ lại; commit ngay khi số hợp lệ (1–10). */
@@ -941,18 +994,6 @@ export function HomeEditableColumn({ side }: { side: Side }) {
           ctx.dragOver?.side === side &&
           ctx.dragOver.index === index &&
           ctx.dragId !== id;
-
-        const hasLivePreview = ctx.previews.get(id)?.status === "ok";
-        const awaitingPreview =
-          !ctx.childMap.has(id) && ctx.previews.has(id);
-        if (
-          !ctx.editing &&
-          !ctx.childMap.has(id) &&
-          !hasLivePreview &&
-          !awaitingPreview
-        ) {
-          return null;
-        }
 
         /** Ngoài edit: chỉ hiện + giữa 2 khối (không đầu/cuối cột). */
         const showGapAfter = ctx.editing || index < ids.length - 1;
