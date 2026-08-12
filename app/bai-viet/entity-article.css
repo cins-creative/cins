@@ -913,6 +913,24 @@ a.ent-contributors-name:hover {
   flex: 0 1 auto;
 }
 
+.contrib-topic-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--cins-blue) 35%, var(--border));
+  background: color-mix(in srgb, var(--cins-blue) 10%, var(--bg-surface));
+  color: var(--cins-blue-dark);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.contrib-topic-edit-btn:hover {
+  background: color-mix(in srgb, var(--cins-blue) 18%, var(--bg-surface));
+}
+
 .contrib-topic-head-thumb {
   position: relative;
   flex: 0 0 auto;
@@ -1284,7 +1302,27 @@ a.ent-contributors-name:hover {
   color: var(--ink-muted);
 }
 
+.contrib-badge--duoc_duyet {
+  background: color-mix(in srgb, var(--cins-blue) 14%, var(--bg-surface));
+  color: var(--cins-blue-dark);
+}
+
+.contrib-badge--cho_duyet {
+  background: color-mix(in srgb, var(--warning, #f4a52a) 16%, var(--bg-surface));
+  color: var(--ink-title);
+}
+
+.contrib-badge--can_sua,
+.contrib-badge--tu_choi {
+  background: color-mix(in srgb, var(--danger, #e11d48) 12%, var(--bg-surface));
+  color: var(--danger, #e11d48);
+}
+
 .contrib-card-owner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
   margin-top: var(--space-3);
 }
 
@@ -1302,6 +1340,25 @@ a.ent-contributors-name:hover {
 
 .contrib-card-owner-btn:hover {
   color: var(--ink-title);
+}
+
+.contrib-card-owner-btn--edit {
+  color: var(--cins-blue);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.contrib-card-owner-btn--edit:hover {
+  color: var(--cins-blue-dark);
+  text-decoration: underline;
+}
+
+.contrib-card-owner-hint {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-muted);
 }
 
 .contrib-tab-cta {
@@ -1380,6 +1437,12 @@ a.ent-contributors-name:hover {
 :root[data-theme="dark"] .contrib-tab-avatar--fallback {
   background: var(--neutral-100);
   color: var(--fg-3);
+}
+
+:root[data-theme="dark"] .contrib-topic-edit-btn {
+  background: color-mix(in srgb, var(--cins-blue) 18%, var(--bg-surface));
+  border-color: color-mix(in srgb, var(--cins-blue) 40%, var(--border));
+  color: var(--cins-blue-dark);
 }
 
 /* ============================================================

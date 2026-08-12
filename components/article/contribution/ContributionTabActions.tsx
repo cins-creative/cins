@@ -16,6 +16,8 @@ type Props = {
   contributionCount: number;
   viewerHasDraft: boolean;
   viewerEditor: ViewerContributionEditorState | null;
+  editorOpen?: boolean;
+  onEditorOpenChange?: (open: boolean) => void;
 };
 
 function ctaLabel(
@@ -23,10 +25,8 @@ function ctaLabel(
   viewerHasDraft: boolean,
 ): string {
   if (!viewerEditor) return "Viết bản của bạn";
-  if (!viewerEditor.canEdit) {
-    if (viewerEditor.trangThai === "duoc_duyet") return "Xem bản đã duyệt";
-    return "Xem bản của bạn";
-  }
+  if (viewerEditor.trangThai === "duoc_duyet") return "Sửa bản của bạn";
+  if (!viewerEditor.canEdit) return "Xem bản của bạn";
   if (viewerEditor.trangThai === "cho_duyet") return "Sửa bản đang chờ duyệt";
   return viewerHasDraft ? "Tiếp tục bản của bạn" : "Viết bản của bạn";
 }
@@ -40,9 +40,13 @@ export function ContributionTabActions({
   contributionCount,
   viewerHasDraft,
   viewerEditor,
+  editorOpen: editorOpenProp,
+  onEditorOpenChange,
 }: Props) {
   const router = useRouter();
-  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorOpenInner, setEditorOpenInner] = useState(false);
+  const editorOpen = editorOpenProp ?? editorOpenInner;
+  const setEditorOpen = onEditorOpenChange ?? setEditorOpenInner;
   const loginHref = `/login?next=${encodeURIComponent(loginNext)}`;
 
   function handleOpenEditor() {
@@ -65,7 +69,7 @@ export function ContributionTabActions({
             onClick={handleOpenEditor}
             title={
               viewerEditor?.trangThai === "duoc_duyet"
-                ? "Bản đã được duyệt — không thể sửa"
+                ? "Sửa bản đã duyệt — quản trị viên sẽ duyệt lại"
                 : viewerEditor?.trangThai === "cho_duyet"
                   ? "Có thể sửa nội dung; trạng thái vẫn chờ duyệt"
                   : undefined

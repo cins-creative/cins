@@ -77,14 +77,6 @@ export function validateArticleHtml(
   const issues: ValidationIssue[] = [];
   const strict = opts?.strict ?? false;
 
-  if (t.length < 80) {
-    issues.push({
-      level: "error",
-      code: "too_short",
-      message: "Nội dung quá ngắn — hãy viết thêm.",
-    });
-  }
-
   if (/<script\b/i.test(t)) {
     issues.push({
       level: "error",

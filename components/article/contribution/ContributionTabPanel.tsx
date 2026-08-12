@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 
 import { ContributionTabActions } from "@/components/article/contribution/ContributionTabActions";
 import { ContributionTopicCard } from "@/components/article/contribution/ContributionTopicCard";
@@ -31,6 +34,7 @@ export function ContributionTabPanel({
   viewerEditor,
 }: Props) {
   const loginHref = `/login?next=${encodeURIComponent(loginNext)}`;
+  const [editorOpen, setEditorOpen] = useState(false);
 
   return (
     <div className="contrib-tab">
@@ -52,6 +56,8 @@ export function ContributionTabPanel({
           contributionCount={count}
           viewerHasDraft={viewerHasDraft}
           viewerEditor={viewerEditor}
+          editorOpen={editorOpen}
+          onEditorOpenChange={setEditorOpen}
         />
       </header>
 
@@ -73,6 +79,9 @@ export function ContributionTabPanel({
               isLoggedIn={isLoggedIn}
               loaiBaiViet={loaiBaiViet}
               defaultOpen={item.isViewerOwn}
+              onEditOwn={
+                item.isViewerOwn ? () => setEditorOpen(true) : undefined
+              }
             />
           ))}
         </ul>

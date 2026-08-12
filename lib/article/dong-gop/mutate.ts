@@ -5,6 +5,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
   canContributorEditDongGop,
   canContributorSubmitDongGop,
+  nextDongGopStatusAfterOwnerSave,
   type ArticleDongGopRow,
   type TrangThaiDongGop,
 } from "./types";
@@ -22,7 +23,7 @@ export async function upsertDongGopDraft(input: {
   idBaiViet: string;
   idNguoiDung: string;
   noiDung: string;
-}): Promise<MutateResult<{ id: string }>> {
+}): Promise<MutateResult<{ id: string; trangThai: TrangThaiDongGop }>> {
   const noiDung = input.noiDung.trim();
   if (!noiDung) {
     return { ok: false, message: "Nội dung không được trống." };
@@ -40,25 +41,29 @@ export async function upsertDongGopDraft(input: {
     if (!canContributorEditDongGop(existing.trang_thai)) {
       return {
         ok: false,
-        message:
-          existing.trang_thai === "duoc_duyet"
-            ? "Bản đã duyệt — không thể sửa."
-            : "Không thể sửa bản ở trạng thái hiện tại.",
+        message: "Không thể sửa bản ở trạng thái hiện tại.",
       };
+    }
+
+    const nextStatus = nextDongGopStatusAfterOwnerSave(existing.trang_thai);
+    const patch: Record<string, unknown> = {
+      noi_dung: noiDung,
+      cap_nhat_luc: capNhatLuc,
+      trang_thai: nextStatus,
+    };
+    if (existing.trang_thai === "duoc_duyet") {
+      patch.ghi_chu_duyet = null;
+      patch.hien_thi = true;
     }
 
     const { error } = await admin
       .from("article_dong_gop")
-      .update({
-        noi_dung: noiDung,
-        cap_nhat_luc: capNhatLuc,
-        trang_thai: existing.trang_thai === "tu_choi" ? "nhap" : existing.trang_thai,
-      })
+      .update(patch)
       .eq("id", existing.id)
       .eq("id_nguoi_dong_gop", input.idNguoiDung);
 
     if (error) return { ok: false, message: error.message };
-    return { ok: true, data: { id: existing.id } };
+    return { ok: true, data: { id: existing.id, trangThai: nextStatus } };
   }
 
   const { data, error } = await admin
@@ -76,7 +81,7 @@ export async function upsertDongGopDraft(input: {
   if (error || !data?.id) {
     return { ok: false, message: error?.message ?? "Không lưu được bản đóng góp." };
   }
-  return { ok: true, data: { id: data.id } };
+  return { ok: true, data: { id: data.id, trangThai: "nhap" } };
 }
 
 export async function submitDongGopForReview(input: {
@@ -102,13 +107,18 @@ export async function submitDongGopForReview(input: {
     return { ok: false, message: "Nội dung trống — không thể gửi duyệt." };
   }
 
+  const patch: Record<string, unknown> = {
+    trang_thai: "cho_duyet" satisfies TrangThaiDongGop,
+    cap_nhat_luc: nowIso(),
+    hien_thi: true,
+  };
+  if (row.trang_thai === "duoc_duyet") {
+    patch.ghi_chu_duyet = null;
+  }
+
   const { error } = await admin
     .from("article_dong_gop")
-    .update({
-      trang_thai: "cho_duyet" satisfies TrangThaiDongGop,
-      cap_nhat_luc: nowIso(),
-      hien_thi: true,
-    })
+    .update(patch)
     .eq("id", input.idDongGop);
 
   if (error) return { ok: false, message: error.message };

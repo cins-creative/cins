@@ -2,7 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 
-import { fetchDongGopById } from "@/lib/article/dong-gop/fetch";
+import {
+  fetchDongGopById,
+  fetchDongGopByUserAndArticle,
+} from "@/lib/article/dong-gop/fetch";
 import { notifyCuratorsOnDongGopSubmit } from "@/lib/article/dong-gop/notify-curators";
 import {
   unpackContribNoiDung,
@@ -64,9 +67,18 @@ async function revalidateEntityByDongGop(idDongGop: string) {
 export async function saveContributionDraftAction(input: {
   idBaiViet: string;
   noiDung: string;
-}): Promise<{ ok: true; id: string } | { ok: false; message: string }> {
+}): Promise<
+  | { ok: true; id: string; trangThai: TrangThaiDongGop }
+  | { ok: false; message: string }
+> {
   const gate = await assertContributor();
   if (!gate.ok) return gate;
+
+  const existing = await fetchDongGopByUserAndArticle(
+    gate.profileId,
+    input.idBaiViet,
+  );
+  const prevStatus = existing?.trang_thai ?? null;
 
   const result = await upsertDongGopDraft({
     idBaiViet: input.idBaiViet,
@@ -76,17 +88,31 @@ export async function saveContributionDraftAction(input: {
 
   if (!result.ok) return result;
 
+  const trangThai = result.data!.trangThai;
+  if (trangThai === "cho_duyet" && prevStatus !== "cho_duyet") {
+    await notifyCuratorsOnDongGopSubmit(result.data!.id);
+  }
+
   await revalidateEntityByBaiViet(input.idBaiViet);
-  return { ok: true, id: result.data!.id };
+  return { ok: true, id: result.data!.id, trangThai };
 }
 
 export async function submitContributionDraftAction(input: {
   idDongGop?: string;
   idBaiViet: string;
   noiDung: string;
-}): Promise<{ ok: true; id: string } | { ok: false; message: string }> {
+}): Promise<
+  | { ok: true; id: string; trangThai: TrangThaiDongGop }
+  | { ok: false; message: string }
+> {
   const gate = await assertContributor();
   if (!gate.ok) return gate;
+
+  const existing = await fetchDongGopByUserAndArticle(
+    gate.profileId,
+    input.idBaiViet,
+  );
+  const prevStatus = existing?.trang_thai ?? null;
 
   const saveResult = await upsertDongGopDraft({
     idBaiViet: input.idBaiViet,
@@ -102,10 +128,12 @@ export async function submitContributionDraftAction(input: {
   });
   if (!submitResult.ok) return submitResult;
 
-  await notifyCuratorsOnDongGopSubmit(idDongGop);
+  if (prevStatus !== "cho_duyet") {
+    await notifyCuratorsOnDongGopSubmit(idDongGop);
+  }
 
   await revalidateEntityByDongGop(idDongGop);
-  return { ok: true, id: idDongGop };
+  return { ok: true, id: idDongGop, trangThai: "cho_duyet" };
 }
 
 async function assertOwnerContribution(): Promise<

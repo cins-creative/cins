@@ -144,8 +144,12 @@ export function ContributionEditor({
         setMsg(result.message);
         return;
       }
-      afterSuccess("nhap", result.id);
-      setMsg("Đã lưu nháp.");
+      afterSuccess(result.trangThai, result.id);
+      setMsg(
+        result.trangThai === "cho_duyet"
+          ? "Đã lưu — bản chờ quản trị viên duyệt lại."
+          : "Đã lưu nháp.",
+      );
     });
   }
 
@@ -170,10 +174,13 @@ export function ContributionEditor({
         setMsg(result.message);
         return;
       }
-      afterSuccess("cho_duyet", result.id);
+      afterSuccess(result.trangThai, result.id);
       onClose();
     });
   }
+
+  const isResubmit = status === "duoc_duyet";
+  const showSaveDraft = canEdit && !isResubmit;
 
   return createPortal(
     <div
@@ -192,13 +199,15 @@ export function ContributionEditor({
               id="contrib-editor-title"
               className="nghe-content-editor-modal__title"
             >
-              Soạn bản đóng góp
+              {isResubmit ? "Sửa bản đóng góp" : "Soạn bản đóng góp"}
             </h2>
             <p className="nghe-content-editor-modal__subtitle">{articleTitle}</p>
             <p className="contrib-editor-hint contrib-editor-hint--short">
-              {contributionCount > 0
-                ? `Đã có ${contributionCount} bản — viết góc nhìn của bạn.`
-                : "Bạn là người đầu tiên — hãy viết bản mẫu cho cộng đồng."}
+              {isResubmit
+                ? "Sửa bản đã duyệt sẽ gửi lại cho quản trị viên duyệt trước khi lên tab Nội dung."
+                : contributionCount > 0
+                  ? `Đã có ${contributionCount} bản — viết góc nhìn của bạn.`
+                  : "Bạn là người đầu tiên — hãy viết bản mẫu cho cộng đồng."}
               {statusLabel ? (
                 <>
                   {" "}
@@ -277,7 +286,9 @@ export function ContributionEditor({
               </p>
             ) : (
               <p className="nghe-content-editor-modal__foot-hint">
-                Lưu nháp giữ bản trên máy bạn; gửi duyệt khi sẵn sàng.
+                {isResubmit
+                  ? "Gửi duyệt lại để quản trị viên xem bản sửa."
+                  : "Lưu nháp giữ bản trên máy bạn; gửi duyệt khi sẵn sàng."}
               </p>
             )}
           </div>
@@ -292,21 +303,23 @@ export function ContributionEditor({
             </button>
             {canEdit ? (
               <>
-                <button
-                  type="button"
-                  className="nghe-hero-draft-btn"
-                  onClick={handleSaveDraft}
-                  disabled={pending}
-                >
-                  {pending ? (
-                    <>
-                      <Loader2 className="contrib-editor-spin" aria-hidden />
-                      Đang lưu…
-                    </>
-                  ) : (
-                    "Lưu nháp"
-                  )}
-                </button>
+                {showSaveDraft ? (
+                  <button
+                    type="button"
+                    className="nghe-hero-draft-btn"
+                    onClick={handleSaveDraft}
+                    disabled={pending}
+                  >
+                    {pending ? (
+                      <>
+                        <Loader2 className="contrib-editor-spin" aria-hidden />
+                        Đang lưu…
+                      </>
+                    ) : (
+                      "Lưu nháp"
+                    )}
+                  </button>
+                ) : null}
                 {canSubmit ? (
                   <button
                     type="button"
@@ -314,7 +327,11 @@ export function ContributionEditor({
                     onClick={handleSubmit}
                     disabled={pending}
                   >
-                    {pending ? "Đang gửi…" : "Gửi duyệt"}
+                    {pending
+                      ? "Đang gửi…"
+                      : isResubmit
+                        ? "Gửi duyệt lại"
+                        : "Gửi duyệt"}
                   </button>
                 ) : null}
               </>

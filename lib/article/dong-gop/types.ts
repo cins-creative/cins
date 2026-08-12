@@ -24,7 +24,7 @@ export const TRANG_THAI_DONG_GOP_ORDER: TrangThaiDongGop[] = [
   "tu_choi",
 ];
 
-/** Trạng thái contributor được sửa nội dung. */
+/** Trạng thái contributor được sửa nội dung (kể cả bản đã duyệt — gửi lại cho admin). */
 export function canContributorEditDongGop(
   trangThai: TrangThaiDongGop,
 ): boolean {
@@ -32,15 +32,31 @@ export function canContributorEditDongGop(
     trangThai === "nhap" ||
     trangThai === "cho_duyet" ||
     trangThai === "can_sua" ||
-    trangThai === "tu_choi"
+    trangThai === "tu_choi" ||
+    trangThai === "duoc_duyet"
   );
 }
 
-/** Trạng thái contributor được gửi duyệt. */
+/** Trạng thái contributor được gửi / gửi lại duyệt. */
 export function canContributorSubmitDongGop(
   trangThai: TrangThaiDongGop,
 ): boolean {
-  return trangThai === "nhap" || trangThai === "can_sua" || trangThai === "tu_choi";
+  return (
+    trangThai === "nhap" ||
+    trangThai === "can_sua" ||
+    trangThai === "tu_choi" ||
+    trangThai === "duoc_duyet" ||
+    trangThai === "cho_duyet"
+  );
+}
+
+/** Sau khi chủ bản lưu nội dung — bản đã duyệt phải về chờ duyệt lại. */
+export function nextDongGopStatusAfterOwnerSave(
+  trangThai: TrangThaiDongGop,
+): TrangThaiDongGop {
+  if (trangThai === "tu_choi") return "nhap";
+  if (trangThai === "duoc_duyet") return "cho_duyet";
+  return trangThai;
 }
 
 export type PhamViThamDinh = "toan_cuc" | "linh_vuc" | "bai_viet";

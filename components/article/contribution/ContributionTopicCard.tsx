@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Star } from "lucide-react";
+import { ChevronDown, Pencil, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useId, useState, type KeyboardEvent } from "react";
@@ -19,6 +19,7 @@ import {
 } from "@/lib/article/dong-gop/contrib-document";
 import { relatedFieldsForLoaiBaiViet } from "@/lib/article/dong-gop/related-fields";
 import type { ContributionPublicItem } from "@/lib/article/dong-gop/public-list";
+import { TRANG_THAI_DONG_GOP_LABEL } from "@/lib/article/dong-gop/types";
 import { getNameInitials } from "@/lib/journey/profile";
 
 import "@/styles/nghe-inline-draft.css";
@@ -28,6 +29,7 @@ type Props = {
   isLoggedIn: boolean;
   loaiBaiViet: string;
   defaultOpen?: boolean;
+  onEditOwn?: () => void;
 };
 
 function fmtDate(iso: string): string {
@@ -61,6 +63,7 @@ export function ContributionTopicCard({
   isLoggedIn,
   loaiBaiViet,
   defaultOpen = false,
+  onEditOwn,
 }: Props) {
   const panelId = useId();
   const [open, setOpen] = useState(defaultOpen);
@@ -170,6 +173,27 @@ export function ContributionTopicCard({
           {item.isHidden ? (
             <span className="contrib-badge contrib-badge--hidden">Đã ẩn</span>
           ) : null}
+          {item.isViewerOwn && item.trangThai !== "nhap" ? (
+            <span
+              className={`contrib-badge contrib-badge--status contrib-badge--${item.trangThai}`}
+            >
+              {TRANG_THAI_DONG_GOP_LABEL[item.trangThai]}
+            </span>
+          ) : null}
+          {item.isViewerOwn && onEditOwn ? (
+            <button
+              type="button"
+              className="contrib-topic-edit-btn"
+              aria-label="Sửa bản đóng góp của bạn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditOwn();
+              }}
+            >
+              <Pencil size={14} strokeWidth={2.2} aria-hidden />
+              Sửa
+            </button>
+          ) : null}
           <ChevronDown
             className="contrib-topic-chevron"
             size={18}
@@ -256,6 +280,7 @@ export function ContributionTopicCard({
             idDongGop={item.id}
             trangThai={item.trangThai}
             isHidden={item.isHidden}
+            onEdit={onEditOwn}
           />
         ) : null}
       </div>
