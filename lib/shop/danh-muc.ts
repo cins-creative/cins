@@ -53,9 +53,22 @@ export function normalizeTaxonomyKeyword(raw: string): string {
     .trim();
 }
 
+/** Id các node có con — không được gắn loại / không lên chip hub. */
+export function parentIdsOf(list: ShopDanhMuc[]): Set<string> {
+  const ids = new Set<string>();
+  for (const d of list) {
+    if (d.idCha) ids.add(d.idCha);
+  }
+  return ids;
+}
+
+export function isDanhMucLa(d: ShopDanhMuc, parentIds: Set<string>): boolean {
+  return !parentIds.has(d.id);
+}
+
 /**
- * Cây danh mục đang `hien` (Phase 1: hầu hết là lá, idCha=null).
- * Bỏ qua slug `khac` nếu `opts.forHubFilter` — không hiện chip.
+ * Cây danh mục đang `hien`.
+ * `forHubFilter`: bỏ `khac` và cấp cha (chip chỉ lá).
  */
 export async function listDanhMucTree(opts?: {
   nganhHang?: string;
@@ -81,7 +94,8 @@ export async function listDanhMucTree(opts?: {
 
   let list = (data ?? []).map(mapDanhMuc);
   if (opts?.forHubFilter) {
-    list = list.filter((d) => d.slug !== "khac");
+    const parentIds = parentIdsOf(list);
+    list = list.filter((d) => d.slug !== "khac" && isDanhMucLa(d, parentIds));
   }
   return list;
 }

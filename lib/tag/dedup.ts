@@ -74,7 +74,7 @@ function scoreTagTitles(
   for (const title of titles) {
     best = Math.max(best, scoreFallbackMatch(normalized, title));
   }
-  return best + (row.da_verify === true ? 0.15 : 0);
+  return best;
 }
 
 /** Xen kẽ gợi ý theo loại — tránh keyword chiếm hết menu. */

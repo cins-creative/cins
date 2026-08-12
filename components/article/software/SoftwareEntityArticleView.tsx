@@ -66,7 +66,7 @@ export async function SoftwareEntityArticleView({
     cover_id: article.cover_id,
   });
   const meta = isMetaPhanMem(article.meta) ? article.meta : null;
-  const verified = article.da_verify === true;
+  const verified = false;
   const publisher = meta?.nha_phat_hanh?.trim() || null;
 
   const { nghe, keywords, similar } = partitionSoftwareRelated(lienQuan);

@@ -6,6 +6,7 @@ import {
   isStreamUid,
 } from "@/lib/cloudflare/stream-embed";
 import { getOrCreateDefaultBangGia } from "@/lib/shop/bang-gia";
+import { mapDeXuatDanhMucByNhomIds } from "@/lib/shop/danh-muc-dong-gop";
 import { mapDanhMucSlugByIds } from "@/lib/shop/danh-muc";
 import {
   fandomIdsByNhomIds,
@@ -208,6 +209,7 @@ function mapNhom(row: NhomRow): ShopNhom {
     idDanhMuc: row.id_danh_muc?.trim() || null,
     danhMucXacNhan: row.danh_muc_xac_nhan === true,
     danhMucSlug: null,
+    danhMucDeXuat: null,
     facets: {},
     giaTriIds: [],
     fandomIds: [],
@@ -243,6 +245,20 @@ async function enrichNhomTaxonomy(nhoms: ShopNhom[]): Promise<void> {
     n.danhMucSlug = n.idDanhMuc
       ? (slugById.get(n.idDanhMuc) ?? null)
       : null;
+    n.danhMucDeXuat = null;
+  }
+
+  const khacNhomIds = nhoms
+    .filter((n) => n.danhMucSlug === "khac")
+    .map((n) => n.id);
+  if (khacNhomIds.length > 0) {
+    const deXuatByNhom = await mapDeXuatDanhMucByNhomIds(khacNhomIds);
+    for (const n of nhoms) {
+      n.danhMucDeXuat = deXuatByNhom.get(n.id) ?? null;
+    }
+  }
+
+  for (const n of nhoms) {
     const facets = { ...(facetsMap.get(n.id) ?? {}) };
     // Fandom entity ghi đè key facet ảo — không còn đọc từ shop_thuoc_tinh.
     delete facets.fandom;
@@ -649,6 +665,14 @@ export async function updateNhom(
         .eq("trang_thai", "hien")
         .maybeSingle<{ id: string }>();
       if (dmErr || !dm) throw new Error("DANH_MUC_INVALID");
+      const { data: child } = await admin
+        .from("shop_danh_muc")
+        .select("id")
+        .eq("id_cha", dm.id)
+        .eq("trang_thai", "hien")
+        .limit(1)
+        .maybeSingle<{ id: string }>();
+      if (child) throw new Error("DANH_MUC_INVALID");
       patch.id_danh_muc = dm.id;
       patch.danh_muc_xac_nhan =
         input.danhMucXacNhan === false ? false : true;
@@ -716,6 +740,23 @@ export async function updateNhom(
 
   const mapped = mapNhom(updatedRow);
   await enrichNhomTaxonomy([mapped]);
+
+  if (
+    input.idDanhMuc !== undefined &&
+    typeof patch.id_danh_muc === "string" &&
+    patch.id_danh_muc
+  ) {
+    const { ghiAliasUngVienTuChonTay } = await import(
+      "@/lib/shop/danh-muc-dong-gop"
+    );
+    void ghiAliasUngVienTuChonTay({
+      ownerId,
+      nhomId,
+      nhan: nextNhan,
+      idDanhMuc: patch.id_danh_muc,
+    });
+  }
+
   return mapped;
 }
 

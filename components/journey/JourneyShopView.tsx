@@ -225,18 +225,6 @@ export function JourneyShopView({
                       className="j-shop-sf-actions"
                       aria-label="Quản lý bán hàng"
                     >
-                      <Link
-                        href="/ban-hang/cua-hang"
-                        className="j-shop-action-btn"
-                        aria-label="Quản lý cửa hàng"
-                        onMouseEnter={warmPrefetchBanHang}
-                        onFocus={warmPrefetchBanHang}
-                      >
-                        <Settings2 size={13} aria-hidden />
-                        <span className="j-shop-action-btn-label">
-                          Quản lý cửa hàng
-                        </span>
-                      </Link>
                       {ready ? (
                         <>
                           <Link
@@ -277,6 +265,18 @@ export function JourneyShopView({
                           </span>
                         </span>
                       )}
+                      <Link
+                        href="/ban-hang/cua-hang"
+                        className="j-shop-action-btn"
+                        aria-label="Quản lý cửa hàng"
+                        onMouseEnter={warmPrefetchBanHang}
+                        onFocus={warmPrefetchBanHang}
+                      >
+                        <Settings2 size={13} aria-hidden />
+                        <span className="j-shop-action-btn-label">
+                          Quản lý cửa hàng
+                        </span>
+                      </Link>
                     </nav>
                   ),
                 }

@@ -42,7 +42,7 @@ UI: `/tai-khoan/thanh-toan` · Settings «Thanh toán» · `/admin/tai-chinh` (C
 | `shop/san-pham` · `shop/san-pham/[id]` | CRUD catalog + biến thể / tồn kho (seller) |
 | `shop/nhom` · `shop/nhom/[id]` | GET/POST list·tạo nhóm; PATCH mô tả/nhãn/**taxonomy** (`idDanhMuc` · `danhMucXacNhan` · `giaTriIds`); **DELETE** soft-delete loại khi không còn `shop_san_pham` gắn. Kho UI: `ShopKhoLoaiTaxonomy` |
 | `shop/nhom/[id]/gioi-thieu` | **GET** trạng thái «Giới thiệu sản phẩm» (luôn `allowed` — **đã bỏ** cooldown 3 ngày 2026-08-11); **POST** `{ cotMocId }` ghi mốc lần gần nhất (audit). Bảng `shop_nhom_gioi_thieu`. Prefill album = ảnh chính + ảnh phụ loại (**không** ảnh mẫu, **không** video). Lib: `gioi-thieu.ts` · `gioi-thieu-cooldown.ts`. UI nút trên `ShopKhoLoaiMeta`. |
-| `shop/danh-muc` | GET taxonomy merch: cây `shop_danh_muc` + facet hub (không gồm fandom — đã chuyển entity). Query `?q=` gợi ý danh mục; `?facet=chat-lieu&q=` gợi ý giá trị |
+| `shop/danh-muc` | GET taxonomy merch: cây `shop_danh_muc` (`hien`) + facet hub (không gồm fandom). Query `?q=` gợi ý danh mục; `?facet=chat-lieu&q=` gợi ý giá trị. **Seller chỉ chọn** — không POST tạo. **POST `shop/danh-muc/yeu-cau`** báo thiếu (gán `khac`, không tạo row). Admin CRUD: `admin/shop/danh-muc` · hàng chờ `admin/shop/danh-muc/hang-cho` · UI `/admin/danh-muc`. Kho dropdown hiện `mo_ta` + gom nhóm cấp cha. |
 | `shop/import-shopee` | **POST** (seller) — import loại hàng từ URL Shopee: preview (`apply:false`) hoặc tạo `shop_nhom` + mẫu (`apply:true`). Body `{ url?, apply?, raw?, preview? }`. Lib `lib/shop/shopee/`. UI: `/ban-hang/kho` → **AI · Shopee**. Xem ghi chú *Import Shopee* bên dưới. |
 | `shop/bang-gia` · `shop/bang-gia/[id]` | CRUD bảng giá + dòng giá theo biến thể. **1 bảng giá VND / shop** (2026-07-28): POST/PATCH **ép `tien_te="VND"`**, bỏ nhận `tienTe`. Bảng canonical = `getOrCreateDefaultBangGia(ownerId)` (bảng cũ nhất; tạo "Bảng giá mặc định" VND nếu chưa có). `resolveGiaBienThe` fallback `shop_nhom.gia_mac_dinh` khi thiếu dòng → không "Chưa có giá" khi loại đã có giá gốc; `syncNhomGiaMacDinhToMau` ghi vào canonical + quét biến thể theo `id_nhom` **và** tên `phan_loai`. UI Kho/modal bỏ chọn bảng giá. |
 | `shop/gio` | GET/PATCH/DELETE giỏ buyer — scope **XOR** `cotMocId` (post-kiosk) **hoặc** `cuaHangId` (storefront `/{slug}/shop`) |
@@ -151,8 +151,9 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 ### Tag / keyword / nghề
 | Route | Việc |
 |---|---|
-| `tag` · `tag/dedup` | Tạo tag (AI gen tom_tat) · dedup alias |
-| `admin/tag/list` · `merge` · `[id]/tom-tat` · `[id]/verify` | Admin: list · gộp · regen tóm tắt · set `da_verify` |
+| `tag` · `tag/dedup` · `tag/index` | Tạo tag (AI gen tom_tat) · dedup alias · **bulk index** gợi ý client (`so_gan` = bài đăng public trên entity) |
+| `admin/tag/list` · `merge` · `[id]/tom-tat` · `[id]/verify` | Admin: list · gộp · regen tóm tắt. **`[id]/verify` → 410** (đã gỡ verify CINs 2026-08-12) |
+| `admin/shop/danh-muc` · `admin/shop/danh-muc/[id]` · `admin/shop/danh-muc/hang-cho` | Admin CRUD `shop_danh_muc` (merch): **GET** list kể cả `an` + đếm loại gắn; **POST** tạo (`hien` mặc định); **PATCH** tên/slug/`mo_ta`/thứ tự/`trang_thai`. Hàng chờ: alias tự học (≥3 shop) + yêu cầu thiếu danh mục. Gate `getCurrentUserIsCinsAdmin`. Lib `lib/admin/shop-danh-muc-server.ts` · `lib/shop/danh-muc-dong-gop.ts`. UI `/admin/danh-muc` · `AdminShopDanhMucScreen`. |
 | `admin/nguoi-dung/list` · `[id]/vai-tro` · `[id]/xac-minh` · `DELETE [id]` | Admin: danh sách user + phân quyền (`user_quyen_he_thong`) + tick xanh — gate `canManageUsers`. **Xóa user** (`DELETE`): chỉ `super_admin` (`canDeleteUsers`) — soft-delete `trang_thai_tai_khoan=da_xoa`, null `auth_user_id`, gỡ quyền HT, `auth.admin.deleteUser`; giữ profile/nội dung. UI dialog gõ slug. Lib: `nguoi-dung-roles.ts`. |
 | `admin/world-boost` | **L29** editorial boost World — GET catalog/stats · POST toggle (`canManageUsers`) |
 | `admin/to-chuc/list` · `[id]` · `[id]/verify` | Admin: danh sách tổ chức · chi tiết/PATCH/archive · cấp Verified |
@@ -319,6 +320,7 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 | `migration_shop_ban_hang.sql` | **L33 Shop UGC:** `ban_hang_bat` / `ban_hang_dieu_khoan_luc`; bảng `shop_*` (catalog, giá, post-hang, giỏ, đơn, quầy) + RLS. Chạy: `node scripts/run-shop-ban-hang-migration.mjs`. |
 | `migration_shop_the_khach.sql` | **Thẻ phân loại khách hàng (chat):** `shop_the_khach` + `shop_the_khach_gan` (chỉ seller RLS); seed 3 thẻ mặc định cho seller `ban_hang_bat`. App: `lib/shop/khach-hang.ts` (+ `listShopNguoiBanDaMua`), API `/api/shop/khach-hang/**`, overlay tab «Mua bán» (sub Khách hàng / Mua hàng). Chạy: `npm run migrate:shop-the-khach`. **Đã chạy** CINs 2026-08-02. |
 | `migration_shop_danh_muc.sql` | **Taxonomy hub:** `shop_danh_muc`/`_alias` · `shop_thuoc_tinh`/`_gia_tri`/`_alias` · `shop_nhom_thuoc_tinh` + ALTER `shop_nhom` (`id_danh_muc`, `danh_muc_xac_nhan`). Seed merch 17 danh mục · facet fandom/chat-lieu (+ thuong-hieu `an`). Lib: `danh-muc.ts` · `thuoc-tinh.ts`. Chạy: `npm run migrate:shop-danh-muc`. **Đã chạy** CINs 2026-08-07. Plan: `PLAN_shop_danh_muc_san_pham.md`. |
+| `migration_shop_danh_muc_rev3.sql` | **Rev 3:** 5 cấp cha · gộp `charm-keychain` (ẩn `charm-coaster`/`keychain`) · bảng `shop_danh_muc_alias_ung_vien` + `shop_danh_muc_yeu_cau`. Không ALTER bảng cũ. Chạy: `npm run migrate:shop-danh-muc-rev3`. Plan: `PLAN_shop_danh_muc_rev3.md`. |
 | `migration_fandom_entity.sql` | **Fandom entity:** `ALTER TYPE loai_bai_viet_enum ADD VALUE 'fandom'` · bảng `shop_nhom_fandom` + RLS · ẩn facet `shop_thuoc_tinh.slug=fandom`. Lib: `lib/shop/fandom.ts` · lens `/fandom/[slug]`. Chạy: `npm run migrate:fandom-entity` rồi `npm run backfill:fandom-entity`. |
 | `migration_shop_nhom_gioi_thieu.sql` | **Mốc giới thiệu SP:** bảng `shop_nhom_gioi_thieu` (`id_nhom` PK, `id_cot_moc`, `tao_luc`) + RLS owner qua `shop_nhom`. API `/api/shop/nhom/[id]/gioi-thieu`. Cooldown 3 ngày **đã gỡ** 2026-08-11 (bảng giữ để audit). Chạy: `npm run migrate:shop-nhom-gioi-thieu`. **Đã chạy** CINs 2026-08-10. |
 | `migration_shop_combo_voucher.sql` | **Combo & Voucher:** enum giảm/phạm vi/design; bảng `shop_combo` · `shop_combo_dieu_kien` · `shop_voucher` · `shop_voucher_su_dung` · `shop_voucher_luu` + RLS; RPC `shop_dung_voucher` / `shop_hoan_voucher`. Lib: `uu-dai.ts` · `combo.ts` · `voucher.ts`. UI `/ban-hang/uu-dai` · hub săn voucher · strip storefront. Test: `npm run test:shop-uu-dai`. Chạy: `npm run migrate:shop-combo-voucher`. **Đã chạy** CINs 2026-08-07. Plan: `PLAN_shop_combo_voucher.md`. |
@@ -564,6 +566,7 @@ Code map: `lib/journey/images.ts` (role `gallery-grid` → `grid` + `srcset` `gr
 | **Cộng đồng** | `/cong-dong` (listing) · `/cong-dong/tao` · `/cong-dong/[slug]` (feed v4) · `/cong-dong/[slug]/su-kien/[suKienId]` (chi tiết/quản lý sự kiện trong shell) · … |
 | **Cửa hàng (L33 hub)** | `/cua-hang` — listing shop công khai (`shop_hien_thi`); card → `/{slug}/shop/{shopSlug}`; khu **Săn voucher** + ví (`CuaHangSanVoucher`) |
 | **Mở shop hộ (cold start)** | `/mo-shop` — form lead public; `?gt=` / `?tu=` nguồn (ẩn, không field UI); phí % live từ `getPhiDangApDungShop`; STK bắt buộc; OG `/mo-shop/opengraph-image`. Admin: `/admin/mo-shop` list + filter `trang_thai`; `/admin/mo-shop/form` nhập hộ; `/admin/mo-shop/[id]` đổi trạng thái + `ghi_chu_noi_bo` (server action). |
+| **Danh mục hàng (taxonomy)** | Admin `/admin/danh-muc` — CRUD + hàng chờ alias/yêu cầu thiếu. Seller Kho chọn dropdown (có `mo_ta` + nhóm cha); báo thiếu → `khac`. Hub chip chỉ lá. |
 | **Bán hàng — ưu đãi** | `/ban-hang/uu-dai` — tab Combo & Voucher (seller) |
 | **Bán hàng — kho** | `/ban-hang/kho` hub loại · `/ban-hang/kho/[slug]` chi tiết loại (`slugify` tên; trùng tên → thêm 8 ký tự id; `khac` = chưa gán loại). Helper `shopKhoLoaiHref` · `resolveShopKhoLoaiSlug`. |
 | **Cơ sở đào tạo** | `/co-so` (listing) · `/co-so/[slug]` (chi tiết v6) · `/co-so/[slug]/khoa-hoc/[khoa-slug]` (trang khóa — đã có route site) |
@@ -811,15 +814,17 @@ Trang khóa standalone `/co-so/[slug]/khoa-hoc/[khoa-slug]`. Ưu tiên render m�
 | `nganh_dao_tao` | Bài viết đầy đủ | Prose dài | Có |
 | `keyword` | `/keyword/[slug]` | `tom_tat` AI + đóng góp + thảo luận | **Không** |
 | `phan_mem` | `/software/[slug]` | `tom_tat` AI + thảo luận | **Không** |
-| `fandom` | `/fandom/[slug]` | `tom_tat` AI + đóng góp + thảo luận; shop gắn qua `shop_nhom_fandom` | **Không** |
+| `fandom` | `/fandom/[slug]` | Nhãn UI **«Phân loại»**; `tom_tat` AI + đóng góp + thảo luận; shop gắn qua `shop_nhom_fandom` | **Không** |
 
-**Flow tag mới:** autocomplete (`da_verify` trước) → dedup alias → tạo `article_bai_viet` → AI gen `tom_tat` → admin verify sau. Creatable: `keyword` / `phan_mem` / `mon_hoc` / `nghe` / `fandom` (`POST /api/tag`).
+**Flow tag mới:** autocomplete (index client + dedup) → tạo `article_bai_viet` → AI gen `tom_tat`. **Không** admin verify. Creatable: `keyword` / `phan_mem` / `mon_hoc` / `nghe` / `fandom` (`POST /api/tag`).
 
 **Dedup:** exact lowercase → `article_alias` tự động; AI fuzzy → suggest confirm. Keyword trùng tên khác ngành → qualifier + `article_lien_quan`.
 
 **`tom_tat`:** gen ngay khi tạo; regen khi `so_data_point` tăng (`vector_dong`).
 
-**Shop fandom:** không còn facet `shop_thuoc_tinh` runtime; hub `/cua-hang` inject facet ảo slug `fandom` từ entity (`listFandomChipsForHub`). Kho: `TagInput loaiFilterFixed="fandom"`.
+**`so_gan`:** số cột mốc `public`/`feature`/`cong_dong` gắn thẻ (khớp feed entity) — không đếm loại hàng Kho.
+
+**Shop Phân loại:** Kho dùng sheet `FandomTaxSelect` (đồng bộ `TaxSelectDropdown`); hub `/cua-hang` inject facet ảo slug `fandom` từ entity (`listFandomChipsForHub`).
 
 ---
 

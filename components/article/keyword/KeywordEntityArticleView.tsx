@@ -69,7 +69,7 @@ export async function KeywordEntityArticleView({
     article.tieu_de_viet?.trim() ||
     article.tieu_de_eng?.trim() ||
     null;
-  const verified = article.da_verify === true;
+  const verified = false;
 
   const attributionDisplay = mapAttributionForDisplay(
     await fetchArticleAttribution(article.id),

@@ -9,6 +9,7 @@ import {
   Store,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   useCallback,
   useEffect,
@@ -42,6 +43,7 @@ function formatBadge(count: number): string {
 }
 
 export function ShopTopbarButton() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -60,6 +62,15 @@ export function ShopTopbarButton() {
     loading: readyLoading,
   } = useShopReadyGate();
   const phiGate = useShopPhiGate();
+
+  /** Portal menu: đóng rồi push cùng tab — tránh click bị nuốt khi unmount portal. */
+  const goBanHang = useCallback(
+    (href: string) => {
+      setOpen(false);
+      router.push(href);
+    },
+    [router],
+  );
 
   const pending = items.filter((d) => d.trangThai === "cho_xac_nhan");
   const pendingCount = pending.length;
@@ -277,7 +288,10 @@ export function ShopTopbarButton() {
                   <Link
                     href={shopSetupHref || "/ban-hang/cua-hang"}
                     className="shop-topbar-shortcut-main"
-                    onClick={() => setOpen(false)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      goBanHang(shopSetupHref || "/ban-hang/cua-hang");
+                    }}
                   >
                     <Store size={16} strokeWidth={2} aria-hidden />
                     Thiết lập Shop
@@ -290,7 +304,10 @@ export function ShopTopbarButton() {
                   <Link
                     href="/ban-hang/kho"
                     className="shop-topbar-shortcut-main"
-                    onClick={() => setOpen(false)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      goBanHang("/ban-hang/kho");
+                    }}
                   >
                     <Package size={16} strokeWidth={2} aria-hidden />
                     Kho hàng
@@ -311,7 +328,10 @@ export function ShopTopbarButton() {
                   <Link
                     href="/ban-hang/don"
                     className="shop-topbar-shortcut-main"
-                    onClick={() => setOpen(false)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      goBanHang("/ban-hang/don");
+                    }}
                   >
                     <ClipboardList size={16} strokeWidth={2} aria-hidden />
                     Đơn hàng
@@ -419,7 +439,10 @@ export function ShopTopbarButton() {
             <Link
               href="/ban-hang/don"
               className="shop-topbar-footer"
-              onClick={() => setOpen(false)}
+              onClick={(e) => {
+                e.preventDefault();
+                goBanHang("/ban-hang/don");
+              }}
             >
               Xem tất cả đơn
             </Link>

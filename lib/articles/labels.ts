@@ -9,7 +9,7 @@ export const LOAI_LABELS: Record<LoaiBaiViet, string> = {
   linh_vuc: "Lĩnh vực",
   blog: "Blog",
   event: "Sự kiện",
-  fandom: "Fandom",
+  fandom: "Phân loại",
 };
 
 /** Class Tailwind cho badge loại (khớp brief admin) */

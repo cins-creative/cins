@@ -28,7 +28,7 @@ export async function loadCuaHangHubTaxonomy(): Promise<CuaHangHubTaxonomy> {
 
   facets.unshift({
     slug: "fandom",
-    ten: "Fandom",
+    ten: "Phân loại",
     kieu: "chon_nhieu",
     giaTri: fandomChips.map((c) => ({
       slug: c.slug,

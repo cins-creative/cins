@@ -49,7 +49,7 @@ const FIELD = {
   },
   fandom: {
     loai: "fandom",
-    label: "Fandom",
+    label: "Phân loại",
     placeholder: "Gắn fandom liên quan…",
   },
 } as const satisfies Record<string, ContribRelatedField>;

@@ -80,7 +80,6 @@ function scoreMatch(query: string, row: IndexedTagSuggest): number {
     else if (c.includes(q)) best = Math.max(best, 0.65);
     else if (q.includes(c)) best = Math.max(best, 0.55);
   }
-  if (row.da_verify) best += 0.15;
   if (row.so_nguoi_tagged > 0) {
     best += Math.min(0.12, row.so_nguoi_tagged * 0.004);
   }
@@ -170,6 +169,7 @@ export function enrichTagSuggestRows(
       so_gan: cached.so_gan || row.so_gan || 0,
       da_verify: row.da_verify || cached.da_verify,
       cover_id: row.cover_id ?? cached.cover_id ?? null,
+      slug: row.slug ?? cached.slug ?? null,
     };
   });
 }

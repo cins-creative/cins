@@ -71,7 +71,12 @@ export function useTagSuggestSearch({
         if (rows.length > 0) {
           writeTagSuggestCache(rows);
           setIndex(indexTagSuggestRows(rows));
+        } else {
+          // Tránh kẹt loading mãi khi API fail/401/timeout (index === null).
+          setIndex((prev) => prev ?? []);
         }
+      } catch {
+        setIndex((prev) => prev ?? []);
       } finally {
         setIndexLoading(false);
       }

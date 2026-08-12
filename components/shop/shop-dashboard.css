@@ -1794,6 +1794,31 @@ body:has(.shop-dash-gate) .j-chat-dock {
   background: color-mix(in srgb, var(--ink-body) 8%, transparent);
 }
 
+.shop-kho-loai-dd-search-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--cins-blue, #1f74c9);
+  cursor: pointer;
+}
+
+.shop-kho-loai-dd-search-add:hover:not(:disabled) {
+  background: var(--cins-blue-soft, #e7f0fb);
+}
+
+.shop-kho-loai-dd-search-add:disabled {
+  color: var(--ink-muted);
+  cursor: default;
+  opacity: 0.45;
+}
+
 .shop-kho-loai-dd-options {
   overflow: auto;
   padding: 6px;
@@ -1873,12 +1898,176 @@ body:has(.shop-dash-gate) .j-chat-dock {
   line-height: 1.4;
 }
 
+.shop-kho-loai-dd-empty--loading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.shop-kho-loai-dd-option-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.shop-kho-loai-dd-verified {
+  flex-shrink: 0;
+  color: var(--cins-orange, #fdad4c);
+}
+
+.shop-kho-loai-dd-option-row {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  width: 100%;
+}
+
+.shop-kho-loai-dd-option-row .shop-kho-loai-dd-option {
+  flex: 1;
+  min-width: 0;
+}
+
+.shop-kho-loai-dd-option-row .shop-kho-loai-dd-option-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.shop-kho-loai-dd-gan {
+  flex-shrink: 0;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 1px;
+  margin-left: auto;
+  padding-left: 10px;
+  min-width: 2.75rem;
+  text-align: right;
+  line-height: 1.15;
+}
+
+.shop-kho-loai-dd-gan.is-empty {
+  min-width: 0;
+  padding: 0;
+}
+
+.shop-kho-loai-dd-gan-num {
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-display, rgba(0, 0, 0, 0.72));
+}
+
+.shop-kho-loai-dd-gan-hint {
+  font-size: 0.65rem;
+  font-weight: 550;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  color: var(--ink-muted);
+}
+
+.shop-kho-loai-dd-open {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  margin: 2px 2px 2px 0;
+  border-radius: 10px;
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+
+.shop-kho-loai-dd-open:hover {
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 12%, transparent);
+  color: var(--ink-display, rgba(0, 0, 0, 0.88));
+}
+
+.shop-kho-loai-dd-option--create .shop-kho-loai-dd-check--plus {
+  border-style: dashed;
+  color: var(--ink-muted);
+}
+
+.shop-kho-loai-dd-option--create:hover:not(:disabled) .shop-kho-loai-dd-check--plus {
+  border-color: var(--cins-orange, #fdad4c);
+  color: var(--cins-orange, #fdad4c);
+}
+
 .shop-kho-loai-dd-empty {
   margin: 0;
   padding: 20px 12px;
   font-size: 0.84rem;
   color: var(--ink-muted);
   text-align: center;
+}
+
+.shop-kho-loai-dd-group {
+  margin: 10px 8px 4px;
+  padding: 0 4px;
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.shop-kho-loai-dd-group:first-child {
+  margin-top: 4px;
+}
+
+.shop-kho-loai-dd-missing {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 8px 12px;
+}
+
+.shop-kho-loai-dd-missing .shop-kho-loai-dd-empty {
+  padding-bottom: 0;
+}
+
+.shop-kho-loai-dd-missing-lead {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+.shop-kho-loai-dd-missing textarea {
+  width: 100%;
+  min-height: 72px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-surface, #fff);
+  color: inherit;
+  font: inherit;
+  font-size: 0.86rem;
+  resize: vertical;
+}
+
+.shop-kho-loai-dd-missing-near {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+}
+
+.shop-kho-loai-dd-missing-near select {
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-surface, #fff);
+  color: inherit;
+  font: inherit;
+}
+
+.shop-kho-loai-dd-missing .shop-kho-loai-dd-sheet-done {
+  align-self: flex-end;
 }
 
 .shop-kho-loai-dd-sheet-foot {

@@ -10,6 +10,7 @@ import type {
 } from "@/lib/shop/cua-hang-listing-types";
 import { shopImageUrl } from "@/lib/shop/settings";
 import { isShopTamDongActive } from "@/lib/shop/tam-dong";
+import { canonicalizeDanhMucSlug } from "@/lib/shop/danh-muc-constants";
 import { mapDanhMucSlugByIds } from "@/lib/shop/danh-muc";
 import { fandomSlugsByNhomIds } from "@/lib/shop/fandom";
 import { facetsByNhomIds } from "@/lib/shop/thuoc-tinh";
@@ -221,7 +222,8 @@ async function nhomCatalogByOwner(
   for (const { catalogHang } of out.values()) {
     for (const h of catalogHang) {
       const dmId = danhMucIdByNhom.get(h.id);
-      h.danhMucSlug = dmId ? (slugByDm.get(dmId) ?? null) : null;
+      const rawSlug = dmId ? (slugByDm.get(dmId) ?? null) : null;
+      h.danhMucSlug = rawSlug ? canonicalizeDanhMucSlug(rawSlug) : null;
       const facets = { ...(facetsMap.get(h.id) ?? {}) };
       delete facets.fandom;
       const fandomSlugs = fandomSlugMap.get(h.id) ?? [];

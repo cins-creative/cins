@@ -1,5 +1,4 @@
 import Image from "next/image";
-import { BadgeCheck } from "lucide-react";
 
 import { EntityLightTimeline } from "@/components/tag/EntityLightTimeline";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
@@ -59,7 +58,6 @@ export async function EntityLightView({ article, sort }: Props) {
   const thumbUrl = resolveArticleThumbnailOnlySync(article.thumbnail);
 
   const summary = decodeEntityTomTat(article.tom_tat);
-  const verified = article.da_verify === true;
   const pile = users.slice(0, FACEPILE_MAX);
 
   return (
@@ -73,12 +71,6 @@ export async function EntityLightView({ article, sort }: Props) {
               </span>
               <div className="entity-light-title-row">
                 <h1 className="entity-light-title">{article.tieu_de}</h1>
-                {verified ? (
-                  <span className="entity-light-verified">
-                    <BadgeCheck size={16} strokeWidth={2.2} aria-hidden />
-                    Verified
-                  </span>
-                ) : null}
               </div>
               {summary ? <p className="entity-light-desc">{summary}</p> : null}
               {users.length > 0 ? (

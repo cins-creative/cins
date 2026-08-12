@@ -35,12 +35,7 @@ async function fetchAdminTagListViaPostgres(
           ? "AND bv.loai_bai_viet = 'fandom'"
           : "";
 
-  const verifyFrag =
-    params.trang_thai === "chua_verify"
-      ? "AND bv.da_verify IS NOT TRUE"
-      : params.trang_thai === "da_verify"
-        ? "AND bv.da_verify = TRUE"
-        : "";
+  const verifyFrag = "";
 
   const q = params.q.trim();
   const searchPattern = q ? `%${q}%` : null;
@@ -331,11 +326,7 @@ async function fetchAdminTagListViaSupabase(
   ) {
     req = req.eq("loai_bai_viet", params.loai);
   }
-  if (params.trang_thai === "chua_verify") {
-    req = req.or("da_verify.is.null,da_verify.eq.false");
-  } else if (params.trang_thai === "da_verify") {
-    req = req.eq("da_verify", true);
-  }
+  /* trang_thai verify đã gỡ — luôn list tất cả tag theo loại/search. */
   const q = params.q.trim();
   if (q) {
     const safe = `%${q.replace(/[%_]/g, "\\$&")}%`;
@@ -395,11 +386,13 @@ export function parseAdminTagListSearchParams(
       ? loaiRaw
       : "all";
 
-  const trangThaiRaw = sp.get("trang_thai")?.trim() ?? "chua_verify";
+  const trangThaiRaw = sp.get("trang_thai")?.trim() ?? "all";
   const trang_thai =
-    trangThaiRaw === "da_verify" || trangThaiRaw === "all"
-      ? trangThaiRaw
-      : "chua_verify";
+    trangThaiRaw === "da_verify" ||
+    trangThaiRaw === "chua_verify" ||
+    trangThaiRaw === "all"
+      ? "all"
+      : "all";
 
   const sortRaw = sp.get("sort")?.trim() ?? "pho_bien";
   const sort =

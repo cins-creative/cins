@@ -3703,10 +3703,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: 0;
+  width: 36px;
   min-width: 36px;
   min-height: 36px;
-  padding: 6px 8px;
+  padding: 0;
   border: none;
   border-radius: 0;
   background: transparent;
@@ -3728,7 +3729,15 @@
 }
 
 .j-shop-loai-share-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
   white-space: nowrap;
+  border: 0;
 }
 
 :root[data-theme="dark"] .j-shop-loai-share-btn {
@@ -3740,18 +3749,6 @@
 }
 
 @media (max-width: 720px) {
-  .j-shop-loai-share-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
   .j-shop-loai-share-btn {
     width: 36px;
     padding: 0;

@@ -41,8 +41,16 @@ Nội dung
       · Tab Đơn hàng: mọi `shop_don_hang`
       · Tab Bằng chứng chấp nhận (`?tab=chap-nhan`): đơn có `nguoi_mua_chap_nhan_luc`
       · Gate: `canAccessAdminPanel` (super_admin | admin | curator) — chỉ đọc
+  /admin/danh-muc             → **Taxonomy** `shop_danh_muc` (CRUD admin; seller Kho chỉ chọn)
+      · API `GET/POST /api/admin/shop/danh-muc` · `PATCH …/[id]` · `GET/POST …/hang-cho`
+      · Lib `shop-danh-muc-server.ts` · `danh-muc-dong-gop.ts` · UI `AdminShopDanhMucScreen`
+      · Gate: `getCurrentUserIsCinsAdmin` (super_admin | admin)
   /admin/gop-y                → góp ý
   /admin/de-xuat              → article_de_xuat trang_thai = cho_review
+  /admin/tag                  → tag keyword / phần mềm / phân loại (fandom)
+      · List · gộp · sửa tom_tat — **không** Verify CINs (2026-08-12)
+      · API `list` · `merge` · `[id]/tom-tat`; `[id]/verify` → 410
+      · UI `AdminTagScreen`
   /admin/noi-dung-dang        → **L29** quản lý nội dung World (boost ẩn) + **L30** điểm
       · Dashboard: số liệu nội dung mới, đang boost, lọc user/org + loại đăng
       · View Grid: toggle đẩy + nút **+** cộng `diem_uu_tien` (+10, không hoàn lại)
@@ -227,7 +235,7 @@ const [{ data: toHop }, { data: modules }, { data: monThi }] = await Promise.all
 | mon-hoc | mon_hoc | Môn học |
 | keyword | keyword | Keyword |
 | software | phan_mem | Software |
-| fandom | fandom | Fandom |
+| fandom | fandom | Phân loại |
 
 ### Query chung cho tất cả loại bài viết
 

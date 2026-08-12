@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import { BadgeCheck } from "lucide-react";
 
 import { TagAggSortSelect } from "@/components/tag/TagAggSortSelect";
 import type { LoaiBaiViet } from "@/lib/articles/types";
@@ -40,7 +39,6 @@ export async function TagAggregationView({ article, sort }: Props) {
   ]);
 
   const summary = article.tom_tat?.trim() || null;
-  const verified = article.da_verify === true;
 
   return (
     <article className="tag-agg-page">
@@ -48,12 +46,6 @@ export async function TagAggregationView({ article, sort }: Props) {
         <div className="tag-agg-title-row">
           <h1 className="tag-agg-title">{article.tieu_de}</h1>
           <span className="tag-agg-loai">{loaiLabel(article.loai_bai_viet)}</span>
-          {verified ? (
-            <span className="tag-agg-verified">
-              <BadgeCheck size={16} strokeWidth={2.2} aria-hidden />
-              Verified
-            </span>
-          ) : null}
         </div>
         {summary ? <p className="tag-agg-summary">{summary}</p> : null}
       </header>

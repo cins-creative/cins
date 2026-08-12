@@ -34,7 +34,7 @@ export const LOAI_BAI_VIET_LABEL: Record<string, string> = {
   event: "Sự kiện",
   nganh_dao_tao: "Ngành đào tạo",
   linh_vuc: "Lĩnh vực",
-  fandom: "Fandom",
+  fandom: "Phân loại",
 };
 
 export function articleTagLabel(loai: string): string {

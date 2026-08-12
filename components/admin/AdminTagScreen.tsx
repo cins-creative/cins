@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  BadgeCheck,
   ExternalLink,
   Loader2,
   MoreVertical,
@@ -18,20 +17,13 @@ import type {
   AdminTagListRow,
   AdminTagLoaiFilter,
   AdminTagSort,
-  AdminTagVerifyFilter,
 } from "@/lib/tag/admin-types";
 
 const LOAI_FILTERS: { id: AdminTagLoaiFilter; label: string }[] = [
   { id: "all", label: "Tất cả" },
   { id: "keyword", label: "Khái niệm" },
   { id: "phan_mem", label: "Phần mềm" },
-  { id: "fandom", label: "Fandom" },
-];
-
-const VERIFY_FILTERS: { id: AdminTagVerifyFilter; label: string }[] = [
-  { id: "chua_verify", label: "Chưa verify" },
-  { id: "da_verify", label: "Đã verify" },
-  { id: "all", label: "Tất cả" },
+  { id: "fandom", label: "Phân loại" },
 ];
 
 const SORT_OPTIONS: { id: AdminTagSort; label: string }[] = [
@@ -41,7 +33,9 @@ const SORT_OPTIONS: { id: AdminTagSort; label: string }[] = [
 ];
 
 function loaiLabel(loai: string): string {
-  return loai === "phan_mem" ? "Phần mềm" : "Khái niệm";
+  if (loai === "phan_mem") return "Phần mềm";
+  if (loai === "fandom") return "Phân loại";
+  return "Khái niệm";
 }
 
 function formatDate(iso: string): string {
@@ -57,9 +51,7 @@ function formatDate(iso: string): string {
 function buildListUrl(params: AdminTagListParams): string {
   const sp = new URLSearchParams();
   if (params.loai !== "all") sp.set("loai", params.loai);
-  if (params.trang_thai !== "chua_verify") {
-    sp.set("trang_thai", params.trang_thai);
-  }
+  sp.set("trang_thai", "all");
   if (params.sort !== "pho_bien") sp.set("sort", params.sort);
   if (params.q) sp.set("q", params.q);
   if (params.page > 1) sp.set("page", String(params.page));
@@ -71,7 +63,7 @@ function buildListUrl(params: AdminTagListParams): string {
 export function AdminTagScreen() {
   const [params, setParams] = useState<AdminTagListParams>({
     loai: "all",
-    trang_thai: "chua_verify",
+    trang_thai: "all",
     sort: "pho_bien",
     q: "",
     page: 1,
@@ -136,39 +128,6 @@ export function AdminTagScreen() {
     if (!data) return 1;
     return Math.max(1, Math.ceil(data.total / data.limit));
   }, [data]);
-
-  const patchVerify = async (row: AdminTagListRow, da_verify: boolean) => {
-    setPendingId(row.id);
-    const prev = data;
-    if (data) {
-      setData({
-        ...data,
-        rows:
-          params.trang_thai === "chua_verify" && da_verify
-            ? data.rows.filter((r) => r.id !== row.id)
-            : data.rows.map((r) =>
-                r.id === row.id ? { ...r, da_verify } : r,
-              ),
-      });
-    }
-    try {
-      const res = await fetch(`/api/admin/tag/${row.id}/verify`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ da_verify }),
-      });
-      if (!res.ok) {
-        if (prev) setData(prev);
-        const json = await res.json().catch(() => ({}));
-        setError(json.error ?? "Không cập nhật verify.");
-      }
-    } catch {
-      if (prev) setData(prev);
-      setError("Lỗi mạng khi verify.");
-    } finally {
-      setPendingId(null);
-    }
-  };
 
   const saveTomTat = async () => {
     if (!editRow) return;
@@ -278,7 +237,7 @@ export function AdminTagScreen() {
         <div>
           <h1 className="admin-page-title">Quản lý Tag</h1>
           <p className="admin-page-sub">
-            Verify tag keyword / phần mềm — ưu tiên tag phổ biến trước.
+            Quản lý tag cộng đồng — gộp trùng, sửa mô tả. Không verify CINs.
           </p>
         </div>
       </header>
@@ -293,24 +252,6 @@ export function AdminTagScreen() {
                 className={`admin-tag-pill${params.loai === f.id ? " is-active" : ""}`}
                 onClick={() =>
                   setParams((p) => ({ ...p, loai: f.id, page: 1 }))
-                }
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-          <div
-            className="admin-tag-filter-group"
-            role="group"
-            aria-label="Trạng thái verify"
-          >
-            {VERIFY_FILTERS.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                className={`admin-tag-pill${params.trang_thai === f.id ? " is-active" : ""}`}
-                onClick={() =>
-                  setParams((p) => ({ ...p, trang_thai: f.id, page: 1 }))
                 }
               >
                 {f.label}
@@ -382,13 +323,6 @@ export function AdminTagScreen() {
                 <tr key={row.id}>
                   <td>
                     <div className="admin-tag-name-cell">
-                      {row.da_verify ? (
-                        <BadgeCheck
-                          size={16}
-                          className="admin-tag-verified-icon"
-                          aria-label="Đã verify"
-                        />
-                      ) : null}
                       <span className="admin-tag-name">{row.tieu_de}</span>
                       <small className="admin-tag-date">
                         {formatDate(row.tao_luc)}
@@ -403,16 +337,6 @@ export function AdminTagScreen() {
                   </td>
                   <td>
                     <div className="admin-tag-actions">
-                      <button
-                        type="button"
-                        className="admin-tag-btn admin-tag-btn--primary"
-                        disabled={pendingId === row.id}
-                        onClick={() =>
-                          void patchVerify(row, !row.da_verify)
-                        }
-                      >
-                        {row.da_verify ? "Bỏ verify" : "Verify"}
-                      </button>
                       <button
                         type="button"
                         className="admin-tag-btn"
@@ -587,13 +511,6 @@ export function AdminTagScreen() {
                     onClick={() => void runMerge(opt)}
                   >
                     <span>
-                      {opt.da_verify ? (
-                        <BadgeCheck
-                          size={14}
-                          className="admin-tag-verified-icon"
-                          aria-hidden
-                        />
-                      ) : null}
                       {opt.tieu_de}
                     </span>
                     <small>

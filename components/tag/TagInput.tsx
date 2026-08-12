@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgeCheck, Check, Loader2, Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -49,7 +49,7 @@ const LOAI_FILTER_OPTIONS: { id: LoaiFilter; label: string }[] = [
   { id: "mon_hoc", label: "Môn học" },
   { id: "nganh_dao_tao", label: "Ngành" },
   { id: "nghe", label: "Nghề nghiệp" },
-  { id: "fandom", label: "Fandom" },
+  { id: "fandom", label: "Phân loại" },
 ];
 
 type Props = {
@@ -75,7 +75,7 @@ const CREATE_LOAI_LABEL: Record<CreatableTagLoai, string> = {
   phan_mem: "Phần mềm",
   mon_hoc: "Môn học",
   nghe: "Vị trí công việc",
-  fandom: "Fandom",
+  fandom: "Phân loại",
 };
 
 function creatableLoaiForFilter(loaiFilter: LoaiFilter): CreatableTagLoai[] {
@@ -133,17 +133,7 @@ function TagInputMenuItem({
       onClick={onPick}
     >
       <div className="tag-input-item-main">
-        <div
-          className={`tag-input-item-head${tag.da_verify ? " has-verified" : ""}`}
-        >
-          {tag.da_verify ? (
-            <BadgeCheck
-              className="tag-input-item-verified"
-              size={15}
-              strokeWidth={2}
-              aria-hidden
-            />
-          ) : null}
+        <div className="tag-input-item-head">
           <div className="tag-input-item-copy">
             <TagSuggestionLabel
               tieu_de={tag.tieu_de}
@@ -170,7 +160,7 @@ function TagInputMenuItem({
         {isFandom ? (
           <span
             className="tag-input-item-loai is-loai-fandom is-count"
-            title="Số tác phẩm / loại hàng gắn phân loại này"
+            title="Số bài đăng gắn phân loại này"
           >
             {formatTagGan(gan)}
           </span>
@@ -609,14 +599,6 @@ export function TagInput({
       >
         {value.map((tag) => (
           <span key={tag.id} className="tag-input-chip">
-            {tag.da_verify ? (
-              <Check
-                className="tag-input-chip-verified"
-                size={14}
-                strokeWidth={2.5}
-                aria-hidden
-              />
-            ) : null}
             <span className="tag-input-chip-label">{tag.tieu_de}</span>
             {!disabled ? (
               <button

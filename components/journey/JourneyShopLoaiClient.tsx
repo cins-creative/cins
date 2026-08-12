@@ -50,7 +50,13 @@ import {
   fetchShopCuaHangClient,
   prefetchBanHangClientStatus,
 } from "@/lib/shop/client-fetch-cache";
-import { shopLoaiHref, shopPublicHref, shopSlugFromTen } from "@/lib/shop/cua-hang-href";
+import {
+  shopKhoHubHref,
+  shopKhoLoaiHref,
+  shopLoaiHref,
+  shopPublicHref,
+  shopSlugFromTen,
+} from "@/lib/shop/cua-hang-href";
 import { parseShopNhomMoTa } from "@/lib/shop/nhom-mo-ta";
 import { isShopTamDongActive } from "@/lib/shop/tam-dong";
 import type {
@@ -1129,22 +1135,16 @@ export function JourneyShopLoaiClient({
   const shopLabel = shop?.ten?.trim() || `${ownerName} — cửa hàng`;
   const initials = getNameInitials(shop?.ten || ownerName, ownerSlug);
   const shopReady = shop?.sanSangNhanDon === true;
+  /** Deep-link Kho đúng loại đang xem — UUID được Kho resolve → slug canonical. */
+  const khoLoaiHref = detail?.nhan
+    ? shopKhoLoaiHref({ id: nhomId, nhan: detail.nhan })
+    : `${shopKhoHubHref()}/${encodeURIComponent(nhomId)}`;
   const sectionActions = isOwner ? (
     <nav className="j-shop-sf-actions" aria-label="Quản lý bán hàng">
-      <Link
-        href="/ban-hang/cua-hang"
-        className="j-shop-action-btn"
-        aria-label="Quản lý cửa hàng"
-        onMouseEnter={warmPrefetchBanHang}
-        onFocus={warmPrefetchBanHang}
-      >
-        <Settings2 size={13} aria-hidden />
-        <span className="j-shop-action-btn-label">Quản lý cửa hàng</span>
-      </Link>
       {shopReady ? (
         <>
           <Link
-            href="/ban-hang/kho"
+            href={khoLoaiHref}
             className="j-shop-action-btn"
             aria-label="Kho hàng"
             onMouseEnter={warmPrefetchBanHang}
@@ -1175,6 +1175,16 @@ export function JourneyShopLoaiClient({
           <span className="j-shop-action-btn-label">Kho (cần STK)</span>
         </span>
       )}
+      <Link
+        href="/ban-hang/cua-hang"
+        className="j-shop-action-btn"
+        aria-label="Quản lý cửa hàng"
+        onMouseEnter={warmPrefetchBanHang}
+        onFocus={warmPrefetchBanHang}
+      >
+        <Settings2 size={13} aria-hidden />
+        <span className="j-shop-action-btn-label">Quản lý cửa hàng</span>
+      </Link>
     </nav>
   ) : null;
 
@@ -1210,6 +1220,7 @@ export function JourneyShopLoaiClient({
             Về cửa hàng
           </Link>
           <div className="j-shop-loai-head-actions">
+            {sectionActions}
             <ShareLinkMenu
               sharePath={loaiSharePath}
               shareTitle={loaiShareTitle}
@@ -1217,16 +1228,10 @@ export function JourneyShopLoaiClient({
               triggerClassName="j-shop-loai-share-btn"
               triggerLabel="Chia sẻ mặt hàng này"
               triggerIcon={
-                <>
-                  <Share2 size={15} strokeWidth={2} aria-hidden />
-                  <span className="j-shop-loai-share-label">
-                    Chia sẻ mặt hàng này
-                  </span>
-                </>
+                <Share2 size={15} strokeWidth={2} aria-hidden />
               }
               placement="down"
             />
-            {sectionActions}
           </div>
         </div>
       </div>

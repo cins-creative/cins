@@ -31,6 +31,14 @@ export function isCreatableTagLoai(loai: string): loai is CreatableTagLoai {
   );
 }
 
+/**
+ * Verify CINs cho tag đã gỡ — luôn false (cộng đồng tự tạo tuyệt đối).
+ * Giữ helper để chỗ gọi cũ không vỡ; không dùng để bật lại UI.
+ */
+export function tagSupportsCinsVerify(_loai?: string): boolean {
+  return false;
+}
+
 export function parsePickableTagLoai(
   raw: string | null | undefined,
 ): PickableTagLoai {

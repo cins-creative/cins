@@ -4,6 +4,7 @@
 > **Bối cảnh:** giai đoạn đầu CINs nhắm nhóm bán **merch anime fes**; tương lai mở nhiều ngành hàng (quần áo, trang sức, art supply, dịch vụ…).
 > **Rev 2 (2026-08-07):** sau khi soát thiên vị ngành hàng (§3b) — **trục Fandom/IP được tổng quát hoá thành hệ thuộc tính (facet)**, không còn bảng `shop_ip` riêng. Fandom trở thành facet đầu tiên.
 > **Migration:** `supabase/sql/migration_shop_danh_muc.sql` · `npm run migrate:shop-danh-muc` — **đã chạy** CINs 2026-08-07.
+> **Rev 3 (2026-08-12):** tiếp nối ở [`PLAN_shop_danh_muc_rev3.md`](./PLAN_shop_danh_muc_rev3.md) — ranh giới danh mục, chất lượng soft-map, và cơ chế seller đóng góp. Kiến trúc Rev 2 giữ nguyên.
 
 ---
 

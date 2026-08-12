@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgeCheck, Loader2, Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -56,7 +56,7 @@ const LOAI_FILTER_OPTIONS: { id: LoaiFilter; label: string }[] = [
   { id: "mon_hoc", label: "Môn học" },
   { id: "nganh_dao_tao", label: "Ngành" },
   { id: "nghe", label: "Nghề nghiệp" },
-  { id: "fandom", label: "Fandom" },
+  { id: "fandom", label: "Phân loại" },
 ];
 
 const CREATE_LOAI_LABEL: Record<CreatableTagLoai, string> = {
@@ -64,7 +64,7 @@ const CREATE_LOAI_LABEL: Record<CreatableTagLoai, string> = {
   phan_mem: "Phần mềm",
   mon_hoc: "Môn học",
   nghe: "Vị trí công việc",
-  fandom: "Fandom",
+  fandom: "Phân loại",
 };
 
 function creatableLoaiForFilter(loaiFilter: LoaiFilter): CreatableTagLoai[] {
@@ -597,14 +597,6 @@ export function EditorTagMenu({
               onMouseEnter={() => setActiveIndex(0)}
               onClick={() => pickExistingTag(exactMatch)}
             >
-              {exactMatch.da_verify ? (
-                <BadgeCheck
-                  className="tag-input-item-verified"
-                  size={16}
-                  strokeWidth={2}
-                  aria-hidden
-                />
-              ) : null}
               <TagSuggestionLabel
                 tieu_de={exactMatch.tieu_de}
                 tieu_de_viet={exactMatch.tieu_de_viet}
@@ -641,14 +633,6 @@ export function EditorTagMenu({
                     onMouseEnter={() => setActiveIndex(navIdx)}
                     onClick={() => pickTagMenuItem(item)}
                   >
-                    {item.tag.da_verify ? (
-                      <BadgeCheck
-                        className="tag-input-item-verified"
-                        size={16}
-                        strokeWidth={2}
-                        aria-hidden
-                      />
-                    ) : null}
                     <TagSuggestionLabel
                       tieu_de={item.tag.tieu_de}
                       tieu_de_viet={item.tag.tieu_de_viet}

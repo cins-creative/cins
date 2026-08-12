@@ -104,8 +104,7 @@ export function PostMetaRail({
   const ownerAvatarUrl = getAvatarUrl(owner.avatarId);
   const people = buildRailPeople(mainPost?.contributors ?? []);
   const articleTags = mainPost?.articleTags ?? [];
-  const verifyTags = articleTags.filter((t) => t.da_verify === true);
-  const attachTags = articleTags.filter((t) => t.da_verify !== true);
+  const attachTags = articleTags;
   const verifiedBy = milestone.verifiedBy?.trim() || null;
   const verifier = resolveVerifierDisplay(milestone.verifier, verifiedBy);
   const isVerified = Boolean(verifier);
@@ -193,16 +192,6 @@ export function PostMetaRail({
           <div className="post-rail-body">{contentRail}</div>
         ) : null}
       </div>
-
-      {verifyTags.length > 0 ? (
-        <div className="post-rail-blk post-rail-blk--tags post-rail-blk--verify">
-          <div className="tags jcard-tags post-rail-tags" aria-label="Thẻ xác thực">
-            {verifyTags.map((t) => (
-              <JourneyArticleTagLink key={t.id} tag={t} />
-            ))}
-          </div>
-        </div>
-      ) : null}
 
       {attachTags.length > 0 ? (
         <div className="post-rail-blk post-rail-blk--tags">

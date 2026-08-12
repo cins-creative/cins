@@ -90,6 +90,11 @@ export type ShopNhom = {
   /** Slug danh mục — enrich khi list (null nếu chưa map). */
   danhMucSlug: string | null;
   /**
+   * Tên seller đề xuất khi loại đang gán `khac` + yêu cầu `moi`.
+   * Chỉ để hiện UI Kho — không phải lá canonical.
+   */
+  danhMucDeXuat: string | null;
+  /**
    * Facet gắn loại — key = slug facet, value = slug giá trị.
    * Enrich khi list. Key `fandom` lấy từ `shop_nhom_fandom` (entity).
    */

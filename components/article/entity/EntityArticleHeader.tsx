@@ -16,7 +16,7 @@ const BADGE: Record<EntityBadgeKind, { className: string; label: string }> = {
   phan_mem: { className: "is-phan-mem", label: "Phần mềm" },
   mon_hoc: { className: "is-mon-hoc", label: "Môn học" },
   nghe: { className: "is-nghe", label: "Nghề nghiệp" },
-  fandom: { className: "is-fandom", label: "Fandom" },
+  fandom: { className: "is-fandom", label: "Phân loại" },
 };
 
 type Props = {

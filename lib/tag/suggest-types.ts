@@ -11,15 +11,17 @@ export type TagSuggestRow = {
   linh_vuc_ten: string | null;
   so_nguoi_tagged: number;
   /**
-   * Số lần gắn thẻ: tác phẩm (`article_gan_tac_pham`) + loại hàng shop
-   * (`shop_nhom_fandom`) — dùng badge thay nhãn loại với fandom.
+   * Số bài đăng (cột mốc public/feature/cong_dong) gắn thẻ —
+   * khớp feed trang entity / fandom.
    */
   so_gan: number;
   cover_id: string | null;
+  /** Slug bài entity — mở tab mới từ sheet chọn fandom. */
+  slug?: string | null;
 };
 
 export const TAG_SUGGEST_MAX = 7;
 export const TAG_SUGGEST_INDEX_MAX = 2500;
-export const TAG_SUGGEST_CACHE_KEY = "cins:tag-suggest-index:v4";
+export const TAG_SUGGEST_CACHE_KEY = "cins:tag-suggest-index:v8";
 export const TAG_SUGGEST_CACHE_TTL_MS = 10 * 60 * 1000;
 export const TAG_SUGGEST_DEBOUNCE_MS = 50;

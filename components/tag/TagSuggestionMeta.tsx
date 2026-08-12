@@ -5,7 +5,7 @@ type Props = {
   loai: PickableTagLoai;
   linhVucTen?: string | null;
   soNguoiTagged?: number;
-  /** Tác phẩm + loại hàng gắn — thay nhãn FANDOM. */
+  /** Số bài đăng gắn — thay nhãn loại với fandom/phân loại. */
   soGan?: number;
 };
 
@@ -33,7 +33,7 @@ export function TagSuggestionMeta({
       {isFandom ? (
         <span
           className="tag-input-item-loai is-loai-fandom is-count"
-          title="Số tác phẩm / loại hàng gắn phân loại này"
+          title="Số bài đăng gắn phân loại này"
         >
           {formatTagGanCount(soGan)}
         </span>

@@ -38,6 +38,7 @@ Kết nối giữa người có chuyên môn là giá trị cốt lõi; **phân 
 - **Hai loại quan hệ theo người**: **kết bạn** (2 chiều — cả hai thành bạn của nhau; phục vụ danh bạ nghề + bạn chung + điều kiện tag co-author) và **theo dõi** (1 chiều — không cần đồng ý; nội dung public của người được theo dõi phân bổ lên Gallery của người theo dõi). Org chỉ được **theo dõi**, không kết bạn.
 - **Tag là infrastructure + có thể có canonical**: `keyword`/`phan_mem`/`nghe`… vẫn là entity aggregation (người + tác phẩm). **Prose canonical** (tab Nội dung) là *tùy chọn per entity* — không bắt buộc mọi tag đều có bài chính. Khi chưa có canonical: `tom_tat` AI + tab Đóng góp/Thảo luận vẫn hoạt động.
 - **Filter cá nhân ≠ tag toàn cục**: mỗi user/org tự tạo nhãn cục bộ ("Áo thun trơn", "BST hè") để *tự sắp xếp nội dung của chính mình*. Nhãn cá nhân KHÔNG kéo discovery xuyên người dùng (khác hẳn tag toàn cục) → không phá luật chống-viral. Xem quy tắc 29.
+- **Nhãn shop ≠ danh mục discovery**: seller tự đặt tên loại (`shop_nhom.nhan`); CINs sở hữu cây canonical (`shop_danh_muc`) để lọc xuyên shop. Bốn khái niệm dễ lẫn — xem **S1–S4**.
 - **Verify rẻ là tính năng**: gánh nặng xác thực phải nhẹ đến mức bên có thẩm quyền không thấy phiền — user đẩy yêu cầu, org chỉ bấm duyệt (org-veto, không org-pull). Xem §V.
 
 ---
@@ -100,7 +101,7 @@ Kết nối giữa người có chuyên môn là giá trị cốt lõi; **phân 
 24. **Tạo org**: chỉ `truong_dai_hoc` cần CINS duyệt; 3 loại user tạo ngay (`co_so_dao_tao`, `studio`, `cong_dong`). Xem §O.
 25. **Trang entity = lens + 3 tab.** Mọi trang entity (`keyword`/`phan_mem`/`nghe`/`mon_hoc`/`truong`…) là *lens* trên Journey — KHÔNG kho mới, KHÔNG có chủ (xem DECISIONS L13). **Ba tab:** (1) **Nội dung** — bài chính canonical đã duyệt (`article_bai_viet.noi_dung`); hero hiện tác giả chính + "N người đóng góp". (2) **Đóng góp** — bản thảo song song: mỗi user soạn **một bài riêng**, không sửa chung một bài như Wikipedia; curator promote bản đủ chất lượng thành bài chính; bản không duyệt vẫn public (contributor có quyền ẩn bản của mình). (3) **Thảo luận** — timeline tác phẩm/cột mốc gắn tag + MXH scoped. Trên cùng tập tagged-content: **Lưới** (visual) + **Dòng thời gian** (post-card). Sort: mặc định mới nhất, thêm A–Z + engagement (tùy chọn thủ công trong context). Chỉ kéo content public; hiện rõ tác giả; private không lộ. Tên hiển thị "Dòng thời gian", KHÔNG gọi "Journey".
 26. **Post cộng đồng = `content_cot_moc`** (không có bảng post riêng). Đăng bài vào cộng đồng = tạo cột mốc với `id_to_chuc`=cộng đồng + `che_do_hien_thi='cong_dong'`. Cộng đồng là **view tổng hợp cột mốc của thành viên** (như Gallery), không sở hữu nội dung. Comment/reaction/lưu trỏ cột mốc → bền. Đổi thẻ sang `public`/`theo_nhom` = "tốt nghiệp" thành milestone Journey, giữ comment, rời feed cộng đồng. Nhãn flair: `cong_dong_filter` + junction `cong_dong_filter_gan` (nối cột mốc). Mọi query Journey public PHẢI loại trừ `che_do_hien_thi='cong_dong'` — gom vào 1 helper.
-27. `da_verify` không phải gatekeeping. Tag chưa verify vẫn tồn tại, vẫn dùng. `da_verify=true` chỉ ưu tiên top autocomplete.
+27. **Tag không verify CINs (2026-08-12).** Cộng đồng tạo tự do tuyệt đối; admin không set `da_verify`; UI không badge Verified trên entity/tag. Cột DB `da_verify` có thể còn — **không** dùng để ưu tiên autocomplete hay gate. Xem DECISIONS LOG **Tag — gỡ verify CINs tuyệt đối**.
 28. AI gen `tom_tat` tag mới từ tên tag — không đợi đủ data. Regen khi `so_data_point` tăng đáng kể (track qua `vector_dong`).
 29. **Filter cá nhân** = nhãn động do chủ sở hữu (user *hoặc* org) tự định nghĩa (`filter_nhan`), gắn polymorphic lên `content_cot_moc` (user) hoặc `org_bai_dang` (org) qua `filter_gan`. Cục bộ trong phạm vi 1 chủ sở hữu: KHÔNG tạo tag toàn cục (`article_*`), KHÔNG là kênh discovery xuyên người dùng, KHÔNG nghiệp vụ thương mại (giá/bán). Lọc áp cho **cả 2 view** Journey (timeline + grid). Verify quyền sở hữu trước mọi mutation.
 30. **Đóng góp = bản thảo song song, không collaborative edit.** Mỗi user tạo bản riêng gắn `id_bai_viet` entity. Không merge trực tiếp trên một document. Curator **promote** (thay thế bài chính), không edit-war. Bản cũ từng là chính → chuyển xuống tab Đóng góp, vẫn xem được.
@@ -111,6 +112,12 @@ Kết nối giữa người có chuyên môn là giá trị cốt lõi; **phân 
 - K1. **Tác phẩm gán cấp khóa** (`content_cot_moc.id_khoa_hoc`), KHÔNG bắt chọn lớp. `id_lop_hoc` tự suy ra từ `user_hoc_vien_lop` để định tuyến verify; không có ghi danh → NULL, admin org duyệt.
 - K2. **"Sản phẩm học viên" trên trang khóa = lens** (theo quy tắc 25 / L13): lọc `content_cot_moc WHERE id_khoa_hoc=X AND verified AND public`. Org không sở hữu — tác phẩm sống ở Journey học viên.
 - K3. **Trang khóa ưu tiên mô hình liên tục** (`lien_tuc_theo_thang`, kiểu Sine Art). Cohort = biến thể render (đợt có `ngay_khai_giang` cố định). Giáo viên / lịch / sĩ số ở `org_lop_hoc` (per-lớp, không per-khóa); lộ trình bài ở `org_giao_trinh` (ORDER BY `thu_tu`, gating theo `visibility`); landing ở `org_khoa_hoc.noi_dung_blocks`.
+
+**Shop taxonomy (S1–S4) — discovery xuyên shop, xem DECISIONS 2026-08-12 Rev 3 + `PLAN_shop_danh_muc_rev3.md`:**
+- S1. **Bốn khái niệm không được lẫn.** (1) **Nhãn trưng bày** — `shop_nhom.nhan`, seller tự do, cục bộ một shop. (2) **Danh mục canonical** — `shop_danh_muc`, CINs sở hữu, lọc hub `/cua-hang`. (3) **Facet** — `shop_thuoc_tinh` (chất liệu, fandom/phân loại…), cắt ngang danh mục, chỉ để lọc. (4) **Biến thể** — `shop_bien_the` (size/màu/tồn/giá). Facet không ảnh hưởng kho/giá; biến thể không phải taxonomy.
+- S2. **Seller không tạo danh mục.** Thêm/sửa/ẩn `shop_danh_muc` chỉ admin. Seller **báo thiếu** (`shop_danh_muc_yeu_cau`) → loại gán `khac`, hàng vẫn bán, **không** lên chip filter. Alias tự học khi seller bỏ gợi ý chọn tay — admin promote, không auto (UNIQUE `tu_khoa` toàn cục).
+- S3. **`khac` phình ra = cây thiếu mục, không phải seller lười.** Chip hub ẩn `khac`. Khi nhiều shop khác nhau báo cùng một khoảng trống → admin tạo lá mới (slug ổn định, viết `mo_ta` ranh giới). Không seed đoán ngành hàng chưa có tín hiệu.
+- S4. **Cây lá + cấp cha.** Loại hàng chỉ gắn **lá**. Cấp cha gom UI / roll-up, không lên chip, không nhận FK. Slug lá không mang tên cha. URL `?danhMuc=` luôn trỏ lá.
 
 **Verify (V1–V6) — luồng xác thực thống nhất, xem §V:**
 - V1. Một luồng chung qua `verify_yeu_cau`: **user đẩy yêu cầu + bằng chứng, org bấm duyệt**. Không org-pull.
@@ -366,7 +373,7 @@ diem = Σ(nhap_i × he_so_i) / Σ(thang_diem_i × he_so_i) × quy_ve_thang
 
 ## 12. Admin — Phân quyền 2 lớp
 
-**CINS admin (`/admin`)** — chỉ CINS internal: duyệt org (gồm duyệt đề xuất `truong_dai_hoc`, verify `co_so_dao_tao`), seed ngành, `edu_*`, analytics, **verify tag (`da_verify`)**.
+**CINS admin (`/admin`)** — chỉ CINS internal: duyệt org (gồm duyệt đề xuất `truong_dai_hoc`, verify `co_so_dao_tao`), seed ngành, `edu_*`, analytics, **quản lý tag** (list · gộp alias · sửa `tom_tat` — **không** verify tag / `da_verify`).
 
 **Org admin (inline trên trang org)** — staff org: cover/avatar, `org_bai_dang`, `org_hinh_anh`, `org_su_kien`, (trường) `org_tuyen_sinh_nam`, invite `user_thanh_vien_to_chuc`.
 
@@ -377,14 +384,14 @@ Check: `user_thanh_vien_to_chuc.vai_tro IN ('admin', 'quan_ly_noi_dung', 'quan_l
 - **Trục 1 — quyền toàn cục** (bạn LÀ GÌ trên nền tảng):
   - **Khách**: chỉ đọc nội dung public.
   - **User thường** (mặc định): Journey riêng, tạo catalog concept (nháp permissionless), đăng tác phẩm, gắn tag *mô tả*, gửi claim verify.
-  - **CINS Curator**: authority **biên tập từ điển + thẩm định canonical** — phong canonical / `da_verify` tag, gộp alias, gán nhóm; **duyệt/từ chối bản đóng góp**, promote bài chính. Có thể gán **theo phạm vi** (`toan_cuc` / `linh_vuc` / `bai_viet`). KHÔNG có quyền verify quan hệ.
+  - **CINS Curator**: authority **biên tập từ điển + thẩm định canonical** — gộp alias, gán nhóm; **duyệt/từ chối bản đóng góp**, promote bài chính. **Không** phong `da_verify` tag (đã gỡ 2026-08-12). Có thể gán **theo phạm vi** (`toan_cuc` / `linh_vuc` / `bai_viet`). KHÔNG có quyền verify quan hệ.
   - **CINS Admin**: seed `linh_vuc` + ngành, `edu_*`, duyệt org, moderation toàn cục (xem §12 trên + §O).
 - **Trục 2 — quyền theo quan hệ (per-row)**:
   - **Chủ sở hữu**: row này của tôi → sửa / soft-delete (`da_xoa`) tác phẩm của mình, xác nhận tag trên tác phẩm của mình, accept/veto claim nhắm tới chính mình.
   - **Org owner/admin**: vận hành org, verify thành viên/affiliate, accept/veto claim nhắm tới org, quản thành viên (theo `vai_tro` ở trên).
   - **Org member**: thuộc org (roster, đăng dưới ngữ cảnh org) nhưng KHÔNG giữ authority org.
 - **Bất biến quyền** (đồng bộ quy tắc 27 + §V):
-  - "Tag chuẩn" (`da_verify`/canonical = trục 1, Curator) ≠ "đã xác thực" (quan hệ = trục 2, đích claim). **KHÔNG gộp một cột** → gộp là mất moat.
+  - "Tag chuẩn" / canonical entity (trục 1, Curator — promote bài chính) ≠ "đã xác thực" quan hệ (trục 2, đích claim). **KHÔNG gộp một cột** → gộp là mất moat. Tag `da_verify` **không** còn dùng làm «tag chuẩn CINs» (2026-08-12).
   - **AI không phải role**: chỉ gợi tag *mô tả*; KHÔNG bao giờ giữ accept/veto, canonical, hay authority trục 2.
   - **RLS là nơi thực thi quyền**, không phải UI/Cursor. UI ẩn/hiện chỉ là tiện ích; chặn thật ở RLS. Không để quyền phụ thuộc client làm đúng. (Gate build feature → `CINS_DEV_RULES.md` §3.)
 

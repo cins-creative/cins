@@ -41,6 +41,34 @@
 
 ## LOG — quyết định đã chốt
 
+### Tag — gỡ verify CINs tuyệt đối + Phân loại (fandom) UX (2026-08-12)
+
+- **Chốt verify:** Admin **không** verify bất kỳ loại tag nào (`keyword` / `phan_mem` / `fandom` / …). Cộng đồng tạo tự do; không badge Verified trên entity / light / aggregation / TagInput / editor / Journey rail (thẻ bài viết).
+- **API:** `PATCH /api/admin/tag/[id]/verify` → **410** (đã gỡ). Admin UI: hết lọc chưa/đã verify + nút Verify; còn list · gộp · sửa `tom_tat`.
+- **DB:** cột `article_bai_viet.da_verify` **giữ** (không migration DROP); code không ưu tiên / không gate theo cột này. `tagSupportsCinsVerify()` luôn `false`.
+- **Nhãn UI:** `loai_bai_viet = fandom` hiện **«Phân loại»** (badge entity, filter tag, editor, search, admin pill) — slug/route `/fandom/[slug]` + enum DB không đổi.
+- **`so_gan` (badge `#N`):** đếm **bài đăng** = cột mốc `public` \| `feature` \| `cong_dong` gắn thẻ (qua `article_gan_cot_moc` ∪ fallback `article_gan_tac_pham`→thuộc mốc) — **khớp** feed trang entity. Không còn cộng `shop_nhom_fandom` / mọi TP.
+- **Shop Kho:** ô Phân loại = sheet overlay (`FandomTaxSelect`) đồng bộ `TaxSelectDropdown` (không TagInput portal); `#N bài` + icon mở `/fandom/[slug]` tab mới.
+- **Index gợi ý:** `GET /api/tag/index` query nhẹ + đếm `so_gan` best-effort; lỗi Postgres → fallback Supabase; client không kẹt `index=null`. Cache session `cins:tag-suggest-index:v8`.
+- *Supersede:* DECISIONS **L3** (verify ưu tiên autocomplete) · FOUNDATIONS quy tắc **27** (cập nhật cùng ngày).
+- *Hệ quả file:* `lib/tag/tag-loai.ts` · `suggest-index-*` · `admin-list.ts` · `app/api/admin/tag/[id]/verify` · `AdminTagScreen` · entity views · `ShopKhoLoaiTaxonomy` · `PostMetaRail` · labels `article-tag` / `EntityArticleHeader`.
+
+### Shop — danh mục hàng Rev 3 (2026-08-12)
+
+- **Chốt §7** (`PLAN_shop_danh_muc_rev3.md`): 5 cấp cha; gộp charm+keychain+coaster → `charm-keychain`; **giữ combo là danh mục**; soft-map chưa confirm **lên hub**; alias tự học chờ admin; không seed đồ dùng in hình — chờ seller báo thiếu.
+- **Seller không tạo danh mục.** Báo thiếu = request (`shop_danh_muc_yeu_cau`), gán `khac`, không lên chip. Alias tự học (`shop_danh_muc_alias_ung_vien`) khi bỏ gợi ý chọn tay — promote thủ công (UNIQUE `tu_khoa` toàn cục).
+- **Kho UX:** dropdown hiện `mo_ta` ranh giới + gom nhóm theo cha. *Supersede* chốt cùng ngày «không hiện `mo_ta`».
+- **Hub:** chip chỉ node lá (`khac` + cấp cha ẩn). URL `?danhMuc=keychain` / `charm-coaster` alias → `charm-keychain`.
+- **Migration:** `migration_shop_danh_muc_rev3.sql` · `npm run migrate:shop-danh-muc-rev3`. Không ALTER bảng cũ.
+- *Hệ quả:* `danh-muc.ts` · `danh-muc-dong-gop.ts` · `ShopKhoLoaiTaxonomy` · hub taxonomy · `/admin/danh-muc` hàng chờ. FOUNDATIONS **S1–S4**.
+
+### Shop — danh mục hàng: chỉ admin tạo; seller chọn (2026-08-12)
+
+- **Chốt:** Giữ tinh thần plan (`PLAN_shop_danh_muc_san_pham.md`): **seller không tạo** `shop_danh_muc`. Thêm / sửa / ẩn chỉ qua admin.
+- **Admin:** `/admin/danh-muc` + API `GET/POST /api/admin/shop/danh-muc` · `PATCH …/[id]` (gate `admin` \| `super_admin`). Ẩn = `trang_thai='an'` (không hard-delete; không ẩn slug `khac`). Không ALTER schema.
+- **Kho UX:** *đã supersede cùng ngày — Rev 3 hiện `mo_ta` dưới tên.*
+- *Hệ quả:* `lib/admin/shop-danh-muc-server.ts` · `AdminShopDanhMucScreen` · `AdminSidebar` · `ShopKhoLoaiTaxonomy`. Docs: IMPLEMENTATION · `cursor_map_admin.md`.
+
 ### Admin — soft-delete user (chỉ Admin tối cao) (2026-08-11)
 
 - **Chốt:** `/admin/nguoi-dung` có xóa user; gate `canDeleteUsers` = **chỉ `super_admin`**. Soft-delete (`trang_thai_tai_khoan = da_xoa`) + null `auth_user_id` + gỡ `user_quyen_he_thong` + `auth.admin.deleteUser` — **không** hard-delete profile (FK nội dung/shop/quan hệ).
@@ -67,7 +95,9 @@
 
 ### Fandom entity — bài viết hạng nhất + thay facet shop (2026-08-10)
 
-- **Chốt:** `fandom` thêm vào `loai_bai_viet_enum`. Mỗi fandom = 1 `article_bai_viet` (trang `/fandom/[slug]`). User tạo tự do như keyword (`CREATABLE_TAG_LOAI`, `da_verify=false`, published ngay); dedupe alias exact + fuzzy gợi ý; admin merge.
+- **Chốt:** `fandom` thêm vào `loai_bai_viet_enum`. Mỗi fandom = 1 `article_bai_viet` (trang `/fandom/[slug]`). User tạo tự do như keyword (`CREATABLE_TAG_LOAI`, published ngay); dedupe alias exact + fuzzy gợi ý; admin merge.
+- **Nhãn UI (2026-08-12):** hiện **«Phân loại»** — xem LOG **Tag — gỡ verify CINs…**.
+- **Verify tag:** xem LOG **Tag — gỡ verify CINs tuyệt đối** (2026-08-12) — không còn verify CINs cho tag.
 - **Shop:** bỏ facet `shop_thuoc_tinh.slug='fandom'` khỏi runtime — **ẩn** (`trang_thai='an'`), không xóa seed/junction cũ. Gắn loại hàng qua bảng mới `shop_nhom_fandom` (`id_nhom` ↔ `id_bai_viet` fandom). Hub `/cua-hang` vẫn nhận facet ảo slug `fandom` (giữ `?fandom=` + `hit.facets.fandom`).
 - **Không bridge** giữ song song facet + entity; không soft-gate / hàng đợi duyệt.
 - **Inventory ALTER (đã duyệt khi approve plan):**
@@ -799,7 +829,7 @@
 
 - **L1 — `keyword`/`phan_mem` là infrastructure, không phải content.** Chỉ trang aggregation + `tom_tat` AI gen, không prose, không vào navigation "Bài viết", `noi_dung=NULL`.
 - **L2 — Tag tự do, không chặn upfront.** User gõ tag mới → tạo thẳng `article_bai_viet`, AI gen `tom_tat` ngay. `article_de_xuat` chỉ còn cho `nghe`/`nganh_dao_tao`.
-- **L3 — `da_verify BOOLEAN` không phải gatekeeping.** Verified tag lên top autocomplete; chưa verify vẫn dùng. Admin verify sau khi tag tự nổi lên.
+- **L3 — `da_verify BOOLEAN` — *đã gỡ 2026-08-12*.** ~~Verified tag lên top autocomplete; admin verify sau khi tag nổi.~~ → Cộng đồng tự tạo tuyệt đối; admin không verify tag; UI không badge Verified. Cột DB giữ, không dùng. Xem LOG **Tag — gỡ verify CINs tuyệt đối**.
 - **L4 — Alias dedup tự động.** Exact lowercase → `article_alias` map tự động. AI fuzzy → suggest confirm.
 
 ### v6 (engagement + social graph + org)

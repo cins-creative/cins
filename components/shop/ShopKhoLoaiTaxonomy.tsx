@@ -1,7 +1,16 @@
 "use client";
 
-import { Check, ChevronDown, Loader2, Search, X } from "lucide-react";
 import {
+  Check,
+  ChevronDown,
+  ExternalLink,
+  Loader2,
+  Plus,
+  Search,
+  X,
+} from "lucide-react";
+import {
+  useCallback,
   useEffect,
   useId,
   useMemo,
@@ -10,14 +19,33 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
-import { TagInput, type TagInputValue } from "@/components/tag/TagInput";
+import {
+  useTagSuggestSearch,
+  type TagSuggestRow,
+} from "@/components/tag/useTagSuggestSearch";
+import { articlePublicHref } from "@/lib/articles/article-href";
+import {
+  fetchTagSuggestIndex,
+  titlesMatchQuery,
+} from "@/lib/tag/suggest-index-client";
 import type { ShopNhom } from "@/lib/shop/types";
+
+type TagInputValue = {
+  id: string;
+  tieu_de: string;
+  loai_bai_viet: "fandom";
+  da_verify?: boolean;
+};
+
+const FANDOM_SHEET_MAX = 40;
+const FANDOM_MAX_TAGS = 12;
 
 type DanhMucOpt = {
   id: string;
   slug: string;
   ten: string;
   moTa: string | null;
+  idCha?: string | null;
 };
 
 type GiaTriOpt = {
@@ -78,7 +106,109 @@ function sameIdSet(a: string[], b: string[]): boolean {
   return b.every((id) => set.has(id));
 }
 
-type DropdownOption = { id: string; ten: string; hint?: string | null };
+type DropdownOption = {
+  id: string;
+  ten: string;
+  moTa?: string | null;
+  group?: string | null;
+};
+
+function BaoThieuDanhMucForm({
+  nhomId,
+  tuKhoa,
+  ganNhat,
+  disabled,
+  onSubmitted,
+  onError,
+  onDone,
+}: {
+  nhomId: string;
+  tuKhoa: string;
+  ganNhat: DropdownOption[];
+  disabled?: boolean;
+  onSubmitted: (n: ShopNhom) => void;
+  onError: (msg: string | null) => void;
+  onDone: () => void;
+}) {
+  const [moTa, setMoTa] = useState("");
+  const [ganNhatId, setGanNhatId] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit() {
+    setBusy(true);
+    onError(null);
+    try {
+      const res = await fetch("/api/shop/danh-muc/yeu-cau", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          idNhom: nhomId,
+          moTa,
+          tuKhoa,
+          idDanhMucGanNhat: ganNhatId || null,
+        }),
+      });
+      const json = (await res.json().catch(() => null)) as {
+        item?: ShopNhom;
+        error?: string;
+      } | null;
+      if (!res.ok || !json?.item) {
+        onError(json?.error ?? "Không gửi được yêu cầu.");
+        return;
+      }
+      onSubmitted(json.item);
+      onDone();
+    } catch {
+      onError("Không gửi được yêu cầu.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="shop-kho-loai-dd-missing">
+      <p className="shop-kho-loai-dd-empty">
+        Đề xuất «{tuKhoa.trim() || "danh mục mới"}»
+      </p>
+      <p className="shop-kho-loai-dd-missing-lead">
+        Danh mục này chưa có trên CINs. Gửi đề xuất — hàng vẫn bán, chưa lên bộ
+        lọc.
+      </p>
+      <textarea
+        value={moTa}
+        disabled={disabled || busy}
+        placeholder="Nó là cái gì / dùng để làm gì? (tối thiểu 20 ký tự)"
+        rows={3}
+        onChange={(e) => setMoTa(e.target.value)}
+      />
+      {ganNhat.length > 0 ? (
+        <label className="shop-kho-loai-dd-missing-near">
+          Gần giống (không bắt buộc)
+          <select
+            value={ganNhatId}
+            disabled={disabled || busy}
+            onChange={(e) => setGanNhatId(e.target.value)}
+          >
+            <option value="">Không thuộc mục nào đang có</option>
+            {ganNhat.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.ten}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+      <button
+        type="button"
+        className="shop-kho-loai-dd-sheet-done"
+        disabled={disabled || busy || moTa.trim().length < 20}
+        onClick={() => void submit()}
+      >
+        {busy ? "Đang gửi…" : "Gửi đề xuất"}
+      </button>
+    </div>
+  );
+}
 
 function TaxSelectDropdown({
   label,
@@ -91,6 +221,8 @@ function TaxSelectDropdown({
   disabled,
   onToggle,
   onClear,
+  missingCategory,
+  pendingLabel,
 }: {
   label: string;
   placeholder: string;
@@ -102,10 +234,18 @@ function TaxSelectDropdown({
   disabled?: boolean;
   onToggle: (id: string) => void;
   onClear?: () => void;
+  missingCategory?: {
+    nhomId: string;
+    onSubmitted: (n: ShopNhom) => void;
+    onError: (msg: string | null) => void;
+  };
+  /** Tên đề xuất đang chờ — hiện thay option «Khác». */
+  pendingLabel?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [q, setQ] = useState("");
+  const [deXuatOpen, setDeXuatOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const listId = useId();
   const titleId = useId();
@@ -117,6 +257,7 @@ function TaxSelectDropdown({
   useEffect(() => {
     if (!open) {
       setQ("");
+      setDeXuatOpen(false);
       return;
     }
     const prev = document.body.style.overflow;
@@ -140,19 +281,30 @@ function TaxSelectDropdown({
       .filter((o): o is DropdownOption => Boolean(o));
   }, [options, selectedIds]);
 
+  const pendingTen = pendingLabel?.trim() || "";
+  const hasPending = selected.length === 0 && Boolean(pendingTen);
+  const hasValue = selected.length > 0 || hasPending;
+
   const filtered = useMemo(() => {
     const needle = q.trim().toLocaleLowerCase("vi");
     if (!needle) return options;
-    return options.filter(
-      (o) =>
-        o.ten.toLocaleLowerCase("vi").includes(needle) ||
-        (o.hint?.toLocaleLowerCase("vi").includes(needle) ?? false),
-    );
+    return options.filter((o) => {
+      const hay = `${o.ten} ${o.moTa ?? ""} ${o.group ?? ""}`;
+      return hay.toLocaleLowerCase("vi").includes(needle);
+    });
   }, [options, q]);
+
+  const exactMatch = useMemo(() => {
+    const needle = q.trim().toLocaleLowerCase("vi");
+    if (!needle) return false;
+    return options.some((o) => o.ten.toLocaleLowerCase("vi") === needle);
+  }, [options, q]);
+
+  const canDeXuat = Boolean(missingCategory && q.trim() && !exactMatch);
 
   const summary =
     selected.length === 0
-      ? placeholder
+      ? pendingTen || placeholder
       : selected.length === 1
         ? selected[0]!.ten
         : `${selected[0]!.ten} +${selected.length - 1}`;
@@ -187,7 +339,9 @@ function TaxSelectDropdown({
                       ? selected.length > 0
                         ? `Đã chọn ${selected.length}`
                         : "Chọn một hoặc nhiều"
-                      : "Chọn một mục"}
+                      : hasPending
+                        ? "Đã gửi đề xuất — chọn mục có sẵn nếu thấy đúng"
+                        : "Chọn một mục, hoặc đề xuất nếu chưa có"}
                   </p>
                 </div>
                 <button
@@ -207,10 +361,23 @@ function TaxSelectDropdown({
                     ref={searchRef}
                     type="search"
                     value={q}
-                    placeholder={searchPlaceholder}
+                    placeholder={
+                      missingCategory
+                        ? "Tìm hoặc gõ tên rồi bấm +"
+                        : searchPlaceholder
+                    }
                     disabled={disabled}
-                    onChange={(e) => setQ(e.target.value)}
-                    onKeyDown={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                      setQ(e.target.value);
+                      if (!e.target.value.trim()) setDeXuatOpen(false);
+                    }}
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+                      if (e.key === "Enter" && canDeXuat) {
+                        e.preventDefault();
+                        setDeXuatOpen(true);
+                      }
+                    }}
                   />
                   {q ? (
                     <button
@@ -219,10 +386,31 @@ function TaxSelectDropdown({
                       aria-label="Xóa tìm kiếm"
                       onClick={() => {
                         setQ("");
+                        setDeXuatOpen(false);
                         searchRef.current?.focus();
                       }}
                     >
                       <X size={14} strokeWidth={2.4} aria-hidden />
+                    </button>
+                  ) : null}
+                  {missingCategory ? (
+                    <button
+                      type="button"
+                      className="shop-kho-loai-dd-search-add"
+                      aria-label={
+                        canDeXuat
+                          ? `Đề xuất danh mục «${q.trim()}»`
+                          : "Gõ tên danh mục chưa có rồi bấm +"
+                      }
+                      title={
+                        exactMatch
+                          ? "Danh mục này đã có — chọn trong danh sách"
+                          : "Đề xuất danh mục hàng chưa có"
+                      }
+                      disabled={disabled || !canDeXuat}
+                      onClick={() => setDeXuatOpen(true)}
+                    >
+                      <Plus size={16} strokeWidth={2.4} aria-hidden />
                     </button>
                   ) : null}
                 </label>
@@ -235,38 +423,75 @@ function TaxSelectDropdown({
                 aria-multiselectable={multiple || undefined}
                 aria-label={label}
               >
-                {filtered.map((o) => {
+                {filtered.map((o, i) => {
                   const on = selectedIds.includes(o.id);
+                  const prev = i > 0 ? filtered[i - 1] : null;
+                  const showGroup =
+                    Boolean(o.group) && o.group !== prev?.group;
                   return (
-                    <button
-                      key={o.id}
-                      type="button"
-                      role="option"
-                      aria-selected={on}
-                      className={`shop-kho-loai-dd-option${on ? " is-on" : ""}`}
-                      disabled={disabled}
-                      onClick={() => pick(o.id)}
-                    >
-                      <span
-                        className={`shop-kho-loai-dd-check${on ? " is-on" : ""}`}
-                        aria-hidden
+                    <div key={o.id}>
+                      {showGroup ? (
+                        <p className="shop-kho-loai-dd-group">{o.group}</p>
+                      ) : null}
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={on}
+                        className={`shop-kho-loai-dd-option${on ? " is-on" : ""}`}
+                        disabled={disabled}
+                        onClick={() => pick(o.id)}
                       >
-                        {on ? <Check size={12} strokeWidth={3} /> : null}
-                      </span>
-                      <span className="shop-kho-loai-dd-option-copy">
-                        <strong>{o.ten}</strong>
-                        {o.hint ? <em>{o.hint}</em> : null}
-                      </span>
-                    </button>
+                        <span
+                          className={`shop-kho-loai-dd-check${on ? " is-on" : ""}`}
+                          aria-hidden
+                        >
+                          {on ? <Check size={12} strokeWidth={3} /> : null}
+                        </span>
+                        <span className="shop-kho-loai-dd-option-copy">
+                          <strong>{o.ten}</strong>
+                          {o.moTa ? <em>{o.moTa}</em> : null}
+                        </span>
+                      </button>
+                    </div>
                   );
                 })}
-                {filtered.length === 0 ? (
+                {canDeXuat && !deXuatOpen ? (
+                  <button
+                    type="button"
+                    className="shop-kho-loai-dd-option shop-kho-loai-dd-option--create"
+                    disabled={disabled}
+                    onClick={() => setDeXuatOpen(true)}
+                  >
+                    <span
+                      className="shop-kho-loai-dd-check shop-kho-loai-dd-check--plus"
+                      aria-hidden
+                    >
+                      <Plus size={12} strokeWidth={3} />
+                    </span>
+                    <span className="shop-kho-loai-dd-option-copy">
+                      <strong>Đề xuất «{q.trim()}»</strong>
+                      <em>Danh mục này chưa có trên CINs</em>
+                    </span>
+                  </button>
+                ) : null}
+                {deXuatOpen && missingCategory && q.trim() ? (
+                  <BaoThieuDanhMucForm
+                    nhomId={missingCategory.nhomId}
+                    tuKhoa={q}
+                    ganNhat={options}
+                    disabled={disabled}
+                    onSubmitted={missingCategory.onSubmitted}
+                    onError={missingCategory.onError}
+                    onDone={() => setOpen(false)}
+                  />
+                ) : null}
+                {filtered.length === 0 && !canDeXuat && !deXuatOpen ? (
                   <p className="shop-kho-loai-dd-empty">Không khớp.</p>
                 ) : null}
               </div>
 
               <footer className="shop-kho-loai-dd-sheet-foot">
-                {onClear && selected.length > 0 ? (
+                {onClear && hasValue ? (
                   <button
                     type="button"
                     className="shop-kho-loai-dd-sheet-ghost"
@@ -298,7 +523,7 @@ function TaxSelectDropdown({
       <button
         type="button"
         className={`shop-kho-loai-dd-trigger${open ? " is-open" : ""}${
-          selected.length ? " has-value" : ""
+          hasValue ? " has-value" : ""
         }`}
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -310,7 +535,7 @@ function TaxSelectDropdown({
         <ChevronDown size={16} strokeWidth={2.2} aria-hidden />
       </button>
 
-      {selected.length > 0 ? (
+      {hasValue ? (
         <div className="shop-kho-loai-dd-tags">
           {selected.map((o) => (
             <button
@@ -325,6 +550,18 @@ function TaxSelectDropdown({
               <X size={12} strokeWidth={2.4} aria-hidden />
             </button>
           ))}
+          {hasPending ? (
+            <button
+              type="button"
+              className="shop-kho-loai-dd-tag"
+              disabled={disabled || !onClear}
+              onClick={() => onClear?.()}
+              title={`Bỏ đề xuất «${pendingTen}»`}
+            >
+              <span>{pendingTen}</span>
+              <X size={12} strokeWidth={2.4} aria-hidden />
+            </button>
+          ) : null}
           {onClear && selected.length > 1 ? (
             <button
               type="button"
@@ -343,9 +580,429 @@ function TaxSelectDropdown({
   );
 }
 
+/** Phân loại (fandom) — cùng sheet overlay như TaxSelectDropdown, search + tạo thẻ. */
+function FandomTaxSelect({
+  value,
+  onChange,
+  disabled,
+  maxTags = FANDOM_MAX_TAGS,
+}: {
+  value: TagInputValue[];
+  onChange: (next: TagInputValue[]) => void;
+  disabled?: boolean;
+  maxTags?: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [q, setQ] = useState("");
+  const [browse, setBrowse] = useState<TagSuggestRow[]>([]);
+  const [creating, setCreating] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const listId = useId();
+  const titleId = useId();
+
+  const selectedIds = useMemo(() => new Set(value.map((t) => t.id)), [value]);
+  const atMax = value.length >= maxTags;
+  const trimmed = q.trim();
+
+  const {
+    suggestions,
+    loading,
+    refining,
+    hasExactSuggestion,
+    ensureIndex,
+  } = useTagSuggestSearch({
+    enabled: open && trimmed.length > 0,
+    query: q,
+    loaiFilter: "fandom",
+    excludeIds: selectedIds,
+    max: FANDOM_SHEET_MAX,
+  });
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) {
+      setQ("");
+      return;
+    }
+    ensureIndex();
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    const t = window.setTimeout(() => searchRef.current?.focus(), 40);
+    return () => {
+      document.body.style.overflow = prev;
+      document.removeEventListener("keydown", onKey);
+      window.clearTimeout(t);
+    };
+    // Chỉ theo `open` — tránh reset sheet khi ensureIndex đổi identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- open-only
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    void (async () => {
+      const rows = await fetchTagSuggestIndex();
+      if (cancelled) return;
+      const fandoms = rows
+        .filter((r) => r.loai_bai_viet === "fandom")
+        .sort(
+          (a, b) =>
+            (b.so_gan ?? 0) - (a.so_gan ?? 0) ||
+            a.tieu_de.localeCompare(b.tieu_de, "vi"),
+        )
+        .slice(0, FANDOM_SHEET_MAX);
+      setBrowse(fandoms);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  const listRows = useMemo(() => {
+    if (trimmed) {
+      return suggestions.filter((r) => !selectedIds.has(r.id));
+    }
+    return browse.filter((r) => !selectedIds.has(r.id));
+  }, [trimmed, suggestions, browse, selectedIds]);
+
+  const canCreate =
+    Boolean(trimmed) &&
+    !hasExactSuggestion &&
+    !listRows.some((r) => titlesMatchQuery(r, trimmed)) &&
+    !atMax;
+
+  const summary =
+    value.length === 0
+      ? "Chọn phân loại…"
+      : value.length === 1
+        ? value[0]!.tieu_de
+        : `${value[0]!.tieu_de} +${value.length - 1}`;
+
+  const addTag = useCallback(
+    (tag: TagInputValue) => {
+      if (value.some((t) => t.id === tag.id)) return;
+      if (value.length >= maxTags) return;
+      onChange([...value, tag]);
+    },
+    [maxTags, onChange, value],
+  );
+
+  const removeTag = useCallback(
+    (id: string) => {
+      onChange(value.filter((t) => t.id !== id));
+    },
+    [onChange, value],
+  );
+
+  const clearAll = useCallback(() => {
+    onChange([]);
+  }, [onChange]);
+
+  const createTag = useCallback(async () => {
+    const ten = trimmed;
+    if (!ten || creating || atMax) return;
+    setCreating(true);
+    try {
+      const res = await fetch("/api/tag", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ten, loai: "fandom" }),
+      });
+      const json = (await res.json().catch(() => null)) as
+        | { id?: string; error?: string }
+        | null;
+      if (!res.ok || !json?.id) return;
+      addTag({
+        id: json.id,
+        tieu_de: ten,
+        loai_bai_viet: "fandom",
+        da_verify: false,
+      });
+      setQ("");
+    } finally {
+      setCreating(false);
+    }
+  }, [addTag, atMax, creating, trimmed]);
+
+  const showLoading =
+    trimmed.length > 0 && loading && listRows.length === 0 && !canCreate;
+
+  const overlay =
+    open && mounted
+      ? createPortal(
+          <div
+            className="shop-kho-loai-dd-overlay"
+            role="presentation"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) setOpen(false);
+            }}
+          >
+            <div
+              className="shop-kho-loai-dd-sheet"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={titleId}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <header className="shop-kho-loai-dd-sheet-head">
+                <div className="shop-kho-loai-dd-sheet-titles">
+                  <h3 id={titleId}>Phân loại</h3>
+                  <p>
+                    {atMax
+                      ? `Đã đạt tối đa ${maxTags}`
+                      : value.length > 0
+                        ? `Đã chọn ${value.length}/${maxTags}`
+                        : `Chọn tối đa ${maxTags} · gõ để tìm hoặc tạo`}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="shop-kho-loai-dd-sheet-close"
+                  aria-label="Đóng"
+                  onClick={() => setOpen(false)}
+                >
+                  <X size={18} strokeWidth={2.2} aria-hidden />
+                </button>
+              </header>
+
+              <label className="shop-kho-loai-dd-search shop-kho-loai-dd-search--sheet">
+                <Search size={15} strokeWidth={2.2} aria-hidden />
+                <input
+                  ref={searchRef}
+                  type="search"
+                  value={q}
+                  placeholder="Tìm fandom…"
+                  disabled={disabled}
+                  onChange={(e) => setQ(e.target.value)}
+                  onKeyDown={(e) => {
+                    e.stopPropagation();
+                    if (e.key === "Enter" && canCreate) {
+                      e.preventDefault();
+                      void createTag();
+                    }
+                  }}
+                />
+                {q ? (
+                  <button
+                    type="button"
+                    className="shop-kho-loai-dd-search-clear"
+                    aria-label="Xóa tìm kiếm"
+                    onClick={() => {
+                      setQ("");
+                      searchRef.current?.focus();
+                    }}
+                  >
+                    <X size={14} strokeWidth={2.4} aria-hidden />
+                  </button>
+                ) : null}
+              </label>
+
+              <div
+                className="shop-kho-loai-dd-options shop-kho-loai-dd-options--sheet"
+                id={listId}
+                role="listbox"
+                aria-multiselectable
+                aria-label="Phân loại"
+              >
+                {showLoading || (refining && listRows.length === 0) ? (
+                  <p className="shop-kho-loai-dd-empty shop-kho-loai-dd-empty--loading">
+                    <Loader2 size={14} className="shop-spin" aria-hidden />
+                    {refining ? "Đang tinh chỉnh…" : "Đang tìm…"}
+                  </p>
+                ) : null}
+
+                {listRows.map((tag) => {
+                  const gan = tag.so_gan ?? 0;
+                  const slug = tag.slug?.trim() || "";
+                  const href = slug
+                    ? articlePublicHref("fandom", slug)
+                    : null;
+                  const ganLabel =
+                    gan <= 0
+                      ? ""
+                      : gan === 1
+                        ? "1 bài đăng gắn phân loại này"
+                        : `${gan} bài đăng gắn phân loại này`;
+                  return (
+                    <div
+                      key={tag.id}
+                      className="shop-kho-loai-dd-option-row"
+                    >
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={false}
+                        className="shop-kho-loai-dd-option"
+                        disabled={disabled || atMax}
+                        onClick={() =>
+                          addTag({
+                            id: tag.id,
+                            tieu_de: tag.tieu_de,
+                            loai_bai_viet: "fandom",
+                            da_verify: tag.da_verify,
+                          })
+                        }
+                      >
+                        <span className="shop-kho-loai-dd-check" aria-hidden />
+                        <span className="shop-kho-loai-dd-option-copy">
+                          <strong className="shop-kho-loai-dd-option-title">
+                            {tag.tieu_de}
+                          </strong>
+                        </span>
+                        {gan > 0 ? (
+                          <span
+                            className="shop-kho-loai-dd-gan"
+                            title={ganLabel}
+                            aria-label={ganLabel}
+                          >
+                            <span className="shop-kho-loai-dd-gan-num">
+                              #{gan}
+                            </span>
+                            <span className="shop-kho-loai-dd-gan-hint">
+                              bài
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="shop-kho-loai-dd-gan is-empty" />
+                        )}
+                      </button>
+                      {href ? (
+                        <a
+                          className="shop-kho-loai-dd-open"
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={`Mở bài «${tag.tieu_de}» tab mới`}
+                          aria-label={`Mở bài «${tag.tieu_de}» tab mới`}
+                          onClick={(e) => e.stopPropagation()}
+                          onMouseDown={(e) => e.stopPropagation()}
+                        >
+                          <ExternalLink size={14} strokeWidth={2.2} aria-hidden />
+                        </a>
+                      ) : null}
+                    </div>
+                  );
+                })}
+
+                {canCreate ? (
+                  <button
+                    type="button"
+                    className="shop-kho-loai-dd-option shop-kho-loai-dd-option--create"
+                    disabled={disabled || creating}
+                    onClick={() => void createTag()}
+                  >
+                    <span
+                      className="shop-kho-loai-dd-check shop-kho-loai-dd-check--plus"
+                      aria-hidden
+                    >
+                      <Plus size={12} strokeWidth={3} />
+                    </span>
+                    <span className="shop-kho-loai-dd-option-copy">
+                      <strong>Tạo «{trimmed}»</strong>
+                      <em>Phân loại mới</em>
+                    </span>
+                  </button>
+                ) : null}
+
+                {!showLoading &&
+                !refining &&
+                listRows.length === 0 &&
+                !canCreate ? (
+                  <p className="shop-kho-loai-dd-empty">
+                    {trimmed ? "Không khớp." : "Chưa có phân loại để chọn."}
+                  </p>
+                ) : null}
+              </div>
+
+              <footer className="shop-kho-loai-dd-sheet-foot">
+                {value.length > 0 ? (
+                  <button
+                    type="button"
+                    className="shop-kho-loai-dd-sheet-ghost"
+                    disabled={disabled}
+                    onClick={clearAll}
+                  >
+                    Xóa chọn
+                  </button>
+                ) : (
+                  <span />
+                )}
+                <button
+                  type="button"
+                  className="shop-kho-loai-dd-sheet-done"
+                  onClick={() => setOpen(false)}
+                >
+                  Xong
+                </button>
+              </footer>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
+
+  return (
+    <div className="shop-kho-loai-dd shop-kho-loai-fandom">
+      <span className="shop-kho-loai-dd-label">Phân loại</span>
+      <button
+        type="button"
+        className={`shop-kho-loai-dd-trigger${open ? " is-open" : ""}${
+          value.length ? " has-value" : ""
+        }`}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-controls={open ? listId : undefined}
+        disabled={disabled}
+        onClick={() => setOpen(true)}
+      >
+        <span className="shop-kho-loai-dd-summary">{summary}</span>
+        <ChevronDown size={16} strokeWidth={2.2} aria-hidden />
+      </button>
+
+      {value.length > 0 ? (
+        <div className="shop-kho-loai-dd-tags">
+          {value.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className="shop-kho-loai-dd-tag"
+              disabled={disabled}
+              onClick={() => removeTag(t.id)}
+              title={`Bỏ «${t.tieu_de}»`}
+            >
+              <span>{t.tieu_de}</span>
+              <X size={12} strokeWidth={2.4} aria-hidden />
+            </button>
+          ))}
+          {value.length > 1 ? (
+            <button
+              type="button"
+              className="shop-kho-loai-dd-clear"
+              disabled={disabled}
+              onClick={clearAll}
+            >
+              Xóa hết
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {overlay}
+    </div>
+  );
+}
+
 /**
  * Form gắn danh mục CINs + facet (Chất liệu) + Fandom entity trên loại hàng Kho.
- * Fandom = TagInput creatable; danh mục CINs = chọn 1 (schema FK đơn).
+ * Fandom = sheet creatable (đồng bộ TaxSelectDropdown); danh mục CINs = chọn 1.
  */
 export function ShopKhoLoaiTaxonomy({
   nhom,
@@ -430,15 +1087,19 @@ export function ShopKhoLoaiTaxonomy({
     [tax],
   );
 
-  const danhMucOptions = useMemo<DropdownOption[]>(
-    () =>
-      (tax?.danhMuc ?? []).map((d) => ({
-        id: d.id,
-        ten: d.ten,
-        hint: d.moTa,
-      })),
-    [tax],
-  );
+  const danhMucOptions = useMemo<DropdownOption[]>(() => {
+    const all = tax?.danhMuc ?? [];
+    const parentIds = new Set(
+      all.map((d) => d.idCha).filter((id): id is string => Boolean(id)),
+    );
+    const byId = new Map(all.map((d) => [d.id, d]));
+    return all
+      .filter((d) => !parentIds.has(d.id) && d.slug !== "khac")
+      .map((d) => {
+        const cha = d.idCha ? byId.get(d.idCha) : null;
+        return { id: d.id, ten: d.ten, moTa: d.moTa, group: cha?.ten ?? null };
+      });
+  }, [tax]);
 
   async function patchTaxonomy(body: Record<string, unknown>) {
     setSaving(true);
@@ -572,6 +1233,14 @@ export function ShopKhoLoaiTaxonomy({
               disabled={busy}
               onToggle={(id) => void onDanhMucPick(id)}
               onClear={() => void onDanhMucPick("")}
+              missingCategory={{
+                nhomId: nhom.id,
+                onSubmitted: onUpdated,
+                onError,
+              }}
+              pendingLabel={
+                nhom.danhMucSlug === "khac" ? nhom.danhMucDeXuat : null
+              }
             />
 
             {chatLieuFacet ? (
@@ -592,27 +1261,12 @@ export function ShopKhoLoaiTaxonomy({
               />
             ) : null}
 
-            <div className="shop-kho-loai-dd shop-kho-loai-fandom">
-              <span className="shop-kho-loai-dd-label">Phân loại</span>
-              <TagInput
-                value={fandomTags}
-                onChange={(next) =>
-                  void onFandomChange(
-                    next.map((t) => ({
-                      ...t,
-                      loai_bai_viet: "fandom",
-                    })),
-                  )
-                }
-                mode="multi"
-                maxTags={12}
-                showLimitHint={false}
-                placeholder="Nhập để tìm/thêm fandom"
-                keepPlaceholder
-                disabled={busy}
-                loaiFilterFixed="fandom"
-              />
-            </div>
+            <FandomTaxSelect
+              value={fandomTags}
+              onChange={(next) => void onFandomChange(next)}
+              disabled={busy}
+              maxTags={FANDOM_MAX_TAGS}
+            />
           </div>
 
           {nhom.idDanhMuc && !nhom.danhMucXacNhan ? (
@@ -636,7 +1290,10 @@ export function ShopKhoLoaiTaxonomy({
                   className="shop-kho-loai-tax-suggest"
                   role="listitem"
                 >
-                  <span>Gợi ý: {s.ten}</span>
+                  <span>
+                    Gợi ý: {s.ten}
+                    {s.moTa ? ` — ${s.moTa}` : ""}
+                  </span>
                   <button
                     type="button"
                     disabled={busy}

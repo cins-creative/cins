@@ -19,6 +19,7 @@ const NAV = [
   { href: "/admin/tranh-chap", label: "Tranh chấp shop", icon: "flag" },
   { href: "/admin/gop-y", label: "Góp ý", icon: "message" },
   { href: "/admin/mo-shop", label: "Mở shop", icon: "cart" },
+  { href: "/admin/danh-muc", label: "Danh mục hàng", icon: "tag" },
   { href: "/admin/huong-dan", label: "Hướng dẫn", icon: "book" },
   { section: "Tổ chức" },
   { href: "/admin/to-chuc", label: "Tổ chức", icon: "org" },

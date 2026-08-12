@@ -27,7 +27,7 @@ Một phase / một brief. Paste full plan khi build. Override: `--model [name]`
 
 | Cần gì | File | Ghi chú |
 |---|---|---|
-| Triết lý, **32 quy tắc** kiến trúc, luồng verify, đóng góp canonical (§K), loại org, naming, quy ước làm việc | [`CINS_FOUNDATIONS.md`](./CINS_FOUNDATIONS.md) | Luật nền, đổi chậm |
+| Triết lý, **32 quy tắc** kiến trúc, Shop taxonomy **S1–S4**, luồng verify, đóng góp canonical (§K), loại org, naming, quy ước làm việc | [`CINS_FOUNDATIONS.md`](./CINS_FOUNDATIONS.md) | Luật nền, đổi chậm |
 | Bảng / cột / enum / FK cụ thể | **Đọc trực tiếp từ DB** | Prisma/Supabase MCP hoặc `information_schema` — **là sự thật cấu trúc** |
 | API route, lib, file SQL, seed, env/infra, ghi chú site | [`CINS_IMPLEMENTATION.md`](./CINS_IMPLEMENTATION.md) | Đổi nhanh nhất |
 | Đã quyết gì & vì sao · câu hỏi còn treo | [`CINS_DECISIONS.md`](./CINS_DECISIONS.md) | File chống quên |
@@ -67,6 +67,8 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 ---
 
 ## Thay đổi lớn gần đây (tóm tắt — chi tiết ở DECISIONS)
+
+**Tag — gỡ verify CINs + Phân loại UX (2026-08-12):** Admin không verify tag; badge Verified tag gỡ; `fandom` hiện «Phân loại»; `so_gan` = bài đăng public; Kho sheet `FandomTaxSelect`. Xem DECISIONS LOG.
 
 **Shop — Combo & Voucher (2026-08-07):** Tab `/ban-hang/uu-dai`; engine `uu-dai.ts`; ví + săn trên `/cua-hang`; ALTER `shop_don_hang` cột giảm giá. Plan: `PLAN_shop_combo_voucher.md`. Xem DECISIONS LOG + IMPLEMENTATION API/SQL.
 

@@ -239,10 +239,10 @@
   letter-spacing: 0;
   text-transform: none;
   font-weight: 700;
-  color: #fff;
-  background: #db2777;
-  padding: 1px 5px;
-  border-radius: 999px;
+  color: var(--ink-muted, #64748b);
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
 }
 
 .tag-input-item-titles {

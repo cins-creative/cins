@@ -41,7 +41,7 @@ export function articleLoaiLabel(loai: string): string {
     case "blog":
       return "Bài viết";
     case "fandom":
-      return "Fandom";
+      return "Phân loại";
     default:
       return "Kiến thức";
   }

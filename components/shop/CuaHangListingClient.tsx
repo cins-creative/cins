@@ -22,6 +22,10 @@ import type {
   PublicShopListingItem,
 } from "@/lib/shop/cua-hang-listing-types";
 import { shopLoaiHref, shopLoaiMauHref } from "@/lib/shop/cua-hang-href";
+import {
+  canonicalizeDanhMucSlug,
+  canonicalizeDanhMucSlugs,
+} from "@/lib/shop/danh-muc-constants";
 import { useChListLazyBatch, CH_LIST_SHOP_LAZY_BATCH } from "@/lib/shop/use-ch-list-lazy-batch";
 
 type BrowseMode = "shop" | "mat-hang" | "hang";
@@ -789,13 +793,20 @@ function parseCsvParam(raw: string | null): string[] {
   ];
 }
 
+function parseDanhMucParam(raw: string | null): string[] {
+  return canonicalizeDanhMucSlugs(parseCsvParam(raw));
+}
+
 function hangMatchesTaxonomy(
   hit: HangHit,
   danhMuc: string[],
   facets: Record<string, string[]>,
 ): boolean {
   if (danhMuc.length > 0) {
-    if (!hit.danhMucSlug || !danhMuc.includes(hit.danhMucSlug)) return false;
+    const hitSlug = hit.danhMucSlug
+      ? canonicalizeDanhMucSlug(hit.danhMucSlug)
+      : null;
+    if (!hitSlug || !danhMuc.includes(hitSlug)) return false;
   }
   for (const [facetSlug, values] of Object.entries(facets)) {
     if (!values.length) continue;
@@ -868,7 +879,7 @@ export function CuaHangListingClient({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [discountOnly, setDiscountOnly] = useState(false);
   const [selectedDanhMuc, setSelectedDanhMuc] = useState<string[]>(() =>
-    parseCsvParam(searchParams.get("danhMuc")),
+    parseDanhMucParam(searchParams.get("danhMuc")),
   );
   const [selectedFacets, setSelectedFacets] = useState<
     Record<string, string[]>
@@ -917,7 +928,7 @@ export function CuaHangListingClient({
   );
 
   useEffect(() => {
-    setSelectedDanhMuc(parseCsvParam(searchParams.get("danhMuc")));
+    setSelectedDanhMuc(parseDanhMucParam(searchParams.get("danhMuc")));
     const next: Record<string, string[]> = {};
     for (const f of taxonomy.facets) {
       const vals = parseCsvParam(searchParams.get(f.slug));
@@ -1019,7 +1030,8 @@ export function CuaHangListingClient({
     const counts = new Map<string, number>();
     for (const h of hangHitsScoped) {
       if (!h.danhMucSlug) continue;
-      counts.set(h.danhMucSlug, (counts.get(h.danhMucSlug) ?? 0) + 1);
+      const slug = canonicalizeDanhMucSlug(h.danhMucSlug);
+      counts.set(slug, (counts.get(slug) ?? 0) + 1);
     }
     return counts;
   }, [hangHitsScoped]);

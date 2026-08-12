@@ -55,7 +55,7 @@ export function buildFandomSidebarTabs(
   if (fandoms.length > 0) {
     tabs.push({
       id: "fandom",
-      label: "Fandom",
+      label: "Phân loại",
       header: (
         <RelSidebarHeader
           title="Fandom liên quan"
