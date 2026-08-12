@@ -94,7 +94,12 @@ export async function POST(request: NextRequest) {
         )
       : [],
     hangGioiThieu: Array.isArray(body?.hangGioiThieu)
-      ? (body.hangGioiThieu as unknown[])
+      ? (body.hangGioiThieu as {
+          tenMatHang?: string | null;
+          moTa?: string | null;
+          giaBan?: string | null;
+          link?: string | null;
+        }[])
       : [],
     resourceLinksText: str("resourceLinksText"),
     ghiChu: str("ghiChu"),

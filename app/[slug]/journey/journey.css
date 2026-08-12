@@ -14196,19 +14196,6 @@ select.j-edit-input {
   border-bottom: 1px solid var(--jcard-border2);
 }
 
-/* Card kéo được (chia sẻ vào chat) — chỉ datebar[draggable] là tay nắm. */
-@media (pointer: fine) {
-  .jcard-datebar[draggable="true"] {
-    cursor: grab;
-  }
-  .jcard-datebar[draggable="true"]:active {
-    cursor: grabbing;
-  }
-}
-/* Nguồn đang kéo: mờ nhẹ — ghost đã scale riêng qua setDragImage. */
-.j-milestone.is-share-dragging {
-  opacity: 0.55;
-}
 .jcard-datebar--tagged {
   padding: 10px 14px 12px;
   flex-wrap: wrap;

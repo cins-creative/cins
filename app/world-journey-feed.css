@@ -3970,6 +3970,15 @@
   margin-top: 2px;
 }
 
+/*
+ * Drawer L/R + backdrop + nút đóng nằm trong `.cins-main` (cins-styles: z-index:0).
+ * z-index nội bộ (220…) không thoát context đó → sticky topbar (200) che panel.
+ * Khi mở aside: nâng main trên topbar (và sidebar 210) để fullscreen đúng ý.
+ */
+.cins-main:has(> .world-journey-home .wj-shell[data-open-aside]) {
+  z-index: calc(var(--cins-app-sidebar-z, 210) + 20);
+}
+
 /* Backdrop khi mở drawer cột L/R — trên topbar (--cins-app-topbar-z: 200). */
 .wj-aside-drawer-backdrop {
   position: fixed;

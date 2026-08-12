@@ -37,11 +37,6 @@ import { JourneyOwnCoAuthorRoleEditor } from "@/components/journey/JourneyOwnCoA
 import { JourneyBookmarkListingCard } from "@/components/journey/JourneyBookmarkListingCard";
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
 import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
-import {
-  setScaledShareDragImage,
-  setShareDragData,
-} from "@/lib/cins/share-drag";
-import { useCoarsePointer } from "@/lib/ui/use-coarse-pointer";
 import { JourneyMilestoneUnfold } from "@/components/journey/JourneyMilestoneUnfold";
 import { VerifiedTick } from "@/components/journey/VerifiedTick";
 import { POST_COMMENTS_SYNC_EVENT } from "@/lib/journey/comments-sync-client";
@@ -94,7 +89,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type DragEvent,
   type ReactNode,
 } from "react";
 import {
@@ -529,7 +523,6 @@ export function JourneyMilestoneCard({
 
   const worldBoostAdmin = useWorldBoostAdminOptional();
   const [banHangEnabled, setBanHangEnabled] = useState(false);
-  const coarsePointer = useCoarsePointer();
   const commentsSheetMode = useJourneyCommentsSheetMode();
   /* Bài viết dài → popup (JourneyPostModal / OrgBaiDangPostModal), không xổ timeline. */
   const { openPost: openArticlePopup, overlay: articlePopupOverlay } =
@@ -1350,43 +1343,6 @@ export function JourneyMilestoneCard({
     /* orgSuKienRef đã return sớm → OrgSuKienFeedMilestoneCard; không còn nhánh href ở đây. */
     return null;
   })();
-  /* Kéo datebar → chat chỉ desktop (pointer fine); tránh cản scroll trên touch.
-   * draggable gắn trên datebar (không phải article) — để vùng chữ/media chọn copy được. */
-  const canShareDragToChat = Boolean(viewerPostHref) && !coarsePointer;
-  const shareDragDatebarProps = canShareDragToChat
-    ? {
-        draggable: true as const,
-        onDragStart: (e: DragEvent<HTMLDivElement>) => {
-          if (!viewerPostHref || e.defaultPrevented) {
-            e.preventDefault();
-            return;
-          }
-          /* Menu / nút góc datebar — không khởi động kéo chia sẻ. */
-          const t = e.target as HTMLElement;
-          if (
-            t.closest(
-              ".jcard-date-menu, .j-m-menu-btn, .jcard-corner-actions, .jcard-world-boost, .wj-boost-toggle",
-            )
-          ) {
-            e.preventDefault();
-            return;
-          }
-          setShareDragData(e.dataTransfer, {
-            kind: "post",
-            url: window.location.origin + viewerPostHref,
-            title,
-          });
-          const article = articleRef.current;
-          if (article) {
-            setScaledShareDragImage(e.dataTransfer, article);
-            article.classList.add("is-share-dragging");
-          }
-        },
-        onDragEnd: () => {
-          articleRef.current?.classList.remove("is-share-dragging");
-        },
-      }
-    : null;
   const isOwnContent =
     Boolean(viewerProfileId) &&
     (viewerProfileId === postOwnerId || viewerProfileId === ownerProfileId);
@@ -2053,7 +2009,6 @@ export function JourneyMilestoneCard({
                 "jcard-datebar jcard-datebar--entity-lens" +
                 (isCongDongPost && congDongOrg ? " jcard-datebar--cong-dong" : "")
               }
-              {...shareDragDatebarProps}
             >
               {isCongDongPost && congDongOrg ? (
                 <>
@@ -2191,7 +2146,6 @@ export function JourneyMilestoneCard({
                 (congDongOrg ? " jcard-datebar--cong-dong" : "") +
                 (useForeignFrame ? " jcard-datebar--bookmark-source" : "")
               }
-              {...shareDragDatebarProps}
             >
               {canManageTagged &&
               attribution &&
@@ -2370,7 +2324,6 @@ export function JourneyMilestoneCard({
           ) : isCongDongSelfPost && congDongOrg ? (
             <div
               className="jcard-datebar jcard-datebar--guest jcard-datebar--bookmark-source jcard-datebar--cong-dong"
-              {...shareDragDatebarProps}
             >
               <CongDongSourceChip
                 org={congDongOrg}
@@ -2381,7 +2334,6 @@ export function JourneyMilestoneCard({
           ) : variant === "self" ? (
             <div
               className="jcard-datebar jcard-datebar--guest"
-              {...shareDragDatebarProps}
             >
               {Boolean(authorName || authorAvatarUrl || ownerSlug) ? (
                 <JourneyUserPopover
@@ -2435,7 +2387,6 @@ export function JourneyMilestoneCard({
           ) : isTaggedFromOthers && attribution ? (
             <div
               className="jcard-datebar jcard-datebar--guest jcard-datebar--bookmark-source"
-              {...shareDragDatebarProps}
             >
               <TaggedOriginalAuthorChip
                 attr={attribution}
@@ -2445,7 +2396,6 @@ export function JourneyMilestoneCard({
           ) : isBookmarkMilestone && congDongOrg ? (
             <div
               className="jcard-datebar jcard-datebar--guest jcard-datebar--bookmark-source jcard-datebar--cong-dong"
-              {...shareDragDatebarProps}
             >
               <CongDongSourceChip
                 org={congDongOrg}
@@ -2462,7 +2412,6 @@ export function JourneyMilestoneCard({
                   ? " jcard-datebar--cong-dong"
                   : "")
               }
-              {...shareDragDatebarProps}
             >
               <BookmarkOriginalPosterChip
                 bookmark={bookmark}
@@ -2473,7 +2422,6 @@ export function JourneyMilestoneCard({
           ) : useForeignFrame && attribution ? (
             <div
               className="jcard-datebar jcard-datebar--guest jcard-datebar--bookmark-source"
-              {...shareDragDatebarProps}
             >
               <TaggedOriginalAuthorChip
                 attr={attribution}
@@ -2486,7 +2434,6 @@ export function JourneyMilestoneCard({
             !isCongDongPost ? (
             <div
               className="jcard-datebar jcard-datebar--guest"
-              {...shareDragDatebarProps}
             >
               <JourneyUserPopover
                 slug={ownerSlug ?? ""}

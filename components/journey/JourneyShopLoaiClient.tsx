@@ -13,6 +13,7 @@ import {
   Plus,
   Send,
   Settings2,
+  Share2,
   ShoppingBag,
   Star,
   Trash2,
@@ -40,16 +41,18 @@ import {
   notifyGioChungAdded,
 } from "@/components/shop/ShopGioChungButton";
 import { ShopTamDongOverlay } from "@/components/shop/ShopTamDongOverlay";
+import { ShopComboLoaiHint } from "@/components/shop/ShopComboLoaiHint";
+import { ShareLinkMenu } from "@/components/social/ShareLinkMenu";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
+import { warmOgImageCache } from "@/lib/journey/og-image-url";
+import { getNameInitials } from "@/lib/journey/profile";
 import {
   fetchShopCuaHangClient,
   prefetchBanHangClientStatus,
 } from "@/lib/shop/client-fetch-cache";
-import { getNameInitials } from "@/lib/journey/profile";
 import { shopLoaiHref, shopPublicHref, shopSlugFromTen } from "@/lib/shop/cua-hang-href";
 import { parseShopNhomMoTa } from "@/lib/shop/nhom-mo-ta";
 import { isShopTamDongActive } from "@/lib/shop/tam-dong";
-import { ShopComboLoaiHint } from "@/components/shop/ShopComboLoaiHint";
 import type {
   ShopCuaHang,
   ShopNhomDanhGia,
@@ -332,10 +335,20 @@ export function JourneyShopLoaiClient({
 
   const shopSlug = shopSlugFromTen(shop?.ten, ownerSlug);
   const shopHref = shopPublicHref(ownerSlug, shopSlug);
+  const loaiSharePath = shopLoaiHref(ownerSlug, shopSlug, nhomId);
+  const loaiShareTitle = detail?.nhan?.trim() || shop?.ten?.trim() || "Loại hàng";
 
   useEffect(() => {
     setShopSlugCtx?.(shopSlug);
   }, [setShopSlugCtx, shopSlug]);
+
+  /** Pre-warm PNG OG để crawler MXH lấy ảnh kịp khi user chia sẻ. */
+  useEffect(() => {
+    if (!detail || typeof window === "undefined") return;
+    warmOgImageCache(
+      `${window.location.origin}${loaiSharePath}/opengraph-image`,
+    );
+  }, [detail, loaiSharePath]);
 
   /** Canh giữa hàng "Loại khác" để 2 mép L & R crop → gợi ý kéo được. */
   const centerMore = useCallback(() => {
@@ -1196,7 +1209,25 @@ export function JourneyShopLoaiClient({
             <ChevronLeft size={16} aria-hidden />
             Về cửa hàng
           </Link>
-          {sectionActions}
+          <div className="j-shop-loai-head-actions">
+            <ShareLinkMenu
+              sharePath={loaiSharePath}
+              shareTitle={loaiShareTitle}
+              viewerLoggedIn={Boolean(viewerId)}
+              triggerClassName="j-shop-loai-share-btn"
+              triggerLabel="Chia sẻ mặt hàng này"
+              triggerIcon={
+                <>
+                  <Share2 size={15} strokeWidth={2} aria-hidden />
+                  <span className="j-shop-loai-share-label">
+                    Chia sẻ mặt hàng này
+                  </span>
+                </>
+              }
+              placement="down"
+            />
+            {sectionActions}
+          </div>
         </div>
       </div>
     </>

@@ -91,40 +91,30 @@ export async function sendSignupOtpViaResend(email: string): Promise<
 
   const admin = createServiceRoleClient();
 
-  let verifyType: OtpVerifyType = "signup";
-  let linkErrorMessage = "";
-
-  const signupLink = await admin.auth.admin.generateLink({
-    type: "signup",
+  /* Resend không có password → không dùng type "signup" (SDK bắt buộc password,
+   * và có thể tạo user orphan). magiclink lấy email_otp cho user đã tồn tại. */
+  const verifyType: OtpVerifyType = "email";
+  const magic = await admin.auth.admin.generateLink({
+    type: "magiclink",
     email: trimmed,
   });
-
-  let otp = extractEmailOtp(signupLink.data);
-  if (signupLink.error || !otp) {
-    linkErrorMessage = signupLink.error?.message || "Không tạo được mã signup.";
-    const magic = await admin.auth.admin.generateLink({
-      type: "magiclink",
-      email: trimmed,
-    });
-    otp = extractEmailOtp(magic.data);
-    if (magic.error || !otp) {
-      const raw = magic.error?.message || linkErrorMessage;
-      const lower = raw.toLowerCase();
-      /* Anti-enumeration: email không tồn tại → báo đã gửi, không tạo user mới. */
-      if (
-        lower.includes("not found") ||
-        lower.includes("unable to find") ||
-        lower.includes("user not found")
-      ) {
-        return { ok: true, verifyType: "signup", resendId: null };
-      }
-      return {
-        ok: false,
-        message: mapOtpError(raw),
-        retryAfterSec: parseRetryAfterSeconds(raw) ?? undefined,
-      };
+  const otp = extractEmailOtp(magic.data);
+  if (magic.error || !otp) {
+    const raw = magic.error?.message || "Không tạo được mã OTP.";
+    const lower = raw.toLowerCase();
+    /* Anti-enumeration: email không tồn tại → báo đã gửi, không tạo user mới. */
+    if (
+      lower.includes("not found") ||
+      lower.includes("unable to find") ||
+      lower.includes("user not found")
+    ) {
+      return { ok: true, verifyType: "signup", resendId: null };
     }
-    verifyType = "email";
+    return {
+      ok: false,
+      message: mapOtpError(raw),
+      retryAfterSec: parseRetryAfterSeconds(raw) ?? undefined,
+    };
   }
 
   const html = buildConfirmSignupHtml(trimmed, otp);

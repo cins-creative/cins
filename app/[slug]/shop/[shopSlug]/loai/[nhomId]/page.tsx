@@ -4,12 +4,11 @@ import { Suspense } from "react";
 
 import { JourneyProfilePageLoader } from "@/app/[slug]/_components/JourneyProfilePageLoader";
 import { JourneyProfilePageSkeleton } from "@/app/[slug]/_components/JourneyProfilePage.skeleton";
-import { buildJourneyMetadata } from "@/app/[slug]/_lib/build-journey-metadata";
 import { CinsShell } from "@/components/cins/CinsShell";
 import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
 import { resolveShopSlugForOwnerSlug } from "@/lib/shop/cua-hang";
 import { shopLoaiHref, SHOP_SLUG_RESERVED } from "@/lib/shop/cua-hang-href";
-import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { fetchShopLoaiOgContext } from "@/lib/shop/shop-loai-og-fetch";
 
 type Params = Promise<{ slug: string; shopSlug: string; nhomId: string }>;
 
@@ -30,31 +29,44 @@ export async function generateMetadata({
   const path = resolved
     ? shopLoaiHref(slug, resolved.shopSlug, nhomId)
     : shopLoaiHref(slug, shopSlug, nhomId);
+  const canonicalShopSlug = resolved?.shopSlug ?? shopSlug;
 
-  let title = "Loại hàng";
-  if (nhomId !== "khac") {
-    const admin = createServiceRoleClient();
-    const { data } = await admin
-      .from("shop_nhom")
-      .select("nhan")
-      .eq("id", nhomId)
-      .eq("da_xoa", false)
-      .maybeSingle<{ nhan: string }>();
-    if (data?.nhan) title = data.nhan;
-  } else {
-    title = "Khác";
-  }
-
-  const meta = await buildJourneyMetadata(slug, { view: "shop" });
+  const og = await fetchShopLoaiOgContext(slug, canonicalShopSlug, nhomId);
+  const titleBase = og?.title ?? (nhomId === "khac" ? "Khác" : "Loại hàng");
+  const shopLabel = og?.shopTen ?? resolved?.ten?.trim() ?? "Cửa hàng";
+  const title = `${titleBase} · ${shopLabel}`;
+  const description =
+    og?.summary ??
+    `${titleBase} tại ${shopLabel} trên CINs — mua bán sáng tạo.`;
+  const ogImagePath = `${path}/opengraph-image`;
 
   return {
-    ...meta,
-    title: `${title} · Shop`,
+    metadataBase: new URL(siteOrigin),
+    title,
+    description,
     robots: { index: true, follow: true },
     openGraph: {
-      ...meta.openGraph,
+      type: "website",
+      siteName: "CINs",
+      locale: "vi_VN",
       url: path,
-      title: `${title} · Shop`,
+      title,
+      description,
+      images: [
+        {
+          url: ogImagePath,
+          alt: titleBase,
+          width: 1200,
+          height: 630,
+          type: "image/png",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [{ url: ogImagePath, alt: titleBase, width: 1200, height: 630 }],
     },
     alternates: { canonical: `${siteOrigin}${path}` },
   };
