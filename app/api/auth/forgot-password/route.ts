@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { normalizeDevBindAllOrigin } from "@/lib/auth/auth-origin";
 import { EMAIL_OTP_LENGTH } from "@/lib/auth/email-otp";
 import {
-  clearRecoveryEmailCookie,
+  clearRecoveryCookies,
+  clearRecoveryVerifiedCookie,
   setRecoveryEmailCookie,
 } from "@/lib/auth/recovery-cookie";
 import { sendRecoveryOtp } from "@/lib/auth/send-recovery-otp";
@@ -115,7 +116,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (!email) {
-    clearRecoveryEmailCookie(response);
+    clearRecoveryCookies(response);
     return response;
   }
 
@@ -137,5 +138,6 @@ export async function POST(request: NextRequest) {
   }
 
   setRecoveryEmailCookie(response, email);
+  clearRecoveryVerifiedCookie(response);
   return response;
 }

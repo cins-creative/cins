@@ -15,6 +15,16 @@ export function isCompleteOtp(value: string): boolean {
   return normalizeOtpInput(value).length === EMAIL_OTP_LENGTH;
 }
 
+/** OTP số từ `auth.admin.generateLink` (`properties.email_otp`). */
+export function extractEmailOtp(data: unknown): string | null {
+  if (!data || typeof data !== "object") return null;
+  const props = (data as { properties?: Record<string, unknown> }).properties;
+  const raw = props?.email_otp;
+  if (typeof raw !== "string") return null;
+  const token = raw.trim();
+  return /^\d{6,10}$/.test(token) ? token : null;
+}
+
 export function maskEmail(email: string): string {
   const trimmed = email.trim();
   const at = trimmed.indexOf("@");

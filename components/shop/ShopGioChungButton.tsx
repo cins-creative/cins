@@ -149,7 +149,6 @@ const SDT_RE = /^[0-9+()\-.\s]{6,20}$/;
 export function ShopGioChungButton() {
   /* Topbar nằm trong CinsChatShellBridge — vẫn dùng bản nullable cho chắc. */
   const chat = useCinsChatContext();
-  const thumbFitLive = useShopThumbFitLive();
   const [open, setOpen] = useState(false);
   const [gio, setGio] = useState<ShopGioChung | null>(null);
   const [loading, setLoading] = useState(false);
@@ -816,6 +815,7 @@ function ShopGioChungGroup({
   onCheckoutOpenChange,
   payMount,
 }: GroupProps) {
+  const thumbFitLive = useShopThumbFitLive();
   const [accepted, setAccepted] = useState(false);
   const [ghiChu, setGhiChu] = useState("");
   const [hinhThucGiao, setHinhThucGiao] =

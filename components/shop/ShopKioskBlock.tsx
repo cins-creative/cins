@@ -523,7 +523,6 @@ export function ShopKioskBlock({
             phanLoai2: it.phanLoai2,
             anhUrl: it.anhUrl,
             anhThumbFit: parseShopThumbFit(it.anhThumbFit),
-            anhThumbFit: it.anhThumbFit,
             soLuongTon: it.soLuongTon,
             soLuongBan: it.soLuongBan,
             giaHienThi: it.giaHienThi,

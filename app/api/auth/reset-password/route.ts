@@ -1,14 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import {
-  EMAIL_OTP_DIGIT_PATTERN,
-  EMAIL_OTP_LENGTH,
-  mapOtpError,
-} from "@/lib/auth/email-otp";
 import { normalizeOAuthReturnPath } from "@/lib/auth/oauth-return-path";
 import {
-  clearRecoveryEmailCookie,
+  clearRecoveryCookies,
   RECOVERY_EMAIL_COOKIE,
+  RECOVERY_OK_COOKIE,
 } from "@/lib/auth/recovery-cookie";
 import {
   appendSetCookieHeaders,
@@ -43,8 +39,8 @@ function clientIp(request: NextRequest): string {
 }
 
 /**
- * POST /api/auth/reset-password — xác nhận OTP recovery + đặt mật khẩu mới.
- * Email lấy từ cookie httpOnly do `/forgot-password` ghi.
+ * POST /api/auth/reset-password — đặt mật khẩu mới sau khi OTP recovery đã đúng.
+ * Cần cookie `cins-pw-recovery-ok` (từ `/verify-recovery-otp`) + session recovery.
  */
 export async function POST(request: NextRequest) {
   const ip = clientIp(request);
@@ -63,7 +59,6 @@ export async function POST(request: NextRequest) {
   }
 
   const payload = body as Record<string, unknown> | null;
-  const token = typeof payload?.token === "string" ? payload.token.trim() : "";
   const password =
     typeof payload?.password === "string" ? payload.password : "";
   const safeNext = normalizeOAuthReturnPath(
@@ -71,20 +66,14 @@ export async function POST(request: NextRequest) {
   );
 
   const email = request.cookies.get(RECOVERY_EMAIL_COOKIE)?.value?.trim() ?? "";
+  const verified = request.cookies.get(RECOVERY_OK_COOKIE)?.value === "1";
 
-  if (!email || !email.includes("@")) {
+  if (!email || !email.includes("@") || !verified) {
     return NextResponse.json(
       {
         error:
-          "Phiên lấy lại mật khẩu đã hết hạn. Vui lòng gửi lại mã từ bước quên mật khẩu.",
+          "Chưa xác nhận mã. Vui lòng nhập mã 8 số trước khi đặt mật khẩu mới.",
       },
-      { status: 400 },
-    );
-  }
-
-  if (!EMAIL_OTP_DIGIT_PATTERN.test(token)) {
-    return NextResponse.json(
-      { error: `Nhập đủ ${EMAIL_OTP_LENGTH} số trong email.` },
       { status: 400 },
     );
   }
@@ -99,15 +88,13 @@ export async function POST(request: NextRequest) {
   const carrier = new NextResponse();
   const supabase = createSupabaseRouteHandlerClient(request, carrier);
 
-  const { data: verifyData, error: verifyErr } = await supabase.auth.verifyOtp({
-    email,
-    token,
-    type: "recovery",
-  });
-
-  if (verifyErr || !verifyData.user) {
+  const { data: userData, error: userErr } = await supabase.auth.getUser();
+  if (userErr || !userData.user) {
     return NextResponse.json(
-      { error: mapOtpError(verifyErr?.message ?? "Mã không đúng.") },
+      {
+        error:
+          "Phiên lấy lại mật khẩu đã hết hạn. Vui lòng gửi lại mã từ bước quên mật khẩu.",
+      },
       { status: 401 },
     );
   }
@@ -132,7 +119,7 @@ export async function POST(request: NextRequest) {
   const { data: profile } = await supabase
     .from("user_nguoi_dung")
     .select("slug, giai_doan, ten_hien_thi, avatar_id")
-    .eq("auth_user_id", verifyData.user.id)
+    .eq("auth_user_id", userData.user.id)
     .maybeSingle<{
       slug: string;
       giai_doan: string | null;
@@ -149,10 +136,7 @@ export async function POST(request: NextRequest) {
     redirectTo = "/";
   }
 
-  /* Mọi cookie ghi lên `carrier` (chỉ cookies.set) rồi copy một lần sang response.
-   * Không mix headers.append (auth cookie) + cookies.set trên cùng response —
-   * ResponseCookies re-parse header đã append sẽ làm rớt cookie phiên bị chunk. */
-  clearRecoveryEmailCookie(carrier);
+  clearRecoveryCookies(carrier);
 
   const response = NextResponse.json({ ok: true, redirect: redirectTo });
   appendSetCookieHeaders(carrier, response);

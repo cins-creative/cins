@@ -69,7 +69,7 @@
 
 .ch-list-toolbar-main {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 8px 12px;
   overflow: visible;
@@ -217,12 +217,13 @@
 
 .ch-list-toolbar-filters {
   display: inline-flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 6px;
-  flex: 1 1 auto;
+  flex: 0 0 auto;
+  margin-left: auto;
   justify-content: flex-end;
-  min-width: min(100%, 240px);
+  min-width: 0;
   overflow: visible;
 }
 

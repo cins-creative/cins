@@ -26,6 +26,7 @@ import {
   rankWorldJourneyFeedByScore,
 } from "@/lib/cins/worldJourneyFeedSort";
 import { worldJourneyAnalyticsId } from "@/lib/cins/worldJourneyAnalytics";
+import { listFriends } from "@/lib/social/ket-ban";
 import { demLuotXemCuaViewer } from "@/lib/social/su-kien";
 import { loadUserSuKienPhanHoiMap } from "@/lib/to-chuc/su-kien-dang-ky";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";

@@ -19,7 +19,7 @@ import {
   normalizeOtpInput,
 } from "@/lib/auth/email-otp";
 
-type Step = "request" | "reset";
+type Step = "request" | "otp" | "password";
 
 type Props = {
   /** Prefill từ form đăng nhập (email hoặc username). */
@@ -72,7 +72,7 @@ export function ForgotPasswordForm({
   }, [cooldown]);
 
   useEffect(() => {
-    if (step === "reset") {
+    if (step === "otp") {
       inputRefs.current[0]?.focus();
     }
   }, [step]);
@@ -179,7 +179,7 @@ export function ForgotPasswordForm({
     setDigits(Array.from({ length: EMAIL_OTP_LENGTH }, () => ""));
     setPassword("");
     setPassword2("");
-    setStep("reset");
+    setStep("otp");
   }
 
   async function resendCode() {
@@ -212,11 +212,39 @@ export function ForgotPasswordForm({
     focusInput(0);
   }
 
-  async function submitNewPassword() {
+  async function verifyOtpCode() {
     if (!isCompleteOtp(otp)) {
       setError(`Nhập đủ ${EMAIL_OTP_LENGTH} số trong email.`);
       return;
     }
+
+    setBusyState(true);
+    setError(null);
+    setNotice(null);
+
+    const res = await fetch("/api/auth/verify-recovery-otp", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token: otp }),
+    });
+    const json = (await res.json().catch(() => null)) as
+      | { ok?: boolean; error?: string }
+      | null;
+
+    setBusyState(false);
+
+    if (!res.ok || !json?.ok) {
+      setError(json?.error || "Mã không đúng. Kiểm tra lại rồi thử.");
+      return;
+    }
+
+    setNotice("Mã đúng. Chọn mật khẩu mới cho tài khoản.");
+    setPassword("");
+    setPassword2("");
+    setStep("password");
+  }
+
+  async function submitNewPassword() {
     if (password.length < MIN_PASSWORD) {
       setError(`Mật khẩu mới cần tối thiểu ${MIN_PASSWORD} ký tự.`);
       return;
@@ -234,7 +262,6 @@ export function ForgotPasswordForm({
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        token: otp,
         password,
         next: returnPath,
       }),
@@ -258,6 +285,10 @@ export function ForgotPasswordForm({
     if (lock) return;
     if (step === "request") {
       void requestReset();
+      return;
+    }
+    if (step === "otp") {
+      void verifyOtpCode();
       return;
     }
     void submitNewPassword();
@@ -318,52 +349,114 @@ export function ForgotPasswordForm({
     );
   }
 
+  if (step === "otp") {
+    return (
+      <form className="cins-login-pw cins-login-forgot" onSubmit={onSubmit} noValidate>
+        <div className="cins-login-otp-head">
+          <p className="cins-login-otp-eyebrow">Bước 2</p>
+          <h2 className="cins-login-otp-title">Nhập mã xác nhận</h2>
+          <p className="cins-login-otp-desc">
+            {hintEmail ? (
+              <>
+                Nhập mã <strong>{EMAIL_OTP_LENGTH} số</strong> đã gửi tới{" "}
+                <strong>{maskEmail(hintEmail)}</strong>. Mã đúng rồi mới đặt mật
+                khẩu mới.
+              </>
+            ) : (
+              <>
+                Nhập mã <strong>{EMAIL_OTP_LENGTH} số</strong> trong email liên kết
+                tài khoản. Không thấy thư? Kiểm tra <strong>Spam / Quảng cáo</strong>.
+              </>
+            )}
+          </p>
+        </div>
+
+        <div
+          className="cins-login-otp-digits"
+          role="group"
+          aria-label={`Mã xác nhận ${EMAIL_OTP_LENGTH} số`}
+        >
+          {digits.map((digit, index) => (
+            <input
+              key={index}
+              ref={(el) => {
+                inputRefs.current[index] = el;
+              }}
+              className="cins-login-otp-digit"
+              type="text"
+              inputMode="numeric"
+              autoComplete={index === 0 ? "one-time-code" : "off"}
+              pattern="[0-9]*"
+              maxLength={1}
+              value={digit}
+              onChange={(e) => handleDigitChange(index, e.target.value)}
+              onKeyDown={(e) => handleKeyDown(index, e)}
+              onPaste={handlePaste}
+              disabled={lock}
+              aria-label={`Số thứ ${index + 1}`}
+            />
+          ))}
+        </div>
+
+        {error ? (
+          <p className="cins-login-pw-error" role="alert">
+            {error}
+          </p>
+        ) : null}
+        {notice ? (
+          <p className="cins-login-pw-notice" role="status">
+            {notice}
+          </p>
+        ) : null}
+
+        <button type="submit" className="cins-login-pw-submit" disabled={lock} aria-busy={busy}>
+          {busy ? (
+            <Loader2 size={18} className="cins-login-pw-spin" aria-hidden />
+          ) : null}
+          <span>{busy ? "Đang kiểm tra…" : "Xác nhận mã"}</span>
+        </button>
+
+        <div className="cins-login-otp-actions">
+          <button
+            type="button"
+            className="cins-login-otp-link"
+            onClick={() => void resendCode()}
+            disabled={lock || cooldown > 0}
+          >
+            {resendBusy
+              ? "Đang gửi lại…"
+              : cooldown > 0
+                ? `Gửi lại mã (${cooldown}s)`
+                : "Gửi lại mã"}
+          </button>
+          <button
+            type="button"
+            className="cins-login-otp-link cins-login-otp-link--muted"
+            onClick={onBack}
+            disabled={lock}
+          >
+            Quay lại đăng nhập
+          </button>
+        </div>
+      </form>
+    );
+  }
+
   return (
     <form className="cins-login-pw cins-login-forgot" onSubmit={onSubmit} noValidate>
       <div className="cins-login-otp-head">
-        <p className="cins-login-otp-eyebrow">Bước 2</p>
+        <p className="cins-login-otp-eyebrow">Bước 3</p>
         <h2 className="cins-login-otp-title">Đặt mật khẩu mới</h2>
         <p className="cins-login-otp-desc">
+          Mã đã đúng. Chọn mật khẩu mới
           {hintEmail ? (
             <>
-              Nhập mã <strong>{EMAIL_OTP_LENGTH} số</strong> đã gửi tới{" "}
-              <strong>{maskEmail(hintEmail)}</strong>, rồi chọn mật khẩu mới.
+              {" "}
+              cho <strong>{maskEmail(hintEmail)}</strong>
             </>
-          ) : (
-            <>
-              Nhập mã <strong>{EMAIL_OTP_LENGTH} số</strong> trong email liên kết
-              tài khoản, rồi chọn mật khẩu mới. Không thấy thư? Kiểm tra{" "}
-              <strong>Spam / Quảng cáo</strong>.
-            </>
-          )}
+          ) : null}
+          .
         </p>
-      </div>
-
-      <div
-        className="cins-login-otp-digits"
-        role="group"
-        aria-label={`Mã xác nhận ${EMAIL_OTP_LENGTH} số`}
-      >
-        {digits.map((digit, index) => (
-          <input
-            key={index}
-            ref={(el) => {
-              inputRefs.current[index] = el;
-            }}
-            className="cins-login-otp-digit"
-            type="text"
-            inputMode="numeric"
-            autoComplete={index === 0 ? "one-time-code" : "off"}
-            pattern="[0-9]*"
-            maxLength={1}
-            value={digit}
-            onChange={(e) => handleDigitChange(index, e.target.value)}
-            onKeyDown={(e) => handleKeyDown(index, e)}
-            onPaste={handlePaste}
-            disabled={lock}
-            aria-label={`Số thứ ${index + 1}`}
-          />
-        ))}
       </div>
 
       <label className="cins-login-pw-field">
@@ -379,6 +472,7 @@ export function ForgotPasswordForm({
             disabled={lock}
             minLength={MIN_PASSWORD}
             required
+            autoFocus
           />
           <button
             type="button"
@@ -427,18 +521,6 @@ export function ForgotPasswordForm({
       </button>
 
       <div className="cins-login-otp-actions">
-        <button
-          type="button"
-          className="cins-login-otp-link"
-          onClick={() => void resendCode()}
-          disabled={lock || cooldown > 0}
-        >
-          {resendBusy
-            ? "Đang gửi lại…"
-            : cooldown > 0
-              ? `Gửi lại mã (${cooldown}s)`
-              : "Gửi lại mã"}
-        </button>
         <button
           type="button"
           className="cins-login-otp-link cins-login-otp-link--muted"

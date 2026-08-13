@@ -175,15 +175,18 @@ function redirectTruongRootToDefaultTab(
  * đã refresh trong lúc `getUser()`). Caller phải dùng response này (không tạo
  * `NextResponse.next()` mới) để không mất cookie.
  */
-async function resolveSession(request: NextRequest): Promise<{
+async function resolveSession(
+  request: NextRequest,
+  requestHeaders: Headers,
+): Promise<{
   response: NextResponse;
   userId: string | null;
 }> {
+  const nextInit = { request: { headers: requestHeaders } };
+  let response = NextResponse.next(nextInit);
+
   const url = getTrimmedSupabaseUrl();
   const key = getTrimmedSupabaseAnonKey();
-
-  let response = NextResponse.next({ request });
-
   if (!url || !key) {
     /* Thiếu env → coi như chưa login. Tránh crash middleware ở dev/preview. */
     return { response, userId: null };
@@ -199,7 +202,7 @@ async function resolveSession(request: NextRequest): Promise<{
         cookiesToSet.forEach(({ name, value }) => {
           request.cookies.set(name, value);
         });
-        response = NextResponse.next({ request });
+        response = NextResponse.next(nextInit);
         cookiesToSet.forEach(({ name, value, options }) => {
           response.cookies.set(name, value, options);
         });
@@ -216,6 +219,39 @@ async function resolveSession(request: NextRequest): Promise<{
     data: { user },
   } = await supabase.auth.getUser();
   return { response, userId: user?.id ?? null };
+}
+
+/** Expo web trên localhost — native app không đi CORS. */
+function isLocalDevAppOrigin(origin: string): boolean {
+  try {
+    const url = new URL(origin);
+    return (
+      (url.protocol === "http:" || url.protocol === "https:") &&
+      (url.hostname === "localhost" || url.hostname === "127.0.0.1")
+    );
+  } catch {
+    return false;
+  }
+}
+
+function corsResponseForLocalApp(
+  request: NextRequest,
+  response: NextResponse,
+): NextResponse {
+  const origin = request.headers.get("origin");
+  if (!origin || !isLocalDevAppOrigin(origin)) return response;
+  response.headers.set("Access-Control-Allow-Origin", origin);
+  response.headers.set(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PATCH, PUT, DELETE, OPTIONS",
+  );
+  response.headers.set(
+    "Access-Control-Allow-Headers",
+    "Authorization, Content-Type, Accept",
+  );
+  response.headers.set("Access-Control-Max-Age", "86400");
+  response.headers.set("Vary", "Origin");
+  return response;
 }
 
 function redirectToLogin(
@@ -268,9 +304,33 @@ export async function middleware(request: NextRequest) {
     requestHeaders.set("x-url", request.nextUrl.href);
   }
 
-  const ogRequest = new NextRequest(request, { headers: requestHeaders });
+  const ogRequest = { headers: requestHeaders };
 
-  const { response: sessionResponse, userId } = await resolveSession(ogRequest);
+  /* Expo web (localhost:8081) gọi /api/* cross-origin. OPTIONS không có Bearer
+   * — trả CORS ngay, không resolveSession (tránh treo preflight). */
+  if (pathname.startsWith("/api/") && request.method === "OPTIONS") {
+    return corsResponseForLocalApp(request, new NextResponse(null, { status: 204 }));
+  }
+
+  /* JWT native / cron secret — API không cần cookie session (tránh getUser xoay RT).
+   * Trang protected (/admin…) vẫn đi cookie; Bearer giả không bỏ qua gate đó. */
+  if (
+    pathname.startsWith("/api/") &&
+    /^Bearer\s+\S+/i.test(request.headers.get("authorization") ?? "")
+  ) {
+    return corsResponseForLocalApp(
+      request,
+      NextResponse.next({ request: ogRequest }),
+    );
+  }
+
+  const { response: sessionResponse, userId } = await resolveSession(
+    request,
+    requestHeaders,
+  );
+  if (pathname.startsWith("/api/")) {
+    corsResponseForLocalApp(request, sessionResponse);
+  }
 
   /* TODO(2026-09): gỡ block này — dọn cookie kho đa tài khoản cũ
    * (~4 tuần sau deploy 2026-08-02). Chỉ xóa khi request mang cookie;
@@ -297,7 +357,7 @@ export async function middleware(request: NextRequest) {
   /* Protected routes — check session bất kể MAINTENANCE_MODE. */
   if (isProtectedPath(pathname)) {
     if (!userId) {
-      return redirectToLogin(ogRequest, sessionResponse);
+      return redirectToLogin(request, sessionResponse);
     }
     return sessionResponse;
   }

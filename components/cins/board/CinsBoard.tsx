@@ -4,6 +4,7 @@
  * CinsBoard — infinite canvas engine tự viết (thay tldraw).
  *
  * - Camera pan/zoom bằng CSS transform trên một world layer.
+ *   Desktop: wheel / pinch trackpad. Cảm ứng: 2 ngón pinch zoom + pan.
  * - Node render HTML tuyệt đối (NodeCard) — kéo, resize, multi-select,
  *   marquee, group/frame, undo/redo command stack.
  * - Persist qua adapter (BoardPersistAdapter) — engine không biết endpoint.
@@ -386,6 +387,35 @@ type Gesture =
       points: Array<{ x: number; y: number }>;
     };
 
+type PinchGesture = {
+  ids: [number, number];
+  startDist: number;
+  startMid: { x: number; y: number };
+  camStart: BoardCamera;
+};
+
+function clientDist(
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+): number {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function clientMid(
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+): { x: number; y: number } {
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+}
+
+function touchById(touches: TouchList, id: number): Touch | null {
+  for (let i = 0; i < touches.length; i++) {
+    const t = touches.item(i);
+    if (t && t.identifier === id) return t;
+  }
+  return null;
+}
+
 /** Ngưỡng (page units) để hiện điểm snap trên path. */
 const WIRE_SNAP_MAX_DIST = 18;
 
@@ -766,6 +796,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
     }, [inkColor]);
 
     const gestureRef = useRef<Gesture | null>(null);
+    const pinchRef = useRef<PinchGesture | null>(null);
     const hydratedRef = useRef(false);
     const zCounterRef = useRef(1);
     /** Paste/upload bị user xóa giữa chừng — chặn create xong hiện lại. */
@@ -2393,10 +2424,177 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       zoomToNode,
     ]);
 
+    /* ---------- cảm ứng: 2 ngón pinch zoom + pan ---------- */
+
+    const abortActiveGesture = useCallback(() => {
+      const g = gestureRef.current;
+      gestureRef.current = null;
+      wirePathClickRef.current = null;
+      if (movePreviewRafRef.current) {
+        cancelAnimationFrame(movePreviewRafRef.current);
+        movePreviewRafRef.current = 0;
+      }
+      if (!g) {
+        setInteracting(false);
+        setMarqueeRect(null);
+        setWireDraft(null);
+        setWireSnap(null);
+        setDrawDraft(null);
+        return;
+      }
+
+      const root = rootRef.current;
+      const release = (id: number) => {
+        try {
+          if (root?.hasPointerCapture?.(id)) root.releasePointerCapture(id);
+        } catch {
+          /* Safari: capture đã hết. */
+        }
+        for (const nodeEl of nodeElByIdRef.current.values()) {
+          try {
+            if (nodeEl.hasPointerCapture?.(id)) nodeEl.releasePointerCapture(id);
+          } catch {
+            /* ignore */
+          }
+        }
+      };
+      release(g.pointerId);
+
+      if (g.type === "move") {
+        for (const id of g.nodeIds) {
+          const start = g.startPos.get(id);
+          const el = nodeElByIdRef.current.get(id);
+          if (start && el) {
+            el.style.transform = `translate(${start.x}px, ${start.y}px)`;
+          }
+          el?.classList.remove("is-dragging");
+        }
+      }
+      if (g.type === "resize") {
+        const r = g.startRect;
+        commitNodes(
+          nodesRef.current.map((n) =>
+            n.id === g.nodeId
+              ? { ...n, layout: { ...n.layout, x: r.x, y: r.y, w: r.w, h: r.h } }
+              : n,
+          ),
+        );
+      }
+      if (g.type === "wire-handle") {
+        const snap = g.before[0];
+        if (snap) {
+          commitNodes(
+            nodesRef.current.map((n) =>
+              n.id === snap.nodeId
+                ? { ...n, layout: { ...snap.layout }, noiDung: snap.noiDung }
+                : n,
+            ),
+          );
+        }
+      }
+      if (g.type === "marquee") {
+        setSelection(new Set(g.baseSelection));
+      }
+
+      setInteracting(false);
+      setMarqueeRect(null);
+      setWireDraft(null);
+      setWireSnap(null);
+      setDrawDraft(null);
+    }, [commitNodes, setSelection]);
+
+    // TouchEvent (không PointerEvent): iOS không luôn gửi pointerdown ngón 2
+    // khi ngón 1 đã capture. preventDefault chặn zoom trang.
+    useEffect(() => {
+      const el = rootRef.current;
+      if (!el) return;
+
+      const applyPinch = (a: { x: number; y: number }, b: { x: number; y: number }) => {
+        const pinch = pinchRef.current;
+        if (!pinch) return;
+        const rect = el.getBoundingClientRect();
+        const cam = pinch.camStart;
+        const nextZ = Math.min(
+          BOARD_MAX_ZOOM,
+          Math.max(
+            BOARD_MIN_ZOOM,
+            cam.z * (clientDist(a, b) / pinch.startDist),
+          ),
+        );
+        const m = clientMid(a, b);
+        const sx = m.x - rect.left;
+        const sy = m.y - rect.top;
+        const px = (pinch.startMid.x - rect.left) / cam.z - cam.x;
+        const py = (pinch.startMid.y - rect.top) / cam.z - cam.y;
+        commitCamera({ x: sx / nextZ - px, y: sy / nextZ - py, z: nextZ });
+      };
+
+      const onStart = (e: TouchEvent) => {
+        if (e.touches.length < 2) return;
+        e.preventDefault();
+        if (pinchRef.current) return;
+        const a = e.touches.item(0);
+        const b = e.touches.item(1);
+        if (!a || !b) return;
+        abortActiveGesture();
+        const pa = { x: a.clientX, y: a.clientY };
+        const pb = { x: b.clientX, y: b.clientY };
+        pinchRef.current = {
+          ids: [a.identifier, b.identifier],
+          startDist: Math.max(clientDist(pa, pb), 1),
+          startMid: clientMid(pa, pb),
+          camStart: { ...cameraRef.current },
+        };
+        setPanning(true);
+      };
+
+      const onMove = (e: TouchEvent) => {
+        const pinch = pinchRef.current;
+        if (!pinch) return;
+        const ta = touchById(e.touches, pinch.ids[0]);
+        const tb = touchById(e.touches, pinch.ids[1]);
+        if (!ta || !tb) return;
+        e.preventDefault();
+        applyPinch(
+          { x: ta.clientX, y: ta.clientY },
+          { x: tb.clientX, y: tb.clientY },
+        );
+      };
+
+      const onEnd = (e: TouchEvent) => {
+        const pinch = pinchRef.current;
+        if (!pinch) return;
+        const ta = touchById(e.touches, pinch.ids[0]);
+        const tb = touchById(e.touches, pinch.ids[1]);
+        if (ta && tb) return;
+        pinchRef.current = null;
+        setPanning(false);
+        e.preventDefault();
+      };
+
+      const preventPageZoom = (ev: Event) => ev.preventDefault();
+
+      el.addEventListener("touchstart", onStart, { passive: false, capture: true });
+      el.addEventListener("touchmove", onMove, { passive: false, capture: true });
+      el.addEventListener("touchend", onEnd, { passive: false, capture: true });
+      el.addEventListener("touchcancel", onEnd, { passive: false, capture: true });
+      el.addEventListener("gesturestart", preventPageZoom, { capture: true });
+      el.addEventListener("gesturechange", preventPageZoom, { capture: true });
+      return () => {
+        el.removeEventListener("touchstart", onStart, { capture: true });
+        el.removeEventListener("touchmove", onMove, { capture: true });
+        el.removeEventListener("touchend", onEnd, { capture: true });
+        el.removeEventListener("touchcancel", onEnd, { capture: true });
+        el.removeEventListener("gesturestart", preventPageZoom, { capture: true });
+        el.removeEventListener("gesturechange", preventPageZoom, { capture: true });
+      };
+    }, [abortActiveGesture, commitCamera]);
+
     /* ---------- pointer gestures ---------- */
 
     const startMove = useCallback(
       (e: ReactPointerEvent, nodeId: string) => {
+        if (pinchRef.current) return;
         rootRef.current?.focus({ preventScroll: true });
         // Chọn/kéo node khác → thoát edit sticky/bảng (blur đã commit; clear để Delete hoạt động).
         if (editingRef.current && editingRef.current !== nodeId) {
@@ -2477,6 +2675,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
 
     const startResize = useCallback(
       (e: ReactPointerEvent, nodeId: string, corner: Corner) => {
+        if (pinchRef.current) return;
         const node = byId(nodeId);
         if (!node || lockedRef.current) return;
         e.stopPropagation();
@@ -2498,6 +2697,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
 
     const onRootPointerDown = useCallback(
       (e: ReactPointerEvent<HTMLDivElement>) => {
+        if (pinchRef.current) return;
         rootRef.current?.focus({ preventScroll: true });
         if (
           e.button === 1 ||
@@ -2559,6 +2759,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
 
     const onRootPointerMove = useCallback(
       (e: ReactPointerEvent<HTMLDivElement>) => {
+        if (pinchRef.current) return;
         const g = gestureRef.current;
         if (!g || g.pointerId !== e.pointerId) return;
 
@@ -2850,6 +3051,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
 
     const finishGesture = useCallback(
       (e: ReactPointerEvent<HTMLDivElement>) => {
+        if (pinchRef.current) return;
         const g = gestureRef.current;
         if (!g || g.pointerId !== e.pointerId) return;
         gestureRef.current = null;
@@ -4004,6 +4206,11 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                     "cins-board-wire" + (selected ? " is-selected" : "")
                   }
                   onPointerDown={(e) => {
+                    if (pinchRef.current) {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      return;
+                    }
                     if (
                       e.button !== 0 ||
                       spaceHeldRef.current ||
@@ -4240,6 +4447,11 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                   height: r.h,
                 }}
                 onPointerDown={(e) => {
+                  if (pinchRef.current) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    return;
+                  }
                   if (e.button !== 0 || spaceHeldRef.current) return;
                   // Tool bàn tay: node không nuốt event — root pan.
                   if (toolRef.current === "pan") return;

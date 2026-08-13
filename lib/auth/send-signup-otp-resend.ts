@@ -3,7 +3,11 @@ import "server-only";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { mapOtpError, parseRetryAfterSeconds } from "@/lib/auth/email-otp";
+import {
+  extractEmailOtp,
+  mapOtpError,
+  parseRetryAfterSeconds,
+} from "@/lib/auth/email-otp";
 import type { OtpVerifyType } from "@/lib/auth/send-signup-otp";
 import { sendResendEmail, resendFromAddress } from "@/lib/billing/send-email-resend";
 import { createServiceRoleClient, hasServiceRoleEnv } from "@/lib/supabase/service-role";
@@ -59,15 +63,6 @@ function buildConfirmSignupHtml(email: string, token: string): string {
     <p style="margin:0;text-align:center;font-size:32px;font-weight:700;letter-spacing:.28em;color:#1d4ed8">${safeToken}</p>
     <p style="margin:20px 0 0;font-size:13px;color:#64748b">Mã hiệu lực 60 phút. CINs · <a href="${site}">${site}</a></p>
   </div></body></html>`;
-}
-
-function extractEmailOtp(data: unknown): string | null {
-  if (!data || typeof data !== "object") return null;
-  const props = (data as { properties?: Record<string, unknown> }).properties;
-  const raw = props?.email_otp;
-  if (typeof raw !== "string") return null;
-  const token = raw.trim();
-  return /^\d{6,10}$/.test(token) ? token : null;
 }
 
 /**

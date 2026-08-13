@@ -7,13 +7,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { NgheLeadVideo } from "@/components/article/nghe/NgheLeadVideo";
 import { type ContribHeroMeta } from "@/lib/article/dong-gop/contrib-document";
 import { resolveArticleThumbnailOnlySync } from "@/lib/bai-viet/thumbnail";
-import { extractCfImageIdFromDeliveryUrl } from "@/lib/cloudflare/image-id-from-url";
 import { parseLeadVideoUrl } from "@/lib/articles/lead-video-url";
 import {
   imageFilesFromClipboard,
   readImageFileFromClipboard,
 } from "@/lib/files/clipboard-images";
-import { uploadNganhInlineImage } from "@/lib/nganh/upload-inline-image";
+import { uploadPostImageWithProgress } from "@/lib/files/upload-post-image";
 import { getYoutubeId } from "@/lib/youtube";
 
 export const CONTRIB_TOM_TAT_MAX = 280;
@@ -37,10 +36,6 @@ function normalizePastedVideoUrl(raw: string): string {
   if (!t) return "";
   if (getYoutubeId(t) || parseLeadVideoUrl(t)) return t;
   return t;
-}
-
-function imageIdFromUploadUrl(url: string): string {
-  return extractCfImageIdFromDeliveryUrl(url) ?? url;
 }
 
 /** Đang gõ trong ô chữ / editor nội dung → không cướp Ctrl+V. */
@@ -78,16 +73,14 @@ export function ContributionEditorMeta({
       setLocalThumb(blob);
       setThumbBusy(true);
       try {
-        const result = await uploadNganhInlineImage(file);
-        if (!result.ok) {
-          setThumbMsg(result.message);
-          setLocalThumb(null);
-          URL.revokeObjectURL(blob);
-          return;
-        }
-        onChange({ thumbnail: imageIdFromUploadUrl(result.url) });
+        const result = await uploadPostImageWithProgress(file);
+        onChange({ thumbnail: result.imageId });
         URL.revokeObjectURL(blob);
         setLocalThumb(null);
+      } catch (err) {
+        setThumbMsg(err instanceof Error ? err.message : "Tải ảnh thất bại.");
+        setLocalThumb(null);
+        URL.revokeObjectURL(blob);
       } finally {
         setThumbBusy(false);
       }
