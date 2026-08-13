@@ -29,6 +29,10 @@ import { WorldJourneyFeedTimeline } from "@/components/cins/world-journey/WorldJ
 import { WorldJourneyGuestLeftAside } from "@/components/cins/world-journey/WorldJourneyGuestLeftAside";
 import { WorldJourneyGuestRightAside } from "@/components/cins/world-journey/WorldJourneyGuestRightAside";
 import { WorldJourneyVideoFeed } from "@/components/cins/world-journey/WorldJourneyVideoFeed";
+import {
+  WorldJourneyVideoListing,
+  type VideoListingOpenPayload,
+} from "@/components/cins/world-journey/WorldJourneyVideoListing";
 import { VideoProcessingPoller } from "@/components/journey/VideoProcessingPoller";
 import { JourneyGalleryGridView } from "@/components/journey/JourneyGalleryGridView";
 import type { SidebarProfile } from "@/components/journey/JourneySidebar";
@@ -45,7 +49,7 @@ import {
   WORLD_JOURNEY_FIRST_IMPRESSION_CAP,
   WORLD_JOURNEY_GALLERY_PAGE_SIZE,
   WORLD_JOURNEY_OWN_PUBLISH_PIN_MS,
-  WORLD_JOURNEY_VIDEO_PAGE_SIZE,
+  WORLD_JOURNEY_VIDEO_LISTING_PAGE_SIZE,
 } from "@/lib/cins/worldJourneyFeedConstants";
 import {
   applyWorldJourneyFirstImpressionPin,
@@ -153,15 +157,26 @@ function initialSurfaceView(search: string): FeedSurfaceView {
   return surfaceFromLayout(readHomeFeedLayout());
 }
 
-function feedViewHref(view: FeedSurfaceView): string {
+function feedViewHref(view: FeedSurfaceView, playId?: string | null): string {
   if (typeof window === "undefined") {
-    return view === "journey" ? "/" : `/?view=${view}`;
+    if (view === "journey") return "/";
+    if (view === "video" && playId) {
+      return `/?view=video&play=${encodeURIComponent(playId)}`;
+    }
+    return `/?view=${view}`;
   }
   const url = new URL(window.location.href);
   if (view === "journey") url.searchParams.delete("view");
   else url.searchParams.set("view", view);
+  if (view === "video" && playId) url.searchParams.set("play", playId);
+  else url.searchParams.delete("play");
   const q = url.searchParams.toString();
   return q ? `${url.pathname}?${q}` : url.pathname;
+}
+
+function videoPlayIdFromSearch(search: string): string | null {
+  const id = new URLSearchParams(search).get("play")?.trim();
+  return id || null;
 }
 
 function WorldJourneyFilterBar({
@@ -304,7 +319,13 @@ export function WorldJourneyFeed({
       ? initialSurfaceView(window.location.search)
       : "journey",
   );
+  const [playingVideoId, setPlayingVideoId] = useState<string | null>(() =>
+    typeof window !== "undefined"
+      ? videoPlayIdFromSearch(window.location.search)
+      : null,
+  );
   const surfaceViewRef = useRef(surfaceView);
+  const playingVideoIdRef = useRef(playingVideoId);
   const [openAside, setOpenAside] = useState<OpenAside>(null);
   /** Giữ backdrop trong DOM thêm 1 nhịp để fade-out. */
   const [backdropMounted, setBackdropMounted] = useState(false);
@@ -527,6 +548,10 @@ export function WorldJourneyFeed({
   }, [surfaceView]);
 
   useEffect(() => {
+    playingVideoIdRef.current = playingVideoId;
+  }, [playingVideoId]);
+
+  useEffect(() => {
     activeFilterRef.current = activeFilter;
   }, [activeFilter]);
 
@@ -584,9 +609,38 @@ export function WorldJourneyFeed({
     setRefreshNonce((n) => n + 1);
   }, []);
 
+  const closeVideoPlayer = useCallback(() => {
+    if (window.history.state?.play) {
+      window.history.back();
+      return;
+    }
+    setPlayingVideoId(null);
+    window.history.replaceState(
+      { wjView: "video" },
+      "",
+      feedViewHref("video"),
+    );
+  }, []);
+
+  const openVideoPlayer = useCallback((payload: VideoListingOpenPayload) => {
+    setGalleryRows(payload.items);
+    setGalleryMore(payload.hasMore);
+    setGalleryOffset(payload.nextOffset);
+    setPlayingVideoId(payload.id);
+    window.history.pushState(
+      { wjView: "video", play: payload.id },
+      "",
+      feedViewHref("video", payload.id),
+    );
+  }, []);
+
   const handleSurfaceView = useCallback(
     (next: FeedSurfaceView) => {
       if (surfaceViewRef.current === next) {
+        if (next === "video" && playingVideoIdRef.current) {
+          closeVideoPlayer();
+          return;
+        }
         reloadFromTop();
         return;
       }
@@ -656,10 +710,12 @@ export function WorldJourneyFeed({
         }
       }
       setOpenAside(null);
+      setPlayingVideoId(null);
       setSurfaceView(next);
       window.history.pushState({ wjView: next }, "", feedViewHref(next));
     },
     [
+      closeVideoPlayer,
       reloadFromTop,
       feedMilestones,
       hasMore,
@@ -695,8 +751,16 @@ export function WorldJourneyFeed({
       return;
     }
     setSurfaceView(initialSurfaceView(window.location.search));
+    setPlayingVideoId(
+      feedViewFromSearch(window.location.search) === "video"
+        ? videoPlayIdFromSearch(window.location.search)
+        : null,
+    );
     const onPop = () => {
       const next = feedViewFromSearch(window.location.search);
+      setPlayingVideoId(
+        next === "video" ? videoPlayIdFromSearch(window.location.search) : null,
+      );
       if (next === "journey" || next === "shop") {
         const cached = timelineCacheRef.current[next];
         if (cached) {
@@ -1150,7 +1214,7 @@ export function WorldJourneyFeed({
           const galleryQs = buildWorldJourneyFeedQuery({
             offset: 0,
             limit: isVideoSurface
-              ? WORLD_JOURNEY_VIDEO_PAGE_SIZE
+              ? WORLD_JOURNEY_VIDEO_LISTING_PAGE_SIZE
               : WORLD_JOURNEY_GALLERY_PAGE_SIZE,
             filter: isVideoSurface ? "video" : activeFilter,
             /* Reels không theo lọc nguồn localStorage (org-only → trống). */
@@ -1292,7 +1356,7 @@ export function WorldJourneyFeed({
 
   const videoEndpoint = useMemo(() => {
     const qs = buildWorldJourneyFeedQuery({
-      limit: WORLD_JOURNEY_VIDEO_PAGE_SIZE,
+      limit: WORLD_JOURNEY_VIDEO_LISTING_PAGE_SIZE,
       filter: "video",
       source: "all",
     });
@@ -1301,6 +1365,8 @@ export function WorldJourneyFeed({
 
   const isGallery = surfaceView === "gallery";
   const isVideo = surfaceView === "video";
+  const isVideoPlaying = isVideo && Boolean(playingVideoId);
+  const isVideoListing = isVideo && !playingVideoId;
   const isTimelineFeed =
     surfaceView === "journey" || surfaceView === "shop";
   const isShopFeed = surfaceView === "shop";
@@ -1313,8 +1379,9 @@ export function WorldJourneyFeed({
       ref={homeRootRef}
       className={
         "world-journey-home cins-journey-page" +
-        (isGallery ? " view-grid" : "") +
-        (isVideo ? " view-video" : "")
+        (isGallery || isVideoListing ? " view-grid" : "") +
+        (isVideoListing ? " view-video-list" : "") +
+        (isVideoPlaying ? " view-video" : "")
       }
       aria-label="World Journey"
     >
@@ -1372,8 +1439,9 @@ export function WorldJourneyFeed({
         <div
           className={
             "wj-feed" +
-            (isGallery ? " view-grid" : "") +
-            (isVideo ? " view-video" : "")
+            (isGallery || isVideoListing ? " view-grid" : "") +
+            (isVideoListing ? " view-video-list" : "") +
+            (isVideoPlaying ? " view-video" : "")
           }
         >
           <header
@@ -1410,13 +1478,26 @@ export function WorldJourneyFeed({
                 }
                 aria-busy={filterLoading || undefined}
               >
-                <WorldJourneyVideoFeed
-                  key={videoEndpoint}
-                  initialItems={galleryRows}
-                  hasMore={galleryMore}
-                  nextOffset={galleryOffset}
-                  endpoint={videoEndpoint}
-                />
+                {isVideoPlaying ? (
+                  <WorldJourneyVideoFeed
+                    key={`${videoEndpoint}:${playingVideoId}`}
+                    initialItems={galleryRows}
+                    hasMore={galleryMore}
+                    nextOffset={galleryOffset}
+                    endpoint={videoEndpoint}
+                    startItemId={playingVideoId}
+                    onClose={closeVideoPlayer}
+                  />
+                ) : (
+                  <WorldJourneyVideoListing
+                    key={videoEndpoint}
+                    initialItems={galleryRows}
+                    hasMore={galleryMore}
+                    nextOffset={galleryOffset}
+                    endpoint={videoEndpoint}
+                    onOpenVideo={openVideoPlayer}
+                  />
+                )}
               </div>
             )
           ) : isGallery ? (

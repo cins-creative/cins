@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   AdminFeedScoreCell,
@@ -29,7 +29,7 @@ import {
 } from "@/lib/admin/noi-dung-dang-views";
 import {
   ADMIN_DIEM_UU_TIEN,
-  type AdminDiemUuTienDelta,
+  parseAdminDiemUuTienDelta,
 } from "@/lib/cins/feed-scoring";
 import type { FeedScoreConfig } from "@/lib/cins/feed-scoring-config";
 import type {
@@ -48,6 +48,7 @@ type Props = {
 
 /** Khớp `WORLD_BOOST_TTL_MS` (server-only) — TTL đẩy 3 ngày. */
 const WORLD_BOOST_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+const NDD_PAGE_SIZE = 30;
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
@@ -60,6 +61,68 @@ function fmtDate(iso: string | null): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function NddScoreDeltaField({
+  item,
+  variant,
+  busy,
+  bumping,
+  onApply,
+}: {
+  item: WorldBoostCatalogItem;
+  variant: "card" | "list";
+  busy: boolean;
+  bumping: boolean;
+  onApply: (item: WorldBoostCatalogItem, delta: number) => void;
+}) {
+  const uu = item.diemFeed?.diem_uu_tien ?? 0;
+  const [raw, setRaw] = useState("");
+  const parsed = parseAdminDiemUuTienDelta(raw);
+  const uuHint = uu !== 0 ? ` · hiện ${uu > 0 ? "+" : ""}${uu}` : "";
+
+  function submit() {
+    if (parsed === null || busy) return;
+    onApply(item, parsed);
+    setRaw("");
+  }
+
+  return (
+    <span
+      className={`ndd-score-delta ndd-score-delta--${variant}`}
+      role="group"
+      aria-label="Chỉnh điểm ưu tiên"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <input
+        type="text"
+        inputMode="numeric"
+        className="ndd-delta-input"
+        placeholder={variant === "list" ? "10 / -18" : "±"}
+        value={raw}
+        disabled={busy}
+        maxLength={5}
+        aria-label={`Cộng hoặc trừ điểm: ${item.tieuDe}`}
+        title={`Nhập 10 hoặc -18 rồi Áp / Enter${uuHint}`}
+        onChange={(e) => setRaw(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            submit();
+          }
+        }}
+      />
+      <button
+        type="button"
+        className="ndd-delta-apply"
+        onClick={submit}
+        disabled={busy || parsed === null}
+        title={`Áp dụng delta${uuHint}`}
+      >
+        {bumping ? "…" : "Áp"}
+      </button>
+    </span>
+  );
 }
 
 export function AdminNoiDungDangScreen({ initialView }: Props) {
@@ -76,8 +139,12 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
   const [dinhDang, setDinhDang] = useState<WorldBoostDinhDangFilter>("all");
   const [xacThuc, setXacThuc] = useState<WorldBoostXacThucFilter>("all");
   const [chiBoost, setChiBoost] = useState(false);
+  const [chiConDiem, setChiConDiem] = useState(false);
   const [q, setQ] = useState("");
   const [qDebounced, setQDebounced] = useState("");
+  const [hasMore, setHasMore] = useState(false);
+  const [totalApprox, setTotalApprox] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [scoreConfig, setScoreConfig] = useState<FeedScoreConfig | null>(null);
@@ -88,6 +155,8 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
   const [bumpingKeys, setBumpingKeys] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
+
+  const panelBodyRef = useRef<HTMLDivElement>(null);
 
   function toggleKeyInSet(
     prev: ReadonlySet<string>,
@@ -189,21 +258,25 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
       if (dinhDang !== "all") qs.set("dinhDang", dinhDang);
       if (xacThuc !== "all") qs.set("xacThuc", xacThuc);
       if (chiBoost) qs.set("boost", "1");
+      if (chiConDiem) qs.set("conDiem", "1");
       if (qDebounced) qs.set("q", qDebounced);
-      qs.set("limit", "60");
+      /* Một request — server đã quét pool sẵn; không offset (offset quét lại 3 bảng). */
+      qs.set("limit", "200");
 
-      const [listRes, statsRes] = await Promise.all([
-        fetch(`/api/admin/world-boost?${qs}`),
-        fetch("/api/admin/world-boost?stats=1"),
-      ]);
+      const listRes = await fetch(`/api/admin/world-boost?${qs}`);
       if (!listRes.ok) throw new Error("Không tải được danh sách.");
-      if (!statsRes.ok) throw new Error("Không tải được thống kê.");
       const listJson = (await listRes.json()) as {
         items: WorldBoostCatalogItem[];
+        hasMore?: boolean;
+        totalApprox?: number;
       };
-      const statsJson = (await statsRes.json()) as { stats: WorldBoostStats };
       setItems(listJson.items ?? []);
-      setStats(statsJson.stats);
+      setHasMore(Boolean(listJson.hasMore));
+      setTotalApprox(
+        typeof listJson.totalApprox === "number"
+          ? listJson.totalApprox
+          : (listJson.items?.length ?? 0),
+      );
     } catch (e) {
       if (!silent) {
         setError(e instanceof Error ? e.message : "Lỗi tải dữ liệu.");
@@ -211,15 +284,19 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [nguon, dinhDang, xacThuc, chiBoost, qDebounced]);
+  }, [nguon, dinhDang, xacThuc, chiBoost, chiConDiem, qDebounced]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [nguon, dinhDang, xacThuc, chiBoost, chiConDiem, qDebounced, view]);
 
   useEffect(() => {
     void loadPendingCount();
-  }, [loadPendingCount]);
+    void loadStats();
+  }, [loadPendingCount, loadStats]);
 
   useEffect(() => {
     if (view === "dashboard" || view === "score") {
-      void loadStats();
       return;
     }
     if (view === "pendingVerify") {
@@ -227,7 +304,28 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
       return;
     }
     void load();
-  }, [view, load, loadStats, loadPending]);
+  }, [view, load, loadPending]);
+
+  const totalPages = Math.max(1, Math.ceil(items.length / NDD_PAGE_SIZE));
+  const safePage = Math.min(Math.max(1, page), totalPages);
+  const pageItems = useMemo(
+    () =>
+      items.slice((safePage - 1) * NDD_PAGE_SIZE, safePage * NDD_PAGE_SIZE),
+    [items, safePage],
+  );
+  const rangeFrom =
+    items.length === 0 ? 0 : (safePage - 1) * NDD_PAGE_SIZE + 1;
+  const rangeTo = Math.min(safePage * NDD_PAGE_SIZE, items.length);
+
+  useEffect(() => {
+    if (page !== safePage) setPage(safePage);
+  }, [page, safePage]);
+
+  function goToPage(next: number) {
+    const clamped = Math.min(Math.max(1, next), totalPages);
+    setPage(clamped);
+    panelBodyRef.current?.scrollIntoView({ block: "start" });
+  }
 
   function canBumpScore(item: WorldBoostCatalogItem): boolean {
     return item.loai === "cot_moc" || item.loai === "org_bai_dang";
@@ -308,6 +406,7 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
         }
         /* Điểm feed đồng bộ server — refresh nền, không che lưới. */
         void load({ silent: true });
+        void loadStats();
       } catch {
         setItems((prev) => {
           const had = prev.some((row) => row.key === prevItem.key);
@@ -326,14 +425,19 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
     })();
   }
 
-  function bumpScore(item: WorldBoostCatalogItem, delta: AdminDiemUuTienDelta) {
+  function bumpScore(item: WorldBoostCatalogItem, delta: number) {
     if (!canBumpScore(item) || isBusy(item.key)) return;
+    const parsed = parseAdminDiemUuTienDelta(delta);
+    if (parsed === null) {
+      setError("Nhập số nguyên khác 0 (vd. 10 hoặc -18).");
+      return;
+    }
     const uu = item.diemFeed?.diem_uu_tien ?? 0;
-    if (delta > 0 && uu >= ADMIN_DIEM_UU_TIEN.MAX) {
+    if (parsed > 0 && uu >= ADMIN_DIEM_UU_TIEN.MAX) {
       setError(`Đã đạt trần ưu tiên (+${ADMIN_DIEM_UU_TIEN.MAX}).`);
       return;
     }
-    if (delta < 0 && uu <= ADMIN_DIEM_UU_TIEN.MIN) {
+    if (parsed < 0 && uu <= ADMIN_DIEM_UU_TIEN.MIN) {
       setError(`Đã đạt sàn ưu tiên (${ADMIN_DIEM_UU_TIEN.MIN}).`);
       return;
     }
@@ -341,10 +445,9 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
     const prevItem = item;
     const nextUu = Math.min(
       ADMIN_DIEM_UU_TIEN.MAX,
-      Math.max(ADMIN_DIEM_UU_TIEN.MIN, uu + delta),
+      Math.max(ADMIN_DIEM_UU_TIEN.MIN, uu + parsed),
     );
-    const nowIso = new Date().toISOString();
-    const deltaLabel = delta > 0 ? `+${delta}` : `${delta}`;
+    const deltaLabel = parsed > 0 ? `+${parsed}` : `${parsed}`;
 
     setError(null);
     setBumpingKeys((prev) => toggleKeyInSet(prev, item.key, true));
@@ -355,14 +458,14 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
         return {
           ...row,
           diemFeed: base
-            ? { ...base, diem_uu_tien: nextUu, bat_dau_luc: nowIso }
+            ? { ...base, diem_uu_tien: nextUu }
             : {
                 diem_co_ban: 0,
                 diem_noi_dung: 0,
                 diem_verify: 0,
                 diem_engagement: 0,
                 diem_uu_tien: nextUu,
-                bat_dau_luc: nowIso,
+                bat_dau_luc: new Date().toISOString(),
               },
         };
       }),
@@ -377,7 +480,7 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
             action: "bump",
             loai: item.loai,
             id: item.id,
-            delta,
+            delta: parsed,
           }),
         });
         const json = (await res.json()) as {
@@ -417,49 +520,15 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
     })();
   }
 
-  function scoreDeltaButtons(item: WorldBoostCatalogItem, variant: "card" | "list") {
-    const uu = item.diemFeed?.diem_uu_tien ?? 0;
-    const busy = isBusy(item.key);
-    const bumping = bumpingKeys.has(item.key);
-    const step = ADMIN_DIEM_UU_TIEN.STEP;
-    const bump = ADMIN_DIEM_UU_TIEN.BUMP;
-    const btnClass = variant === "card" ? "ndd-card-bump" : "ndd-list-bump";
-    const uuHint = uu !== 0 ? ` · hiện ${uu > 0 ? "+" : ""}${uu}` : "";
-    const atFloor = uu <= ADMIN_DIEM_UU_TIEN.MIN;
-    const atCeil = uu >= ADMIN_DIEM_UU_TIEN.MAX;
-
-    const minus = (amount: number, strong: boolean) => (
-      <button
-        type="button"
-        className={`${btnClass} is-minus${strong ? " is-minus-strong" : ""}`}
-        onClick={() => bumpScore(item, -amount as AdminDiemUuTienDelta)}
-        disabled={busy || atFloor}
-        title={`Trừ ${amount} điểm ưu tiên (hạ nội dung)${uuHint}`}
-        aria-label={`Trừ ${amount} điểm: ${item.tieuDe}`}
-      >
-        {bumping ? "…" : `−${amount}`}
-      </button>
-    );
-    const plus = (amount: number, strong: boolean) => (
-      <button
-        type="button"
-        className={`${btnClass} is-plus${strong ? " is-plus-strong" : ""}`}
-        onClick={() => bumpScore(item, amount as AdminDiemUuTienDelta)}
-        disabled={busy || atCeil}
-        title={`Cộng +${amount} điểm ưu tiên${uuHint}`}
-        aria-label={`Cộng ${amount} điểm: ${item.tieuDe}`}
-      >
-        {bumping ? "…" : `+${amount}`}
-      </button>
-    );
-
+  function scoreDeltaField(item: WorldBoostCatalogItem, variant: "card" | "list") {
     return (
-      <span className="ndd-score-delta" role="group" aria-label="Chỉnh điểm ưu tiên">
-        {minus(bump, true)}
-        {minus(step, false)}
-        {plus(step, false)}
-        {plus(bump, true)}
-      </span>
+      <NddScoreDeltaField
+        item={item}
+        variant={variant}
+        busy={isBusy(item.key)}
+        bumping={bumpingKeys.has(item.key)}
+        onApply={bumpScore}
+      />
     );
   }
 
@@ -624,6 +693,17 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
                   />
                   Chỉ đang đẩy
                 </label>
+                <label
+                  className="ndd-check"
+                  title="Ẩn bài đã decay hết điểm Timeline"
+                >
+                  <input
+                    type="checkbox"
+                    checked={chiConDiem}
+                    onChange={(e) => setChiConDiem(e.target.checked)}
+                  />
+                  Chỉ còn điểm
+                </label>
               </div>
             </div>
 
@@ -633,7 +713,7 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
               </p>
             ) : null}
 
-            <div className="ndd-panel-body">
+            <div className="ndd-panel-body" ref={panelBodyRef}>
               {loading ? (
                 <p className="admin-panel-loading">
                   <Loader2 className="bc-spin" size={18} /> Đang tải…
@@ -644,7 +724,7 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
                 </div>
               ) : view === "grid" ? (
                 <div className="ndd-grid">
-                  {items.map((item) => (
+                  {pageItems.map((item) => (
                     <article
                       key={item.key}
                       className={[
@@ -668,7 +748,7 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
                           )}
                           <span className="ndd-card-mark-row">
                             {canBumpScore(item)
-                              ? scoreDeltaButtons(item, "card")
+                              ? scoreDeltaField(item, "card")
                               : null}
                             <button
                               type="button"
@@ -740,7 +820,7 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
                         </tr>
                       </thead>
                       <tbody>
-                        {items.map((item) => (
+                        {pageItems.map((item) => (
                           <tr
                             key={item.key}
                             className={[
@@ -754,7 +834,7 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
                             <td className="ndd-list-col-boost">
                               <span className="ndd-list-boost-actions">
                                 {canBumpScore(item)
-                                  ? scoreDeltaButtons(item, "list")
+                                  ? scoreDeltaField(item, "list")
                                   : null}
                                 <button
                                   type="button"
@@ -854,7 +934,7 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
                   </div>
 
                   <ul className="ndd-list-mobile">
-                    {items.map((item) => (
+                    {pageItems.map((item) => (
                       <li
                         key={item.key}
                         className={[
@@ -927,7 +1007,7 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
                           ) : null}
                           <span className="ndd-list-boost-actions">
                             {canBumpScore(item)
-                              ? scoreDeltaButtons(item, "list")
+                              ? scoreDeltaField(item, "list")
                               : null}
                             <button
                               type="button"
@@ -945,6 +1025,49 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
                   </ul>
                 </>
               )}
+              {!loading && items.length > 0 ? (
+                <div className="pagination ndd-pagination">
+                  <span className="pagination-info">
+                    {rangeFrom}–{rangeTo} / {items.length}
+                    {totalApprox > items.length ? ` · ${totalApprox}` : ""}
+                    {hasMore ? " · cửa sổ quét" : ""}
+                    {` · ${NDD_PAGE_SIZE}/trang`}
+                  </span>
+                  <div className="pagination-btns">
+                    <button
+                      type="button"
+                      className="page-btn"
+                      disabled={safePage <= 1}
+                      onClick={() => goToPage(safePage - 1)}
+                      aria-label="Trang trước"
+                    >
+                      ←
+                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                      (n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          className={`page-btn${n === safePage ? " active" : ""}`}
+                          aria-current={n === safePage ? "page" : undefined}
+                          onClick={() => goToPage(n)}
+                        >
+                          {n}
+                        </button>
+                      ),
+                    )}
+                    <button
+                      type="button"
+                      className="page-btn"
+                      disabled={safePage >= totalPages}
+                      onClick={() => goToPage(safePage + 1)}
+                      aria-label="Trang sau"
+                    >
+                      →
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </section>
         )}

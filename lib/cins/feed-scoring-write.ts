@@ -5,7 +5,7 @@ import { loadFeedScoreConfig } from "@/lib/cins/feed-scoring-config-db";
 import {
   ADMIN_DIEM_UU_TIEN,
   clampDiemThanhPhan,
-  isAdminDiemUuTienDelta,
+  parseAdminDiemUuTienDelta,
   tinhDiemEngagement,
   tinhDiemNoiDung,
   tinhDiemVerify,
@@ -330,16 +330,16 @@ export async function applyAdminDayBaiDiemFeed(input: {
 }
 
 /**
- * Cộng/trừ điểm ưu tiên admin (±STEP / ±BUMP trong ALLOWED_DELTAS, dải MIN..MAX).
+ * Cộng/trừ điểm ưu tiên admin (số nguyên tùy ý, dải tổng MIN..MAX).
  * Dương = đẩy lên; âm = dìm nội dung không phù hợp xuống cuối feed.
  * Không đụng L29 boost; vẫn giữ khi ON/OFF đẩy (cột riêng diem_uu_tien).
- * Đồng thời reset bat_dau_luc = now để đưa bài về đầu cửa sổ decay.
+ * Không reset bat_dau_luc — ưu tiên cộng đúng số trên thẻ; làm mới decay là nút đẩy.
  */
 export async function bumpAdminDiemUuTien(input: {
   loai: FeedScoringLoai;
   id: string;
   actorProfileId: string;
-  /** Mặc định +BUMP (10) — UI dùng ±STEP (5). */
+  /** Mặc định +10. */
   delta?: number;
 }): Promise<
   | {
@@ -360,11 +360,13 @@ export async function bumpAdminDiemUuTien(input: {
   if (!id) return { ok: false, message: "Thiếu id đối tượng." };
 
   const delta =
-    input.delta === undefined ? ADMIN_DIEM_UU_TIEN.BUMP : input.delta;
-  if (!isAdminDiemUuTienDelta(delta)) {
+    input.delta === undefined
+      ? ADMIN_DIEM_UU_TIEN.DEFAULT_DELTA
+      : parseAdminDiemUuTienDelta(input.delta);
+  if (delta === null) {
     return {
       ok: false,
-      message: `Delta không hợp lệ (cho phép: ${ADMIN_DIEM_UU_TIEN.ALLOWED_DELTAS.join(", ")}).`,
+      message: `Delta không hợp lệ (số nguyên ≠ 0, dải ưu tiên ${ADMIN_DIEM_UU_TIEN.MIN}…${ADMIN_DIEM_UU_TIEN.MAX}).`,
     };
   }
 
@@ -430,7 +432,6 @@ export async function bumpAdminDiemUuTien(input: {
     .from("content_diem_feed")
     .update({
       diem_uu_tien: next,
-      bat_dau_luc: nowIso,
       day_boi: input.actorProfileId,
       day_luc: nowIso,
       cap_nhat_luc: nowIso,

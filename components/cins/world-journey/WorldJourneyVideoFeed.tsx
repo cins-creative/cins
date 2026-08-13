@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowLeft,
   Clapperboard,
   Play,
 } from "lucide-react";
@@ -78,6 +79,9 @@ type Props = {
   hasMore?: boolean;
   nextOffset?: number;
   endpoint: string;
+  /** Video đang chọn trên listing — cuộn tới slide này lúc mở Reels. */
+  startItemId?: string | null;
+  onClose?: () => void;
 };
 
 /** Số video kế tiếp mount iframe (muted, không autoplay) trước khi scroll tới. */
@@ -640,6 +644,16 @@ async function fetchVideoPage(
   };
 }
 
+function pickStartId(
+  items: readonly GalleryMainItem[],
+  startItemId?: string | null,
+): string | null {
+  if (startItemId && items.some((item) => item.id === startItemId)) {
+    return startItemId;
+  }
+  return items[0]?.id ?? null;
+}
+
 /**
  * Surface Video (Reels) — chỉ Cloudflare Stream upload, UI kiểu Facebook.
  */
@@ -648,6 +662,8 @@ export function WorldJourneyVideoFeed({
   hasMore: initialHasMore = false,
   nextOffset: initialOffset = 0,
   endpoint,
+  startItemId = null,
+  onClose,
 }: Props) {
   const [items, setItems] = useState<GalleryMainItem[]>(() =>
     initialItems.filter(isStreamVideoItem),
@@ -658,12 +674,13 @@ export function WorldJourneyVideoFeed({
   const [bootstrapping, setBootstrapping] = useState(
     () => initialItems.filter(isStreamVideoItem).length === 0,
   );
-  const [activeId, setActiveId] = useState<string | null>(
-    () => initialItems.find(isStreamVideoItem)?.id ?? null,
+  const [activeId, setActiveId] = useState<string | null>(() =>
+    pickStartId(initialItems.filter(isStreamVideoItem), startItemId),
   );
   const scrollerRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
+  const didScrollStartRef = useRef(false);
 
   const activeIndex = useMemo(() => {
     if (!activeId) return 0;
@@ -676,7 +693,7 @@ export function WorldJourneyVideoFeed({
     setItems(seeded);
     setHasMore(initialHasMore);
     setOffset(initialOffset);
-    setActiveId(seeded[0]?.id ?? null);
+    setActiveId(pickStartId(seeded, startItemId));
 
     if (seeded.length > 0) {
       setBootstrapping(false);
@@ -694,7 +711,7 @@ export function WorldJourneyVideoFeed({
         setItems(page.items);
         setHasMore(page.hasMore);
         setOffset(page.nextOffset);
-        setActiveId(page.items[0]?.id ?? null);
+        setActiveId(pickStartId(page.items, startItemId));
       } finally {
         if (!cancelled) {
           loadingRef.current = false;
@@ -708,7 +725,7 @@ export function WorldJourneyVideoFeed({
       cancelled = true;
       loadingRef.current = false;
     };
-  }, [initialItems, initialHasMore, initialOffset, endpoint]);
+  }, [initialItems, initialHasMore, initialOffset, endpoint, startItemId]);
 
   const loadMore = useCallback(async () => {
     if (loadingRef.current || !hasMore) return;
@@ -791,43 +808,96 @@ export function WorldJourneyVideoFeed({
     return () => io.disconnect();
   }, [hasMore, loadMore]);
 
+  useEffect(() => {
+    didScrollStartRef.current = false;
+  }, [startItemId]);
+
+  useEffect(() => {
+    if (didScrollStartRef.current || !startItemId) return;
+    const root = scrollerRef.current;
+    if (!root) return;
+    const el = root.querySelector<HTMLElement>(
+      `[data-reel-id="${CSS.escape(startItemId)}"]`,
+    );
+    if (!el) return;
+    el.scrollIntoView({ block: "start" });
+    didScrollStartRef.current = true;
+  }, [items.length, startItemId]);
+
+  useEffect(() => {
+    if (!onClose) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
   if (items.length === 0) {
-    if (bootstrapping || loading) {
-      return (
+    const empty = (
+      bootstrapping || loading ? (
         <div className="wj-feed-empty" role="status" aria-busy="true">
           <Clapperboard size={22} strokeWidth={1.8} aria-hidden />
           <b>Đang tải video…</b>
         </div>
-      );
-    }
+      ) : (
+        <div className="wj-feed-empty">
+          <Clapperboard size={22} strokeWidth={1.8} aria-hidden />
+          <b>Chưa có video</b>
+        </div>
+      )
+    );
+    if (!onClose) return empty;
     return (
-      <div className="wj-feed-empty">
-        <Clapperboard size={22} strokeWidth={1.8} aria-hidden />
-        <b>Chưa có video</b>
+      <div className="wj-video-feed-wrap">
+        <button
+          type="button"
+          className="wj-reel-back"
+          aria-label="Quay lại danh sách video"
+          onClick={onClose}
+        >
+          <ArrowLeft size={22} strokeWidth={2.2} aria-hidden />
+        </button>
+        {empty}
       </div>
     );
   }
 
   return (
-    <div className="wj-video-feed" ref={scrollerRef} aria-label="Video">
-      {items.map((item, index) => {
-        const active = activeId === item.id;
-        const preload =
-          !active &&
-          index > activeIndex &&
-          index <= activeIndex + REEL_IFRAME_PRELOAD;
-        return (
-          <div key={item.id} className="wj-reel-snap" data-reel-id={item.id}>
-            <ReelSlide item={item} active={active} preload={preload} />
-          </div>
-        );
-      })}
-      <div ref={sentinelRef} className="wj-reel-sentinel" aria-hidden />
-      {loading ? (
-        <div className="wj-reel-loading" role="status">
-          Đang tải thêm…
-        </div>
+    <div className="wj-video-feed-wrap">
+      {onClose ? (
+        <button
+          type="button"
+          className="wj-reel-back"
+          aria-label="Quay lại danh sách video"
+          onClick={onClose}
+        >
+          <ArrowLeft size={22} strokeWidth={2.2} aria-hidden />
+        </button>
       ) : null}
+      <div className="wj-video-feed" ref={scrollerRef} aria-label="Video">
+        {items.map((item, index) => {
+          const active = activeId === item.id;
+          const preload =
+            !active &&
+            index > activeIndex &&
+            index <= activeIndex + REEL_IFRAME_PRELOAD;
+          return (
+            <div key={item.id} className="wj-reel-snap" data-reel-id={item.id}>
+              <ReelSlide item={item} active={active} preload={preload} />
+            </div>
+          );
+        })}
+        <div ref={sentinelRef} className="wj-reel-sentinel" aria-hidden />
+        {loading ? (
+          <div className="wj-reel-loading" role="status">
+            Đang tải thêm…
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

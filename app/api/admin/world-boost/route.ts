@@ -116,9 +116,10 @@ export async function GET(request: Request) {
     dinhDang,
     xacThuc,
     chiDangBoost: searchParams.get("boost") === "1",
+    chiConDiem: searchParams.get("conDiem") === "1",
     q: searchParams.get("q") ?? undefined,
     offset: Math.max(0, Number(searchParams.get("offset") ?? 0) || 0),
-    limit: Math.max(1, Number(searchParams.get("limit") ?? 48) || 48),
+    limit: Math.max(1, Number(searchParams.get("limit") ?? 80) || 80),
   });
 
   return NextResponse.json(page);
@@ -151,7 +152,7 @@ export async function POST(request: Request) {
     );
   }
 
-  /* Cộng/trừ điểm ưu tiên (±5 / ±10, dải -200..+200). */
+  /* Cộng/trừ điểm ưu tiên (số nguyên, kẹp -200..+200). */
   if (action === "bump") {
     if (loai !== "cot_moc" && loai !== "org_bai_dang") {
       return NextResponse.json(

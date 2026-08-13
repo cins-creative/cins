@@ -51,6 +51,8 @@ export type WorldBoostListFilters = {
   dinhDang?: WorldBoostDinhDangFilter;
   xacThuc?: WorldBoostXacThucFilter;
   chiDangBoost?: boolean;
+  /** Chỉ bài còn điểm Timeline (> 0) hoặc đang bị dìm. */
+  chiConDiem?: boolean;
   q?: string;
   offset?: number;
   limit?: number;
@@ -351,18 +353,20 @@ export async function listWorldBoostCatalog(
   filters: WorldBoostListFilters = {},
 ): Promise<{ items: WorldBoostCatalogItem[]; hasMore: boolean; totalApprox: number }> {
   const offset = Math.max(0, filters.offset ?? 0);
-  const limit = Math.min(Math.max(1, filters.limit ?? 48), 96);
+  /* Một lần quét 3 bảng — trả hết cửa sổ đã fetch, không phân trang offset (offset sẽ quét lại). */
+  const limit = Math.min(Math.max(1, filters.limit ?? 80), 200);
   const nguon = filters.nguon ?? "all";
   const dinhDang = filters.dinhDang ?? "all";
   const xacThuc = filters.xacThuc ?? "all";
   const chiDangBoost = Boolean(filters.chiDangBoost);
+  const chiConDiem = Boolean(filters.chiConDiem);
   const q = filters.q?.trim().toLowerCase() ?? "";
 
   const boostMap = await loadBoostMap();
   /* Sửa điểm còn kẹt mức đẩy dù boost đã tắt (click nhầm / race). */
   await healOrphanBoostDiemFeedScores().catch(() => 0);
   const admin = createServiceRoleClient();
-  const poolLimit = Math.min(240, offset + limit + 80);
+  const poolLimit = Math.min(400, Math.max(limit, offset + limit) + 40);
 
   type RawItem = Omit<
     WorldBoostCatalogItem,
@@ -679,11 +683,13 @@ export async function listWorldBoostCatalog(
   const scoreOf = (item: WorldBoostCatalogItem): number =>
     item.diemFeed ? tinhDiemHienTai(item.diemFeed, nowMs, scoreCfg) : 0;
 
-  /* Giữ bài còn điểm > 0 (decay 7 ngày về 0 — không còn xếp Timeline).
-   * Vẫn giữ bài bị admin dìm (diem_uu_tien < 0) để còn chỉnh / khôi phục được. */
-  items = items.filter(
-    (i) => scoreOf(i) > 0 || (i.diemFeed?.diem_uu_tien ?? 0) < 0,
-  );
+  /* Mặc định giữ cả bài hết điểm — admin còn boost / cộng điểm được.
+   * «Chỉ còn điểm» = cửa sổ Timeline (decay về 0 thì ẩn, trừ bài đang dìm). */
+  if (chiConDiem) {
+    items = items.filter(
+      (i) => scoreOf(i) > 0 || (i.diemFeed?.diem_uu_tien ?? 0) < 0,
+    );
+  }
 
   items.sort((a, b) => {
     const diff = scoreOf(b) - scoreOf(a);
@@ -727,7 +733,7 @@ async function attachDiemFeedSnapshots(
     ids: string[],
   ) {
     if (ids.length === 0) return;
-    const chunkSize = 80;
+    const chunkSize = 250;
     for (let i = 0; i < ids.length; i += chunkSize) {
       const slice = ids.slice(i, i + chunkSize);
       const { data } = await admin

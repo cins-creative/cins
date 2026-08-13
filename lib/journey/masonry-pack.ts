@@ -26,13 +26,21 @@ export function packMasonryByAspect<T>(
   return buckets.filter((col) => col.length > 0);
 }
 
-export type MasonryColumnProfile = "gallery" | "world-journey";
+export type MasonryColumnProfile =
+  | "gallery"
+  | "world-journey"
+  | "world-journey-video";
 
 /** Số cột masonry theo bề ngang container — khớp breakpoint CSS từng profile. */
 export function resolveMasonryColumnCount(
   width: number,
   profile: MasonryColumnProfile = "gallery",
 ): number {
+  if (profile === "world-journey-video") {
+    if (width <= 480) return 2;
+    if (width <= 720) return 3;
+    return 4;
+  }
   if (profile === "world-journey") {
     if (width <= 480) return 2;
     if (width <= 640) return 3;

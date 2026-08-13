@@ -17,7 +17,7 @@ export type FeedScoreCatalogRow = {
 };
 
 export const FEED_SCORE_FORMULA =
-  "(cơ bản + nội dung + verify + engagement) × decay tuyến tính";
+  "(cơ bản + nội dung + verify + engagement) × decay tuyến tính + ưu tiên admin";
 
 export const FEED_SCORE_SCOPE =
   "Chỉ World Feed Timeline. Không áp Gallery, Journey cá nhân, feed cộng đồng, sự kiện org.";
@@ -106,7 +106,14 @@ export function buildFeedScoreCatalogRows(
       muc: `Cửa sổ ${days} ngày (${cfg.DECAY_HOURS} giờ)`,
       diem: `× (1 − giờ/${cfg.DECAY_HOURS})`,
       dieuKien: "Tuyến tính từ bat_dau_luc đến 0",
-      ghiChu: "Sửa bài không reset; admin đẩy có reset",
+      ghiChu: "Sửa bài / ± ưu tiên không reset; nút đẩy mới reset decay",
+    },
+    {
+      nhom: "Ưu tiên",
+      muc: "Admin nhập số rồi áp",
+      diem: "cộng sau decay",
+      dieuKien: "Ô trên lưới / listing nội dung đăng (vd. 10 hoặc -18)",
+      ghiChu: "Không hoàn lại khi tắt đẩy; dải −200…+200",
     },
     {
       nhom: "Trần",

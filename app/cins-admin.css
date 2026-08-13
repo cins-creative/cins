@@ -8210,6 +8210,18 @@
   padding: 14px 16px 16px;
   min-width: 0;
 }
+.cins-admin .ndd-catalog-foot {
+  margin: 12px 0 0;
+  color: var(--fg-4);
+  font-size: 12px;
+}
+.cins-admin .ndd-pagination {
+  margin: 12px -16px -16px;
+  border-radius: 0 0 14px 14px;
+}
+.cins-admin .ndd-pagination .pagination-btns {
+  flex-wrap: wrap;
+}
 .cins-admin .ndd-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -8542,6 +8554,67 @@
   align-items: center;
   gap: 4px;
 }
+.cins-admin .ndd-delta-input {
+  width: 52px;
+  height: 22px;
+  box-sizing: border-box;
+  padding: 0 6px;
+  border: 1.5px solid #f59e0b;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #92400e;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+.cins-admin .ndd-score-delta--list .ndd-delta-input {
+  width: 72px;
+  height: 28px;
+  font-size: 12px;
+  background: #fffbeb;
+}
+.cins-admin .ndd-delta-input:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+}
+.cins-admin .ndd-delta-input:disabled {
+  opacity: 0.55;
+}
+.cins-admin .ndd-delta-apply {
+  min-width: 32px;
+  height: 22px;
+  padding: 0 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1.5px solid #d97706;
+  color: #92400e;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+.cins-admin .ndd-score-delta--list .ndd-delta-apply {
+  height: 28px;
+  min-width: 40px;
+  font-size: 12px;
+  background: #fffbeb;
+}
+.cins-admin .ndd-delta-apply:hover:not(:disabled) {
+  background: #fffbeb;
+}
+.cins-admin .ndd-delta-apply:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.cins-admin .ndd-delta-apply:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
 .cins-admin .ndd-card-bump {
   min-width: 28px;
   height: 22px;
@@ -8743,10 +8816,16 @@
   border-top: 1px dashed var(--border);
 }
 .cins-admin .ndd-mobile-actions .ndd-list-bump,
+.cins-admin .ndd-mobile-actions .ndd-delta-input,
+.cins-admin .ndd-mobile-actions .ndd-delta-apply,
 .cins-admin .ndd-mobile-actions .ndd-list-toggle {
   min-height: 44px;
   min-width: 44px;
   padding: 0 14px;
+}
+.cins-admin .ndd-mobile-actions .ndd-delta-input {
+  width: 88px;
+  min-width: 88px;
 }
 .cins-admin .ndd-card-body {
   padding: 10px 12px 12px;
@@ -9352,6 +9431,9 @@
   .cins-admin .ndd-panel-body {
     padding: 8px;
   }
+  .cins-admin .ndd-pagination {
+    margin: 12px -8px -8px;
+  }
   .cins-admin .ndd-filters {
     padding: 8px;
     gap: 8px;
@@ -9553,6 +9635,293 @@
 :root[data-theme="dark"] .cins-admin .ndd-filters select option {
   background: var(--bg-surface);
   color: var(--fg-1);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-stat--boost {
+  border-color: color-mix(in srgb, #34c98a 42%, var(--border));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, #34c98a 16%, var(--bg-surface)) 0%,
+    var(--bg-surface) 100%
+  );
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-stat--boost .ndd-stat-v {
+  color: #4ade80;
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-stat--soon {
+  border-color: color-mix(in srgb, #fbbf24 42%, var(--border));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, #fbbf24 14%, var(--bg-surface)) 0%,
+    var(--bg-surface) 100%
+  );
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-stat--soon .ndd-stat-v {
+  color: #fbbf24;
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-error {
+  color: #fca5a5;
+  background: color-mix(in srgb, #ef4444 14%, var(--bg-surface));
+  border-bottom-color: color-mix(in srgb, #ef4444 32%, var(--border));
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-tab-badge {
+  background: color-mix(in srgb, #fb923c 22%, var(--bg-surface));
+  color: #fdba74;
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-card {
+  border-color: var(--border);
+  background: var(--bg-surface);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-card.is-nick-seed {
+  border-color: color-mix(in srgb, #94a3b8 45%, var(--border));
+  background: color-mix(in srgb, #94a3b8 10%, var(--bg-surface));
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-card.is-nick-seed .ndd-card-body strong,
+:root[data-theme="dark"] .cins-admin .ndd-card.is-nick-seed .ndd-card-body small {
+  color: var(--fg-3);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-card.is-nick-seed.is-boosted {
+  background: color-mix(in srgb, #34c98a 10%, var(--bg-surface));
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-card-seed {
+  color: #cbd5e1;
+  background: color-mix(in srgb, #94a3b8 22%, var(--bg-surface));
+  border-color: color-mix(in srgb, #94a3b8 40%, var(--border));
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-card-verified {
+  color: #93c5fd;
+  background: color-mix(in srgb, #2563eb 22%, var(--bg-surface));
+  border-color: color-mix(in srgb, #2563eb 40%, var(--border));
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-card-thumb {
+  background: var(--neutral-100, #1e2430);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-card-fallback {
+  color: var(--fg-4);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-card-body strong {
+  color: var(--fg-1);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-card-body small {
+  color: var(--fg-4);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-card-con-lai {
+  color: var(--fg-4) !important;
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-card-mark {
+  background: color-mix(in srgb, var(--bg-surface) 88%, transparent);
+  border-color: var(--border-strong, #4b5563);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-delta-input,
+:root[data-theme="dark"] .cins-admin .ndd-delta-apply,
+:root[data-theme="dark"] .cins-admin .ndd-card-bump {
+  background: color-mix(in srgb, var(--bg-surface) 92%, transparent);
+  color: #fdba74;
+  border-color: color-mix(in srgb, #fbbf24 50%, var(--border));
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-delta-apply:hover:not(:disabled),
+:root[data-theme="dark"] .cins-admin .ndd-card-bump:hover {
+  background: color-mix(in srgb, #fbbf24 16%, var(--bg-surface));
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-card-bump.is-minus:hover {
+  background: var(--neutral-100, #1e2430);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-card-bump.is-minus-strong:hover {
+  background: color-mix(in srgb, #ef4444 16%, var(--bg-surface));
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-list-title {
+  color: var(--fg-1);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-list-open-title:hover {
+  color: #93c5fd;
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-list-meta,
+:root[data-theme="dark"] .cins-admin .ndd-list-col-remain,
+:root[data-theme="dark"] .cins-admin .ndd-list-muted,
+:root[data-theme="dark"] .cins-admin .ndd-list-date-stack,
+:root[data-theme="dark"] .cins-admin .ndd-list-date-stack small {
+  color: var(--fg-4);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-list-chip {
+  color: var(--fg-3);
+  background: var(--neutral-100, #1e2430);
+  border-color: var(--border);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-seed-pill {
+  color: #cbd5e1;
+  background: color-mix(in srgb, #94a3b8 18%, var(--bg-surface));
+  border-color: color-mix(in srgb, #94a3b8 38%, var(--border));
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-verified-pill {
+  color: #93c5fd;
+  background: color-mix(in srgb, #2563eb 18%, var(--bg-surface));
+  border-color: color-mix(in srgb, #2563eb 38%, var(--border));
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-row-verified td {
+  background: color-mix(in srgb, #2563eb 10%, var(--bg-surface));
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-row-boosted td {
+  background: color-mix(in srgb, #34c98a 10%, var(--bg-surface));
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-row-boosted.ndd-row-verified td {
+  background: color-mix(in srgb, #34c98a 12%, var(--bg-surface));
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-row-nick-seed td {
+  background: color-mix(in srgb, #94a3b8 10%, var(--bg-surface));
+  color: var(--fg-3);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-row-boosted.ndd-row-nick-seed td {
+  background: color-mix(in srgb, #34c98a 10%, var(--bg-surface));
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-list-toggle {
+  background: var(--bg-surface);
+  border-color: var(--border);
+  color: var(--fg-2);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-list-toggle.is-on {
+  background: color-mix(in srgb, #34c98a 18%, var(--bg-surface));
+  border-color: color-mix(in srgb, #34c98a 50%, var(--border));
+  color: #4ade80;
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-list-bump {
+  background: color-mix(in srgb, #fbbf24 12%, var(--bg-surface));
+  color: #fbbf24;
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-list-bump.is-minus {
+  background: var(--neutral-100, #1e2430);
+  border-color: var(--border);
+  color: var(--fg-3);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-list-bump.is-plus-strong {
+  color: #fdba74;
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-list-bump.is-minus-strong {
+  background: color-mix(in srgb, #ef4444 14%, var(--bg-surface));
+  color: #fca5a5;
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-mobile-row.is-boosted {
+  border-color: color-mix(in srgb, #34c98a 50%, var(--border));
+  background: color-mix(in srgb, #34c98a 10%, var(--bg-surface));
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-mobile-row.is-nick-seed {
+  background: color-mix(in srgb, #94a3b8 10%, var(--bg-surface));
+  color: var(--fg-3);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-mobile-row.is-nick-seed.is-boosted {
+  background: color-mix(in srgb, #34c98a 10%, var(--bg-surface));
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-score--empty,
+:root[data-theme="dark"] .cins-admin .ndd-score-num {
+  color: var(--fg-3);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-score--high .ndd-score-num {
+  color: #4ade80;
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-score--low .ndd-score-num {
+  color: var(--fg-4);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-score-bar {
+  background: var(--neutral-100, #1e2430);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-score-rules-intro,
+:root[data-theme="dark"] .cins-admin .ndd-score-decay {
+  border-color: var(--border);
+  background: var(--bg-surface);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-score-rules-formula,
+:root[data-theme="dark"] .cins-admin .ndd-score-rules-h2,
+:root[data-theme="dark"] .cins-admin .ndd-score-rules-nhom,
+:root[data-theme="dark"] .cins-admin .ndd-score-rules-lydo span,
+:root[data-theme="dark"] .cins-admin .ndd-score-decay-value {
+  color: var(--fg-1);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-score-rules-formula code {
+  background: var(--neutral-100, #1e2430);
+  color: var(--fg-1);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-score-rules-scope,
+:root[data-theme="dark"] .cins-admin .ndd-score-rules-note,
+:root[data-theme="dark"] .cins-admin .ndd-score-rules-note-cell,
+:root[data-theme="dark"] .cins-admin .ndd-score-rules-phien-hien {
+  color: var(--fg-4);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-score-rules-btn {
+  border-color: var(--border);
+  background: var(--bg-surface);
+  color: var(--fg-2);
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-score-rules-btn--primary {
+  border-color: color-mix(in srgb, #34c98a 50%, var(--border));
+  background: color-mix(in srgb, #34c98a 16%, var(--bg-surface));
+  color: #4ade80;
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-score-rules-input,
+:root[data-theme="dark"] .cins-admin .ndd-score-rules-lydo textarea {
+  border-color: var(--border);
+  background: var(--bg-surface);
+  color: var(--fg-1);
+  color-scheme: dark;
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-score-rules-day-pill {
+  background: color-mix(in srgb, #34c98a 16%, var(--bg-surface));
+  color: #4ade80;
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-score-rules-ok {
+  color: #4ade80;
 }
 
 /* Alert cảnh báo — chữ sáng trên nền vàng-soft tối */

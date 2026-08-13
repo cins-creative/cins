@@ -38,28 +38,30 @@ export const FEED_SCORE = {
 
 /**
  * Cộng/trừ tay admin (`diem_uu_tien`) — không bị tắt đẩy xóa.
- * UI: nút ±STEP và ±BUMP. Cho phép điểm âm để "hạ" nội dung không phù hợp
- * xuống dưới bài thường (bury), không chỉ về 0.
+ * UI: ô nhập số nguyên (vd. 10, -18). Âm = dìm nội dung xuống dưới bài thường.
  */
 export const ADMIN_DIEM_UU_TIEN = {
-  STEP: 5,
-  BUMP: 10,
-  ALLOWED_DELTAS: [-10, -5, 5, 10] as const,
+  /** Mặc định khi API không gửi delta. */
+  DEFAULT_DELTA: 10,
   /** Sàn âm — trừ để dìm nội dung xấu xuống cuối feed. */
   MIN: -200,
   MAX: 200,
 } as const;
 
-export type AdminDiemUuTienDelta =
-  (typeof ADMIN_DIEM_UU_TIEN.ALLOWED_DELTAS)[number];
-
-export function isAdminDiemUuTienDelta(
-  n: unknown,
-): n is AdminDiemUuTienDelta {
-  return (
-    typeof n === "number" &&
-    (ADMIN_DIEM_UU_TIEN.ALLOWED_DELTAS as readonly number[]).includes(n)
-  );
+/** Số nguyên ≠ 0; kết quả bị kẹp MIN..MAX lúc ghi DB. */
+export function parseAdminDiemUuTienDelta(n: unknown): number | null {
+  const v =
+    typeof n === "number"
+      ? n
+      : typeof n === "string" && n.trim() !== ""
+        ? Number(n.trim())
+        : NaN;
+  if (!Number.isFinite(v)) return null;
+  const rounded = Math.round(v);
+  if (rounded === 0) return null;
+  const span = ADMIN_DIEM_UU_TIEN.MAX - ADMIN_DIEM_UU_TIEN.MIN;
+  if (Math.abs(rounded) > span) return null;
+  return rounded;
 }
 
 /** Giây mặc định 7 ngày — runtime dùng `feedScoreDecaySeconds(cfg)`. */
@@ -88,13 +90,13 @@ function diemUuTienOf(row: ContentDiemFeed): number {
   );
 }
 
-function tongGocDiem(row: ContentDiemFeed): number {
+/** Thành phần bị decay — không gồm ưu tiên admin (cộng sau, ± đúng số trên thẻ). */
+function tongGocDecay(row: ContentDiemFeed): number {
   return (
     row.diem_co_ban +
     row.diem_noi_dung +
     row.diem_verify +
-    row.diem_engagement +
-    diemUuTienOf(row)
+    row.diem_engagement
   );
 }
 
@@ -217,17 +219,16 @@ function batDauMs(batDau: Date | string): number {
   return Number.isNaN(ms) ? Date.now() : ms;
 }
 
-/** Điểm hiển thị realtime = tổng thành phần × decay tuyến tính. */
+/** Điểm hiển thị = (cơ bản+nội dung+verify+eng) × decay + ưu tiên admin. */
 export function tinhDiemHienTai(
   row: ContentDiemFeed,
   nowMs: number = Date.now(),
   cfg?: FeedScoreConfig,
 ): number {
   const c = cfgOrDefault(cfg);
-  const tongGoc = tongGocDiem(row);
   const soGio = (nowMs - batDauMs(row.bat_dau_luc)) / 3_600_000;
   const decay = Math.max(0, 1 - soGio / c.DECAY_HOURS);
-  return tongGoc * decay;
+  return tongGocDecay(row) * decay + diemUuTienOf(row);
 }
 
 /** Giờ còn lại đến khi điểm về ~0 (từ bat_dau_luc). */
@@ -293,7 +294,7 @@ export function breakdownDiemHienTai(
 } {
   const c = cfgOrDefault(cfg);
   const diemUuTien = diemUuTienOf(row);
-  const tongGoc = tongGocDiem(row);
+  const tongGoc = tongGocDecay(row);
   const soGio = (nowMs - batDauMs(row.bat_dau_luc)) / 3_600_000;
   const decay = Math.max(0, 1 - soGio / c.DECAY_HOURS);
   return {
@@ -304,7 +305,7 @@ export function breakdownDiemHienTai(
     diemUuTien,
     tongGoc,
     decayPct: Math.round(decay * 100),
-    diemHienTai: tongGoc * decay,
+    diemHienTai: tongGoc * decay + diemUuTien,
     gioConLai: Math.max(0, c.DECAY_HOURS - soGio),
   };
 }
