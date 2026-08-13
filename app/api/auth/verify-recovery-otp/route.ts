@@ -9,6 +9,7 @@ import {
   RECOVERY_EMAIL_COOKIE,
   setRecoveryVerifiedCookie,
 } from "@/lib/auth/recovery-cookie";
+import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import {
   appendSetCookieHeaders,
   createSupabaseRouteHandlerClient,
@@ -83,19 +84,60 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  /*
+   * verifyOtp trên `@supabase/ssr` (PKCE + cookie) có thể không bao giờ
+   * settle — UI kẹt «Đang kiểm tra…». Client anon không persist, rồi mới
+   * ghi cookie phiên bằng setSession.
+   */
+  let verifyData: { user: unknown; session: { access_token: string; refresh_token: string } | null } | null =
+    null;
+  let verifyErrMessage: string | null = null;
+  try {
+    const publicAuth = createPublicSupabaseClient();
+    const { data, error } = await publicAuth.auth.verifyOtp({
+      email,
+      token,
+      type: "recovery",
+    });
+    verifyData = data;
+    verifyErrMessage = error?.message ?? null;
+  } catch {
+    return NextResponse.json(
+      { error: "Không kiểm tra được mã. Thử lại sau." },
+      { status: 503 },
+    );
+  }
+
+  if (verifyErrMessage || !verifyData?.user || !verifyData.session) {
+    return NextResponse.json(
+      { error: mapOtpError(verifyErrMessage ?? "Mã không đúng.") },
+      { status: 401 },
+    );
+  }
+
   const carrier = new NextResponse();
   const supabase = createSupabaseRouteHandlerClient(request, carrier);
-
-  const { data: verifyData, error: verifyErr } = await supabase.auth.verifyOtp({
-    email,
-    token,
-    type: "recovery",
-  });
-
-  if (verifyErr || !verifyData.user) {
+  try {
+    const { error: sessionErr } = await supabase.auth.setSession({
+      access_token: verifyData.session.access_token,
+      refresh_token: verifyData.session.refresh_token,
+    });
+    if (sessionErr) {
+      return NextResponse.json(
+        {
+          error:
+            "Mã đúng nhưng không lưu được phiên. Bấm gửi lại mã rồi thử lại.",
+        },
+        { status: 500 },
+      );
+    }
+  } catch {
     return NextResponse.json(
-      { error: mapOtpError(verifyErr?.message ?? "Mã không đúng.") },
-      { status: 401 },
+      {
+        error:
+          "Mã đúng nhưng không lưu được phiên. Bấm gửi lại mã rồi thử lại.",
+      },
+      { status: 500 },
     );
   }
 

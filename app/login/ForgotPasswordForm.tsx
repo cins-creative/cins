@@ -222,26 +222,44 @@ export function ForgotPasswordForm({
     setError(null);
     setNotice(null);
 
-    const res = await fetch("/api/auth/verify-recovery-otp", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ token: otp }),
-    });
-    const json = (await res.json().catch(() => null)) as
-      | { ok?: boolean; error?: string }
-      | null;
+    const controller = new AbortController();
+    const abortTimer = window.setTimeout(() => controller.abort(), 20_000);
 
-    setBusyState(false);
+    try {
+      const res = await fetch("/api/auth/verify-recovery-otp", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ token: otp }),
+        signal: controller.signal,
+      });
+      const json = (await res.json().catch(() => null)) as
+        | { ok?: boolean; error?: string }
+        | null;
 
-    if (!res.ok || !json?.ok) {
-      setError(json?.error || "Mã không đúng. Kiểm tra lại rồi thử.");
-      return;
+      if (!res.ok || !json?.ok) {
+        setError(json?.error || "Mã không đúng. Kiểm tra lại rồi thử.");
+        return;
+      }
+
+      setNotice("Mã đúng. Chọn mật khẩu mới cho tài khoản.");
+      setPassword("");
+      setPassword2("");
+      setStep("password");
+    } catch (err) {
+      const aborted =
+        err instanceof DOMException
+          ? err.name === "AbortError"
+          : err instanceof Error && err.name === "AbortError";
+      setError(
+        aborted
+          ? "Không kiểm tra được mã (quá lâu). Thử lại, hoặc gửi lại mã mới."
+          : "Không kết nối được máy chủ. Thử lại.",
+      );
+    } finally {
+      window.clearTimeout(abortTimer);
+      setBusyState(false);
     }
-
-    setNotice("Mã đúng. Chọn mật khẩu mới cho tài khoản.");
-    setPassword("");
-    setPassword2("");
-    setStep("password");
   }
 
   async function submitNewPassword() {
