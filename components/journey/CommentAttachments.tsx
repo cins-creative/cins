@@ -14,7 +14,13 @@ type Props = {
   imageIds: ReadonlyArray<string>;
 };
 
-function CommentAttachmentItem({ image }: { image: GridImage }) {
+function CommentAttachmentItem({
+  image,
+  eager,
+}: {
+  image: GridImage;
+  eager?: boolean;
+}) {
   const [aspect, setAspect] = useState<string | undefined>(undefined);
 
   return (
@@ -28,8 +34,9 @@ function CommentAttachmentItem({ image }: { image: GridImage }) {
       <img
         src={gridThumbSrc(image)}
         alt=""
-        loading="lazy"
+        loading={eager ? "eager" : "lazy"}
         decoding="async"
+        referrerPolicy="no-referrer"
         width={image.width}
         height={image.height}
         style={aspect ? { aspectRatio: aspect } : undefined}
@@ -57,6 +64,7 @@ export function CommentAttachments({ imageIds }: Props) {
         return (
           <CommentAttachmentItem
             key={idOrUrl}
+            eager={isRemote}
             image={{
               id: isRemote ? "preview" : idOrUrl,
               width: GRID_IMAGE_DEFAULT_WIDTH,

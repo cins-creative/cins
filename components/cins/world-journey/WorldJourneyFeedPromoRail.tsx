@@ -497,8 +497,10 @@ export function WorldJourneyFeedPromoRail({
   const dragRef = useRef<{
     pointerId: number;
     startX: number;
+    startY: number;
     startScroll: number;
     moved: boolean;
+    axis: "undecided" | "x" | "y";
   } | null>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -532,10 +534,15 @@ export function WorldJourneyFeedPromoRail({
     dragRef.current = {
       pointerId: e.pointerId,
       startX: e.clientX,
+      startY: e.clientY,
       startScroll: el.scrollLeft,
       moved: false,
+      axis: "undecided",
     };
-    el.setPointerCapture(e.pointerId);
+    /* Chuột: capture ngay. Touch: chưa capture — vuốt dọc phải trả về trang. */
+    if (e.pointerType === "mouse") {
+      el.setPointerCapture(e.pointerId);
+    }
   }, []);
 
   const onPointerMove = useCallback(
@@ -544,11 +551,31 @@ export function WorldJourneyFeedPromoRail({
       const el = trackRef.current;
       if (!drag || !el || drag.pointerId !== e.pointerId) return;
       const dx = e.clientX - drag.startX;
-      if (!drag.moved && Math.abs(dx) < DRAG_CLICK_THRESHOLD_PX) return;
-      if (!drag.moved) {
+      const dy = e.clientY - drag.startY;
+      if (drag.axis === "undecided") {
+        if (
+          Math.abs(dx) < DRAG_CLICK_THRESHOLD_PX &&
+          Math.abs(dy) < DRAG_CLICK_THRESHOLD_PX
+        ) {
+          return;
+        }
+        if (e.pointerType !== "mouse" && Math.abs(dy) >= Math.abs(dx)) {
+          dragRef.current = null;
+          return;
+        }
+        if (Math.abs(dx) < DRAG_CLICK_THRESHOLD_PX) return;
+        drag.axis = "x";
         drag.moved = true;
         setDragging(true);
+        if (e.pointerType !== "mouse" && !el.hasPointerCapture(e.pointerId)) {
+          try {
+            el.setPointerCapture(e.pointerId);
+          } catch {
+            /* iOS đôi khi từ chối capture giữa gesture */
+          }
+        }
       }
+      if (drag.axis !== "x") return;
       el.scrollLeft = drag.startScroll - dx;
       wrapInfiniteScroll();
     },
@@ -571,6 +598,26 @@ export function WorldJourneyFeedPromoRail({
     },
     [wrapInfiniteScroll],
   );
+
+  /*
+   * React onPointerMove thường passive trên touch → preventDefault không ăn.
+   * Khi đã khóa trục ngang, chặn scroll trang để rail bám tay.
+   */
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const onTouchMove = (event: TouchEvent) => {
+      if (dragRef.current?.axis !== "x") return;
+      if (event.cancelable) event.preventDefault();
+    };
+    el.addEventListener("touchmove", onTouchMove, {
+      passive: false,
+      capture: true,
+    });
+    return () => {
+      el.removeEventListener("touchmove", onTouchMove, true);
+    };
+  }, []);
 
   if (items.length === 0) return null;
 

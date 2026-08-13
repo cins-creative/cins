@@ -22,6 +22,6 @@ export type TagSuggestRow = {
 
 export const TAG_SUGGEST_MAX = 7;
 export const TAG_SUGGEST_INDEX_MAX = 2500;
-export const TAG_SUGGEST_CACHE_KEY = "cins:tag-suggest-index:v8";
+export const TAG_SUGGEST_CACHE_KEY = "cins:tag-suggest-index:v9";
 export const TAG_SUGGEST_CACHE_TTL_MS = 10 * 60 * 1000;
 export const TAG_SUGGEST_DEBOUNCE_MS = 50;

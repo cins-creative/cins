@@ -40,6 +40,7 @@
   text-align: left;
   font: inherit;
   color: inherit;
+  touch-action: pan-y;
 }
 
 .shop-kiosk-ticker-label {
@@ -139,6 +140,7 @@
   user-select: none;
   -webkit-user-select: none;
   touch-action: pan-y;
+  overscroll-behavior-x: contain;
 }
 
 .shop-kiosk-ticker.is-dragging {
@@ -170,6 +172,8 @@
   cursor: pointer;
   line-height: 0;
   overflow: hidden;
+  touch-action: pan-y;
+  -webkit-touch-callout: none;
 }
 
 .shop-kiosk-ticker-thumb-btn:focus-visible {

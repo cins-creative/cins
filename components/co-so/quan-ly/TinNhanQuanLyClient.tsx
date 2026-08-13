@@ -1473,6 +1473,7 @@ function RoomComposeDetail({
           <button
             type="button"
             className="cins-chat-attach cins-chat-attach-meme"
+            data-sticker-trigger
             aria-label="Meme"
             disabled={sending}
             onClick={() => setStickerPickerOpen((o) => !o)}

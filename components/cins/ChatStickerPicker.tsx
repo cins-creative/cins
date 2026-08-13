@@ -12,12 +12,14 @@ import {
 import { MemeShapesLoader } from "@/components/cins/MemeShapesLoader";
 import { fetchChatComposeImageUpload } from "@/lib/chat/compose-image-upload";
 import { readImageFileFromClipboard } from "@/lib/files/clipboard-images";
+import { GifClientError, type GifResult } from "@/lib/gif/client";
 import {
-  fetchGifFeatured,
-  fetchGifSearch,
-  GifClientError,
-  type GifResult,
-} from "@/lib/gif/client";
+  ensureGifPrefetchOnStickerHover,
+  fetchGifFeaturedCached,
+  fetchGifSearchCached,
+  peekGifFeatured,
+  peekGifSearch,
+} from "@/lib/gif/featured-cache";
 import {
   addUserEmojiMucClient,
   createUserEmojiBoClient,
@@ -43,9 +45,11 @@ function withBoThumbnail(bo: UserEmojiBo): UserEmojiBo {
 function StickerImg({
   src,
   className,
+  eager,
 }: {
   src: string;
   className?: string;
+  eager?: boolean;
 }) {
   const [broken, setBroken] = useState(false);
   if (broken) {
@@ -57,6 +61,9 @@ function StickerImg({
       className={className}
       src={src}
       alt=""
+      referrerPolicy="no-referrer"
+      loading={eager ? "eager" : "lazy"}
+      decoding="async"
       onError={() => setBroken(true)}
     />
   );
@@ -103,11 +110,19 @@ export function ChatStickerPicker({
 
   const [gifQuery, setGifQuery] = useState("");
   const [gifDebounced, setGifDebounced] = useState("");
-  const [gifItems, setGifItems] = useState<GifResult[]>([]);
-  const [gifLoading, setGifLoading] = useState(false);
+  const [gifItems, setGifItems] = useState<GifResult[]>(
+    () => peekGifFeatured()?.items ?? [],
+  );
+  const [gifLoading, setGifLoading] = useState(
+    () => peekGifFeatured() == null,
+  );
   const [gifError, setGifError] = useState<string | null>(null);
   const [gifMissingKey, setGifMissingKey] = useState(false);
   const gifReqIdRef = useRef(0);
+
+  useEffect(() => {
+    ensureGifPrefetchOnStickerHover();
+  }, []);
 
   const activeBo = boList.find((bo) => bo.id === activeBoId) ?? boList[0] ?? null;
   const canAddBo = boList.length < MAX_USER_EMOJI_BO;
@@ -157,13 +172,19 @@ export function ChatStickerPicker({
 
   const loadGifs = useCallback(async (opts: { q: string }) => {
     const reqId = ++gifReqIdRef.current;
-    setGifLoading(true);
+    const cached = opts.q ? peekGifSearch(opts.q) : peekGifFeatured();
+    if (cached?.items.length) {
+      setGifItems(cached.items);
+      setGifLoading(false);
+    } else {
+      setGifLoading(true);
+    }
     setGifError(null);
     setGifMissingKey(false);
     try {
       const page = opts.q
-        ? await fetchGifSearch({ q: opts.q })
-        : await fetchGifFeatured();
+        ? await fetchGifSearchCached(opts.q)
+        : await fetchGifFeaturedCached();
       if (reqId !== gifReqIdRef.current) return;
       setGifItems(page.items);
     } catch (err) {
@@ -174,7 +195,7 @@ export function ChatStickerPicker({
         setGifError(null);
       } else {
         setGifError(err instanceof Error ? err.message : "Không tải được GIF.");
-        setGifItems([]);
+        if (!cached?.items.length) setGifItems([]);
       }
     } finally {
       if (reqId === gifReqIdRef.current) setGifLoading(false);
@@ -407,7 +428,7 @@ export function ChatStickerPicker({
             <p className="cins-chat-sticker-picker-empty">
               Chưa bật GIF (thiếu cấu hình).
             </p>
-          ) : gifLoading ? (
+          ) : gifLoading && gifItems.length === 0 ? (
             <p className="cins-chat-sticker-picker-status">
               <MemeShapesLoader size={28} /> Đang tải GIF…
             </p>
@@ -440,7 +461,7 @@ export function ChatStickerPicker({
                       aria-label={item.title?.trim() || "Gửi GIF"}
                       onClick={() => handlePickGif(item)}
                     >
-                      <StickerImg src={item.previewUrl} />
+                      <StickerImg src={item.previewUrl} eager />
                     </button>
                   </div>
                 ))}

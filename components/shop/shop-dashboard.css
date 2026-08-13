@@ -1953,7 +1953,7 @@ body:has(.shop-dash-gate) .j-chat-dock {
   gap: 1px;
   margin-left: auto;
   padding-left: 10px;
-  min-width: 2.75rem;
+  min-width: 4.25rem;
   text-align: right;
   line-height: 1.15;
 }

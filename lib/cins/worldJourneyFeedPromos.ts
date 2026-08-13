@@ -240,7 +240,8 @@ function mapOrgs(
     items: orgs.map((o) => ({
       id: o.id,
       title: o.name,
-      sub: o.reason,
+      /* Chỉ hiện social proof. «Cùng TP…» trùng dòng địa điểm; loại org đã có typeLabel. */
+      sub: o.mutualCount > 0 ? o.reason : "",
       href: o.href,
       imageUrl: o.avatarUrl,
       coverUrl: o.coverUrl,

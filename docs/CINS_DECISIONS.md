@@ -91,8 +91,8 @@
 - **DB:** cột `article_bai_viet.da_verify` **giữ** (không migration DROP); code không ưu tiên / không gate theo cột này. `tagSupportsCinsVerify()` luôn `false`.
 - **Nhãn UI:** `loai_bai_viet = fandom` hiện **«Phân loại»** (badge entity, filter tag, editor, search, admin pill) — slug/route `/fandom/[slug]` + enum DB không đổi.
 - **`so_gan` (badge `#N`):** đếm **bài đăng** = cột mốc `public` \| `feature` \| `cong_dong` gắn thẻ (qua `article_gan_cot_moc` ∪ fallback `article_gan_tac_pham`→thuộc mốc) — **khớp** feed trang entity. Không còn cộng `shop_nhom_fandom` / mọi TP.
-- **Shop Kho:** ô Phân loại = sheet overlay (`FandomTaxSelect`) đồng bộ `TaxSelectDropdown` (không TagInput portal); `#N bài` + icon mở `/fandom/[slug]` tab mới.
-- **Index gợi ý:** `GET /api/tag/index` query nhẹ + đếm `so_gan` best-effort; lỗi Postgres → fallback Supabase; client không kẹt `index=null`. Cache session `cins:tag-suggest-index:v8`.
+- **Shop Kho:** ô Phân loại = sheet overlay (`FandomTaxSelect`) đồng bộ `TaxSelectDropdown` (không TagInput portal); badge `N người gắn` (`so_nguoi_tagged`) + icon mở `/fandom/[slug]` tab mới. Không hiện `#N bài`.
+- **Index gợi ý:** `GET /api/tag/index` query nhẹ + đếm `so_gan` / `so_nguoi_tagged` best-effort; lỗi Postgres → fallback Supabase; client không kẹt `index=null`. Cache session `cins:tag-suggest-index:v9`.
 - *Supersede:* DECISIONS **L3** (verify ưu tiên autocomplete) · FOUNDATIONS quy tắc **27** (cập nhật cùng ngày).
 - *Hệ quả file:* `lib/tag/tag-loai.ts` · `suggest-index-*` · `admin-list.ts` · `app/api/admin/tag/[id]/verify` · `AdminTagScreen` · entity views · `ShopKhoLoaiTaxonomy` · `PostMetaRail` · labels `article-tag` / `EntityArticleHeader`.
 

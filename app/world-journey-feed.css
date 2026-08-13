@@ -1570,7 +1570,8 @@
   -ms-overflow-style: none;
   cursor: grab;
   overscroll-behavior-inline: contain;
-  touch-action: pan-x;
+  /* pan-y: vuốt dọc trả về trang. Kéo ngang do JS (axis lock). */
+  touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -1582,6 +1583,7 @@
   cursor: grabbing;
   scroll-snap-type: none;
   user-select: none;
+  touch-action: none;
 }
 
 .world-journey-home .wj-feed-promo-rail-track.is-dragging a,
@@ -4370,7 +4372,7 @@
     scroll-snap-type: x proximity;
     scroll-padding-inline: 12px;
     overscroll-behavior-inline: contain;
-    touch-action: pan-x;
+    touch-action: pan-y;
     scrollbar-width: none;
     -ms-overflow-style: none;
   }

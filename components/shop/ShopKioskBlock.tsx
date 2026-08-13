@@ -281,10 +281,8 @@ export function ShopKioskBlock({
     tickerEaseStartRef.current = 0;
   }, []);
 
-  const onTickerPointerDown = useCallback(
-    (e: ReactPointerEvent<HTMLDivElement>) => {
-      if (e.pointerType === "mouse" && e.button !== 0) return;
-      /* Dừng ticker ngay từ lúc nhấn — không đợi ngưỡng 3px. */
+  const beginTickerDrag = useCallback(
+    (clientX: number, clientY: number, pointerId: number) => {
       const resumeTimer = tickerResumeTimersRef.current.get("drag");
       if (resumeTimer) {
         clearTimeout(resumeTimer);
@@ -293,9 +291,9 @@ export function ShopKioskBlock({
       tickerEaseStartRef.current = null;
       tickerHoldReasonsRef.current.add("drag");
       tickerDragRef.current = {
-        pointerId: e.pointerId,
-        startX: e.clientX,
-        startY: e.clientY,
+        pointerId,
+        startX: clientX,
+        startY: clientY,
         startScroll: tickerPosRef.current,
         active: false,
       };
@@ -303,72 +301,152 @@ export function ShopKioskBlock({
     [],
   );
 
-  const onTickerPointerMove = useCallback(
-    (e: ReactPointerEvent<HTMLDivElement>) => {
+  /** `"horizontal"` = đã khóa vuốt ngang (cần preventDefault trên touch). */
+  const applyTickerDragMove = useCallback(
+    (
+      clientX: number,
+      clientY: number,
+      pointerType: string,
+    ): "ignore" | "vertical" | "horizontal" => {
       const drag = tickerDragRef.current;
-      if (!drag || drag.pointerId !== e.pointerId) return;
-      const dx = e.clientX - drag.startX;
-      const dy = e.clientY - drag.startY;
+      if (!drag) return "ignore";
+      const dx = clientX - drag.startX;
+      const dy = clientY - drag.startY;
 
       if (!drag.active) {
-        if (Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
+        if (Math.abs(dx) < 3 && Math.abs(dy) < 3) return "ignore";
         /* Touch/pen vuốt dọc → trả lại trang, đừng khóa ticker. */
-        if (e.pointerType !== "mouse" && Math.abs(dy) >= Math.abs(dx)) {
+        if (pointerType !== "mouse" && Math.abs(dy) >= Math.abs(dx)) {
           tickerDragRef.current = null;
           abortTickerDragHold();
-          return;
+          return "vertical";
         }
-        if (Math.abs(dx) < 3) return;
+        if (Math.abs(dx) < 3) return "ignore";
         drag.active = true;
         setTickerDragging(true);
+      }
+
+      writeTickerPos(drag.startScroll - dx);
+      normalizeTickerLoop();
+      return "horizontal";
+    },
+    [abortTickerDragHold, normalizeTickerLoop, writeTickerPos],
+  );
+
+  const endTickerDrag = useCallback((el?: HTMLDivElement | null) => {
+    const drag = tickerDragRef.current;
+    if (!drag) return;
+    tickerDragRef.current = null;
+    if (el?.hasPointerCapture?.(drag.pointerId)) {
+      try {
+        el.releasePointerCapture(drag.pointerId);
+      } catch {
+        /* ignore */
+      }
+    }
+    if (drag.active) tickerSuppressClickRef.current = true;
+    setTickerDragging(false);
+    /* Thả → chạy lại ngay; tốc độ ease 0 → cruise trong 1.5s. */
+    const resumeTimer = tickerResumeTimersRef.current.get("drag");
+    if (resumeTimer) {
+      clearTimeout(resumeTimer);
+      tickerResumeTimersRef.current.delete("drag");
+    }
+    tickerHoldReasonsRef.current.delete("drag");
+    tickerEaseStartRef.current = 0;
+  }, []);
+
+  const onTickerPointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      /* Dừng ticker ngay từ lúc nhấn — không đợi ngưỡng 3px. */
+      beginTickerDrag(e.clientX, e.clientY, e.pointerId);
+      /* Chỉ capture chuột. iOS setPointerCapture hay mất gesture giữa chừng. */
+      if (e.pointerType === "mouse") {
         try {
           e.currentTarget.setPointerCapture(e.pointerId);
         } catch {
           /* ignore */
         }
       }
-
-      writeTickerPos(drag.startScroll - dx);
-      normalizeTickerLoop();
-      e.preventDefault();
     },
-    [abortTickerDragHold, normalizeTickerLoop, writeTickerPos],
+    [beginTickerDrag],
+  );
+
+  const onTickerPointerMove = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      const drag = tickerDragRef.current;
+      if (!drag || drag.pointerId !== e.pointerId) return;
+      if (applyTickerDragMove(e.clientX, e.clientY, e.pointerType) === "horizontal") {
+        e.preventDefault();
+      }
+    },
+    [applyTickerDragMove],
   );
 
   const finishTickerDrag = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       const drag = tickerDragRef.current;
       if (!drag || drag.pointerId !== e.pointerId) return;
-      tickerDragRef.current = null;
-      if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
-        try {
-          e.currentTarget.releasePointerCapture(e.pointerId);
-        } catch {
-          /* ignore */
-        }
-      }
-      if (drag.active) tickerSuppressClickRef.current = true;
-      setTickerDragging(false);
-      /* Thả → chạy lại ngay; tốc độ ease 0 → cruise trong 1.5s. */
-      const resumeTimer = tickerResumeTimersRef.current.get("drag");
-      if (resumeTimer) {
-        clearTimeout(resumeTimer);
-        tickerResumeTimersRef.current.delete("drag");
-      }
-      tickerHoldReasonsRef.current.delete("drag");
-      tickerEaseStartRef.current = 0;
+      endTickerDrag(e.currentTarget);
     },
-    [],
+    [endTickerDrag],
   );
 
   const onTickerLostPointerCapture = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
+      /* Touch không capture — lostpointercapture giả trên iOS đừng cắt drag. */
+      if (e.pointerType !== "mouse") return;
       const drag = tickerDragRef.current;
       if (!drag || drag.pointerId !== e.pointerId) return;
-      finishTickerDrag(e);
+      endTickerDrag(e.currentTarget);
     },
-    [finishTickerDrag],
+    [endTickerDrag],
   );
+
+  /*
+   * Mobile: React onPointerMove thường passive → preventDefault không khóa
+   * trình duyệt. Gắn touchmove native {passive:false} để dải hàng bám tay.
+   */
+  useEffect(() => {
+    const el = tickerScrollRef.current;
+    if (!el) return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const t = e.touches[0];
+      beginTickerDrag(t.clientX, t.clientY, t.identifier);
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!tickerDragRef.current) return;
+      if (e.touches.length !== 1) return;
+      const t = e.touches[0];
+      if (
+        applyTickerDragMove(t.clientX, t.clientY, "touch") === "horizontal"
+      ) {
+        e.preventDefault();
+      }
+    };
+
+    const onTouchEnd = () => {
+      endTickerDrag(el);
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, {
+      passive: false,
+      capture: true,
+    });
+    el.addEventListener("touchend", onTouchEnd);
+    el.addEventListener("touchcancel", onTouchEnd);
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove, true);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, [applyTickerDragMove, beginTickerDrag, endTickerDrag]);
 
   const onTickerClickCapture = useCallback(
     (e: ReactMouseEvent<HTMLDivElement>) => {

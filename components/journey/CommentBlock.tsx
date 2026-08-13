@@ -42,6 +42,8 @@ import type { ChatSendGifPayload } from "@/components/cins/ChatStickerPicker";
 import { MsIcon } from "@/components/cins/MsIcon";
 import { CommentAttachments } from "@/components/journey/CommentAttachments";
 import { importGifToCloudflare } from "@/lib/gif/client";
+import { prefetchGifFeatured } from "@/lib/gif/featured-cache";
+import { readRememberedAccount } from "@/lib/auth/remembered-account";
 import { CommentMentionText } from "@/components/journey/CommentMentionText";
 import { CommentReactionPill } from "@/components/journey/CommentReactionPill";
 import { CommentVoteButtons } from "@/components/journey/CommentVoteButtons";
@@ -121,6 +123,7 @@ export function CommentBlock(props: CommentBlockProps) {
     viewerCanComment,
     onCommentAdded,
     onCommentRemoved,
+    onCommentUpdated,
     sectionId = "post-comments",
     submitComment,
     pinCompose = false,
@@ -226,6 +229,7 @@ export function CommentBlock(props: CommentBlockProps) {
   function handleSendGif(
     payload: ChatSendGifPayload,
     idToChuc: string | null,
+    author: MilestonePostComment["author"],
   ) {
     const replyId = replyTo?.id ?? null;
     const tempId = `optimistic:gif:${crypto.randomUUID()}`;
@@ -236,7 +240,7 @@ export function CommentBlock(props: CommentBlockProps) {
       taoLuc: new Date().toISOString(),
       idCha: replyId,
       anhDinhKem: [payload.previewUrl],
-      author: null,
+      author,
       isOwn: true,
       reactions: [],
       replies: [],
@@ -260,25 +264,19 @@ export function CommentBlock(props: CommentBlockProps) {
               anhDinhKem: [imported.imageId],
               idToChuc,
             });
-        onCommentRemoved(tempId);
         if (!res.ok) {
+          onCommentRemoved(tempId);
           setErr(res.error);
           return;
         }
-        onCommentAdded({
+        onCommentUpdated(tempId, {
           id: res.data.id,
           noiDung: res.data.noiDung,
           taoLuc: res.data.taoLuc,
-          idCha: res.data.idCha ?? null,
-          anhDinhKem: res.data.anhDinhKem ?? [imported.imageId],
+          idCha: res.data.idCha ?? replyId,
           author: res.data.author
             ? { ...res.data.author, badge: null }
-            : null,
-          isOwn: true,
-          reactions: [],
-          replies: [],
-          daXoa: false,
-          ghimLuc: null,
+            : author,
         });
         if (!submitComment) emitNotificationsChanged();
       } catch (error) {
@@ -409,6 +407,7 @@ type ComposeProps = {
   onSendGif?: (
     payload: ChatSendGifPayload,
     idToChuc: string | null,
+    author: MilestonePostComment["author"],
   ) => void;
   pending: boolean;
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
@@ -425,7 +424,9 @@ type CommentIdentityOrg = {
 
 type CommentIdentityPersonal = {
   id: string;
+  slug: string;
   tenHienThi: string;
+  avatarId: string | null;
   avatarUrl: string | null;
 };
 
@@ -466,12 +467,42 @@ function commentDisplayAuthor(comment: MilestonePostComment): {
   const name =
     comment.author?.tenHienThi?.trim() ||
     comment.author?.slug?.trim() ||
-    "Người dùng";
+    (comment.isOwn ? "Bạn" : "Người dùng");
   return {
     name,
     initial: name.charAt(0).toUpperCase(),
     avatarUrl: getAvatarUrl(comment.author?.avatarId ?? null),
     asOrg: null,
+  };
+}
+
+function composeOptimisticAuthor(
+  personal: CommentIdentityPersonal | null,
+  selectedOrg: CommentIdentityOrg | null,
+): NonNullable<MilestonePostComment["author"]> {
+  const remembered = personal ? null : readRememberedAccount();
+  const tenHienThi =
+    selectedOrg?.ten?.trim() ||
+    personal?.tenHienThi?.trim() ||
+    remembered?.tenHienThi?.trim() ||
+    "Bạn";
+  return {
+    id: personal?.id || remembered?.id || "self",
+    slug: personal?.slug || remembered?.slug || "",
+    tenHienThi,
+    avatarId: personal?.avatarId ?? remembered?.avatarId ?? null,
+    ...(selectedOrg
+      ? {
+          asOrg: {
+            id: selectedOrg.id,
+            slug: "",
+            ten: selectedOrg.ten,
+            loaiToChuc: "",
+            avatarId: null,
+            href: null,
+          },
+        }
+      : {}),
   };
 }
 
@@ -610,6 +641,11 @@ function CommentComposeForm({
   }, []);
 
   useEffect(() => {
+    if (!onSendGif) return;
+    prefetchGifFeatured();
+  }, [onSendGif]);
+
+  useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
@@ -623,7 +659,9 @@ function CommentComposeForm({
           const profileJson = (await profileRes.json()) as {
             profile?: {
               id?: string;
+              slug?: string | null;
               tenHienThi?: string | null;
+              avatarId?: string | null;
               avatarUrl?: string | null;
             } | null;
           };
@@ -631,7 +669,9 @@ function CommentComposeForm({
           if (p?.id) {
             setPersonal({
               id: p.id,
+              slug: p.slug?.trim() || "",
               tenHienThi: p.tenHienThi?.trim() || "Bạn",
+              avatarId: p.avatarId ?? null,
               avatarUrl: p.avatarUrl ?? null,
             });
           }
@@ -824,9 +864,13 @@ function CommentComposeForm({
     (payload: ChatSendGifPayload) => {
       if (pending || !onSendGif) return;
       setStickerPickerOpen(false);
-      onSendGif(payload, idToChuc);
+      onSendGif(
+        payload,
+        idToChuc,
+        composeOptimisticAuthor(personal, selectedOrg),
+      );
     },
-    [pending, onSendGif, idToChuc],
+    [pending, onSendGif, idToChuc, personal, selectedOrg],
   );
 
   const readyImageIds = attachments
@@ -1290,6 +1334,9 @@ function CommentComposeForm({
               aria-label="Meme / GIF"
               aria-expanded={stickerPickerOpen}
               disabled={pending}
+              onPointerEnter={() => {
+                if (onSendGif) prefetchGifFeatured();
+              }}
               onClick={() => setStickerPickerOpen((open) => !open)}
             >
               <MsIcon name="comedy_mask" className="post-comments-meme-btn-icon" />

@@ -1285,6 +1285,8 @@ export function CinsChatOverlay({
   scrollMessagesToBottomRef.current = scrollMessagesToBottom;
   const forcedEmptyReloadRef = useRef<Set<string>>(new Set());
   const highlightTimerRef = useRef<number | null>(null);
+  /** Mobile: đóng overlay canvas/side rồi mới scroll tới tin. */
+  const pendingJumpMessageIdRef = useRef<string | null>(null);
 
   pendingImagesRef.current = pendingImages;
 
@@ -3330,16 +3332,36 @@ export function CinsChatOverlay({
     return true;
   }, []);
 
+  const runHighlightWhenReady = useCallback(
+    (messageId: string) => {
+      const tryHighlight = (attempt: number) => {
+        if (highlightMessage(messageId)) return;
+        if (attempt >= 12) return;
+        requestAnimationFrame(() => tryHighlight(attempt + 1));
+      };
+      requestAnimationFrame(() => tryHighlight(0));
+    },
+    [highlightMessage],
+  );
+
   const scrollToMessage = useCallback(
     async (messageId: string) => {
       if (!active) return;
       shouldScrollToBottomRef.current = false;
 
+      /* Mobile canvas/side overlay ẩn convo — đóng panel rồi nhảy sang tab tin. */
+      if (mobileNarrow && sidePanel) {
+        pendingJumpMessageIdRef.current = messageId;
+        setMobileShowThread(true);
+        setSidePanel(null);
+        return;
+      }
+
       const roomId = active.roomId;
       if (isPendingRoomId(roomId)) return;
 
       if (active.messages.some((m) => m.id === messageId)) {
-        requestAnimationFrame(() => highlightMessage(messageId));
+        runHighlightWhenReady(messageId);
         return;
       }
 
@@ -3362,17 +3384,23 @@ export function CinsChatOverlay({
         );
 
         if (msgs.some((m) => m.id === messageId)) {
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => highlightMessage(messageId));
-          });
+          runHighlightWhenReady(messageId);
           return;
         }
       }
 
       setLoadError("Không tìm thấy tin nhắn trong hội thoại.");
     },
-    [active, highlightMessage],
+    [active, mobileNarrow, runHighlightWhenReady, sidePanel],
   );
+
+  useEffect(() => {
+    const id = pendingJumpMessageIdRef.current;
+    if (!id) return;
+    if (mobileNarrow && sidePanel) return;
+    pendingJumpMessageIdRef.current = null;
+    void scrollToMessage(id);
+  }, [mobileNarrow, sidePanel, scrollToMessage]);
 
   const messageActionHandlers = useMemo<ChatMessageActionHandlers>(
     () => ({

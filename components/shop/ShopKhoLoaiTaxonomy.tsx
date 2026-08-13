@@ -586,11 +586,13 @@ function FandomTaxSelect({
   onChange,
   disabled,
   maxTags = FANDOM_MAX_TAGS,
+  onError,
 }: {
   value: TagInputValue[];
   onChange: (next: TagInputValue[]) => void;
   disabled?: boolean;
   maxTags?: number;
+  onError?: (msg: string | null) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -710,6 +712,7 @@ function FandomTaxSelect({
     const ten = trimmed;
     if (!ten || creating || atMax) return;
     setCreating(true);
+    onError?.(null);
     try {
       const res = await fetch("/api/tag", {
         method: "POST",
@@ -719,7 +722,10 @@ function FandomTaxSelect({
       const json = (await res.json().catch(() => null)) as
         | { id?: string; error?: string }
         | null;
-      if (!res.ok || !json?.id) return;
+      if (!res.ok || !json?.id) {
+        onError?.(json?.error ?? "Không tạo được phân loại.");
+        return;
+      }
       addTag({
         id: json.id,
         tieu_de: ten,
@@ -730,7 +736,7 @@ function FandomTaxSelect({
     } finally {
       setCreating(false);
     }
-  }, [addTag, atMax, creating, trimmed]);
+  }, [addTag, atMax, creating, onError, trimmed]);
 
   const showLoading =
     trimmed.length > 0 && loading && listRows.length === 0 && !canCreate;
@@ -779,7 +785,7 @@ function FandomTaxSelect({
                   ref={searchRef}
                   type="search"
                   value={q}
-                  placeholder="Tìm fandom…"
+                  placeholder="Tìm hoặc gõ tên rồi bấm +"
                   disabled={disabled}
                   onChange={(e) => setQ(e.target.value)}
                   onKeyDown={(e) => {
@@ -803,6 +809,26 @@ function FandomTaxSelect({
                     <X size={14} strokeWidth={2.4} aria-hidden />
                   </button>
                 ) : null}
+                <button
+                  type="button"
+                  className="shop-kho-loai-dd-search-add"
+                  aria-label={
+                    canCreate
+                      ? `Tạo phân loại «${trimmed}»`
+                      : "Gõ tên phân loại chưa có rồi bấm +"
+                  }
+                  title={
+                    atMax
+                      ? `Đã đạt tối đa ${maxTags}`
+                      : trimmed && !canCreate
+                        ? "Phân loại này đã có — chọn trong danh sách"
+                        : "Tạo phân loại mới"
+                  }
+                  disabled={disabled || creating || !canCreate}
+                  onClick={() => void createTag()}
+                >
+                  <Plus size={16} strokeWidth={2.4} aria-hidden />
+                </button>
               </label>
 
               <div
@@ -819,18 +845,56 @@ function FandomTaxSelect({
                   </p>
                 ) : null}
 
+                {canCreate ? (
+                  <button
+                    type="button"
+                    className="shop-kho-loai-dd-option shop-kho-loai-dd-option--create"
+                    disabled={disabled || creating}
+                    onClick={() => void createTag()}
+                  >
+                    <span
+                      className="shop-kho-loai-dd-check shop-kho-loai-dd-check--plus"
+                      aria-hidden
+                    >
+                      <Plus size={12} strokeWidth={3} />
+                    </span>
+                    <span className="shop-kho-loai-dd-option-copy">
+                      <strong>Tạo «{trimmed}»</strong>
+                      <em>Phân loại mới</em>
+                    </span>
+                  </button>
+                ) : !trimmed && !atMax ? (
+                  <button
+                    type="button"
+                    className="shop-kho-loai-dd-option shop-kho-loai-dd-option--create"
+                    disabled={disabled}
+                    onClick={() => searchRef.current?.focus()}
+                  >
+                    <span
+                      className="shop-kho-loai-dd-check shop-kho-loai-dd-check--plus"
+                      aria-hidden
+                    >
+                      <Plus size={12} strokeWidth={3} />
+                    </span>
+                    <span className="shop-kho-loai-dd-option-copy">
+                      <strong>Tạo phân loại mới</strong>
+                      <em>Gõ tên rồi bấm + hoặc Enter</em>
+                    </span>
+                  </button>
+                ) : null}
+
                 {listRows.map((tag) => {
-                  const gan = tag.so_gan ?? 0;
+                  const nguoi = tag.so_nguoi_tagged ?? 0;
                   const slug = tag.slug?.trim() || "";
                   const href = slug
                     ? articlePublicHref("fandom", slug)
                     : null;
-                  const ganLabel =
-                    gan <= 0
+                  const nguoiLabel =
+                    nguoi <= 0
                       ? ""
-                      : gan === 1
-                        ? "1 bài đăng gắn phân loại này"
-                        : `${gan} bài đăng gắn phân loại này`;
+                      : nguoi === 1
+                        ? "1 người gắn phân loại này"
+                        : `${nguoi} người gắn phân loại này`;
                   return (
                     <div
                       key={tag.id}
@@ -857,17 +921,17 @@ function FandomTaxSelect({
                             {tag.tieu_de}
                           </strong>
                         </span>
-                        {gan > 0 ? (
+                        {nguoi > 0 ? (
                           <span
                             className="shop-kho-loai-dd-gan"
-                            title={ganLabel}
-                            aria-label={ganLabel}
+                            title={nguoiLabel}
+                            aria-label={nguoiLabel}
                           >
                             <span className="shop-kho-loai-dd-gan-num">
-                              #{gan}
+                              {nguoi}
                             </span>
                             <span className="shop-kho-loai-dd-gan-hint">
-                              bài
+                              người gắn
                             </span>
                           </span>
                         ) : (
@@ -892,30 +956,11 @@ function FandomTaxSelect({
                   );
                 })}
 
-                {canCreate ? (
-                  <button
-                    type="button"
-                    className="shop-kho-loai-dd-option shop-kho-loai-dd-option--create"
-                    disabled={disabled || creating}
-                    onClick={() => void createTag()}
-                  >
-                    <span
-                      className="shop-kho-loai-dd-check shop-kho-loai-dd-check--plus"
-                      aria-hidden
-                    >
-                      <Plus size={12} strokeWidth={3} />
-                    </span>
-                    <span className="shop-kho-loai-dd-option-copy">
-                      <strong>Tạo «{trimmed}»</strong>
-                      <em>Phân loại mới</em>
-                    </span>
-                  </button>
-                ) : null}
-
                 {!showLoading &&
                 !refining &&
                 listRows.length === 0 &&
-                !canCreate ? (
+                !canCreate &&
+                (trimmed || atMax) ? (
                   <p className="shop-kho-loai-dd-empty">
                     {trimmed ? "Không khớp." : "Chưa có phân loại để chọn."}
                   </p>
@@ -1266,6 +1311,7 @@ export function ShopKhoLoaiTaxonomy({
               onChange={(next) => void onFandomChange(next)}
               disabled={busy}
               maxTags={FANDOM_MAX_TAGS}
+              onError={onError}
             />
           </div>
 

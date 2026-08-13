@@ -49,7 +49,7 @@ function mapIndexRow(r: IndexRow): TagSuggestRow {
 /**
  * Index nhẹ (không CTE đếm usage) — Workers/Hyperdrive dễ timeout nếu join
  * article_gan_* + shop_nhom_fandom trên toàn bộ tag.
- * `so_gan` gắn sau bằng attachGanCountsViaPostgres (best-effort).
+ * `so_gan` / `so_nguoi_tagged` gắn sau bằng attachGanCountsViaPostgres (best-effort).
  */
 async function loadTagSuggestIndexViaPostgres(): Promise<TagSuggestRow[] | null> {
   return withTagPostgres(async (sql) => {
@@ -88,20 +88,27 @@ async function attachGanCountsViaPostgres(
   if (rows.length === 0) return rows;
   const withCounts = await withTagPostgres(async (sql) => {
     const ids = rows.map((r) => r.id);
-    const counts = await sql<{ id_bai_viet: string; so_gan: number }[]>`
-      SELECT id_bai_viet, COUNT(DISTINCT id_cot_moc)::int AS so_gan
+    const counts = await sql<
+      { id_bai_viet: string; so_gan: number; so_nguoi_tagged: number }[]
+    >`
+      SELECT
+        id_bai_viet,
+        COUNT(DISTINCT id_cot_moc)::int AS so_gan,
+        COUNT(DISTINCT id_nguoi_dung)::int AS so_nguoi_tagged
       FROM (
-        SELECT agc.id_bai_viet, cm.id AS id_cot_moc
+        SELECT agc.id_bai_viet, cm.id AS id_cot_moc, cm.id_nguoi_dung
         FROM article_gan_cot_moc agc
         INNER JOIN content_cot_moc cm ON cm.id = agc.id_cot_moc
         WHERE agc.id_bai_viet = ANY(${ids})
           AND cm.che_do_hien_thi IN ('public', 'feature', 'cong_dong')
         UNION
-        SELECT agt.id_bai_viet, cm.id AS id_cot_moc
+        SELECT agt.id_bai_viet, cm.id AS id_cot_moc, tg.id_nguoi_dung
         FROM article_gan_tac_pham agt
         INNER JOIN content_tac_pham_thuoc_moc tm
           ON tm.id_tac_pham = agt.id_tac_pham
         INNER JOIN content_cot_moc cm ON cm.id = tm.id_cot_moc
+        LEFT JOIN content_tac_pham_tac_gia tg
+          ON tg.id_tac_pham = agt.id_tac_pham AND tg.trang_thai = 'accepted'
         WHERE agt.id_bai_viet = ANY(${ids})
           AND cm.che_do_hien_thi IN ('public', 'feature', 'cong_dong')
       ) t
@@ -110,9 +117,16 @@ async function attachGanCountsViaPostgres(
     const gan = new Map(
       counts.map((r) => [String(r.id_bai_viet), Number(r.so_gan) || 0]),
     );
+    const nguoi = new Map(
+      counts.map((r) => [
+        String(r.id_bai_viet),
+        Number(r.so_nguoi_tagged) || 0,
+      ]),
+    );
     return rows.map((r) => ({
       ...r,
       so_gan: gan.get(r.id) ?? 0,
+      so_nguoi_tagged: nguoi.get(r.id) ?? 0,
     }));
   });
   return withCounts ?? rows;

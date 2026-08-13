@@ -5,6 +5,11 @@ export const GIPHY_CLIENT_KEY_DEFAULT = "cins_chat";
 
 export const GIF_SEARCH_LIMIT = 24;
 
+/** Featured hiện ngay khi mở picker — warmup ~20 preview. */
+export const GIF_FEATURED_CACHE_LIMIT = 20;
+
+export const GIF_FEATURED_CACHE_TTL_MS = 15 * 60_000;
+
 export const GIF_CONTENT_FILTER = "medium";
 
 export const GIF_MEDIA_FILTER = "tinygif,gif";
