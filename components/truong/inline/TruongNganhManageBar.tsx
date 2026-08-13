@@ -44,7 +44,7 @@ export function TruongNganhManageBar({ onAdded }: Props) {
     if (!ctx?.isEditing) return;
     let cancelled = false;
     setError(null);
-    void truongInlineFetch(ctx.orgId, "/nganh")
+    void truongInlineFetch(ctx.orgId, "/majors")
       .then(async (res) => {
         if (cancelled) return;
         if (!res.ok) {
@@ -129,7 +129,7 @@ export function TruongNganhManageBar({ onAdded }: Props) {
 
     try {
       for (const idNganh of ids) {
-        const res = await truongInlineFetch(ctx.orgId, "/nganh", {
+        const res = await truongInlineFetch(ctx.orgId, "/majors", {
           method: "POST",
           body: JSON.stringify({
             idNganh,

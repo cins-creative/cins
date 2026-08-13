@@ -67,7 +67,7 @@ export function SuKienPhanHoiActions({
     }
     setActionError(null);
     void fetch(
-      `/api/org/${encodeURIComponent(orgId)}/su-kien/${encodeURIComponent(suKienId)}/dang-ky`,
+      `/api/org/${encodeURIComponent(orgId)}/events/${encodeURIComponent(suKienId)}/register`,
       { credentials: "include" },
     )
       .then(async (res) => {
@@ -126,7 +126,7 @@ export function SuKienPhanHoiActions({
     startTransition(async () => {
       setActionError(null);
       const res = await fetch(
-        `/api/org/${encodeURIComponent(orgId)}/su-kien/${encodeURIComponent(suKienId)}/dang-ky`,
+        `/api/org/${encodeURIComponent(orgId)}/events/${encodeURIComponent(suKienId)}/register`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

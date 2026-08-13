@@ -41,7 +41,7 @@ import {
 } from "@/lib/truong/contact";
 
 import "@/styles/article-draft-tiptap.css";
-import "@/app/co-so/co-so-page.css";
+import "@/app/academy/co-so-page.css";
 
 type Props = {
   open: boolean;
@@ -366,7 +366,7 @@ export function SuKienCreateModal({
 
     setSubmitting(true);
     try {
-      const base = `/api/org/${encodeURIComponent(orgId)}/su-kien`;
+      const base = `/api/org/${encodeURIComponent(orgId)}/events`;
       const url =
         isEdit && editing
           ? `${base}/${encodeURIComponent(editing.id)}`

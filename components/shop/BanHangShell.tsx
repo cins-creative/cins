@@ -12,11 +12,11 @@ import { ShopPhiGateBanner } from "@/components/shop/ShopPhiGateBanner";
 import "./shop-dashboard.css";
 
 function tabFromPath(pathname: string): ShopDashTab {
-  if (pathname.includes("/ban-hang/don")) return "don";
-  if (pathname.includes("/ban-hang/su-kien")) return "su-kien";
-  if (pathname.includes("/ban-hang/cua-hang")) return "cua-hang";
-  if (pathname.includes("/ban-hang/bao-cao")) return "bao-cao";
-  if (pathname.includes("/ban-hang/uu-dai")) return "uu-dai";
+  if (pathname.includes("/seller/orders")) return "don";
+  if (pathname.includes("/seller/events")) return "su-kien";
+  if (pathname.includes("/seller/store")) return "cua-hang";
+  if (pathname.includes("/seller/reports")) return "bao-cao";
+  if (pathname.includes("/seller/promotions")) return "uu-dai";
   return "kho";
 }
 
@@ -25,7 +25,7 @@ function tabFromPath(pathname: string): ShopDashTab {
  * `CinsShell` phải bọc ngoài ở Server Component (layout), không import ở đây.
  */
 export function BanHangShell({ children }: { children: ReactNode }) {
-  const pathname = usePathname() || "/ban-hang/kho";
+  const pathname = usePathname() || "/seller/inventory";
   const active = tabFromPath(pathname);
 
   return (

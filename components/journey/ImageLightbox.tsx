@@ -11,6 +11,7 @@ import {
   isPortraitGridImage,
   type GridImage,
 } from "@/lib/journey/image-grid";
+import { useHorizontalSwipe } from "@/lib/ui/use-horizontal-swipe";
 
 type Props = {
   images: GridImage[];
@@ -78,6 +79,12 @@ export function ImageLightbox({
     onIndexChange((index + 1) % total);
   }, [index, onIndexChange, total]);
 
+  const swipe = useHorizontalSwipe({
+    enabled: hasFilmstrip,
+    onSwipeLeft: goNext,
+    onSwipeRight: goPrev,
+  });
+
   if (!current || typeof document === "undefined") return null;
 
   return createPortal(
@@ -94,7 +101,7 @@ export function ImageLightbox({
       }}
     >
       <div className="image-lightbox-inner">
-        <div className="image-lightbox-stage">
+        <div className="image-lightbox-stage" {...swipe}>
           <button
             type="button"
             className="image-lightbox-close"

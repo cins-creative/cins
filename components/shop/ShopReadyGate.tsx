@@ -49,7 +49,7 @@ export function ShopReadyGate({
   }
 
   if (!shopReady && !allowWhenNotReady) {
-    const href = shopSetupHref || "/ban-hang/cua-hang";
+    const href = shopSetupHref || "/seller/store";
     return (
       <div className="shop-dash-gate">
         {err ? <p className="shop-dash-err">{err}</p> : null}
@@ -76,7 +76,7 @@ export function ShopReadyGate({
   }
 
   if (!shopReady && allowWhenNotReady) {
-    const href = shopSetupHref || "/ban-hang/cua-hang";
+    const href = shopSetupHref || "/seller/store";
     return (
       <>
         <div className="shop-dash-ready-banner" role="status">

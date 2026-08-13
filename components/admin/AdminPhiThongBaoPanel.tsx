@@ -50,7 +50,7 @@ export function AdminPhiThongBaoPanel({ canEdit }: Props) {
     setLoading(true);
     setErr(null);
     try {
-      const res = await fetch("/api/admin/tai-chinh/phi-thong-bao", {
+      const res = await fetch("/api/admin/tai-chinh/fee-notices", {
         cache: "no-store",
         credentials: "include",
       });
@@ -88,7 +88,7 @@ export function AdminPhiThongBaoPanel({ canEdit }: Props) {
       }
       if (hieuLuc.trim()) body.hieuLucDuKien = hieuLuc.trim();
 
-      const res = await fetch("/api/admin/tai-chinh/phi-thong-bao", {
+      const res = await fetch("/api/admin/tai-chinh/fee-notices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -115,7 +115,7 @@ export function AdminPhiThongBaoPanel({ canEdit }: Props) {
     setBusy(true);
     setErr(null);
     try {
-      const res = await fetch("/api/admin/tai-chinh/phi-thong-bao", {
+      const res = await fetch("/api/admin/tai-chinh/fee-notices", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -146,12 +146,12 @@ export function AdminPhiThongBaoPanel({ canEdit }: Props) {
       </div>
       <div className="admin-tc-callout">
         Shop →{" "}
-        <a href="/chinh-sach/phi-san" target="_blank" rel="noreferrer">
+        <a href="/policies/marketplace-fee" target="_blank" rel="noreferrer">
           /chinh-sach/phi-san
         </a>
         {" · "}
         CSĐT →{" "}
-        <a href="/chinh-sach/phi-csdt" target="_blank" rel="noreferrer">
+        <a href="/policies/platform-fee" target="_blank" rel="noreferrer">
           /chinh-sach/phi-csdt
         </a>
       </div>

@@ -43,7 +43,7 @@ export function orgBaiDangTimelineHash(postId: string): string {
 
 /** Suy ra hub từ pathname hiện tại (client). */
 export function orgBaiDangHubFromPathname(pathname: string): OrgBaiDangPermalinkHub {
-  if (pathname.startsWith("/co-so/")) return "co-so";
+  if (pathname.startsWith("/academy/")) return "co-so";
   if (pathname.startsWith("/studio/")) return "studio";
   return "truong";
 }

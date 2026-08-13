@@ -32,7 +32,7 @@ function leadFrom(moTa: string | null | undefined, gioiThieu: string | null | un
   return FALLBACK_LEAD;
 }
 
-/** Hồ sơ + hiển thị + thành viên trên `/quan-ly/thong-tin` — layout khớp `/co-so/.../quan-ly/co-so`. */
+/** Hồ sơ + hiển thị + thành viên trên `/manage/info` — layout khớp `/academy/.../manage/facilities`. */
 export function StudioThongTinQuanLyClient({
   orgId,
   orgSlug,

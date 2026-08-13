@@ -32,7 +32,7 @@ export function ChatShopDonKhaoSatBubble({ notice, fallbackBody }: Props) {
   const maDon = notice.maDon || don?.maDon || null;
 
   const loadDon = useCallback(async (id: string) => {
-    const res = await fetch(`/api/shop/don/${id}`, { credentials: "include" });
+    const res = await fetch(`/api/shop/orders/${id}`, { credentials: "include" });
     const json = (await res.json().catch(() => null)) as {
       don?: ShopDonHang;
       dongDon?: { canKhaoSat?: boolean };
@@ -62,7 +62,7 @@ export function ChatShopDonKhaoSatBubble({ notice, fallbackBody }: Props) {
           return;
         }
         if (!notice.maDon) return;
-        const res = await fetch("/api/shop/don?role=buyer", {
+        const res = await fetch("/api/shop/orders?role=buyer", {
           credentials: "include",
         });
         const json = (await res.json().catch(() => null)) as {
@@ -95,7 +95,7 @@ export function ChatShopDonKhaoSatBubble({ notice, fallbackBody }: Props) {
     setBusy(true);
     setErr(null);
     try {
-      const res = await fetch(`/api/shop/don/${donId}`, {
+      const res = await fetch(`/api/shop/orders/${donId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

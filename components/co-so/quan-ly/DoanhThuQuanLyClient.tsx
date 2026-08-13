@@ -178,7 +178,7 @@ export function DoanhThuQuanLyClient({ orgId }: Props) {
 
     try {
 
-      const res = await fetch(`/api/co-so/${orgId}/hoc-phi/doanh-thu`, {
+      const res = await fetch(`/api/academy/${orgId}/tuition/revenue`, {
 
         credentials: "include",
 

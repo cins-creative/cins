@@ -30,7 +30,7 @@ export function GoiVaThanhToanClient({ orgId }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const goiRes = await fetch(`/api/co-so/${orgId}/hoc-phi/goi`, {
+      const goiRes = await fetch(`/api/academy/${orgId}/tuition/packages`, {
         credentials: "include",
       });
       const goiData = await goiRes.json();
@@ -51,7 +51,7 @@ export function GoiVaThanhToanClient({ orgId }: Props) {
     setBusy(true);
     setFlash(null);
     try {
-      const res = await fetch(`/api/co-so/${orgId}/hoc-phi/goi`, {
+      const res = await fetch(`/api/academy/${orgId}/tuition/packages`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -74,7 +74,7 @@ export function GoiVaThanhToanClient({ orgId }: Props) {
   async function toggleBan(g: Goi) {
     setBusy(true);
     try {
-      const res = await fetch(`/api/co-so/${orgId}/hoc-phi/goi`, {
+      const res = await fetch(`/api/academy/${orgId}/tuition/packages`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

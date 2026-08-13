@@ -305,14 +305,14 @@ export function CuaHangSanVoucher() {
   );
 
   const loadSan = useCallback(async () => {
-    const res = await fetch("/api/shop/voucher/cong-khai", { cache: "no-store" });
+    const res = await fetch("/api/shop/vouchers/public", { cache: "no-store" });
     if (!res.ok) return;
     const json = (await res.json()) as { items?: CongKhaiItem[] };
     setSan(json.items ?? []);
   }, []);
 
   const loadVi = useCallback(async () => {
-    const res = await fetch("/api/shop/voucher/vi", { cache: "no-store" });
+    const res = await fetch("/api/shop/vouchers/wallet", { cache: "no-store" });
     if (res.status === 401) {
       setLoggedIn(false);
       setVi([]);
@@ -382,7 +382,7 @@ export function CuaHangSanVoucher() {
   async function luu(id: string) {
     setBusyId(id);
     try {
-      const res = await fetch("/api/shop/voucher/vi", {
+      const res = await fetch("/api/shop/vouchers/wallet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idVoucher: id }),
@@ -399,7 +399,7 @@ export function CuaHangSanVoucher() {
   }
 
   function shopHref(v: { sellerSlug: string | null; tenCuaHang: string | null }) {
-    if (!v.sellerSlug) return "/cua-hang";
+    if (!v.sellerSlug) return "/shopping";
     return shopPublicHref(
       v.sellerSlug,
       shopSlugFromTen(v.tenCuaHang, v.sellerSlug),

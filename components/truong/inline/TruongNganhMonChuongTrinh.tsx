@@ -136,7 +136,7 @@ export function TruongNganhMonChuongTrinh({
     setError(null);
     try {
       const res = await fetch(
-        `/api/truong/${encodeURIComponent(orgId)}/nganh/${encodeURIComponent(programId)}/mon`,
+        `/api/university/${encodeURIComponent(orgId)}/majors/${encodeURIComponent(programId)}/subjects`,
         { cache: "no-store" },
       );
       const json = (await res.json()) as { items?: MonItem[]; error?: string };
@@ -165,7 +165,7 @@ export function TruongNganhMonChuongTrinh({
     try {
       const res = await truongInlineFetch(
         orgId,
-        `/nganh/${encodeURIComponent(programId)}/mon/catalog`,
+        `/majors/${encodeURIComponent(programId)}/subjects/catalog`,
       );
       if (!res.ok) {
         setCatalog([]);
@@ -249,7 +249,7 @@ export function TruongNganhMonChuongTrinh({
     try {
       const res = await truongInlineFetch(
         orgId,
-        `/nganh/${encodeURIComponent(programId)}/mon`,
+        `/majors/${encodeURIComponent(programId)}/subjects`,
         {
           method: "POST",
           body: JSON.stringify({ monHocIds }),
@@ -289,7 +289,7 @@ export function TruongNganhMonChuongTrinh({
     try {
       const res = await truongInlineFetch(
         orgId,
-        `/nganh/${encodeURIComponent(programId)}/mon`,
+        `/majors/${encodeURIComponent(programId)}/subjects`,
         {
           method: "POST",
           body: JSON.stringify({ tenMonMoi: ten }),
@@ -322,7 +322,7 @@ export function TruongNganhMonChuongTrinh({
     try {
       const res = await truongInlineFetch(
         orgId,
-        `/nganh/${encodeURIComponent(programId)}/mon/${encodeURIComponent(item.monHocId)}`,
+        `/majors/${encodeURIComponent(programId)}/subjects/${encodeURIComponent(item.monHocId)}`,
         {
           method: "PATCH",
           body: JSON.stringify({ ngungDay }),
@@ -367,7 +367,7 @@ export function TruongNganhMonChuongTrinh({
         try {
           const res = await truongInlineFetch(
             orgId,
-            `/nganh/${encodeURIComponent(programId)}/mon`,
+            `/majors/${encodeURIComponent(programId)}/subjects`,
             {
               method: "PATCH",
               body: JSON.stringify({ monHocIds }),
@@ -435,7 +435,7 @@ export function TruongNganhMonChuongTrinh({
     try {
       const res = await truongInlineFetch(
         orgId,
-        `/nganh/${encodeURIComponent(programId)}/mon/${encodeURIComponent(monHocId)}`,
+        `/majors/${encodeURIComponent(programId)}/subjects/${encodeURIComponent(monHocId)}`,
         { method: "DELETE" },
       );
       if (!res.ok) {

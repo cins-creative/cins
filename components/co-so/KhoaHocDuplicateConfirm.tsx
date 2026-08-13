@@ -31,7 +31,7 @@ export function KhoaHocDuplicateConfirm({
     setSubmitting(true);
     try {
       const res = await fetch(
-        `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/${encodeURIComponent(khoa.id)}/nhan-ban`,
+        `/api/academy/${encodeURIComponent(orgId)}/courses/${encodeURIComponent(khoa.id)}/duplicate`,
         { method: "POST", credentials: "include" },
       );
       const json = (await res.json()) as {

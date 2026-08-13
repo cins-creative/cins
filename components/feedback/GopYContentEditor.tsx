@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const UPLOAD_ENDPOINT = "/api/gop-y/upload";
+const UPLOAD_ENDPOINT = "/api/feedback/upload";
 
 export type GopYContent = {
   /** Nội dung gộp: đoạn văn giữ nguyên, ảnh thành `![](url)` — khớp parser admin. */
@@ -155,7 +155,7 @@ function deleteImage(ed: Editor, matchSrc: string): boolean {
 /**
  * Ô soạn góp ý bằng Tiptap — giao diện giống editor bài viết (thanh công cụ
  * gọn: đậm / nghiêng / danh sách / link / ảnh). Ảnh upload qua
- * `/api/gop-y/upload`; nội dung serialize sang text + `![](url)` an toàn để
+ * `/api/feedback/upload`; nội dung serialize sang text + `![](url)` an toàn để
  * admin hiển thị (không lưu HTML thô từ người dùng ẩn danh).
  */
 export function GopYContentEditor({

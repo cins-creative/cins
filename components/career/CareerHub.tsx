@@ -114,7 +114,7 @@ type TabKey = "nghe" | "nganh-hoc";
 
 type Props = {
   tab: TabKey;
-  /** Trang hub chính — `/nganh-hoc` hoặc `/nghe-nghiep`. */
+  /** Trang hub chính — `/majors` hoặc `/careers`. */
   hubBase?: string;
   linhVucSidebarGroups: LinhVucSidebarGroup[];
   activeLinhVuc: LinhVucRow | null;
@@ -132,7 +132,7 @@ type Props = {
   nganhGroups?: NganhHubSection[];
   sampleNganh?: NganhHubItem[];
   nganhListError?: { reason: "no_env" | "query_error"; message?: string };
-  /** Bật toolbar + sửa thumbnail / thêm ngành trên hub `/nganh-hoc`. */
+  /** Bật toolbar + sửa thumbnail / thêm ngành trên hub `/majors`. */
   nganhHubCanEdit?: boolean;
   /** Cộng đồng gắn lĩnh vực đang xem (hub nghề). */
   communities?: CongDongOrgCategoryPreview[];
@@ -177,8 +177,8 @@ export function CareerHub({
 
   const slugForLink = activeLinhVuc?.slug ?? "";
   const congDongHref = slugForLink
-    ? `/cong-dong?linh_vuc=${encodeURIComponent(slugForLink)}`
-    : "/cong-dong";
+    ? `/community?linh_vuc=${encodeURIComponent(slugForLink)}`
+    : "/community";
   const communityCount = communities.length;
   const heroArtSrc =
     slugForLink.includes("game") || heroTitle.toLowerCase().includes("game")
@@ -316,7 +316,7 @@ export function CareerHub({
                       <NganhHubCard
                         key={item.id}
                         item={item}
-                        href={`/nganh-hoc/${item.slug}`}
+                        href={`/majors/${item.slug}`}
                         deptTheme={deptCardThemeByIndex(groupIndex)}
                         nhomId={group.nhomId}
                       />

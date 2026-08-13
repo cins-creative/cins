@@ -267,7 +267,7 @@ export function AdminTaiChinhScreen({ canEdit }: Props) {
 
   const loadKn = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/tai-chinh/khieu-nai", {
+      const res = await fetch("/api/admin/tai-chinh/complaints", {
         cache: "no-store",
       });
       const json = (await res.json().catch(() => null)) as {
@@ -289,7 +289,7 @@ export function AdminTaiChinhScreen({ canEdit }: Props) {
 
   const loadTuKhai = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/tai-chinh/tu-khai", {
+      const res = await fetch("/api/admin/tai-chinh/declarations", {
         cache: "no-store",
       });
       const json = (await res.json().catch(() => null)) as {
@@ -324,7 +324,7 @@ export function AdminTaiChinhScreen({ canEdit }: Props) {
     setErr(null);
     setMsg(null);
     try {
-      const res = await fetch("/api/admin/tai-chinh/tu-khai", {
+      const res = await fetch("/api/admin/tai-chinh/declarations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ hoaDonId, action }),
@@ -370,7 +370,7 @@ export function AdminTaiChinhScreen({ canEdit }: Props) {
     setKnBusyId(id);
     setErr(null);
     try {
-      const res = await fetch("/api/admin/tai-chinh/khieu-nai", {
+      const res = await fetch("/api/admin/tai-chinh/complaints", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

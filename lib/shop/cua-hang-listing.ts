@@ -601,7 +601,7 @@ function resolveComboOffer(
   );
 }
 
-/** Voucher công khai + điều kiện combo đang chạy — badge hub `/cua-hang`. */
+/** Voucher công khai + điều kiện combo đang chạy — badge hub `/shopping`. */
 async function hubUuDaiFlagsByOwner(
   admin: ReturnType<typeof createServiceRoleClient>,
   ownerIds: string[],
@@ -794,7 +794,7 @@ function tagHangUuDai(
 }
 
 /**
- * Hub `/cua-hang`: shop công khai (`ban_hang_bat` + `shop_hien_thi`),
+ * Hub `/shopping`: shop công khai (`ban_hang_bat` + `shop_hien_thi`),
  * chưa soft-delete. Sort: đang mở → có hàng → đủ thông tin mặt tiền → tên;
  * shop không hàng xếp sau (vẫn hiện).
  *

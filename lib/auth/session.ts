@@ -7,6 +7,7 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import {
   createBearerSupabaseClient,
+  looksLikeSupabaseUserJwt,
   parseBearerAccessToken,
 } from "@/lib/supabase/bearer";
 
@@ -61,9 +62,11 @@ async function loadProfileForUser(
 }
 
 /**
- * JWT trên `Authorization: Bearer`.
- * `undefined` = không có header → fall through cookie.
- * `null` = có Bearer nhưng token không hợp lệ — không trộn cookie (tránh nhầm identity).
+ * JWT user trên `Authorization: Bearer`.
+ * `undefined` = không có header user → fall through cookie.
+ * `null` = có JWT user nhưng không hợp lệ — không trộn cookie (tránh nhầm identity).
+ *
+ * Secret nội bộ (upload inline, cron) không phải JWT: bỏ qua, đọc cookie.
  */
 async function sessionFromBearerHeader(): Promise<
   SessionAndProfile | null | undefined
@@ -77,6 +80,7 @@ async function sessionFromBearerHeader(): Promise<
 
   const token = parseBearerAccessToken(authorization);
   if (!token) return undefined;
+  if (!looksLikeSupabaseUserJwt(token)) return undefined;
 
   const supabase = createBearerSupabaseClient(token);
   const {
@@ -90,8 +94,8 @@ async function sessionFromBearerHeader(): Promise<
 
 /**
  * Lấy session hiện tại + profile từ `user_nguoi_dung`.
- * Ưu tiên `Authorization: Bearer <access_token>` (app native);
- * không có header thì đọc cookie (web).
+ * Ưu tiên `Authorization: Bearer <jwt user>` (app native).
+ * Secret nội bộ trên cùng header (upload/cron) bị bỏ qua — đọc cookie web.
  *
  * Trả `null` nếu chưa đăng nhập.
  *

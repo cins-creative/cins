@@ -60,22 +60,22 @@ type Props = {
 
 function previewApi(orgKind: OrgPopoverKind, slug: string): string {
   if (orgKind === "co_so_dao_tao") {
-    return `/api/co-so/preview?slug=${encodeURIComponent(slug)}`;
+    return `/api/academy/preview?slug=${encodeURIComponent(slug)}`;
   }
   if (orgKind === "truong") {
-    return `/api/truong/preview?slug=${encodeURIComponent(slug)}`;
+    return `/api/university/preview?slug=${encodeURIComponent(slug)}`;
   }
   if (orgKind === "studio") {
     return `/api/studio/preview?slug=${encodeURIComponent(slug)}`;
   }
-  return `/api/cong-dong/preview?slug=${encodeURIComponent(slug)}`;
+  return `/api/community/preview?slug=${encodeURIComponent(slug)}`;
 }
 
 function defaultHref(orgKind: OrgPopoverKind, slug: string): string {
   if (orgKind === "co_so_dao_tao") return coSoTabPath(slug, CO_SO_DEFAULT_TAB);
   if (orgKind === "truong") return truongTabPath(slug, TRUONG_DEFAULT_TAB);
   if (orgKind === "studio") return studioTabPath(slug, STUDIO_DEFAULT_TAB);
-  return `/cong-dong/${slug}`;
+  return `/community/${slug}`;
 }
 
 function slugPath(orgKind: OrgPopoverKind, slug: string): string {

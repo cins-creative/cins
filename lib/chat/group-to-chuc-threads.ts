@@ -34,7 +34,7 @@ export type ToChucOrgNode = {
   orgSlug?: string;
   orgTen: string;
   orgKind?: ChatThread["orgKind"];
-  /** Kind có route `/quan-ly` — hiện nút «Mở». */
+  /** Kind có route `/manage` — hiện nút «Mở». */
   quanLyKind?: OrgQuanLyKind;
   avatarUrl?: string | null;
   avatarInitial: string;

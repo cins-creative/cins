@@ -57,7 +57,7 @@ export function buildRelatedJobsHTML(jobs: readonly RelatedJobLienQuanRow[]): st
       const desc = escapeHtml((job.tom_tat ?? "").trim());
       const noteEsc = escapeHtml(note);
 
-      return `<a class="arc-related-card" href="/bai-viet/${escapeHtml(slug)}">
+      return `<a class="arc-related-card" href="/articles/${escapeHtml(slug)}">
         <div class="arc-related-icon" style="background:${bg}">${icon}</div>
         <div class="arc-related-info">
           <span class="arc-related-title">${title}</span>

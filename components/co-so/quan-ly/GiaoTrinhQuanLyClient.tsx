@@ -114,8 +114,8 @@ export function GiaoTrinhQuanLyClient({ orgId }: Props) {
   const [dragBaiIndex, setDragBaiIndex] = useState<number | null>(null);
   const [dropBaiIndex, setDropBaiIndex] = useState<number | null>(null);
 
-  const apiBai = `/api/co-so/${orgId}/bai-tap`;
-  const apiBo = `/api/co-so/${orgId}/bo-giao-trinh`;
+  const apiBai = `/api/academy/${orgId}/assignments`;
+  const apiBo = `/api/academy/${orgId}/curriculum-sets`;
 
   const loadMeta = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setLoading(true);

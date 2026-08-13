@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 
 import { chatImageVariantUrl } from "@/lib/chat/image-url";
+import { useHorizontalSwipe } from "@/lib/ui/use-horizontal-swipe";
 
 type ChatImageLightboxProps = {
   images: string[];
@@ -70,9 +71,14 @@ export function ChatImageLightbox({
     onIndexChange((index + 1) % total);
   }, [index, onIndexChange, total]);
 
-  if (!current || typeof document === "undefined") return null;
-
   const hasFilmstrip = total > 1;
+  const swipe = useHorizontalSwipe({
+    enabled: hasFilmstrip,
+    onSwipeLeft: goNext,
+    onSwipeRight: goPrev,
+  });
+
+  if (!current || typeof document === "undefined") return null;
 
   return createPortal(
     <dialog
@@ -121,7 +127,7 @@ export function ChatImageLightbox({
           </>
         ) : null}
 
-        <figure className="cins-chat-lightbox-figure">
+        <figure className="cins-chat-lightbox-figure" {...swipe}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={current} alt="Ảnh đính kèm" decoding="async" />
         </figure>

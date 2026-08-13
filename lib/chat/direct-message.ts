@@ -133,6 +133,7 @@ export const MESSAGE_SELECT =
 type ReadRow = {
   id_phong: string;
   id_tin_nhan_cuoi_doc: string;
+  cap_nhat_luc: string;
 };
 
 export function messagePreview(row: MessageRow): string {
@@ -914,27 +915,20 @@ export async function countUnreadInRoom(roomId: string, viewerId: string): Promi
 
   const { data: readState } = await admin
     .from("chat_da_doc")
-    .select("id_tin_nhan_cuoi_doc")
+    .select("cap_nhat_luc")
     .eq("id_phong", roomId)
     .eq("id_nguoi_dung", viewerId)
-    .maybeSingle<Pick<ReadRow, "id_tin_nhan_cuoi_doc">>();
+    .maybeSingle<{ cap_nhat_luc: string }>();
 
-  let readAt: string | null = null;
-  if (readState?.id_tin_nhan_cuoi_doc) {
-    const { data: readMessage } = await admin
-      .from("chat_tin_nhan")
-      .select("tao_luc")
-      .eq("id", readState.id_tin_nhan_cuoi_doc)
-      .maybeSingle<{ tao_luc: string }>();
-    readAt = readMessage?.tao_luc ?? null;
-  }
+  const readAt = readState?.cap_nhat_luc ?? null;
 
   let query = admin
     .from("chat_tin_nhan")
     .select("id", { count: "exact", head: true })
     .eq("id_phong", roomId)
     .eq("da_xoa", false)
-    .neq("id_nguoi_gui", viewerId);
+    .neq("id_nguoi_gui", viewerId)
+    .or("ngu_canh.is.null,ngu_canh->>loai.neq.chao_lop");
 
   if (readAt) {
     query = query.gt("tao_luc", readAt);
@@ -993,20 +987,12 @@ export async function countUnreadMentionsInRoom(
 
   const { data: readState } = await admin
     .from("chat_da_doc")
-    .select("id_tin_nhan_cuoi_doc")
+    .select("cap_nhat_luc")
     .eq("id_phong", roomId)
     .eq("id_nguoi_dung", viewerId)
-    .maybeSingle<Pick<ReadRow, "id_tin_nhan_cuoi_doc">>();
+    .maybeSingle<{ cap_nhat_luc: string }>();
 
-  let readAt: string | null = null;
-  if (readState?.id_tin_nhan_cuoi_doc) {
-    const { data: readMessage } = await admin
-      .from("chat_tin_nhan")
-      .select("tao_luc")
-      .eq("id", readState.id_tin_nhan_cuoi_doc)
-      .maybeSingle<{ tao_luc: string }>();
-    readAt = readMessage?.tao_luc ?? null;
-  }
+  const readAt = readState?.cap_nhat_luc ?? null;
 
   let query = admin
     .from("chat_tin_nhan")
@@ -1034,7 +1020,8 @@ function countUnreadForRoom(
       msg.id_phong === roomId &&
       msg.id_nguoi_gui !== viewerId &&
       tinHienVoiViewer(msg.chi_hien_cho, viewerId) &&
-      (!readAt || msg.tao_luc > readAt),
+      (!readAt || msg.tao_luc > readAt) &&
+      parseChatChaoLop(msg.ngu_canh) == null,
   ).length;
 }
 
@@ -1094,29 +1081,14 @@ export async function listDirectThreads(viewerId: string): Promise<ChatThread[]>
 
   const { data: reads } = await admin
     .from("chat_da_doc")
-    .select("id_phong, id_tin_nhan_cuoi_doc")
+    .select("id_phong, cap_nhat_luc")
     .eq("id_nguoi_dung", viewerId)
     .in("id_phong", roomIds)
-    .returns<ReadRow[]>();
+    .returns<Array<{ id_phong: string; cap_nhat_luc: string }>>();
 
-  const readMessageIds = [...new Set((reads ?? []).map((r) => r.id_tin_nhan_cuoi_doc))];
   const readAtByRoom = new Map<string, string>();
-
-  if (readMessageIds.length > 0) {
-    const { data: readMessages } = await admin
-      .from("chat_tin_nhan")
-      .select("id, tao_luc")
-      .in("id", readMessageIds)
-      .returns<Array<{ id: string; tao_luc: string }>>();
-
-    const readAtByMessageId = new Map(
-      (readMessages ?? []).map((row) => [row.id, row.tao_luc]),
-    );
-
-    for (const read of reads ?? []) {
-      const readAt = readAtByMessageId.get(read.id_tin_nhan_cuoi_doc);
-      if (readAt) readAtByRoom.set(read.id_phong, readAt);
-    }
+  for (const read of reads ?? []) {
+    if (read.cap_nhat_luc) readAtByRoom.set(read.id_phong, read.cap_nhat_luc);
   }
 
   const roomUpdatedAt = new Map<string, string>();
@@ -1605,22 +1577,19 @@ export async function markRoomRead(
   await assertRoomMember(roomId, viewerId);
   const admin = createServiceRoleClient();
 
-  let messageId = lastMessageId;
-  if (!messageId) {
-    const { data: last } = await admin
-      .from("chat_tin_nhan")
-      .select("id")
-      .eq("id_phong", roomId)
-      .eq("da_xoa", false)
-      .order("tao_luc", { ascending: false })
-      .limit(1)
-      .maybeSingle<{ id: string }>();
-    messageId = last?.id;
-  }
+  const { data: last } = await admin
+    .from("chat_tin_nhan")
+    .select("id")
+    .eq("id_phong", roomId)
+    .eq("da_xoa", false)
+    .order("tao_luc", { ascending: false })
+    .limit(1)
+    .maybeSingle<{ id: string }>();
 
+  const messageId = last?.id ?? lastMessageId;
   if (!messageId) return;
 
-  await admin.from("chat_da_doc").upsert(
+  const { error } = await admin.from("chat_da_doc").upsert(
     {
       id_phong: roomId,
       id_nguoi_dung: viewerId,
@@ -1629,6 +1598,10 @@ export async function markRoomRead(
     },
     { onConflict: "id_phong,id_nguoi_dung" },
   );
+  if (error) {
+    console.error("[chat] markRoomRead", error);
+    throw new Error("MARK_READ_FAILED");
+  }
 
   void markOrgInboxNotifyRead({ roomId, viewerId }).catch(() => {});
 }

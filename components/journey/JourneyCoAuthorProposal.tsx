@@ -20,7 +20,7 @@ type Props = {
   mode: "owner" | "proposal";
   /** Chủ Journey — loại khỏi danh sách tìm cộng sự. */
   ownerId?: string;
-  /** Ghi đè base API — mặc định `/api/tac-pham/:id/tac-gia`. */
+  /** Ghi đè base API — mặc định `/api/artworks/:id/authors`. */
   tacGiaApiUrl?: string;
   /** Org studio — tìm mọi user (+ owner org). */
   pickerScope?: "friends" | "platform";
@@ -49,7 +49,7 @@ export function JourneyCoAuthorProposal({
 }: Props) {
   const tacGiaEndpoint =
     tacGiaApiUrl ??
-    `/api/tac-pham/${encodeURIComponent(tacPhamId)}/tac-gia`;
+    `/api/artworks/${encodeURIComponent(tacPhamId)}/authors`;
   const headingId = useId();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);

@@ -651,7 +651,7 @@ function LichSuMuaHangSection({ titleId }: { titleId: string }) {
       setLoading(true);
       setErr(null);
       try {
-        const res = await fetch("/api/shop/don?role=buyer", {
+        const res = await fetch("/api/shop/orders?role=buyer", {
           cache: "no-store",
         });
         const json = (await res.json().catch(() => null)) as {
@@ -827,7 +827,7 @@ function ThanhToanSettingsSection({
           className="uas-btn primary"
           onClick={() => {
             onClose();
-            router.push("/tai-khoan/thanh-toan");
+            router.push("/account/billing");
           }}
         >
           Mở thanh toán
@@ -1076,7 +1076,7 @@ function PhiSanPanel({ dangApDung, thongBao, chinhSachHref }: PhiSanPanelProps) 
       </dl>
 
       <Link
-        href={chinhSachHref || "/chinh-sach/phi-san"}
+        href={chinhSachHref || "/policies/marketplace-fee"}
         className="uas-phi-panel-link"
       >
         Xem trang chính sách phí sàn
@@ -1143,7 +1143,7 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
     void (async () => {
       setLoading(true);
       try {
-        const res = await fetch("/api/user/ban-hang", { cache: "no-store" });
+        const res = await fetch("/api/user/seller", { cache: "no-store" });
         const json = (await res.json().catch(() => null)) as BanHangJson | null;
         if (cancelled) return;
         if (!res.ok) {
@@ -1170,7 +1170,7 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
     setSaving(true);
     setErr(null);
     try {
-      const res = await fetch("/api/user/ban-hang", {
+      const res = await fetch("/api/user/seller", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -1315,7 +1315,7 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
           {enabled ? (
             <div>
               {shopReady ? (
-                <Link href="/ban-hang/kho" className="uas-btn primary">
+                <Link href="/seller/inventory" className="uas-btn primary">
                   Vào trang quản lý
                 </Link>
               ) : shopSetupHref ? (
@@ -1384,10 +1384,10 @@ function UserManagementSection({ titleId }: { titleId: string }) {
     async (which: UmTab, offset: number): Promise<UmPage> => {
       const url =
         which === "friends"
-          ? `/api/ket-ban/danh-sach?offset=${offset}`
+          ? `/api/friends/list?offset=${offset}`
           : which === "pending"
-            ? `/api/ket-ban/loi-moi`
-            : `/api/ket-ban/chan?offset=${offset}`;
+            ? `/api/friends/requests`
+            : `/api/friends/blocked?offset=${offset}`;
       const res = await fetch(url, { cache: "no-store" });
       const json = (await res.json().catch(() => null)) as
         | {
@@ -1470,7 +1470,7 @@ function UserManagementSection({ titleId }: { titleId: string }) {
       setUnblockingId(userId);
       setErr(null);
       try {
-        const res = await fetch(`/api/ket-ban/${userId}/block`, {
+        const res = await fetch(`/api/friends/${userId}/block`, {
           method: "DELETE",
         });
         const json = (await res.json().catch(() => null)) as {
@@ -1507,7 +1507,7 @@ function UserManagementSection({ titleId }: { titleId: string }) {
       setFriendActionId(friend.idNguoiDung);
       setErr(null);
       try {
-        const res = await fetch(`/api/ket-ban/${friend.ketBanId}`, {
+        const res = await fetch(`/api/friends/${friend.ketBanId}`, {
           method: "DELETE",
         });
         const json = (await res.json().catch(() => null)) as {
@@ -1542,7 +1542,7 @@ function UserManagementSection({ titleId }: { titleId: string }) {
       setFriendActionId(friend.idNguoiDung);
       setErr(null);
       try {
-        const res = await fetch(`/api/ket-ban/${friend.idNguoiDung}/block`, {
+        const res = await fetch(`/api/friends/${friend.idNguoiDung}/block`, {
           method: "POST",
         });
         const json = (await res.json().catch(() => null)) as {
@@ -1576,7 +1576,7 @@ function UserManagementSection({ titleId }: { titleId: string }) {
       setInviteActionId(friend.idNguoiDung);
       setErr(null);
       try {
-        const res = await fetch(`/api/ket-ban/${friend.ketBanId}`, {
+        const res = await fetch(`/api/friends/${friend.ketBanId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action }),
@@ -1852,7 +1852,7 @@ function TwoFactorSection({ titleId }: { titleId: string }) {
     setLoading(true);
     setErr(null);
     try {
-      const res = await fetch("/api/user/bao-mat-2-lop", { cache: "no-store" });
+      const res = await fetch("/api/user/two-factor", { cache: "no-store" });
       const json = (await res.json().catch(() => null)) as
         | (TwoFactorStatus & { error?: string })
         | null;
@@ -1878,7 +1878,7 @@ function TwoFactorSection({ titleId }: { titleId: string }) {
     setErr(null);
     setNotice(null);
     try {
-      const res = await fetch("/api/user/bao-mat-2-lop/gui-ma", {
+      const res = await fetch("/api/user/two-factor/send-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone }),
@@ -1915,7 +1915,7 @@ function TwoFactorSection({ titleId }: { titleId: string }) {
     setVerifying(true);
     setErr(null);
     try {
-      const res = await fetch("/api/user/bao-mat-2-lop/xac-minh", {
+      const res = await fetch("/api/user/two-factor/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone, code }),
@@ -1944,7 +1944,7 @@ function TwoFactorSection({ titleId }: { titleId: string }) {
     setDisabling(true);
     setErr(null);
     try {
-      const res = await fetch("/api/user/bao-mat-2-lop", { method: "DELETE" });
+      const res = await fetch("/api/user/two-factor", { method: "DELETE" });
       const json = (await res.json().catch(() => null)) as
         | (TwoFactorStatus & { error?: string })
         | null;

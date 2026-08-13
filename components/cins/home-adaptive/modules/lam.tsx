@@ -116,7 +116,7 @@ export async function GoiYStudioModule({ ctx }: { ctx: HomeModuleCtx }) {
     <ModuleCard
       icon={Building2}
       title="Studio đang tuyển dụng"
-      moreHref="/tuyen-dung"
+      moreHref="/jobs"
       moreLabel="Xem thêm"
       className="ha-card--studio"
     >
@@ -191,7 +191,7 @@ export async function CoHoiModule({ ctx }: { ctx: HomeModuleCtx }) {
       icon={Briefcase}
       title="Cơ hội cho bạn"
       className="ha-card--jobs"
-      moreHref="/tuyen-dung"
+      moreHref="/jobs"
       moreLabel="Xem thêm"
     >
       <div className="ha-job-list">

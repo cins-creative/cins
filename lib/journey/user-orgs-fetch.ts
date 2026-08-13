@@ -83,7 +83,7 @@ function orgPublicHref(org: {
   loai_to_chuc: string;
 }): string | null {
   if (org.loai_to_chuc === "cong_dong") {
-    return `/cong-dong/${encodeURIComponent(org.slug)}`;
+    return `/community/${encodeURIComponent(org.slug)}`;
   }
   if (org.loai_to_chuc === "co_so_dao_tao") {
     return coSoTabPath(org.slug, CO_SO_DEFAULT_TAB);

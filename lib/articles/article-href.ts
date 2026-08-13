@@ -11,7 +11,7 @@ export function articlePublicHref(
   if (loai === "nghe") return ngheNghiepDetailHref(slug);
   if (loai === "keyword") return `/keyword/${s}`;
   if (loai === "phan_mem") return `/software/${s}`;
-  if (loai === "nganh_dao_tao") return `/nganh-hoc/${s}`;
+  if (loai === "nganh_dao_tao") return `/majors/${s}`;
   if (loai === "fandom") return `/fandom/${s}`;
-  return `/bai-viet/${s}`;
+  return `/articles/${s}`;
 }

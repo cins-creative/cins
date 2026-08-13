@@ -16,7 +16,7 @@ export function BaiVietRelatedArticles({ items }: Props) {
       </h2>
       <div className="bv-related-grid">
         {items.map((r) => (
-          <Link key={r.id} href={`/bai-viet/${r.slug}`} className="bv-related-card">
+          <Link key={r.id} href={`/articles/${r.slug}`} className="bv-related-card">
             <span className="bv-related-card-eyebrow">{r.eyebrow ?? "Bài viết"}</span>
             <h3 className="bv-related-card-title">{r.tieu_de}</h3>
             <span className="bv-related-card-arrow" aria-hidden>

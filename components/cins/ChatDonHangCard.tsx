@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { ShopDonDetailModal } from "@/components/shop/ShopDonDetailModal";
 import type { ChatContextCard } from "@/lib/chat/types";
+import { invalidateBaoCaoCache, invalidateDonHangCache } from "@/lib/shop/client-fetch-cache";
 import type { ShopDonHang } from "@/lib/shop/types";
 import {
   buildTheoDoiUrl,
@@ -105,7 +106,9 @@ function parseDonHangCard(card: ChatContextCard): ParsedDon {
     /* Lý do hủy + cảnh báo hoàn tiền đã hiện ở thông báo cập nhật phía trên. */
     if (
       /^Lý do hủy:\s*/i.test(line) ||
-      line.startsWith("Nền tảng không giữ tiền")
+      line.startsWith("Nền tảng không giữ tiền") ||
+      /^Shop đề nghị hủy đơn:/i.test(line) ||
+      line.startsWith("Người mua bấm Đồng ý hủy")
     ) {
       continue;
     }
@@ -145,6 +148,9 @@ export function ChatDonHangCard({ card, tone = "them" }: Props) {
   const [detailOpen, setDetailOpen] = useState(false);
   const [billOpen, setBillOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [busyHuy, setBusyHuy] = useState(false);
+  const [huyErr, setHuyErr] = useState<string | null>(null);
+  const [anYeuCau, setAnYeuCau] = useState(false);
   const parsed = parseDonHangCard(card);
   const {
     ma,
@@ -161,27 +167,42 @@ export function ChatDonHangCard({ card, tone = "them" }: Props) {
     dvvc: string | null;
     theoDoi: string | null;
   } | null>(null);
+  const [liveDon, setLiveDon] = useState<ShopDonHang | null>(null);
+  const [viewerId, setViewerId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!donId) return;
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch(`/api/shop/don/${donId}`, {
-          cache: "no-store",
-          credentials: "include",
-        });
-        if (!res.ok || cancelled) return;
-        const json = (await res.json()) as { don?: ShopDonHang };
-        const don = json.don;
-        if (!don || cancelled) return;
-        const maLive = don.vanChuyenMa?.trim() || null;
-        const dvvcLive = don.vanChuyenDvvc?.trim() || null;
-        const theoDoiLive =
-          buildTheoDoiUrl(dvvcLive, maLive) ||
-          safeHttpUrl(don.vanChuyenLink) ||
-          null;
-        setLiveVc({ ma: maLive, dvvc: dvvcLive, theoDoi: theoDoiLive });
+        const [donRes, sessRes] = await Promise.all([
+          fetch(`/api/shop/orders/${donId}`, {
+            cache: "no-store",
+            credentials: "include",
+          }),
+          fetch("/api/auth/session-profile", { cache: "no-store" }),
+        ]);
+        if (cancelled) return;
+        if (donRes.ok) {
+          const json = (await donRes.json()) as { don?: ShopDonHang };
+          const don = json.don;
+          if (don && !cancelled) {
+            setLiveDon(don);
+            const maLive = don.vanChuyenMa?.trim() || null;
+            const dvvcLive = don.vanChuyenDvvc?.trim() || null;
+            const theoDoiLive =
+              buildTheoDoiUrl(dvvcLive, maLive) ||
+              safeHttpUrl(don.vanChuyenLink) ||
+              null;
+            setLiveVc({ ma: maLive, dvvc: dvvcLive, theoDoi: theoDoiLive });
+          }
+        }
+        if (sessRes.ok) {
+          const sess = (await sessRes.json().catch(() => null)) as {
+            profile?: { id?: string };
+          } | null;
+          if (!cancelled) setViewerId(sess?.profile?.id ?? null);
+        }
       } catch {
         /* giữ snapshot card */
       }
@@ -189,7 +210,7 @@ export function ChatDonHangCard({ card, tone = "them" }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [donId]);
+  }, [donId, card.yeuCauHuy?.luc, card.capNhat?.luc]);
 
   const maVanDon = liveVc?.ma ?? parsed.maVanDon;
   const dvvc = liveVc?.dvvc ?? parsed.dvvc;
@@ -205,17 +226,29 @@ export function ChatDonHangCard({ card, tone = "them" }: Props) {
       ? "Thanh toán sau"
       : loaiThanhToan;
   const bienLaiUrl = card.anh?.trim() || null;
+  const trangThaiHien =
+    liveDon?.trangThai === "huy" ? "Đã hủy" : trangThai;
   const statusDone =
-    trangThai === "Đã nhận tiền" ||
-    trangThai === "Đã nhận tiền / đang soạn" ||
-    trangThai === "Thanh toán khi nhận hàng" ||
-    trangThai === "Đã giao tại sự kiện" ||
-    trangThai === "Đang giao đơn" ||
-    trangThai === "Đang giao" ||
-    trangThai === "Chờ lấy hàng";
-  const statusPending = trangThai === "Chờ xác nhận";
-  const statusCanceled = trangThai === "Đã hủy";
+    trangThaiHien === "Đã nhận tiền" ||
+    trangThaiHien === "Đã nhận tiền / đang soạn" ||
+    trangThaiHien === "Thanh toán khi nhận hàng" ||
+    trangThaiHien === "Đã giao tại sự kiện" ||
+    trangThaiHien === "Đang giao đơn" ||
+    trangThaiHien === "Đang giao" ||
+    trangThaiHien === "Chờ lấy hàng";
+  const statusPending = trangThaiHien === "Chờ xác nhận";
+  const statusCanceled =
+    trangThaiHien === "Đã hủy" || liveDon?.trangThai === "huy";
   const showTrack = !statusCanceled && Boolean(theoDoi || maVanDon);
+  const yeuCauLyDo =
+    liveDon?.yeuCauHuyLyDo?.trim() || card.yeuCauHuy?.lyDo?.trim() || null;
+  const coYeuCauHuy =
+    !anYeuCau &&
+    !statusCanceled &&
+    (liveDon
+      ? liveDon.trangThai === "da_nhan_tien" && Boolean(liveDon.yeuCauHuyLuc)
+      : Boolean(card.yeuCauHuy));
+  const isBuyer = Boolean(viewerId && liveDon && liveDon.idNguoiMua === viewerId);
 
   const className = [
     "cins-chat-don-card",
@@ -237,6 +270,33 @@ export function ChatDonHangCard({ card, tone = "them" }: Props) {
       window.setTimeout(() => setCopied(false), 1600);
     } catch {
       /* ignore */
+    }
+  }
+
+  async function dongYHuy() {
+    if (!donId || busyHuy) return;
+    setBusyHuy(true);
+    setHuyErr(null);
+    try {
+      const res = await fetch(`/api/shop/orders/${donId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ action: "buyer_huy" }),
+      });
+      const json = (await res.json().catch(() => null)) as {
+        don?: ShopDonHang;
+        error?: string;
+      } | null;
+      if (!res.ok) {
+        setHuyErr(json?.error ?? "Không hủy được đơn.");
+        return;
+      }
+      invalidateDonHangCache();
+      invalidateBaoCaoCache();
+      if (json?.don) setLiveDon(json.don);
+    } finally {
+      setBusyHuy(false);
     }
   }
 
@@ -268,11 +328,11 @@ export function ChatDonHangCard({ card, tone = "them" }: Props) {
 
           <span className="cins-chat-don-card-ma">{ma}</span>
 
-          {trangThai ? (
+          {trangThaiHien ? (
             <span
               className={`cins-chat-don-card-status${statusDone ? " is-done" : ""}${statusPending ? " is-pending" : ""}${statusCanceled ? " is-canceled" : ""}`}
             >
-              {trangThai}
+              {trangThaiHien}
             </span>
           ) : null}
 
@@ -309,6 +369,50 @@ export function ChatDonHangCard({ card, tone = "them" }: Props) {
 
           <span className="cins-chat-don-card-cta">Xem chi tiết đơn</span>
         </button>
+
+        {coYeuCauHuy ? (
+          <div className="cins-chat-don-card-yeu-cau">
+            <p className="cins-chat-don-card-yeu-cau-text">
+              Shop đề nghị hủy đơn
+              {yeuCauLyDo ? `: ${yeuCauLyDo}` : "."}
+            </p>
+            {huyErr ? (
+              <p className="cins-chat-don-card-yeu-cau-err" role="alert">
+                {huyErr}
+              </p>
+            ) : null}
+            {isBuyer ? (
+              <div className="cins-chat-don-card-yeu-cau-actions">
+                <button
+                  type="button"
+                  className="cins-chat-don-card-yeu-cau-btn is-danger"
+                  disabled={busyHuy}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void dongYHuy();
+                  }}
+                >
+                  Đồng ý hủy đơn
+                </button>
+                <button
+                  type="button"
+                  className="cins-chat-don-card-yeu-cau-btn"
+                  disabled={busyHuy}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAnYeuCau(true);
+                  }}
+                >
+                  Không hủy
+                </button>
+              </div>
+            ) : liveDon && viewerId ? (
+              <p className="cins-chat-don-card-yeu-cau-wait">
+                Chờ người mua đồng ý hủy.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
 
         {showTrack ? (
           <div className="cins-chat-don-card-track-bar">
@@ -389,6 +493,7 @@ export function ChatDonHangCard({ card, tone = "them" }: Props) {
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
         viewerRole="auto"
+        onDonChange={(next) => setLiveDon(next)}
       />
     </>
   );

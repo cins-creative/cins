@@ -105,8 +105,8 @@ export async function POST(request: Request) {
       .eq("id", orgId)
       .maybeSingle();
     if (orgRow?.slug) {
-      revalidatePath(`/co-so/${orgRow.slug}`);
-      revalidatePath(`/co-so-dao-tao/${orgRow.slug}`);
+      revalidatePath(`/academy/${orgRow.slug}`);
+      revalidatePath(`/university/${orgRow.slug}`);
       revalidatePath(`/studio/${orgRow.slug}`);
     }
 

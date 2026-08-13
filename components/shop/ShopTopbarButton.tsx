@@ -79,7 +79,7 @@ export function ShopTopbarButton() {
     setLoading(true);
     setErr(null);
     try {
-      const res = await fetch("/api/shop/don?role=seller", {
+      const res = await fetch("/api/shop/orders?role=seller", {
         cache: "no-store",
       });
       const json = (await res.json().catch(() => null)) as {
@@ -181,7 +181,7 @@ export function ShopTopbarButton() {
     setBusyId(id);
     setErr(null);
     try {
-      const res = await fetch(`/api/shop/don/${id}`, {
+      const res = await fetch(`/api/shop/orders/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),
@@ -253,7 +253,7 @@ export function ShopTopbarButton() {
               </div>
               {shopReady ? (
                 <a
-                  href="/ban-hang/don"
+                  href="/seller/orders"
                   target="_blank"
                   rel="noreferrer"
                   className="shop-topbar-ext"
@@ -286,11 +286,11 @@ export function ShopTopbarButton() {
               <div className="shop-topbar-shortcuts">
                 <div className="shop-topbar-shortcut">
                   <Link
-                    href={shopSetupHref || "/ban-hang/cua-hang"}
+                    href={shopSetupHref || "/seller/store"}
                     className="shop-topbar-shortcut-main"
                     onClick={(e) => {
                       e.preventDefault();
-                      goBanHang(shopSetupHref || "/ban-hang/cua-hang");
+                      goBanHang(shopSetupHref || "/seller/store");
                     }}
                   >
                     <Store size={16} strokeWidth={2} aria-hidden />
@@ -302,18 +302,18 @@ export function ShopTopbarButton() {
               <div className="shop-topbar-shortcuts">
                 <div className="shop-topbar-shortcut">
                   <Link
-                    href="/ban-hang/kho"
+                    href="/seller/inventory"
                     className="shop-topbar-shortcut-main"
                     onClick={(e) => {
                       e.preventDefault();
-                      goBanHang("/ban-hang/kho");
+                      goBanHang("/seller/inventory");
                     }}
                   >
                     <Package size={16} strokeWidth={2} aria-hidden />
                     Kho hàng
                   </Link>
                   <a
-                    href="/ban-hang/kho"
+                    href="/seller/inventory"
                     target="_blank"
                     rel="noreferrer"
                     className="shop-topbar-shortcut-ext"
@@ -326,18 +326,18 @@ export function ShopTopbarButton() {
                 </div>
                 <div className="shop-topbar-shortcut">
                   <Link
-                    href="/ban-hang/don"
+                    href="/seller/orders"
                     className="shop-topbar-shortcut-main"
                     onClick={(e) => {
                       e.preventDefault();
-                      goBanHang("/ban-hang/don");
+                      goBanHang("/seller/orders");
                     }}
                   >
                     <ClipboardList size={16} strokeWidth={2} aria-hidden />
                     Đơn hàng
                   </Link>
                   <a
-                    href="/ban-hang/don"
+                    href="/seller/orders"
                     target="_blank"
                     rel="noreferrer"
                     className="shop-topbar-shortcut-ext"
@@ -437,11 +437,11 @@ export function ShopTopbarButton() {
             )}
 
             <Link
-              href="/ban-hang/don"
+              href="/seller/orders"
               className="shop-topbar-footer"
               onClick={(e) => {
                 e.preventDefault();
-                goBanHang("/ban-hang/don");
+                goBanHang("/seller/orders");
               }}
             >
               Xem tất cả đơn

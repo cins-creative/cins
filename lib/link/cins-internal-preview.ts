@@ -18,47 +18,13 @@ import { fetchOwnerBySlug } from "@/lib/journey/profile-page-fetch";
 import { fetchPostOgContext } from "@/lib/journey/post-og-fetch";
 import { resolveShareLink } from "@/lib/journey/share-link";
 import type { LinkOgPreview } from "@/lib/link/og-preview";
+import { RESERVED_TOP_SEGMENTS } from "@/lib/navigation/hard-nav";
 import { fetchNganhOgContext } from "@/lib/nganh/nganh-og-fetch";
 import { fetchCoSoOgContext } from "@/lib/to-chuc/co-so-og-fetch";
 import { fetchKhoaHocOgContext } from "@/lib/to-chuc/khoa-hoc-og-fetch";
 import { fetchStudioOgContext } from "@/lib/to-chuc/studio-og-fetch";
 import { fetchJobOgContext } from "@/lib/to-chuc/tuyen-dung-og-fetch";
 import { fetchTruongOgContext } from "@/lib/truong/truong-og-fetch";
-
-/** Segment đầu không phải Journey `/{slug}`. */
-const RESERVED_TOP_SEGMENTS = new Set([
-  "admin",
-  "api",
-  "auth",
-  "bai-viet",
-  "chat",
-  "co-so",
-  "co-so-dao-tao",
-  "cong-dong",
-  "ho-tro",
-  "huong-nghiep",
-  "keyword",
-  "kham-pha",
-  "login",
-  "luoi",
-  "maintenance",
-  "nganh",
-  "nganh-hoc",
-  "nghe-nghiep",
-  "onboarding",
-  "s",
-  "software",
-  "studio",
-  "su-kien",
-  "tao-to-chuc",
-  "termandservice",
-  "thong-tin-du-an",
-  "tim-khoa-hoc",
-  "tim-kiem",
-  "tuyen-dung",
-  "assets",
-  "_next",
-]);
 
 function truncate(text: string | null | undefined, max: number): string | null {
   const trimmed = text?.trim();
@@ -118,9 +84,9 @@ async function resolveJourney(
   const isGallery = view === "gallery";
   const keep = new URLSearchParams();
   if (view) keep.set("view", view);
-  const nhom = url.searchParams.get("nhom");
+  const nhom = url.searchParams.get("group");
   const filter = url.searchParams.get("filter");
-  if (nhom) keep.set("nhom", nhom);
+  if (nhom) keep.set("group", nhom);
   if (filter) keep.set("filter", filter);
   const qs = keep.toString();
 
@@ -179,7 +145,7 @@ async function resolveFromPath(url: URL): Promise<LinkOgPreview | null> {
       const job = await fetchJobOgContext(b, d);
       if (!job) return null;
       return cinsPreview({
-        url: canonicalUrl(`/${job.pathPrefix}/${job.orgSlug}/tuyen-dung/${job.jobId}`),
+        url: canonicalUrl(`/${job.pathPrefix}/${job.orgSlug}/jobs/${job.jobId}`),
         title: job.title,
         description: truncate(job.summary, 160),
         image: job.coverUrl,
@@ -216,7 +182,7 @@ async function resolveFromPath(url: URL): Promise<LinkOgPreview | null> {
       const job = await fetchJobOgContext(b, d);
       if (!job) return null;
       return cinsPreview({
-        url: canonicalUrl(`/${job.pathPrefix}/${job.orgSlug}/tuyen-dung/${job.jobId}`),
+        url: canonicalUrl(`/${job.pathPrefix}/${job.orgSlug}/jobs/${job.jobId}`),
         title: job.title,
         description: truncate(job.summary, 160),
         image: job.coverUrl,
@@ -236,7 +202,7 @@ async function resolveFromPath(url: URL): Promise<LinkOgPreview | null> {
       const khoa = await fetchKhoaHocOgContext(b, d);
       if (!khoa) return null;
       return cinsPreview({
-        url: canonicalUrl(`/co-so/${khoa.orgSlug}/khoa-hoc/${khoa.khoaSlug}`),
+        url: canonicalUrl(`/academy/${khoa.orgSlug}/courses/${khoa.khoaSlug}`),
         title: khoa.title,
         description: truncate(khoa.summary, 160),
         image: khoa.coverUrl,
@@ -257,7 +223,7 @@ async function resolveFromPath(url: URL): Promise<LinkOgPreview | null> {
     const coSo = await fetchCoSoOgContext(b);
     if (!coSo) return null;
     return cinsPreview({
-      url: canonicalUrl(`/co-so/${b}`),
+      url: canonicalUrl(`/academy/${b}`),
       title: coSo.title,
       description: truncate(coSo.summary, 160),
       image: coSo.coverUrl,
@@ -277,7 +243,7 @@ async function resolveFromPath(url: URL): Promise<LinkOgPreview | null> {
     const truong = await fetchTruongOgContext(b);
     if (!truong) return null;
     return cinsPreview({
-      url: canonicalUrl(`/co-so-dao-tao/${b}`),
+      url: canonicalUrl(`/university/${b}`),
       title: truong.title,
       description: truncate(truong.summary, 160),
       image: truong.coverUrl,
@@ -297,7 +263,7 @@ async function resolveFromPath(url: URL): Promise<LinkOgPreview | null> {
     const cd = await fetchCongDongOgContext(b);
     if (!cd) return null;
     return cinsPreview({
-      url: canonicalUrl(`/cong-dong/${cd.slug}`),
+      url: canonicalUrl(`/community/${cd.slug}`),
       title: cd.title,
       description: truncate(cd.summary, 160),
       image: cd.coverUrl,
@@ -318,7 +284,7 @@ async function resolveFromPath(url: URL): Promise<LinkOgPreview | null> {
     const nghe = await fetchNgheOgContext(b);
     if (!nghe) return null;
     return cinsPreview({
-      url: canonicalUrl(`/nghe-nghiep/${b}`),
+      url: canonicalUrl(`/careers/${b}`),
       title: nghe.title,
       description: truncate(nghe.summary, 160),
       image: nghe.coverUrl,
@@ -334,7 +300,7 @@ async function resolveFromPath(url: URL): Promise<LinkOgPreview | null> {
     const nganh = await fetchNganhOgContext(b);
     if (!nganh) return null;
     return cinsPreview({
-      url: canonicalUrl(`/nganh-hoc/${b}`),
+      url: canonicalUrl(`/majors/${b}`),
       title: nganh.title,
       description: truncate(nganh.summary, 160),
       image: nganh.coverUrl,

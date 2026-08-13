@@ -34,7 +34,7 @@ type Props = {
   orgSlug: string;
   orgLabel: string;
   viewerIsOwner: boolean;
-  /** Base API tài nguyên thành viên, vd `/api/co-so/<id>` hoặc `/api/studio/<id>`. */
+  /** Base API tài nguyên thành viên, vd `/api/academy/<id>` hoặc `/api/studio/<id>`. */
   apiBase?: string;
   members: CoSoMemberAdmin[];
   canManage: boolean;
@@ -84,7 +84,7 @@ export function CoSoSettingsMembersPanel({
   onMembersChange,
   onError,
 }: Props) {
-  const base = apiBase ?? `/api/co-so/${encodeURIComponent(orgId)}`;
+  const base = apiBase ?? `/api/academy/${encodeURIComponent(orgId)}`;
   const [addOpen, setAddOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchUser[]>([]);

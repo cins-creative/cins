@@ -12,7 +12,7 @@ import {
 } from "@/lib/journey/post-media";
 import { sortDoanProjectsForPublic } from "@/lib/truong/doan-project-sort";
 
-import "@/app/co-so/cso-sp-admin.css";
+import "@/app/academy/cso-sp-admin.css";
 
 type Props = {
   orgId: string;
@@ -29,7 +29,7 @@ function patchProject(
   body: { hienThiSanPham?: boolean; diemSapXep?: number },
 ): Promise<OrgDoanProjectItem> {
   return fetch(
-    `/api/org/${encodeURIComponent(orgId)}/doan-projects/${encodeURIComponent(requestId)}`,
+    `/api/org/${encodeURIComponent(orgId)}/student-projects/${encodeURIComponent(requestId)}`,
     {
       method: "PATCH",
       credentials: "include",
@@ -155,7 +155,7 @@ export function CoSoDoanSanPhamAdmin({
     setLoading(true);
     setLoadError(null);
     void fetch(
-      `/api/org/${encodeURIComponent(orgId)}/doan-projects?scope=admin`,
+      `/api/org/${encodeURIComponent(orgId)}/student-projects?scope=admin`,
       { cache: "no-store", credentials: "include", signal: controller.signal },
     )
       .then(async (res) => {

@@ -8,7 +8,7 @@ import {
 } from "@/lib/social/ket-ban";
 import { loadNotificationFeed } from "@/lib/social/notifications";
 
-/** @deprecated Dùng `/api/ket-ban/:id` PATCH — giữ tạm cho client cũ. */
+/** @deprecated Dùng `/api/friends/:id` PATCH — giữ tạm cho client cũ. */
 export async function PATCH(req: Request) {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile) {

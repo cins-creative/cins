@@ -83,6 +83,34 @@ export function writeRoomMessagesCache(
   writeEntry(messagesKey(viewerProfileId, roomId), messages);
 }
 
+/** Ghi unread một phòng vào cache phiên — tránh reload hiện lại badge đỏ. */
+export function patchChatThreadUnreadInCache(
+  viewerProfileId: string | null,
+  roomId: string,
+  unread: number,
+): void {
+  if (!viewerProfileId) return;
+  const snap = readChatThreadsCache(viewerProfileId);
+  if (!snap) return;
+  let changed = false;
+  const threads = snap.threads.map((t) => {
+    if (t.roomId !== roomId) return t;
+    const nextUnread = Math.max(0, unread);
+    const nextMentions =
+      nextUnread === 0 ? 0 : (t.unreadMentions ?? 0);
+    if (t.unread === nextUnread && (t.unreadMentions ?? 0) === nextMentions) {
+      return t;
+    }
+    changed = true;
+    return { ...t, unread: nextUnread, unreadMentions: nextMentions };
+  });
+  if (!changed) return;
+  writeChatThreadsCache(viewerProfileId, {
+    threads,
+    totalUnread: threads.reduce((sum, t) => sum + t.unread, 0),
+  });
+}
+
 export function invalidateRoomMessagesCache(
   viewerProfileId: string,
   roomId: string,

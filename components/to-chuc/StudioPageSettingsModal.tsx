@@ -63,7 +63,7 @@ type Props = {
   orgId: string;
   initialSection?: StudioSettingsSection;
   /**
-   * `page` — nhúng trong `/quan-ly/thong-tin` hoặc `/quan-ly/cai-dat`.
+   * `page` — nhúng trong `/manage/info` hoặc `/manage/settings`.
    * `modal` — popup trên trang public (legacy).
    */
   variant?: "modal" | "page";
@@ -83,7 +83,7 @@ type Props = {
     emailLienHe?: string | null;
     pageConfig?: StudioPageCauHinh;
   }) => void;
-  /** Live draft (hero `/quan-ly/thong-tin`) — chỉ page. */
+  /** Live draft (hero `/manage/info`) — chỉ page. */
   onDraftChange?: (draft: {
     ten: string;
     moTa: string | null;

@@ -139,7 +139,7 @@ export function ReportModal({
     setError(null);
     setSubmitting(true);
     try {
-      const res = await fetch("/api/bao-cao", {
+      const res = await fetch("/api/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

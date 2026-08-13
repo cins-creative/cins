@@ -66,7 +66,7 @@ export function orgLoaiLabel(loai: string): string {
 export function orgPublicHref(loai: string, slug: string): string {
   const s = slug.trim();
   if (!s) return "/";
-  if (loai === "cong_dong") return `/cong-dong/${encodeURIComponent(s)}`;
+  if (loai === "cong_dong") return `/community/${encodeURIComponent(s)}`;
   if (loai === "co_so_dao_tao") return coSoTabPath(s, CO_SO_DEFAULT_TAB);
   if (loai === "studio" || loai === "doanh_nghiep") {
     return studioTabPath(s, STUDIO_DEFAULT_TAB);

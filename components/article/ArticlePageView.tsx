@@ -48,7 +48,7 @@ export function ArticlePageView({
   draftUiEnabled = false,
   draftPersistEnabled = false,
 }: Props) {
-  const slugPath = `/bai-viet/${article.slug}`;
+  const slugPath = `/articles/${article.slug}`;
   const markdown =
     article.noi_dung?.trim() ||
     article.noi_dung_markdown?.trim() ||

@@ -30,7 +30,7 @@ export function CsdtPhiGateBanner({ orgId }: Props) {
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch(`/api/co-so/${orgId}/phi/gate`, {
+        const res = await fetch(`/api/academy/${orgId}/fees/gate`, {
           cache: "no-store",
           credentials: "include",
         });
@@ -48,7 +48,7 @@ export function CsdtPhiGateBanner({ orgId }: Props) {
 
   if (!gate || gate.trangThai === "hoat_dong") return null;
 
-  const phiHref = `/tai-khoan/thanh-toan?dv=${encodeURIComponent(orgId)}`;
+  const phiHref = `/account/billing?dv=${encodeURIComponent(orgId)}`;
   const han = gate.hanTraGanNhat ? fmtYmd(gate.hanTraGanNhat) : null;
   const isLock = gate.trangThai === "khoa_ghi_danh";
 

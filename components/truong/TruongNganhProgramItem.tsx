@@ -142,7 +142,7 @@ export function TruongNganhProgramItem({
   orgId,
   cauHinhMonThi,
 }: Props) {
-  const href = `/nganh-hoc/${encodeURIComponent(prog.nganhSlug)}`;
+  const href = `/majors/${encodeURIComponent(prog.nganhSlug)}`;
   const diemLabel = formatDiemChuan(diemChuanForYear(prog, year));
   const chiTieu = chiTieuForYear(prog, year);
   const diemSelected = diemChuanForYear(prog, year);

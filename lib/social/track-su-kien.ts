@@ -9,7 +9,7 @@ import type {
 } from "@/lib/social/su-kien-constants";
 import { isUuid } from "@/lib/social/su-kien-constants";
 
-const ENDPOINT = "/api/social/su-kien";
+const ENDPOINT = "/api/social/events";
 const PHIEN_KEY = "cins-phien-id";
 const FLUSH_DELAY_MS = 4000;
 

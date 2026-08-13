@@ -12,12 +12,13 @@ import {
   Loader2,
   Megaphone,
   Plus,
+  Save,
   Star,
   Tags,
   Trash2,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import {
@@ -204,7 +205,7 @@ export function ShopKhoLoaiHub({
     setBusy(true);
     onError(null);
     try {
-      const res = await fetch("/api/shop/nhom", {
+      const res = await fetch("/api/shop/groups", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -248,7 +249,7 @@ export function ShopKhoLoaiHub({
     setFeatureBusyId(n.id);
     onError(null);
     try {
-      const res = await fetch(`/api/shop/nhom/${encodeURIComponent(n.id)}`, {
+      const res = await fetch(`/api/shop/groups/${encodeURIComponent(n.id)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ noiBat: next }),
@@ -680,6 +681,12 @@ export function ShopKhoLoaiMeta({
   }
 
   useEffect(() => {
+    setNhan(nhom.nhan);
+    setMoTa(nhom.moTa ?? "");
+    giaDirtyRef.current = false;
+  }, [nhom.id]);
+
+  useEffect(() => {
     if (giaDirtyRef.current) return;
     setGia(giaInputValue(nhom.giaMacDinh, suggestedGiaMacDinh));
   }, [nhom.id, nhom.giaMacDinh, suggestedGiaMacDinh]);
@@ -722,7 +729,7 @@ export function ShopKhoLoaiMeta({
     if (!opts?.quiet) setSaving(true);
     onError(null);
     try {
-      const res = await fetch(`/api/shop/nhom/${encodeURIComponent(nhom.id)}`, {
+      const res = await fetch(`/api/shop/groups/${encodeURIComponent(nhom.id)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -771,6 +778,29 @@ export function ShopKhoLoaiMeta({
     }
   }
 
+  async function saveMetaChanges() {
+    const nextNhan = nhan.trim();
+    if (!nextNhan) {
+      onError("Tên loại không được trống.");
+      return;
+    }
+    const rawGia = gia.trim();
+    const nextGia = rawGia ? parseGiaInput(rawGia) : null;
+    if (rawGia && nextGia == null) {
+      onError("Giá gốc không hợp lệ.");
+      return;
+    }
+    const nextMoTa = moTa.trim().slice(0, SHOP_NHOM_MO_TA_MAX) || null;
+    const body: Record<string, unknown> = {};
+    if (nextNhan !== nhom.nhan) body.nhan = nextNhan;
+    if ((nhom.moTa ?? null) !== nextMoTa) body.moTa = nextMoTa;
+    if ((nhom.giaMacDinh ?? null) !== (nextGia ?? null)) {
+      body.giaMacDinh = nextGia;
+    }
+    if (Object.keys(body).length === 0) return;
+    await patch(body);
+  }
+
   /** Flush mô tả local trước khi mở composer — giữ xuống dòng / list `- `. */
   async function flushMoTaThenGioiThieu() {
     if (!onGioiThieu) return;
@@ -809,7 +839,7 @@ export function ShopKhoLoaiMeta({
     setApplying(true);
     try {
       const res = await fetch(
-        `/api/shop/nhom/${encodeURIComponent(nhom.id)}/ap-dung-gia`,
+        `/api/shop/groups/${encodeURIComponent(nhom.id)}/apply-price`,
         { method: "POST" },
       );
       const json = (await res.json().catch(() => null)) as {
@@ -1075,7 +1105,7 @@ export function ShopKhoLoaiMeta({
     setDeleting(true);
     onError(null);
     try {
-      const res = await fetch(`/api/shop/nhom/${encodeURIComponent(nhom.id)}`, {
+      const res = await fetch(`/api/shop/groups/${encodeURIComponent(nhom.id)}`, {
         method: "DELETE",
       });
       const json = (await res.json().catch(() => null)) as {
@@ -1109,6 +1139,24 @@ export function ShopKhoLoaiMeta({
 
   const displayAnhUrl = previewAnhUrl || nhom.anhUrl;
   const mediaBusy = uploadingAnh || uploadingPhu || uploadingVideo || saving;
+  const metaDirty = useMemo(() => {
+    const nextNhan = nhan.trim();
+    const nextMoTa = moTa.trim().slice(0, SHOP_NHOM_MO_TA_MAX) || null;
+    const giaBaseline = giaInputValue(nhom.giaMacDinh, suggestedGiaMacDinh);
+    return (
+      nextNhan !== nhom.nhan.trim() ||
+      (nhom.moTa ?? null) !== nextMoTa ||
+      gia.trim() !== giaBaseline
+    );
+  }, [
+    nhan,
+    moTa,
+    gia,
+    nhom.nhan,
+    nhom.moTa,
+    nhom.giaMacDinh,
+    suggestedGiaMacDinh,
+  ]);
 
   const uploadAnhRef = useRef(uploadAnh);
   uploadAnhRef.current = uploadAnh;
@@ -1142,7 +1190,7 @@ export function ShopKhoLoaiMeta({
     /* Client thấy 0 — hỏi server để tránh xóa khi còn mẫu ngoài list. */
     try {
       const res = await fetch(
-        `/api/shop/san-pham?nhomId=${encodeURIComponent(nhom.id)}&countOnly=1`,
+        `/api/shop/products?nhomId=${encodeURIComponent(nhom.id)}&countOnly=1`,
         { cache: "no-store" },
       );
       const json = (await res.json().catch(() => null)) as {
@@ -1208,6 +1256,22 @@ export function ShopKhoLoaiMeta({
               <span className="shop-kho-loai-action-label">
                 Giới thiệu sản phẩm
               </span>
+            </button>
+          ) : null}
+          {metaDirty ? (
+            <button
+              type="button"
+              className="shop-kho-loai-save"
+              disabled={mediaBusy || deleting}
+              aria-busy={saving}
+              onClick={() => void saveMetaChanges()}
+            >
+              {saving ? (
+                <Loader2 size={16} className="shop-spin" aria-hidden />
+              ) : (
+                <Save size={16} strokeWidth={2.2} aria-hidden />
+              )}
+              <span className="shop-kho-loai-action-label">Lưu thay đổi</span>
             </button>
           ) : null}
           <div className="shop-kho-loai-delete-wrap">
@@ -1351,11 +1415,6 @@ export function ShopKhoLoaiMeta({
                 disabled={saving}
                 placeholder="Ví dụ: Hộp shaker Genshin"
                 onChange={(e) => setNhan(e.target.value)}
-                onBlur={() => {
-                  if (nhan.trim() && nhan.trim() !== nhom.nhan) {
-                    void patch({ nhan: nhan.trim() });
-                  }
-                }}
               />
             </label>
             <label className="shop-kho-loai-meta-gia">
@@ -1370,22 +1429,6 @@ export function ShopKhoLoaiMeta({
                     giaDirtyRef.current = true;
                     setApplyMsg(null);
                     setGia(e.target.value);
-                  }}
-                  onBlur={() => {
-                    const raw = gia.trim();
-                    const next = raw ? parseGiaInput(raw) : null;
-                    const prev = nhom.giaMacDinh;
-                    if (raw && next == null) {
-                      onError("Giá mặc định không hợp lệ.");
-                      giaDirtyRef.current = false;
-                      setGia(giaInputValue(prev, suggestedGiaMacDinh));
-                      return;
-                    }
-                    if ((prev ?? null) !== (next ?? null)) {
-                      void patch({ giaMacDinh: next });
-                    } else {
-                      giaDirtyRef.current = false;
-                    }
                   }}
                 />
                 <button
@@ -1418,12 +1461,6 @@ export function ShopKhoLoaiMeta({
               aria-label="Mô tả loại"
               placeholder="Chất liệu, kích thước, lưu ý bán…"
               onChange={setMoTa}
-              onBlur={() => {
-                const next = moTa.trim().slice(0, SHOP_NHOM_MO_TA_MAX) || null;
-                if ((nhom.moTa ?? null) !== next) {
-                  void patch({ moTa: next });
-                }
-              }}
             />
           </div>
           {nhom.truc === 1 ? (

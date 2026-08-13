@@ -1,16 +1,16 @@
 /** Hub khám phá nghề — URL canonical. */
-export const NGHE_NGHIEP_HUB_PATH = "/nghe-nghiep";
+export const NGHE_NGHIEP_HUB_PATH = "/careers";
 
 /** Hub trường / cơ sở đào tạo — base route của trang chi tiết trường (giữ cho `truongRootPath`). */
-export const CO_SO_DAO_TAO_HUB_PATH = "/co-so-dao-tao";
+export const CO_SO_DAO_TAO_HUB_PATH = "/university";
 
 /** Hub tổ chức gộp (trường ĐH + cơ sở đào tạo + studio) — URL listing canonical. */
-export const TO_CHUC_HUB_PATH = "/to-chuc";
+export const TO_CHUC_HUB_PATH = "/organizations";
 
 /** Hub tìm khóa học — URL canonical. */
-export const TIM_KHOA_HOC_HUB_PATH = "/tim-khoa-hoc";
+export const TIM_KHOA_HOC_HUB_PATH = "/find-courses";
 
-export const NGANH_HOC_HUB_PATH = "/nganh-hoc";
+export const NGANH_HOC_HUB_PATH = "/majors";
 
 export function ngheNghiepDetailHref(slug: string): string {
   const s = slug.trim();
@@ -30,8 +30,8 @@ export function isCoSoDaoTaoHubPath(pathname: string): boolean {
   return (
     pathname === CO_SO_DAO_TAO_HUB_PATH ||
     pathname.startsWith(`${CO_SO_DAO_TAO_HUB_PATH}/`) ||
-    pathname === "/truong-dai-hoc" ||
-    pathname.startsWith("/truong-dai-hoc/")
+    pathname === "/university" ||
+    pathname.startsWith("/university/")
   );
 }
 
@@ -52,7 +52,7 @@ export function isTimKhoaHocHubPath(pathname: string): boolean {
 export function nganhHubHref(nhomId?: string): string {
   const nhom = nhomId?.trim();
   if (nhom) {
-    return `${NGANH_HOC_HUB_PATH}?nhom=${encodeURIComponent(nhom)}`;
+    return `${NGANH_HOC_HUB_PATH}?group=${encodeURIComponent(nhom)}`;
   }
   return NGANH_HOC_HUB_PATH;
 }

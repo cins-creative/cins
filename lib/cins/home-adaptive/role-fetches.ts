@@ -161,7 +161,7 @@ export async function loadDonCanXuLy(
       sub: maDon,
       trangThai: d.trangThai,
       trangThaiLabel: shortDonStatusLabel(d.trangThai),
-      href: `/ban-hang/don?id=${d.id}`,
+      href: `/seller/orders?id=${d.id}`,
       avatarUrl: d.muaAvatarUrl ?? null,
       tongTien: d.tongTien,
       tienTe: d.tienTe,
@@ -189,7 +189,7 @@ export async function loadDonMuaCuaToi(
       sub: maDon,
       trangThai: d.trangThai,
       trangThaiLabel: shortDonStatusLabel(d.trangThai),
-      href: `/ban-hang/don?id=${d.id}`,
+      href: `/seller/orders?id=${d.id}`,
       avatarUrl: d.banAvatarUrl ?? null,
       tongTien: d.tongTien,
       tienTe: d.tienTe,
@@ -215,7 +215,7 @@ export async function loadQuayCuaToiHome(
       trangThai: q.trangThai,
       trangThaiLabel:
         SHOP_TRANG_THAI_QUAY_LABEL[q.trangThai] ?? q.trangThai,
-      href: key ? `/su-kien/${encodeURIComponent(key)}` : null,
+      href: key ? `/events/${encodeURIComponent(key)}` : null,
     };
   });
 }
@@ -388,7 +388,7 @@ export async function loadSeThamGia(
       suKienId: r.id as string,
       ten: (r.ten as string | null)?.trim() || "Sự kiện",
       batDau: (r.bat_dau as string | null) ?? null,
-      href: `/su-kien/${encodeURIComponent(key)}`,
+      href: `/events/${encodeURIComponent(key)}`,
       orgTen: org?.ten?.trim() || "",
     };
   });
@@ -451,9 +451,9 @@ export async function loadUngTuyenCuaToi(
       if (orgSlug && jobSlug) {
         const loai = org?.loai_to_chuc ?? "studio";
         if (loai === "studio" || loai === "doanh_nghiep") {
-          href = `/studio/${encodeURIComponent(orgSlug)}/tuyen-dung/${encodeURIComponent(jobSlug)}`;
+          href = `/studio/${encodeURIComponent(orgSlug)}/jobs/${encodeURIComponent(jobSlug)}`;
         } else {
-          href = `/co-so/${encodeURIComponent(orgSlug)}`;
+          href = `/academy/${encodeURIComponent(orgSlug)}`;
         }
       }
       return {
@@ -524,7 +524,7 @@ export async function loadUngVienMoi(
     const orgSlug = org?.slug?.trim();
     const jobSlug = (job?.slug as string | null)?.trim() || (job?.id as string);
     if (orgSlug && jobSlug) {
-      href = `/studio/${encodeURIComponent(orgSlug)}/quan-ly/tuyen-dung/${encodeURIComponent(jobSlug)}`;
+      href = `/studio/${encodeURIComponent(orgSlug)}/manage/jobs/${encodeURIComponent(jobSlug)}`;
     }
     return {
       userId: a.id_nguoi_dung as string,

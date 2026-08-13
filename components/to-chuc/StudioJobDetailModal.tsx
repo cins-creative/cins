@@ -243,7 +243,7 @@ export function StudioJobDetailModal({
 
       {job.ngheSlug ? (
         <Link
-          href={`/huong-nghiep/nghe/${job.ngheSlug}`}
+          href={`/guidance/career/${job.ngheSlug}`}
           className="studio-job-detail-nghe-link"
         >
           <ExternalLink size={12} strokeWidth={2.2} aria-hidden />
@@ -363,7 +363,7 @@ export function StudioJobDetailModal({
               iconSize={16}
               disableActorsReveal
               saveEndpoint={({ visibility, privateNote }) => ({
-                url: "/api/luu-bai",
+                url: "/api/saved-posts",
                 body: {
                   loai_doi_tuong: "org_tuyen_dung",
                   id_doi_tuong: job.id,

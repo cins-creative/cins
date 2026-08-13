@@ -2,6 +2,8 @@ import { AdminShopDanhMucScreen } from "@/components/admin/AdminShopDanhMucScree
 import { listShopDanhMucForAdmin } from "@/lib/admin/shop-danh-muc-server";
 import { renderAdminPage } from "@/lib/admin/admin-page";
 
+import "./danh-muc-admin.css";
+
 export const dynamic = "force-dynamic";
 
 export default async function AdminShopDanhMucPage() {

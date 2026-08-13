@@ -73,7 +73,7 @@ export function CoSoCaiDatToiCaoClient({ orgId }: Props) {
   const loadStk = useCallback(async () => {
     setStkLoading(true);
     try {
-      const res = await fetch(`/api/co-so/${orgId}/hoc-phi/thanh-toan`, {
+      const res = await fetch(`/api/academy/${orgId}/tuition/checkout`, {
         credentials: "include",
       });
       const data = await res.json();
@@ -93,7 +93,7 @@ export function CoSoCaiDatToiCaoClient({ orgId }: Props) {
   const loadQuyen = useCallback(async () => {
     setQuyenLoading(true);
     try {
-      const res = await fetch(`/api/co-so/${orgId}/cai-dat/quyen`, {
+      const res = await fetch(`/api/academy/${orgId}/settings/permissions`, {
         credentials: "include",
       });
       const data = await res.json();
@@ -116,7 +116,7 @@ export function CoSoCaiDatToiCaoClient({ orgId }: Props) {
     setStkBusy(true);
     setStkFlash(null);
     try {
-      const res = await fetch(`/api/co-so/${orgId}/hoc-phi/thanh-toan`, {
+      const res = await fetch(`/api/academy/${orgId}/tuition/checkout`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -146,7 +146,7 @@ export function CoSoCaiDatToiCaoClient({ orgId }: Props) {
     setQuyenBusyKey(key);
     setError(null);
     try {
-      const res = await fetch(`/api/co-so/${orgId}/cai-dat/quyen`, {
+      const res = await fetch(`/api/academy/${orgId}/settings/permissions`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

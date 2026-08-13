@@ -25,7 +25,7 @@ export function OrgBaiDangBookmarkButton({
       initialCount={initialCount}
       loaiDoiTuong={SOCIAL_LOAI_ORG_BAI_DANG}
       saveEndpoint={({ visibility, privateNote }) => ({
-        url: "/api/luu-bai",
+        url: "/api/saved-posts",
         body: {
           loai_doi_tuong: SOCIAL_LOAI_ORG_BAI_DANG,
           id_doi_tuong: postId,

@@ -96,6 +96,7 @@ export type CreateShopDanhMucInput = {
   thuTu?: number;
   nganhHang?: string;
   trangThai?: "hien" | "an";
+  idCha?: string | null;
 };
 
 export async function createShopDanhMuc(
@@ -117,6 +118,10 @@ export async function createShopDanhMuc(
       ? Math.trunc(input.thuTu)
       : 100;
   const moTa = input.moTa?.trim() || null;
+  const idCha: string | null = input.idCha?.trim() || null;
+  if (idCha) {
+    await assertAssignableIdCha(admin, { idCha });
+  }
 
   // Tránh đụng unique slug: thử vài hậu tố.
   for (let i = 0; i < 8; i++) {
@@ -130,6 +135,7 @@ export async function createShopDanhMuc(
         mo_ta: moTa,
         thu_tu: thuTu,
         trang_thai: trangThai,
+        id_cha: idCha,
       })
       .select(
         "id, slug, ten, id_cha, nganh_hang, mo_ta, thu_tu, icon, trang_thai",
@@ -149,12 +155,60 @@ export async function createShopDanhMuc(
   throw new Error("Slug đã tồn tại — đổi slug rồi thử lại.");
 }
 
+async function assertAssignableIdCha(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  opts: { idCha: string; selfId?: string },
+): Promise<void> {
+  if (opts.selfId && opts.idCha === opts.selfId) {
+    throw new Error("Không đặt danh mục làm cha của chính nó.");
+  }
+  const { data: cha } = await admin
+    .from("shop_danh_muc")
+    .select("id, id_cha")
+    .eq("id", opts.idCha)
+    .maybeSingle<{ id: string; id_cha: string | null }>();
+  if (!cha) throw new Error("Cấp cha không tồn tại.");
+  if (cha.id_cha) {
+    throw new Error("Cây chỉ hai tầng — chọn cấp cha gốc, không gắn vào lá.");
+  }
+  if (opts.selfId) {
+    const { data: ownChild } = await admin
+      .from("shop_danh_muc")
+      .select("id")
+      .eq("id_cha", opts.selfId)
+      .limit(1)
+      .maybeSingle<{ id: string }>();
+    if (ownChild) {
+      throw new Error("Cấp cha không nằm dưới cấp cha khác.");
+    }
+  }
+  const { data: child } = await admin
+    .from("shop_danh_muc")
+    .select("id")
+    .eq("id_cha", opts.idCha)
+    .limit(1)
+    .maybeSingle<{ id: string }>();
+  if (!child) {
+    const { count } = await admin
+      .from("shop_nhom")
+      .select("id", { count: "exact", head: true })
+      .eq("id_danh_muc", opts.idCha)
+      .eq("da_xoa", false);
+    if ((count ?? 0) > 0) {
+      throw new Error(
+        "Không dùng lá đang có loại làm cấp cha — chọn nhóm phụ hoặc tạo cấp cha mới.",
+      );
+    }
+  }
+}
+
 export type PatchShopDanhMucInput = {
   ten?: string;
   slug?: string;
   moTa?: string | null;
   thuTu?: number;
   trangThai?: "hien" | "an";
+  idCha?: string | null;
 };
 
 export async function patchShopDanhMuc(
@@ -185,11 +239,19 @@ export async function patchShopDanhMuc(
     patch.trang_thai = input.trangThai;
   }
 
+  const admin = createServiceRoleClient();
+  if (input.idCha !== undefined) {
+    const idCha = input.idCha?.trim() || null;
+    if (idCha) {
+      await assertAssignableIdCha(admin, { idCha, selfId: id });
+    }
+    patch.id_cha = idCha;
+  }
+
   if (Object.keys(patch).length <= 1) {
     throw new Error("Không có trường để cập nhật.");
   }
 
-  const admin = createServiceRoleClient();
   const { data, error } = await admin
     .from("shop_danh_muc")
     .update(patch)
@@ -216,4 +278,30 @@ export async function patchShopDanhMuc(
     .eq("da_xoa", false);
 
   return mapRow(data, count ?? 0);
+}
+
+export async function deleteShopDanhMuc(id: string): Promise<void> {
+  const admin = createServiceRoleClient();
+  const { data: row } = await admin
+    .from("shop_danh_muc")
+    .select("id")
+    .eq("id", id)
+    .maybeSingle<{ id: string }>();
+  if (!row) throw new Error("Không tìm thấy danh mục.");
+
+  const { data: child } = await admin
+    .from("shop_danh_muc")
+    .select("id")
+    .eq("id_cha", id)
+    .limit(1)
+    .maybeSingle<{ id: string }>();
+  if (child) {
+    throw new Error("Còn lá con — chuyển hoặc xóa lá trước.");
+  }
+
+  const { error } = await admin.from("shop_danh_muc").delete().eq("id", id);
+  if (error) {
+    console.error("[admin] deleteShopDanhMuc", error);
+    throw new Error("Không xóa được danh mục.");
+  }
 }

@@ -1,4 +1,4 @@
-﻿/* Trang quản lý shop — ẩn FAB góp ý + chat dock (tránh chồng UI mobile). */
+/* Trang quản lý shop — ẩn FAB góp ý + chat dock (tránh chồng UI mobile). */
 body:has(.shop-dash) .gopy-fab,
 body:has(.shop-dash) .j-chat-dock,
 body:has(.shop-dash-loading) .gopy-fab,
@@ -691,6 +691,21 @@ body:has(.shop-dash-gate) .j-chat-dock {
   flex-direction: column;
   gap: 12px;
   overflow: hidden;
+}
+
+.shop-dash-body:has(> .shop-dash-card--loai-meta) {
+  gap: 16px;
+}
+
+.shop-dash-card--loai-meta,
+.shop-dash-card--loai-mau {
+  flex: 0 0 auto;
+}
+
+.shop-dash-card--loai-meta .shop-kho-loai-meta {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 .shop-dash-card h2 {
@@ -1786,6 +1801,14 @@ body:has(.shop-dash-gate) .j-chat-dock {
   outline: none;
 }
 
+.shop-kho-loai-dd-search input[type="search"]::-webkit-search-decoration,
+.shop-kho-loai-dd-search input[type="search"]::-webkit-search-cancel-button,
+.shop-kho-loai-dd-search input[type="search"]::-webkit-search-results-button,
+.shop-kho-loai-dd-search input[type="search"]::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 .shop-kho-loai-dd-search-clear {
   display: inline-flex;
   align-items: center;
@@ -1862,6 +1885,10 @@ body:has(.shop-dash-gate) .j-chat-dock {
 
 .shop-kho-loai-dd-option.is-on {
   background: color-mix(in srgb, var(--cins-orange, #fdad4c) 12%, transparent);
+}
+
+.shop-kho-loai-dd-option.is-pending .shop-kho-loai-dd-option-copy em {
+  color: var(--ink-muted);
 }
 
 .shop-kho-loai-dd-option:disabled {
@@ -2013,71 +2040,167 @@ body:has(.shop-dash-gate) .j-chat-dock {
   text-align: center;
 }
 
-.shop-kho-loai-dd-group {
-  margin: 10px 8px 4px;
-  padding: 0 4px;
-  font-size: 0.68rem;
-  font-weight: 750;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-muted);
+.shop-kho-loai-dd-tree-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.shop-kho-loai-dd-group:first-child {
-  margin-top: 4px;
+.shop-kho-loai-dd-tree-group.has-parent {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border, #e4e6eb);
+}
+
+.shop-kho-loai-dd-tree-group.has-parent:first-child {
+  margin-top: 2px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.shop-kho-loai-dd-tree-parent {
+  margin: 0;
+  padding: 4px 10px 6px;
+  color: var(--ink-display, rgba(0, 0, 0, 0.72));
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.3;
+}
+
+.shop-kho-loai-dd-tree-leaves {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shop-kho-loai-dd-tree-group.has-parent .shop-kho-loai-dd-option {
+  padding-left: 22px;
+}
+
+.shop-kho-loai-dd-tree-leaves .shop-kho-loai-dd-option-copy strong {
+  font-weight: 400;
+  opacity: 0.8;
+}
+
+.shop-kho-loai-dd-options--sheet.is-dexuat {
+  padding: 4px 10px 12px;
 }
 
 .shop-kho-loai-dd-missing {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 4px 8px 12px;
+  gap: 14px;
+  padding: 8px 4px 4px;
 }
 
-.shop-kho-loai-dd-missing .shop-kho-loai-dd-empty {
-  padding-bottom: 0;
+.shop-kho-loai-dd-missing-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 2px 4px 0;
+}
+
+.shop-kho-loai-dd-missing-kicker {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.shop-kho-loai-dd-missing-name {
+  margin: 0;
+}
+
+.shop-kho-loai-dd-missing-name span {
+  display: inline-block;
+  max-width: 100%;
+  padding: 4px 12px;
+  border-radius: 8px;
+  background: var(--cins-blue-soft, #e7f0fb);
+  color: var(--cins-blue-dark, #1656a0);
+  font-size: 1.05rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .shop-kho-loai-dd-missing-lead {
-  margin: 0;
+  margin: 2px 0 0;
   font-size: 0.8rem;
+  line-height: 1.45;
   color: var(--ink-muted);
-  text-align: center;
+  text-align: left;
 }
 
-.shop-kho-loai-dd-missing textarea {
-  width: 100%;
-  min-height: 72px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg-surface, #fff);
-  color: inherit;
-  font: inherit;
-  font-size: 0.86rem;
-  resize: vertical;
-}
-
-.shop-kho-loai-dd-missing-near {
+.shop-kho-loai-dd-missing-field {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 0.78rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  font-size: 0.75rem;
+  font-weight: 650;
   color: var(--ink-muted);
 }
 
-.shop-kho-loai-dd-missing-near select {
-  min-height: 38px;
-  padding: 0 10px;
+.shop-kho-loai-dd-missing-field select,
+.shop-kho-loai-dd-missing-field input[type="text"] {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--bg-surface, #fff);
-  color: inherit;
+  color: var(--ink-display, rgba(0, 0, 0, 0.88));
   font: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
 }
 
-.shop-kho-loai-dd-missing .shop-kho-loai-dd-sheet-done {
-  align-self: flex-end;
+.shop-kho-loai-dd-missing-field select:disabled,
+.shop-kho-loai-dd-missing-field input[type="text"]:disabled {
+  opacity: 0.55;
+}
+
+.shop-kho-loai-dd-missing-field select:focus-visible,
+.shop-kho-loai-dd-missing-field input[type="text"]:focus-visible {
+  outline: 2px solid var(--cins-blue, #1f74c9);
+  outline-offset: 2px;
+}
+
+.shop-kho-loai-dd-missing-hint {
+  font-size: 0.74rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--ink-muted);
+}
+
+.shop-kho-loai-dd-missing-err {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--danger, #dc2626) 10%, transparent);
+  color: var(--danger, #dc2626);
+  font-size: 0.8rem;
+  font-weight: 550;
+  line-height: 1.4;
+}
+
+.shop-kho-loai-dd-missing-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.shop-kho-loai-dd-missing-actions .shop-kho-loai-dd-sheet-done {
+  align-self: auto;
 }
 
 .shop-kho-loai-dd-sheet-foot {
@@ -2138,6 +2261,19 @@ body:has(.shop-dash-gate) .j-chat-dock {
 
 :root[data-theme="dark"] .shop-kho-loai-dd-sheet {
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="dark"] .shop-kho-loai-dd-tree-group.has-parent {
+  border-top-color: var(--border, #333);
+}
+
+:root[data-theme="dark"] .shop-kho-loai-dd-tree-parent {
+  color: var(--ink-display, rgba(255, 255, 255, 0.88));
+}
+
+:root[data-theme="dark"] .shop-kho-loai-dd-missing-name span {
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 22%, transparent);
+  color: var(--cins-blue, #8ec0ee);
 }
 
 .shop-kho-loai-card-gia {
@@ -2234,9 +2370,8 @@ body:has(.shop-dash-gate) .j-chat-dock {
 }
 
 .shop-kho-loai-meta {
-  margin-bottom: 14px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--border);
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
 .shop-kho-loai-meta-head {
@@ -2301,6 +2436,34 @@ body:has(.shop-dash-gate) .j-chat-dock {
 }
 
 .shop-kho-loai-gioi-thieu:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.shop-kho-loai-save {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  /* Cùng xanh «Đang bán» (.shop-status--dang_ban). */
+  border: 1px solid #027a48;
+  border-radius: 8px;
+  background: #027a48;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.shop-kho-loai-save:hover:not(:disabled) {
+  background: color-mix(in srgb, #027a48 82%, #000);
+  border-color: color-mix(in srgb, #027a48 82%, #000);
+}
+
+.shop-kho-loai-save:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
@@ -2470,6 +2633,9 @@ body:has(.shop-dash-gate) .j-chat-dock {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  margin-left: 4px;
+  padding-left: 12px;
+  border-left: 1px solid var(--border, #e4e6eb);
   gap: 6px;
   min-width: 0;
   max-width: min(280px, 100%);
@@ -3997,6 +4163,10 @@ body:has(.shop-dash-gate) .j-chat-dock {
   color: var(--cins-orange, #fdad4c);
 }
 
+.shop-kho-add-btn .shop-kho-upload-progress {
+  color: inherit;
+}
+
 .shop-thumb-img-btn {
   display: block;
   width: 100%;
@@ -4119,16 +4289,34 @@ body:has(.shop-dash-gate) .j-chat-dock {
 }
 
 .shop-dash-kho-head {
+  /* Title + Thêm hàng / Sửa: một hàng; wrap khi hẹp hơn ~480cqi. */
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
   margin-bottom: 0;
+}
+
+.shop-dash-card--loai-mau .shop-dash-kho-head {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--bg-surface, #fff);
+  padding: 2px 0 8px;
+}
+
+:root[data-theme="dark"] .shop-dash-card--loai-mau .shop-dash-kho-head {
+  background: var(--bg-surface, #1a1f2a);
 }
 
 .shop-dash-kho-title-row {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: 1 1 auto;
+  min-width: 0;
   flex-wrap: wrap;
 }
 
@@ -4166,15 +4354,30 @@ body:has(.shop-dash-gate) .j-chat-dock {
 }
 
 .shop-dash-kho-edit-btn--primary {
-  color: #5c3200;
-  background: var(--cins-orange, #fdad4c);
+  gap: 4px;
+  min-height: 37px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-surface, #fff);
+  color: var(--ink-body);
+  font-size: 0.78rem;
   font-weight: 700;
+  white-space: nowrap;
+  filter: none;
 }
 
 .shop-dash-kho-edit-btn--primary:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--cins-orange, #fdad4c) 50%, var(--border));
+  background: color-mix(in srgb, var(--cins-orange, #fdad4c) 10%, var(--bg-surface, #fff));
+  color: var(--ink-body);
+  filter: none;
+}
+
+.shop-dash-kho-edit-btn--primary.is-active {
   color: #5c3200;
   background: var(--cins-orange, #fdad4c);
-  filter: brightness(1.03);
+  border-color: var(--cins-orange, #fdad4c);
 }
 
 .shop-dash-kho-edit-btn--primary:disabled {
@@ -4254,35 +4457,43 @@ body:has(.shop-dash-gate) .j-chat-dock {
 }
 
 .shop-kho-toolbar {
-  position: sticky;
-  top: 0;
-  z-index: 30;
+  position: static;
+  z-index: auto;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px 12px;
-  width: 100%;
-  margin: 0 -4px;
-  padding: 8px 4px;
+  width: auto;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
-  background: color-mix(in srgb, var(--bg-surface, #fff) 90%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid
-    color-mix(in srgb, var(--border, #e4e6eb) 82%, transparent);
-  box-shadow: 0 6px 18px -14px rgba(15, 23, 42, 0.35);
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom: none;
+  box-shadow: none;
 }
 
 :root[data-theme="dark"] .shop-kho-toolbar {
-  background: color-mix(in srgb, var(--bg-surface, #1a1f2a) 88%, transparent);
-  border-bottom-color: color-mix(in srgb, #fff 12%, transparent);
+  background: transparent;
+  border-bottom-color: transparent;
 }
 
 .shop-kho-toolbar-actions {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-left: auto;
+  margin-left: 0;
+  flex-shrink: 0;
+}
+
+.shop-kho-add-hang {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -4302,38 +4513,16 @@ body:has(.shop-dash-gate) .j-chat-dock {
   cursor: pointer;
 }
 
+.shop-kho-add-chevron {
+  flex-shrink: 0;
+  opacity: 0.72;
+}
+
 .shop-kho-add-btn:hover:not(:disabled) {
   filter: brightness(1.03);
 }
 
 .shop-kho-add-btn:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-.shop-kho-add-images-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 30px;
-  padding: 0 12px;
-  border: 1px solid var(--border, #e4e6eb);
-  border-radius: 999px;
-  background: var(--bg-surface, #fff);
-  color: var(--ink-body, #1c1e21);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.shop-kho-add-images-btn:hover:not(:disabled) {
-  border-color: var(--cins-orange, #fdad4c);
-  color: color-mix(in srgb, var(--cins-orange, #fdad4c) 70%, #5c3200);
-}
-
-.shop-kho-add-images-btn:disabled {
   opacity: 0.65;
   cursor: not-allowed;
 }
@@ -8981,7 +9170,7 @@ body:has(.shop-dash-gate) .j-chat-dock {
     overflow: visible;
   }
 
-  .shop-kho-toolbar {
+  .shop-dash-card--loai-mau .shop-dash-kho-head {
     top: calc(
       var(--site-nav-height, 64px) + var(--shop-dash-mobile-ops-h, 44px) +
         var(--shop-dash-tabs-h, 40px)
@@ -8995,8 +9184,14 @@ body:has(.shop-dash-gate) .j-chat-dock {
     flex-shrink: 1;
   }
 
+  /* Loại detail: giữ nút cùng hàng với «Danh mục hàng», không bung full-width. */
+  .shop-dash-card--loai-mau .shop-kho-toolbar-actions {
+    width: auto;
+    flex-shrink: 0;
+  }
+
+  .shop-kho-add-hang .shop-kho-add-btn,
   .shop-kho-add-btn,
-  .shop-kho-add-images-btn,
   .shop-kho-bulk-delete-btn,
   .shop-dash-kho-edit-btn {
     min-height: 44px;
@@ -9327,6 +9522,11 @@ body:has(.shop-dash-gate) .j-chat-dock {
     justify-content: flex-end;
   }
 
+  .shop-dash-card--loai-mau .shop-kho-toolbar-actions {
+    flex: 0 0 auto;
+    width: auto;
+  }
+
   .shop-grid th,
   .shop-grid td {
     padding: 8px 10px;
@@ -9610,6 +9810,17 @@ body:has(.shop-dash-gate) .j-chat-dock {
 
   .shop-kho-loai-action-label {
     display: none;
+  }
+
+  .shop-kho-loai-save {
+    width: auto;
+    min-width: 44px;
+    height: 44px;
+    padding: 0 10px;
+  }
+
+  .shop-kho-loai-save .shop-kho-loai-action-label {
+    display: inline;
   }
 
   .shop-kho-loai-view,

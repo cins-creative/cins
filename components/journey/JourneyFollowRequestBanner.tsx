@@ -54,7 +54,7 @@ export function JourneyFollowRequestBanner({ requests }: Props) {
           next.delete(request.idNguoiDung);
           return next;
         });
-        const res = await fetch(`/api/ket-ban/${recordId}`, {
+        const res = await fetch(`/api/friends/${recordId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action }),

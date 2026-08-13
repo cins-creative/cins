@@ -189,7 +189,7 @@ export async function updateCongDongLinhVucs(params: {
   return { ok: true, linhVucs: validated.linhVucs };
 }
 
-/** Cộng đồng gắn lĩnh vực — discovery từ hub `/nghe-nghiep?linh_vuc=`. */
+/** Cộng đồng gắn lĩnh vực — discovery từ hub `/careers?linh_vuc=`. */
 export async function listCongDongOrgsForLinhVuc(
   linhVucId: string,
   limit = 8,

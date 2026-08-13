@@ -171,7 +171,7 @@ async function dangTichLuyCsdt(
 async function quanLyHrefFor(dv: CinsDichVu): Promise<string | null> {
   const admin = createServiceRoleClient();
   if (dv.loai === "shop_phi") {
-    return "/ban-hang/cua-hang";
+    return "/seller/store";
   }
   if (dv.loai === "csdt_phi") {
     const { data } = await admin
@@ -180,7 +180,7 @@ async function quanLyHrefFor(dv: CinsDichVu): Promise<string | null> {
       .eq("id", dv.thamChieuId)
       .maybeSingle<{ slug: string | null }>();
     const slug = data?.slug?.trim();
-    return slug ? `/co-so/${slug}/quan-ly` : null;
+    return slug ? `/academy/${slug}/manage` : null;
   }
   return null;
 }

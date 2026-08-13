@@ -18,7 +18,7 @@ export type ShopReadyGateState = {
 };
 
 /**
- * Đọc trạng thái gate Shop từ `/api/user/ban-hang` (có cache RAM ngắn hạn).
+ * Đọc trạng thái gate Shop từ `/api/user/seller` (có cache RAM ngắn hạn).
  * `shopReady` = đã bật bán + có ≥1 STK nhận tiền.
  */
 export function useShopReadyGate(): ShopReadyGateState {

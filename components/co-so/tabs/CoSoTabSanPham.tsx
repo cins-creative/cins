@@ -28,7 +28,7 @@ async function fetchProjects(
   signal: AbortSignal,
 ): Promise<OrgDoanProjectItem[]> {
   const res = await fetch(
-    `/api/org/${encodeURIComponent(orgId)}/doan-projects?${params.toString()}`,
+    `/api/org/${encodeURIComponent(orgId)}/student-projects?${params.toString()}`,
     { cache: "no-store", signal, credentials: "include" },
   );
   const json = (await res.json()) as { projects?: OrgDoanProjectItem[] };
@@ -92,7 +92,7 @@ export function CoSoTabSanPham({
     const controller = new AbortController();
     setLoadingMilestones(true);
     void fetch(
-      `/api/org/${encodeURIComponent(orgId)}/doan-milestones?sort=moi_nhat`,
+      `/api/org/${encodeURIComponent(orgId)}/student-milestones?sort=moi_nhat`,
       { cache: "no-store", signal: controller.signal },
     )
       .then(async (res) => {

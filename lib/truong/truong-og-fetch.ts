@@ -31,7 +31,7 @@ function pickEmbed(raw: unknown): DaiHocEmbed | null {
   return null;
 }
 
-/** OG context cho trang trường đại học (`/co-so-dao-tao/[slug]`). */
+/** OG context cho trang trường đại học (`/university/[slug]`). */
 export async function fetchTruongOgContext(
   slug: string,
 ): Promise<OrgOgContext | null> {

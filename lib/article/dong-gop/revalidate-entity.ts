@@ -20,11 +20,11 @@ export async function revalidateEntityArticlePaths(idBaiViet: string) {
 
   const slug = encodeURIComponent(article.slug);
   revalidatePath(articlePublicHref(article.loai_bai_viet, article.slug));
-  revalidatePath(`/bai-viet/${slug}`);
+  revalidatePath(`/articles/${slug}`);
 }
 
 export async function revalidateAfterDongGopMutation(idDongGop: string) {
-  revalidatePath("/admin/bai-viet");
+  revalidatePath("/admin/articles");
 
   const row = await fetchDongGopById(idDongGop);
   if (!row) return;

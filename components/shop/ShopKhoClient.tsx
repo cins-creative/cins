@@ -181,7 +181,7 @@ async function mapPool<T, R>(
 export function ShopKhoClient({
   initialLoaiSlug = null,
 }: {
-  /** Segment `/ban-hang/kho/[slug]` — null = hub. */
+  /** Segment `/seller/inventory/[slug]` — null = hub. */
   initialLoaiSlug?: string | null;
 }) {
   const router = useRouter();
@@ -209,6 +209,8 @@ export function ShopKhoClient({
   const [savingId, setSavingId] = useState<string | null>(null);
   /** Popup lọc trên header cột phân loại. */
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  /** Toolbar: 1 nút «Thêm hàng» → tách «Thêm dòng mới» / «Tải ảnh hàng loạt». */
+  const [addHangOpen, setAddHangOpen] = useState(false);
   /** Sản phẩm đang chờ xác nhận xóa (1 hoặc nhiều). */
   const [deleteTargets, setDeleteTargets] = useState<
     Array<{ id: string; ten: string }>
@@ -294,7 +296,7 @@ export function ShopKhoClient({
     router.push(shopKhoOrphanHref());
   }, [router]);
 
-  /* Sync `/ban-hang/kho/[slug]` → activeNhomId sau khi nhoms sẵn sàng. */
+  /* Sync `/seller/inventory/[slug]` → activeNhomId sau khi nhoms sẵn sàng. */
   useEffect(() => {
     if (loading || enabled === false) return;
     const raw = initialLoaiSlug?.trim() ?? "";
@@ -334,7 +336,7 @@ export function ShopKhoClient({
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch("/api/shop/tiep-can-loai", { cache: "no-store" });
+        const res = await fetch("/api/shop/category-reach", { cache: "no-store" });
         const json = (await res.json().catch(() => null)) as {
           items?: Array<{
             idNhom: string;
@@ -649,7 +651,7 @@ export function ShopKhoClient({
     void (async () => {
       try {
         const res = await fetch(
-          `/api/shop/san-pham?nhomId=${encodeURIComponent(activeNhomId)}`,
+          `/api/shop/products?nhomId=${encodeURIComponent(activeNhomId)}`,
           { cache: "no-store" },
         );
         const json = (await res.json().catch(() => null)) as {
@@ -817,6 +819,26 @@ export function ShopKhoClient({
     };
   }, [filterMenuOpen]);
 
+  useEffect(() => {
+    if (!addHangOpen) return;
+    function onPointerDown(e: PointerEvent) {
+      if (uploading) return;
+      const t = e.target;
+      if (!(t instanceof Element)) return;
+      if (t.closest("[data-shop-add-hang]")) return;
+      setAddHangOpen(false);
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && !uploading) setAddHangOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [addHangOpen, uploading]);
+
   function cycleSortTon() {
     setSortTon((prev) => {
       if (prev === "none") return "nhieu";
@@ -937,7 +959,7 @@ export function ShopKhoClient({
       setBangGiaId(lists[0].id);
       return lists[0].id;
     }
-    const res = await fetch("/api/shop/bang-gia", {
+    const res = await fetch("/api/shop/price-lists", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -985,7 +1007,7 @@ export function ShopKhoClient({
         giaGiam: next.giaGiam,
       },
     ];
-    const res = await fetch(`/api/shop/bang-gia/${targetBang}`, {
+    const res = await fetch(`/api/shop/price-lists/${targetBang}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ dong }),
@@ -1135,7 +1157,7 @@ export function ShopKhoClient({
     if (isPendingKhoRow(p.id)) return;
     const gen = (thumbFitGenRef.current[p.id] ?? 0) + 1;
     thumbFitGenRef.current[p.id] = gen;
-    void fetch(`/api/shop/san-pham/${p.id}`, {
+    void fetch(`/api/shop/products/${p.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ anhThumbFit: next }),
@@ -1248,7 +1270,7 @@ export function ShopKhoClient({
       }
 
       try {
-        const res = await fetch("/api/shop/san-pham", {
+        const res = await fetch("/api/shop/products", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -1320,7 +1342,7 @@ export function ShopKhoClient({
     setSaving(true);
     setErr(null);
     try {
-      const res = await fetch("/api/shop/san-pham", {
+      const res = await fetch("/api/shop/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1408,7 +1430,7 @@ export function ShopKhoClient({
     try {
       const results = await Promise.all(
         apiTargets.map(async (t) => {
-          const res = await fetch(`/api/shop/san-pham/${t.id}`, {
+          const res = await fetch(`/api/shop/products/${t.id}`, {
             method: "DELETE",
           });
           return { id: t.id, ok: res.ok };
@@ -1567,7 +1589,7 @@ export function ShopKhoClient({
 
       const tonChanged = tonNum !== bt.soLuongTon;
       if (tonChanged) {
-        const tonRes = await fetch(`/api/shop/san-pham/${p.id}`, {
+        const tonRes = await fetch(`/api/shop/products/${p.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -1593,7 +1615,7 @@ export function ShopKhoClient({
       if (draft.anhId !== undefined) {
         patchBody.anhId = draft.anhId;
       }
-      const patchRes = await fetch(`/api/shop/san-pham/${p.id}`, {
+      const patchRes = await fetch(`/api/shop/products/${p.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(patchBody),
@@ -1816,7 +1838,7 @@ export function ShopKhoClient({
           targets.map(async (p) => {
             const bt = p.bienThe[0];
             if (!bt) return false;
-            const res = await fetch(`/api/shop/san-pham/${p.id}`, {
+            const res = await fetch(`/api/shop/products/${p.id}`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -1849,7 +1871,7 @@ export function ShopKhoClient({
       if (Object.keys(productPatch).length > 0) {
         const results = await Promise.all(
           targets.map(async (p) => {
-            const res = await fetch(`/api/shop/san-pham/${p.id}`, {
+            const res = await fetch(`/api/shop/products/${p.id}`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(productPatch),
@@ -1896,7 +1918,7 @@ export function ShopKhoClient({
             };
           }),
         ];
-        const res = await fetch(`/api/shop/bang-gia/${targetBang}`, {
+        const res = await fetch(`/api/shop/price-lists/${targetBang}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ dong }),
@@ -2107,7 +2129,7 @@ export function ShopKhoClient({
       }
 
       try {
-        const res = await fetch("/api/shop/san-pham", {
+        const res = await fetch("/api/shop/products", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -2245,7 +2267,7 @@ export function ShopKhoClient({
     ) => {
       try {
         const res = await fetch(
-          `/api/milestone/${encodeURIComponent(cotMocId)}/shop-hang`,
+          `/api/milestone/${encodeURIComponent(cotMocId)}/shop-products`,
           {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
@@ -2296,7 +2318,7 @@ export function ShopKhoClient({
     async (nhomId: string, cotMocId: string) => {
       try {
         await fetch(
-          `/api/shop/nhom/${encodeURIComponent(nhomId)}/gioi-thieu`,
+          `/api/shop/groups/${encodeURIComponent(nhomId)}/about`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -2577,7 +2599,7 @@ export function ShopKhoClient({
         </p>
       ) : null}
 
-      <section className="shop-dash-card">
+      <section className="shop-dash-card shop-dash-card--loai-meta">
         {activeNhom ? (
           <ShopKhoLoaiMeta
             key={activeNhom.id}
@@ -2621,11 +2643,13 @@ export function ShopKhoClient({
             </p>
           </div>
         )}
+      </section>
 
+      <section className="shop-dash-card shop-dash-card--loai-mau">
         <div className="shop-dash-kho-head">
           <div className="shop-dash-kho-title-row">
             <h2>
-              {activeNhom ? "Mẫu trong loại" : "Mẫu"} (
+              {activeNhom ? "Danh mục hàng" : "Mẫu"} (
               {filteredProducts.length}
               {filterLoai.length > 0 ? ` / ${products.length}` : ""}
               )
@@ -2633,52 +2657,80 @@ export function ShopKhoClient({
           </div>
           <div className="shop-kho-toolbar">
             <div className="shop-kho-toolbar-actions">
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                multiple
-                hidden
-                onChange={(e) => {
-                  const files = Array.from(e.target.files ?? []);
-                  e.target.value = "";
-                  void handleAddImages(files);
-                }}
-              />
-              <button
-                type="button"
-                className="shop-kho-add-btn"
-                disabled={saving || uploading || deleting || bulkApplying}
-                title="Thêm một mẫu mới (vào chế độ Sửa)"
-                onClick={() => void createBlankProduct()}
-              >
-                {saving ? (
-                  <Loader2 className="shop-spin" size={15} />
+              <div className="shop-kho-add-hang" data-shop-add-hang>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  hidden
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files ?? []);
+                    e.target.value = "";
+                    void handleAddImages(files);
+                  }}
+                />
+                {addHangOpen || uploading ? (
+                  <>
+                    <button
+                      type="button"
+                      className="shop-kho-add-btn"
+                      disabled={saving || uploading || deleting || bulkApplying}
+                      title="Thêm một mẫu mới (vào chế độ Sửa)"
+                      onClick={() => {
+                        setAddHangOpen(false);
+                        void createBlankProduct();
+                      }}
+                    >
+                      {saving ? (
+                        <Loader2 className="shop-spin" size={15} />
+                      ) : (
+                        <Plus size={15} strokeWidth={2.25} aria-hidden />
+                      )}
+                      Thêm dòng mới
+                    </button>
+                    <button
+                      type="button"
+                      className="shop-kho-add-btn"
+                      disabled={saving || uploading || deleting || bulkApplying}
+                      title="Thêm nhiều mẫu từ ảnh — ưu tiên dòng trống, thừa thì tạo mẫu mới"
+                      aria-label="Tải ảnh hàng loạt"
+                      onClick={() => {
+                        if (!khoEditing) enterKhoEditing();
+                        fileRef.current?.click();
+                      }}
+                    >
+                      {uploading ? (
+                        <span className="shop-kho-upload-progress" aria-live="polite">
+                          {uploadProgressAvg}%
+                        </span>
+                      ) : (
+                        <ImagePlus size={15} strokeWidth={2} aria-hidden />
+                      )}
+                      Tải ảnh hàng loạt
+                    </button>
+                  </>
                 ) : (
-                  <Plus size={15} strokeWidth={2.25} aria-hidden />
+                  <button
+                    type="button"
+                    className="shop-kho-add-btn"
+                    disabled={saving || uploading || deleting || bulkApplying}
+                    title="Thêm mẫu — dòng mới hoặc tải ảnh hàng loạt"
+                    aria-expanded={false}
+                    aria-haspopup="true"
+                    onClick={() => setAddHangOpen(true)}
+                  >
+                    <Plus size={15} strokeWidth={2.25} aria-hidden />
+                    Thêm hàng
+                    <ChevronDown
+                      className="shop-kho-add-chevron"
+                      size={14}
+                      strokeWidth={2.25}
+                      aria-hidden
+                    />
+                  </button>
                 )}
-                Thêm hàng
-              </button>
-              <button
-                type="button"
-                className="shop-kho-add-images-btn"
-                disabled={saving || uploading || deleting || bulkApplying}
-                title="Thêm nhiều mẫu từ ảnh — ưu tiên dòng trống, thừa thì tạo mẫu mới"
-                aria-label="Thêm hàng loạt từ ảnh"
-                onClick={() => {
-                  if (!khoEditing) enterKhoEditing();
-                  fileRef.current?.click();
-                }}
-              >
-                {uploading ? (
-                  <span className="shop-kho-upload-progress" aria-live="polite">
-                    {uploadProgressAvg}%
-                  </span>
-                ) : (
-                  <ImagePlus size={15} strokeWidth={2} aria-hidden />
-                )}
-                Thêm hàng loạt
-              </button>
+              </div>
               {khoEditing && selectedIds.length > 0 ? (
                 <button
                   type="button"
@@ -2720,7 +2772,7 @@ export function ShopKhoClient({
                 ) : (
                   <>
                     <Pencil size={15} strokeWidth={2} aria-hidden />
-                    Sửa
+                    Sửa bảng
                   </>
                 )}
               </button>

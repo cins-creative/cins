@@ -31,7 +31,7 @@ export async function DonCanXuLyModule({ ctx }: { ctx: HomeModuleCtx }) {
       <ModuleCard
         icon={ClipboardList}
         title="Đơn chờ xử lý"
-        moreHref="/ban-hang/don"
+        moreHref="/seller/orders"
         moreLabel="Xem đơn hàng"
         className="ha-card--don"
       >
@@ -91,7 +91,7 @@ export async function QuanLyKhoModule({ ctx }: { ctx: HomeModuleCtx }) {
       <ModuleCard
         icon={Package}
         title="Quản lý kho hàng"
-        moreHref="/ban-hang/kho"
+        moreHref="/seller/inventory"
         moreLabel="Mở kho"
         className="ha-card--kho"
       >

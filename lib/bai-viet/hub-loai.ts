@@ -1,5 +1,5 @@
 /**
- * Loại bài trên hub `/bai-viet`.
+ * Loại bài trên hub `/articles`.
  * Không gồm `nghe` / `nganh_dao_tao` — đã có tại /nghe-nghiep và /nganh-hoc.
  */
 /** v7: keyword/phan_mem không nằm hub «Bài viết» — chỉ tới qua tag trên Journey. */
@@ -70,5 +70,5 @@ export function buildBaiVietHubUrl(params: {
   if (params.q) sp.set("q", params.q);
   if (params.page && params.page > 1) sp.set("page", String(params.page));
   const qs = sp.toString();
-  return qs ? `/bai-viet?${qs}` : "/bai-viet";
+  return qs ? `/articles?${qs}` : "/articles";
 }

@@ -11,8 +11,8 @@ const catalogCache = new Map<string, Promise<TruongCatalogBundle>>();
 async function fetchCatalogBundle(orgId: string): Promise<TruongCatalogBundle> {
   const id = encodeURIComponent(orgId.trim());
   const [monRes, khoiRes] = await Promise.all([
-    fetch(`/api/truong/${id}/mon-thi-catalog`),
-    fetch(`/api/truong/${id}/to-hop-mon-catalog`),
+    fetch(`/api/university/${id}/exam-subject-catalog`),
+    fetch(`/api/university/${id}/subject-combo-catalog`),
   ]);
 
   const monJson = monRes.ok

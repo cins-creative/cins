@@ -34,7 +34,7 @@ function generateInviteCode(): string {
 }
 
 export function buildGroupInvitePath(maMoi: string): string {
-  return `/chat/nhom/moi/${encodeURIComponent(maMoi)}`;
+  return `/chat/groups/invite/${encodeURIComponent(maMoi)}`;
 }
 
 export function buildGroupInviteUrl(maMoi: string, origin?: string | null): string {

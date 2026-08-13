@@ -173,7 +173,7 @@ function CongDongListCard({ org }: { org: CongDongOrg }) {
   const roleLabel = listingRoleLabel(org.viewerVaiTro);
 
   return (
-    <Link href={`/cong-dong/${org.slug}`} className="cd-list-card">
+    <Link href={`/community/${org.slug}`} className="cd-list-card">
       <div className="cd-list-card-cover" aria-hidden>
         {coverUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -348,7 +348,7 @@ export function CongDongListingClient({
     setRespondingInviteId(invite.notificationId);
     try {
       const res = await fetch(
-        `/api/cong-dong/invites/${encodeURIComponent(invite.notificationId)}/respond`,
+        `/api/community/invites/${encodeURIComponent(invite.notificationId)}/respond`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -383,7 +383,7 @@ export function CongDongListingClient({
                 aria-label="Tìm cộng đồng"
               />
             </label>
-            <Link href="/cong-dong/tao" className="cd-list-create-btn">
+            <Link href="/community/create" className="cd-list-create-btn">
               <Plus size={16} strokeWidth={2.25} aria-hidden />
               Tạo cộng đồng
             </Link>
@@ -526,7 +526,7 @@ export function CongDongListingClient({
                     </div>
                     <div className="cd-list-invite-actions">
                       <Link
-                        href={`/cong-dong/${invite.orgSlug}`}
+                        href={`/community/${invite.orgSlug}`}
                         className="cd-list-invite-btn is-view"
                       >
                         Xem cộng đồng
@@ -568,7 +568,7 @@ export function CongDongListingClient({
             </p>
             {communities.length === 0 ? (
               <Link
-                href="/cong-dong/tao"
+                href="/community/create"
                 className="cd-list-create-btn cd-list-create-btn--inline"
               >
                 <Plus size={16} strokeWidth={2.25} aria-hidden />

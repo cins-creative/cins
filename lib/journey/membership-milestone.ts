@@ -1104,7 +1104,7 @@ export async function respondOrgMembershipMilestoneRequest(params: {
   if (profile?.slug) revalidatePath(`/${profile.slug}`);
   if (org?.slug) {
     if (orgLoai === "co_so_dao_tao") {
-      revalidatePath(`/co-so/${org.slug}`);
+      revalidatePath(`/academy/${org.slug}`);
     } else if (orgLoai === "truong_dai_hoc") {
       revalidatePath(truongRootPath(org.slug));
     }

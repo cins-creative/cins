@@ -157,7 +157,7 @@ export function HocVienQuanLyClient({ orgId, orgSlug }: Props) {
       if (filterKhoaId) params.set("khoaId", filterKhoaId);
       if (filterLopId) params.set("lopId", filterLopId);
       if (filterTrangThai) params.set("trangThai", filterTrangThai);
-      const res = await fetch(`/api/co-so/${orgId}/hoc-vien?${params}`, {
+      const res = await fetch(`/api/academy/${orgId}/students?${params}`, {
         credentials: "include",
       });
       const data = await res.json();
@@ -200,7 +200,7 @@ export function HocVienQuanLyClient({ orgId, orgSlug }: Props) {
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch(`/api/co-so/${orgId}/phi/gate`, {
+        const res = await fetch(`/api/academy/${orgId}/fees/gate`, {
           cache: "no-store",
           credentials: "include",
         });
@@ -349,7 +349,7 @@ export function HocVienQuanLyClient({ orgId, orgSlug }: Props) {
     setError(null);
     try {
       const res = await fetch(
-        `/api/co-so/${orgId}/hoc-vien/${row.hocVienLopId}`,
+        `/api/academy/${orgId}/students/${row.hocVienLopId}`,
         {
           method: "PATCH",
           credentials: "include",
@@ -430,8 +430,8 @@ export function HocVienQuanLyClient({ orgId, orgSlug }: Props) {
     try {
       const path =
         thuMode === "chat"
-          ? `/api/co-so/${orgId}/hoc-phi/don-chat`
-          : `/api/co-so/${orgId}/hoc-phi/thu-tien-mat`;
+          ? `/api/academy/${orgId}/tuition/chat-orders`
+          : `/api/academy/${orgId}/tuition/cash-payment`;
       const res = await fetch(path, {
         method: "POST",
         credentials: "include",
@@ -479,7 +479,7 @@ export function HocVienQuanLyClient({ orgId, orgSlug }: Props) {
     setSubmitting(true);
     setFlash(null);
     try {
-      const res = await fetch(`/api/co-so/${orgId}/hoc-vien`, {
+      const res = await fetch(`/api/academy/${orgId}/students`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -533,7 +533,7 @@ export function HocVienQuanLyClient({ orgId, orgSlug }: Props) {
     void (async () => {
       try {
         const res = await fetch(
-          `/api/co-so/${orgId}/hoc-vien/${goTarget.hocVienLopId}/xoa-preflight`,
+          `/api/academy/${orgId}/students/${goTarget.hocVienLopId}/delete-preflight`,
           { credentials: "include" },
         );
         const data = await res.json();
@@ -557,7 +557,7 @@ export function HocVienQuanLyClient({ orgId, orgSlug }: Props) {
     setGoError(null);
     try {
       const res = await fetch(
-        `/api/co-so/${orgId}/hoc-vien/${goTarget.hocVienLopId}`,
+        `/api/academy/${orgId}/students/${goTarget.hocVienLopId}`,
         { method: "DELETE", credentials: "include" },
       );
       const data = await res.json();
@@ -613,7 +613,7 @@ export function HocVienQuanLyClient({ orgId, orgSlug }: Props) {
     setTtlSaving(true);
     setFlash(null);
     try {
-      const res = await fetch(`/api/co-so/${orgId}/hoc-vien/cho-cau-hinh`, {
+      const res = await fetch(`/api/academy/${orgId}/students/pending-setup`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -640,7 +640,7 @@ export function HocVienQuanLyClient({ orgId, orgSlug }: Props) {
     setSubmitting(true);
     setFlash(null);
     try {
-      const res = await fetch(`/api/co-so/${orgId}/hoc-vien/xoa-hang-loat`, {
+      const res = await fetch(`/api/academy/${orgId}/students/bulk-delete`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

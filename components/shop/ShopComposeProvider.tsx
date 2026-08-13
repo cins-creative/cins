@@ -16,7 +16,7 @@ type Props = {
 };
 
 /**
- * Bọc trang Kho (`/ban-hang/kho`) bằng JourneyComposeProvider —
+ * Bọc trang Kho (`/seller/inventory`) bằng JourneyComposeProvider —
  * cho phép mở overlay soạn bài (Giới thiệu sản phẩm) ngay tại dashboard.
  * `syncComposeUrl={false}` — không nhét `?compose=` vào URL ban-hang.
  *

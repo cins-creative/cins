@@ -301,7 +301,7 @@ export function GuestHomeView({ data, loginPanelProps }: Props) {
               <SectionHead
                 eyebrow="sắp diễn ra"
                 title="Sự kiện tuyển sinh &amp; cộng đồng"
-                href="/su-kien"
+                href="/events"
                 linkLabel="Lịch sự kiện"
               />
               <ul className="gh-event-list" id="gh-events">

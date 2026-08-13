@@ -259,7 +259,7 @@ export function TruongAdmissionTimelineSidebar({
       diem_chuan: null,
     }));
 
-    const res = await truongInlineFetch(ctx.orgId, "/tuyen-sinh", {
+    const res = await truongInlineFetch(ctx.orgId, "/admissions", {
       method: "POST",
       body: JSON.stringify({ nam: timelineYear, entries }),
     });
@@ -304,7 +304,7 @@ export function TruongAdmissionTimelineSidebar({
     );
     const results = await Promise.all(
       targets.map((row) =>
-        truongInlineFetch(ctx.orgId, `/tuyen-sinh/${row.id}`, {
+        truongInlineFetch(ctx.orgId, `/admissions/${row.id}`, {
           method: "PATCH",
           body: JSON.stringify(patch),
         }),

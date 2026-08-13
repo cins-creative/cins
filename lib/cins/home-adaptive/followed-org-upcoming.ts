@@ -35,7 +35,7 @@ type OrgMeta = {
 function orgPublicHref(org: OrgMeta): string {
   const slug = org.slug.trim();
   if (org.loai_to_chuc === "co_so_dao_tao") return coSoTabPath(slug, "su-kien");
-  if (org.loai_to_chuc === "cong_dong") return `/cong-dong/${slug}`;
+  if (org.loai_to_chuc === "cong_dong") return `/community/${slug}`;
   if (org.loai_to_chuc === "studio" || org.loai_to_chuc === "doanh_nghiep") {
     return studioTabPath(slug, STUDIO_DEFAULT_TAB);
   }

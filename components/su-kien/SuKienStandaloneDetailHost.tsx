@@ -29,7 +29,7 @@ type Props = {
   viewerProfileId?: string | null;
 };
 
-/** Trang `/su-kien/...` — toolbar Sửa/Quản lý + modal sửa cho admin org. */
+/** Trang `/events/...` — toolbar Sửa/Quản lý + modal sửa cho admin org. */
 export function SuKienStandaloneDetailHost({
   orgId,
   orgTen,
@@ -79,7 +79,7 @@ export function SuKienStandaloneDetailHost({
     const id = editing.id;
     try {
       const res = await fetch(
-        `/api/org/${encodeURIComponent(orgId)}/su-kien/${encodeURIComponent(id)}`,
+        `/api/org/${encodeURIComponent(orgId)}/events/${encodeURIComponent(id)}`,
         { method: "DELETE", credentials: "include" },
       );
       if (!res.ok) return;

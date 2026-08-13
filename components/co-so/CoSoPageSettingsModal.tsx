@@ -95,14 +95,14 @@ type Props = {
     chiNhanh?: TruongChiNhanh[];
     facebook?: string | null;
   }) => void;
-  /** Nhúng trong `/quan-ly/co-so` — không portal/backdrop. */
+  /** Nhúng trong `/manage/facilities` — không portal/backdrop. */
   variant?: "modal" | "page";
   /**
    * Chi nhánh do bảng riêng quản (API chi-nhánh) — nhúng dưới Danh tính
    * trên variant=page; ẩn TruongChiNhanhEditor trong form Lưu cài đặt.
    */
   chiNhanhExternal?: boolean;
-  /** Preview draft (vd. lead hero trên `/quan-ly/co-so`). */
+  /** Preview draft (vd. lead hero trên `/manage/facilities`). */
   onDraftChange?: (draft: {
     ten: string;
     moTa: string | null;
@@ -190,7 +190,7 @@ export function CoSoPageSettingsModal({
     setLoading(true);
     setErr(null);
     try {
-      const res = await fetch(`/api/co-so/${encodeURIComponent(orgId)}/settings`);
+      const res = await fetch(`/api/academy/${encodeURIComponent(orgId)}/settings`);
       const json = (await res.json().catch(() => null)) as {
         settings?: SettingsData;
         error?: string;
@@ -218,7 +218,7 @@ export function CoSoPageSettingsModal({
       process.env.NEXT_PUBLIC_ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN?.trim();
     const headers: HeadersInit = {};
     if (token) headers.Authorization = `Bearer ${token}`;
-    const res = await fetch(`/api/truong/${encodeURIComponent(orgId)}/upload`, {
+    const res = await fetch(`/api/university/${encodeURIComponent(orgId)}/upload`, {
       method: "POST",
       body: form,
       headers,
@@ -308,7 +308,7 @@ export function CoSoPageSettingsModal({
     setErr(null);
     const prevSlug = draft.slug;
     startTransition(async () => {
-      const res = await fetch(`/api/co-so/${encodeURIComponent(orgId)}/settings`, {
+      const res = await fetch(`/api/academy/${encodeURIComponent(orgId)}/settings`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
@@ -328,7 +328,7 @@ export function CoSoPageSettingsModal({
       if (json.settings.slug !== prevSlug) {
         if (variant === "page") {
           router.replace(
-            `/co-so/${encodeURIComponent(json.settings.slug)}/quan-ly/co-so`,
+            `/academy/${encodeURIComponent(json.settings.slug)}/manage/facilities`,
           );
         } else {
           router.replace(coSoTabPath(json.settings.slug, CO_SO_DEFAULT_TAB));
@@ -345,7 +345,7 @@ export function CoSoPageSettingsModal({
     setFilterPending(true);
     setErr(null);
     try {
-      const res = await fetch(`/api/co-so/${encodeURIComponent(orgId)}/filters`, {
+      const res = await fetch(`/api/academy/${encodeURIComponent(orgId)}/filters`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ten: newFilterName.trim(), mau: newFilterColor }),
@@ -378,7 +378,7 @@ export function CoSoPageSettingsModal({
     setErr(null);
     try {
       const res = await fetch(
-        `/api/co-so/${encodeURIComponent(orgId)}/filters/${encodeURIComponent(filterId)}`,
+        `/api/academy/${encodeURIComponent(orgId)}/filters/${encodeURIComponent(filterId)}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -409,7 +409,7 @@ export function CoSoPageSettingsModal({
     setErr(null);
     try {
       const res = await fetch(
-        `/api/co-so/${encodeURIComponent(orgId)}/filters/${encodeURIComponent(filterId)}`,
+        `/api/academy/${encodeURIComponent(orgId)}/filters/${encodeURIComponent(filterId)}`,
         { method: "DELETE" },
       );
       const json = (await res.json().catch(() => null)) as { error?: string } | null;

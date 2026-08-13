@@ -87,11 +87,11 @@ export function TruongPhuongThucModal({
     };
 
     const res = editing
-      ? await truongInlineFetch(ctx.orgId, `/phuong-thuc/${editing.id}`, {
+      ? await truongInlineFetch(ctx.orgId, `/admission-methods/${editing.id}`, {
           method: "PATCH",
           body: JSON.stringify(body),
         })
-      : await truongInlineFetch(ctx.orgId, "/phuong-thuc", {
+      : await truongInlineFetch(ctx.orgId, "/admission-methods", {
           method: "POST",
           body: JSON.stringify({
             ...body,

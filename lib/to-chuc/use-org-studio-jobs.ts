@@ -16,7 +16,7 @@ export function useOrgStudioJobs(orgId: string, enabled = true) {
     setError(false);
     try {
       const res = await fetch(
-        `/api/to-chuc/${encodeURIComponent(orgId)}/tuyen-dung`,
+        `/api/organizations/${encodeURIComponent(orgId)}/jobs`,
         { credentials: "include", cache: "no-store" },
       );
       if (!res.ok) throw new Error("jobs fetch failed");

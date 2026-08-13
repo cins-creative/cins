@@ -41,7 +41,7 @@ export function AdminTranhChapScreen() {
 
   const loadCauHinh = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/shop/phi-cau-hinh", {
+      const res = await fetch("/api/admin/shop/fee-config", {
         cache: "no-store",
       });
       const json = (await res.json().catch(() => null)) as {
@@ -59,7 +59,7 @@ export function AdminTranhChapScreen() {
     setLoading(true);
     setErr(null);
     try {
-      const res = await fetch("/api/admin/shop/tranh-chap", {
+      const res = await fetch("/api/admin/shop/disputes", {
         cache: "no-store",
       });
       const json = (await res.json().catch(() => null)) as {
@@ -96,7 +96,7 @@ export function AdminTranhChapScreen() {
       return;
     }
     try {
-      const res = await fetch("/api/admin/shop/phi-cau-hinh", {
+      const res = await fetch("/api/admin/shop/fee-config", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tyLePercent: pct }),
@@ -123,7 +123,7 @@ export function AdminTranhChapScreen() {
     setBusy(true);
     setErr(null);
     try {
-      const res = await fetch(`/api/shop/khieu-nai/${selected.id}`, {
+      const res = await fetch(`/api/shop/complaints/${selected.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -152,7 +152,7 @@ export function AdminTranhChapScreen() {
     setBusy(true);
     setErr(null);
     try {
-      const res = await fetch(`/api/shop/phi/ky/${id}/bao-da-tra`, {
+      const res = await fetch(`/api/shop/fees/periods/${id}/report-paid`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "xac_nhan" }),

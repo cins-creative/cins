@@ -139,7 +139,7 @@ export function CongDongRosterModal({
 
       try {
         const res = await fetch(
-          `/api/cong-dong/${orgId}/roster?offset=${offset}`,
+          `/api/community/${orgId}/roster?offset=${offset}`,
           { cache: "no-store" },
         );
         const json = (await res.json().catch(() => null)) as {

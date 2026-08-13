@@ -1,7 +1,7 @@
 /**
  * Ghép album ảnh Pixiv (ajax illust + pages → CF Images → khối `imgs`).
- * Dùng chung cho API đăng bài (`/api/noi-bo/tac-pham/dang`) và API sửa bài
- * Pixiv cũ về album (`/api/noi-bo/tac-pham/sua-pixiv-album`).
+ * Dùng chung cho API đăng bài (`/api/internal/artworks/publish`) và API sửa bài
+ * Pixiv cũ về album (`/api/internal/artworks/edit-pixiv-album`).
  *
  * Reject: R18 / ugoira / ảnh quá dài (strip) → trả `code`. Fetch fail → null.
  */

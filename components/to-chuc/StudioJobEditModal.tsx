@@ -153,13 +153,13 @@ export function StudioJobEditModal({ orgId, job, onClose, onSaved }: Props) {
 
   useEffect(() => {
     let cancelled = false;
-    void fetch("/api/meta/linh-vuc", { credentials: "same-origin" })
+    void fetch("/api/meta/fields", { credentials: "same-origin" })
       .then((res) => res.json())
       .then((json: { items?: LinhVucOption[] }) => {
         if (!cancelled && json.items) setLinhVucs(json.items);
       })
       .catch(() => {});
-    void fetch("/api/meta/nghe-vi-tri", { credentials: "same-origin" })
+    void fetch("/api/meta/career-positions", { credentials: "same-origin" })
       .then((res) => res.json())
       .then((json: { items?: StudioNgheOption[] }) => {
         if (!cancelled && json.items) setNgheOptions(json.items);
@@ -257,8 +257,8 @@ export function StudioJobEditModal({ orgId, job, onClose, onSaved }: Props) {
     try {
       const res = await fetch(
         isEdit
-          ? `/api/studio/tuyen-dung/${encodeURIComponent(job!.id)}`
-          : "/api/studio/tuyen-dung",
+          ? `/api/studio/jobs/${encodeURIComponent(job!.id)}`
+          : "/api/studio/jobs",
         {
           method: isEdit ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },

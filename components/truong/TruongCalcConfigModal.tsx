@@ -141,7 +141,7 @@ export function TruongCalcConfigModal({
           if (firstProg?.id) params.set("nganh", firstProg.id);
         }
         const res = await fetch(
-          `/api/truong/${encodeURIComponent(orgId)}/cau-hinh-tinh-diem?${params}`,
+          `/api/university/${encodeURIComponent(orgId)}/score-config?${params}`,
         );
         if (!res.ok) {
           if (pickFromServerCache() && applyConfig(pickFromServerCache())) {

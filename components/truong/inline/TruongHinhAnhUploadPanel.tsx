@@ -104,7 +104,7 @@ export function TruongHinhAnhUploadPanel({
         nextThuTuRef.current = thu_tu + 1;
 
         bump(72);
-        const res = await truongInlineFetch(ctx.orgId, "/hinh-anh", {
+        const res = await truongInlineFetch(ctx.orgId, "/images", {
           method: "POST",
           body: JSON.stringify({
             cloudflare_id: up.imageId,

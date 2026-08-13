@@ -11,7 +11,7 @@ import type { ArticleTagRef } from "@/lib/editor/article-tag";
 type Props = {
   tacPhamId: string;
   initialTags: ReadonlyArray<ArticleTagRef>;
-  /** Ghi đè endpoint PUT — mặc định `/api/tac-pham/:id/tags` (Journey user). */
+  /** Ghi đè endpoint PUT — mặc định `/api/artworks/:id/tags` (Journey user). */
   persistUrl?: string;
   /** Cập nhật UI cục bộ sau lưu — tránh `router.refresh()` kẹt modal (feed cộng đồng). */
   onTagsSaved?: (tags: ArticleTagRef[]) => void;
@@ -67,7 +67,7 @@ export function JourneyArticleTagManager({
   }, [open, close]);
 
   const tagsEndpoint =
-    persistUrl ?? `/api/tac-pham/${encodeURIComponent(tacPhamId)}/tags`;
+    persistUrl ?? `/api/artworks/${encodeURIComponent(tacPhamId)}/tags`;
 
   const persist = useCallback(
     async (next: ArticleTagRef[], previous: ArticleTagRef[]) => {

@@ -81,7 +81,7 @@ export function JourneyCoAuthorPendingBanner({
       void (async () => {
         try {
           const res = await fetch(
-            `/api/tac-pham/${encodeURIComponent(inv.tacPhamId)}/journey-card`,
+            `/api/artworks/${encodeURIComponent(inv.tacPhamId)}/journey-card`,
             { cache: "no-store" },
           );
           const json = await res.json().catch(() => null);
@@ -139,7 +139,7 @@ export function JourneyCoAuthorPendingBanner({
       setRespondingId(inv.tacPhamId);
       try {
         const res = await fetch(
-          `/api/tac-pham/${inv.tacPhamId}/tac-gia/${viewerProfileId}`,
+          `/api/artworks/${inv.tacPhamId}/authors/${viewerProfileId}`,
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },

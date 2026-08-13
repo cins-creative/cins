@@ -1,9 +1,9 @@
-/** Root trang cộng đồng: `/cong-dong/:slug`. */
+/** Root trang cộng đồng: `/community/:slug`. */
 export function congDongRootPath(orgSlug: string): string {
-  return `/cong-dong/${encodeURIComponent(orgSlug.trim())}`;
+  return `/community/${encodeURIComponent(orgSlug.trim())}`;
 }
 
-/** Chi tiết sự kiện trong shell cộng đồng: `/cong-dong/:slug/su-kien/:suKienSlug`. */
+/** Chi tiết sự kiện trong shell cộng đồng: `/community/:slug/events/:suKienSlug`. */
 export function congDongSuKienPath(orgSlug: string, suKienSlugOrId: string): string {
   return `${congDongRootPath(orgSlug)}/su-kien/${encodeURIComponent(suKienSlugOrId.trim())}`;
 }

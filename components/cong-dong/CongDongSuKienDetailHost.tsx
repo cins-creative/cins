@@ -52,7 +52,7 @@ export function CongDongSuKienDetailHost({
     function load() {
       setLoading(true);
       setLoadError(null);
-      fetch(`/api/org/${encodeURIComponent(orgId)}/su-kien`, {
+      fetch(`/api/org/${encodeURIComponent(orgId)}/events`, {
         credentials: "include",
       })
         .then(async (res) => {
@@ -140,7 +140,7 @@ export function CongDongSuKienDetailHost({
     const id = editing.id;
     try {
       const res = await fetch(
-        `/api/org/${encodeURIComponent(orgId)}/su-kien/${encodeURIComponent(id)}`,
+        `/api/org/${encodeURIComponent(orgId)}/events/${encodeURIComponent(id)}`,
         { method: "DELETE", credentials: "include" },
       );
       if (!res.ok) return;

@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import type { BaoCaoDoanhThu, BaoCaoNgay, BaoCaoSanPhamBanChay } from "@/app/api/shop/bao-cao/route";
+import type { BaoCaoDoanhThu, BaoCaoNgay, BaoCaoSanPhamBanChay } from "@/app/api/shop/reports/route";
 import {
   fetchBaoCaoCached,
   peekBaoCao,

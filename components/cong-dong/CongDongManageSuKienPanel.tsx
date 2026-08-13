@@ -60,7 +60,7 @@ export function CongDongManageSuKienPanel({
     setLoading(true);
     setErr(null);
     void fetch(
-      `/api/org/${encodeURIComponent(orgId)}/su-kien/quan-ly`,
+      `/api/org/${encodeURIComponent(orgId)}/events/manage`,
       { credentials: "include", cache: "no-store" },
     )
       .then(async (res) => {

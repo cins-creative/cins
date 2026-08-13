@@ -92,7 +92,7 @@ export async function listQuaySuKien(
   opts?: {
     includePending?: boolean;
     actorId?: string;
-    /** Gắn catalog hàng (nặng) — mặc định false; dùng endpoint `/quay/hang`. */
+    /** Gắn catalog hàng (nặng) — mặc định false; dùng endpoint `/booths/products`. */
     includeHang?: boolean;
     /**
      * Catalog loại/mẫu + voucher ticker trên card shop.

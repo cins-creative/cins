@@ -40,7 +40,7 @@ export function TruongTuyenSinhRowEdit({ row }: { row: TruongTuyenSinhNamRow }) 
     ctx.setPrograms((list) =>
       mergeTuyenSinhIntoPrograms(list, [{ ...row, ...body }]),
     );
-    const res = await truongInlineFetch(ctx.orgId, `/tuyen-sinh/${row.id}`, {
+    const res = await truongInlineFetch(ctx.orgId, `/admissions/${row.id}`, {
       method: "PATCH",
       body: JSON.stringify(body),
     });

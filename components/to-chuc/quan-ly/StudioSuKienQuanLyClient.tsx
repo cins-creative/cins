@@ -44,7 +44,7 @@ export function StudioSuKienQuanLyClient({ orgId, orgSlug }: Props) {
     setErr(null);
     try {
       const res = await fetch(
-        `/api/org/${encodeURIComponent(orgId)}/su-kien/quan-ly`,
+        `/api/org/${encodeURIComponent(orgId)}/events/manage`,
         { cache: "no-store", credentials: "same-origin" },
       );
       const json = (await res.json()) as SuKienQuanLyOrgPayload & {

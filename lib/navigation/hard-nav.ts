@@ -7,53 +7,90 @@
  * giữ soft/pushState khi vẫn trong cùng org/profile.
  */
 
-/** Khớp `RESERVED_TOP_SEGMENTS` ở `lib/link/cins-internal-preview.ts`. */
-const RESERVED_TOP_SEGMENTS = new Set([
+/**
+ * Segment đầu không phải profile `/{slug}` — nguồn duy nhất cho toàn repo.
+ *
+ * Gồm **cả tên tiếng Việt cũ**: URL cũ vẫn được middleware redirect 308, và
+ * slug người dùng không được chiếm những tên đó (xem `RESERVED_SLUGS`).
+ */
+export const RESERVED_TOP_SEGMENTS = new Set([
   "admin",
   "api",
   "auth",
+  "assets",
+  "_next",
+  "s",
+  "chat",
+  "keyword",
+  "login",
+  "maintenance",
+  "onboarding",
+  "software",
+  "studio",
+  "fandom",
+  /* Tên tiếng Anh hiện tại. */
+  "about",
+  "academy",
+  "account",
+  "articles",
+  "careers",
+  "community",
+  "create-organization",
+  "draft",
+  "events",
+  "explore",
+  "find-courses",
+  "guidance",
+  "jobs",
+  "majors",
+  "open-shop",
+  "organizations",
+  "policies",
+  "search",
+  "seller",
+  "shopping",
+  "support",
+  "terms",
+  "university",
+  /* Tên tiếng Việt cũ — còn redirect 308. */
   "bai-viet",
   "ban-hang",
-  "chat",
+  "chinh-sach",
   "co-so",
   "co-so-dao-tao",
   "cong-dong",
+  "cua-hang",
   "ho-tro",
   "huong-nghiep",
-  "keyword",
   "kham-pha",
-  "login",
   "luoi",
-  "maintenance",
+  "mo-shop",
   "nganh",
   "nganh-hoc",
   "nghe-nghiep",
-  "onboarding",
-  "s",
-  "software",
-  "studio",
+  "nhap",
   "su-kien",
+  "tai-khoan",
   "tao-to-chuc",
   "termandservice",
   "thong-tin-du-an",
   "tim-khoa-hoc",
   "tim-kiem",
+  "to-chuc",
   "truong-dai-hoc",
   "tuyen-dung",
-  "assets",
-  "_next",
 ]);
 
 /** Prefix shell dễ gãy soft-nav RSC. */
 const FRAGILE_SHELL_PREFIXES = [
-  "co-so:",
+  "academy:",
   "studio:",
-  "truong:",
-  "cong-dong:",
+  "university:",
+  "community:",
   "profile:",
-  "nganh-hoc:",
-  "nghe-nghiep:",
-  "su-kien:",
+  "majors:",
+  "careers:",
+  "events:",
   "keyword:",
   "software:",
 ] as const;
@@ -86,15 +123,13 @@ export function pathnameShellId(pathname: string): ShellId {
   const top = parts[0];
   const slug = parts[1] ? decodeSeg(parts[1]) : null;
 
-  if (top === "co-so" && slug) return `co-so:${slug}`;
+  if (top === "academy" && slug) return `academy:${slug}`;
   if (top === "studio" && slug) return `studio:${slug}`;
-  if ((top === "co-so-dao-tao" || top === "truong-dai-hoc") && slug) {
-    return `truong:${slug}`;
-  }
-  if (top === "cong-dong" && slug) return `cong-dong:${slug}`;
-  if (top === "nganh-hoc" && slug) return `nganh-hoc:${slug}`;
-  if (top === "nghe-nghiep" && slug) return `nghe-nghiep:${slug}`;
-  if (top === "su-kien" && slug) return `su-kien:${slug}`;
+  if (top === "university" && slug) return `university:${slug}`;
+  if (top === "community" && slug) return `community:${slug}`;
+  if (top === "majors" && slug) return `majors:${slug}`;
+  if (top === "careers" && slug) return `careers:${slug}`;
+  if (top === "events" && slug) return `events:${slug}`;
   if (top === "keyword" && slug) return `keyword:${slug}`;
   if (top === "software" && slug) return `software:${slug}`;
 

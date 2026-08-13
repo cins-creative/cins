@@ -51,6 +51,16 @@ export function donCapNhatTieuDe(
   capNhat: ChatDonCapNhat,
   boiNguoiXem: boolean,
 ): string {
+  if (capNhat.suKien === "yeu_cau_huy") {
+    return boiNguoiXem
+      ? "Bạn đã gửi yêu cầu hủy đơn"
+      : "Người bán đề nghị hủy đơn";
+  }
+  if (capNhat.suKien === "bo_yeu_cau_huy") {
+    return boiNguoiXem
+      ? "Bạn đã rút yêu cầu hủy"
+      : "Người bán đã rút yêu cầu hủy";
+  }
   switch (capNhat.trangThai) {
     case "huy":
       if (boiNguoiXem) return "Bạn đã hủy đơn này";
@@ -80,7 +90,10 @@ export function donCapNhatTieuDe(
 export function donCapNhatTone(
   capNhat: ChatDonCapNhat,
 ): "huy" | "xong" | "cho" {
-  if (capNhat.trangThai === "huy") return "huy";
+  if (capNhat.suKien === "yeu_cau_huy" || capNhat.trangThai === "huy") {
+    return "huy";
+  }
+  if (capNhat.suKien === "bo_yeu_cau_huy") return "cho";
   if (
     capNhat.trangThai === "da_nhan_tien" ||
     capNhat.trangThai === "da_giao_tai_su_kien" ||

@@ -45,7 +45,7 @@ export function HaOrgUpcomingEventsPanel({
 
   const activeItems = tab === "mine" ? myItems : allItems;
   const moreHref =
-    tab === "mine" ? "/su-kien?tab=cua-ban" : "/su-kien";
+    tab === "mine" ? "/events?tab=cua-ban" : "/events";
   const showMore =
     tab === "mine" ? myEventsTotal > myItems.length : false;
 

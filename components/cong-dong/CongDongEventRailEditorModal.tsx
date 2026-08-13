@@ -191,7 +191,7 @@ export function CongDongEventRailEditorModal({
     (body: Record<string, unknown>) => {
       setErr(null);
       startTransition(async () => {
-        const res = await fetch(`/api/cong-dong/${orgId}/event-rail`, {
+        const res = await fetch(`/api/community/${orgId}/event-rail`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),

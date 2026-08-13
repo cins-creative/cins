@@ -190,8 +190,8 @@ export function ComboEditorModal({
     setBusy(true);
     try {
       const url = editing
-        ? `/api/co-so/${orgId}/hoc-phi/combo/${editing.id}`
-        : `/api/co-so/${orgId}/hoc-phi/combo`;
+        ? `/api/academy/${orgId}/tuition/combos/${editing.id}`
+        : `/api/academy/${orgId}/tuition/combos`;
       const res = await fetch(url, {
         method: editing ? "PATCH" : "POST",
         credentials: "include",

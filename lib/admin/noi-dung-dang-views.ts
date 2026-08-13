@@ -1,4 +1,4 @@
-/** View modes + URL paths cho `/admin/noi-dung-dang`. */
+/** View modes + URL paths cho `/admin/content`. */
 
 export type NoiDungDangView =
   | "grid"
@@ -32,14 +32,14 @@ const LEGACY_QUERY_VIEWS: ReadonlySet<string> = new Set([
 
 export function pathForNoiDungDangView(view: NoiDungDangView): string {
   const segment = SEGMENT_BY_VIEW[view];
-  return segment ? `/admin/noi-dung-dang/${segment}` : "/admin/noi-dung-dang";
+  return segment ? `/admin/content/${segment}` : "/admin/content";
 }
 
 export function viewFromNoiDungDangPath(
   pathname: string | null | undefined,
 ): NoiDungDangView | null {
   if (!pathname) return null;
-  const base = "/admin/noi-dung-dang";
+  const base = "/admin/content";
   if (pathname === base || pathname === `${base}/`) return "grid";
   if (!pathname.startsWith(`${base}/`)) return null;
   const rest = pathname.slice(base.length + 1).replace(/\/+$/, "");

@@ -69,7 +69,7 @@ function postCallSignal(
   action: "accept" | "decline" | "miss" | "end",
 ): Promise<Response> {
   return fetch(
-    `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/signal`,
+    `/api/chat/rooms/${encodeURIComponent(roomId)}/classroom/signal`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -363,7 +363,7 @@ export function ChatIncomingCallHost() {
       }
 
       const res = await fetch(
-        `/api/chat/rooms/${encodeURIComponent(cur.roomId)}/phong-hoc/token`,
+        `/api/chat/rooms/${encodeURIComponent(cur.roomId)}/classroom/token`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

@@ -512,7 +512,7 @@ export function PostActionsRail({
         }),
       );
       startTransition(async () => {
-        const res = await fetch("/api/luu-bai", {
+        const res = await fetch("/api/saved-posts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

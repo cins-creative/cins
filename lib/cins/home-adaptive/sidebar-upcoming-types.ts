@@ -27,7 +27,7 @@ export type SidebarUpcomingEvent = FollowedOrgUpcomingItem & {
   orgAvatarUrl: string | null;
   batDauIso: string;
   ketThucIso: string | null;
-  /** Slug URL `/su-kien/{slug}` khi có. */
+  /** Slug URL `/events/{slug}` khi có. */
   suKienSlug?: string | null;
   /**
    * Quầy shop của viewer tại sự kiện này — hiện ở tab «Quan tâm».

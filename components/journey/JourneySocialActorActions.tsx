@@ -49,7 +49,7 @@ export function JourneySocialActorActions({ actor, viewerId, bare = false }: Pro
   const sendFriendRequest = () => {
     requireAuth(() => {
       startTransition(async () => {
-        const res = await fetch("/api/ket-ban", {
+        const res = await fetch("/api/friends", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id_nguoi_nhan: actor.idNguoiDung }),
@@ -70,7 +70,7 @@ export function JourneySocialActorActions({ actor, viewerId, bare = false }: Pro
     if (!ketBanId) return;
     requireAuth(() => {
       startTransition(async () => {
-        const res = await fetch(`/api/ket-ban/${ketBanId}`, {
+        const res = await fetch(`/api/friends/${ketBanId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action }),
@@ -90,7 +90,7 @@ export function JourneySocialActorActions({ actor, viewerId, bare = false }: Pro
     if (!ketBanId) return;
     requireAuth(() => {
       startTransition(async () => {
-        const res = await fetch(`/api/ket-ban/${ketBanId}`, { method: "DELETE" });
+        const res = await fetch(`/api/friends/${ketBanId}`, { method: "DELETE" });
         if (!res.ok) return;
         setQuanHe("none");
         setKetBanId(null);

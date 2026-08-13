@@ -143,7 +143,7 @@ export async function fetchBookmarkedOrgKhoaHocMilestones(params: {
       ...row,
       org_to_chuc: org,
     });
-    const href = bookmarkListing?.href ?? `/co-so-dao-tao/${orgSlug}/khoa-hoc/${row.slug}`;
+    const href = bookmarkListing?.href ?? `/university/${orgSlug}/courses/${row.slug}`;
 
     items.push({
       id: `bookmark:khoa-hoc:${row.id}`,

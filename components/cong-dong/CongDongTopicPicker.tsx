@@ -67,7 +67,7 @@ export function CongDongTopicPicker({
     setLoading(true);
     setErr(null);
     try {
-      const res = await fetch("/api/cong-dong/linh-vuc/catalog");
+      const res = await fetch("/api/community/fields/catalog");
       const json = (await res.json().catch(() => null)) as {
         items?: CongDongLinhVuc[];
         error?: string;
@@ -93,7 +93,7 @@ export function CongDongTopicPicker({
       params.set("loai", "nganh_dao_tao");
       params.set("limit", String(NGANH_FETCH_LIMIT));
       const res = await fetch(
-        `/api/cong-dong/category-articles/search?${params.toString()}`,
+        `/api/community/category-articles/search?${params.toString()}`,
       );
       const json = (await res.json().catch(() => null)) as {
         items?: CongDongCategory[];

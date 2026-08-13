@@ -331,7 +331,7 @@ function TinNhanModuleClient({
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch("/api/shop/khach-hang/the", {
+        const res = await fetch("/api/shop/customers/tags", {
           credentials: "include",
         });
         if (!res.ok || cancelled) return;

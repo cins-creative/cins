@@ -36,10 +36,10 @@ export function truongTabPath(orgSlug: string, tab: TruongTabId): string {
 
 const TRUONG_PATH_PREFIXES = [
   `${CO_SO_DAO_TAO_HUB_PATH}/`,
-  "/truong-dai-hoc/",
+  "/university/",
 ] as const;
 
-/** Parse tab từ pathname `/co-so-dao-tao/:slug/...` (hoặc legacy `/truong-dai-hoc/...`). */
+/** Parse tab từ pathname `/university/:slug/...` (hoặc legacy `/university/...`). */
 export function parseTruongRouteFromPathname(
   pathname: string,
 ): TruongTabId | null {
@@ -57,7 +57,7 @@ export function parseTruongRouteFromPathname(
   if (!tabSegment) {
     return TRUONG_DEFAULT_TAB;
   }
-  /* `/quan-ly` không phải tab public — để null để shell public không set tab. */
+  /* `/manage` không phải tab public — để null để shell public không set tab. */
   if (tabSegment === "quan-ly") {
     return null;
   }

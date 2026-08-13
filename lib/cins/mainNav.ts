@@ -33,7 +33,7 @@ function isToChucNavPath(pathname: string): boolean {
     isCoSoDaoTaoHubPath(pathname) ||
     pathname === "/studio" ||
     pathname.startsWith("/studio/") ||
-    pathname.startsWith("/co-so/")
+    pathname.startsWith("/academy/")
   );
 }
 
@@ -58,11 +58,11 @@ export const SHOW_MAIN_NAV_JOBS = false;
 
 const MAIN_NAV_JOBS_ITEM: MainNavItem = {
   id: "jobs",
-  href: "/tuyen-dung",
+  href: "/jobs",
   label: "Tuyển dụng",
   tip: "Tin tuyển dụng đang mở từ studio, agency và doanh nghiệp ngành sáng tạo — vị trí, mức lương và hạn nộp",
   icon: "jobs",
-  isActive: (p) => p === "/tuyen-dung" || p.startsWith("/tuyen-dung/"),
+  isActive: (p) => p === "/jobs" || p.startsWith("/jobs/"),
 };
 
 export const MAIN_NAV_ITEMS: MainNavItem[] = [
@@ -101,29 +101,29 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
   },
   {
     id: "community",
-    href: "/cong-dong",
+    href: "/community",
     label: "Cộng đồng",
     tip: "Cộng đồng nghề — thảo luận, chia sẻ kinh nghiệm và kết nối người trong ngành",
     icon: "community",
-    isActive: (p) => p === "/cong-dong" || p.startsWith("/cong-dong/"),
+    isActive: (p) => p === "/community" || p.startsWith("/community/"),
     flyout: "community",
   },
   {
     id: "shops",
-    href: "/cua-hang",
+    href: "/shopping",
     label: "Cửa hàng",
     tip: "Cửa hàng đang mở trên CINs — goods, preorder và shop của người sáng tạo",
     icon: "shop",
-    isActive: (p) => p === "/cua-hang" || p.startsWith("/cua-hang/"),
+    isActive: (p) => p === "/shopping" || p.startsWith("/shopping/"),
   },
   ...(SHOW_MAIN_NAV_JOBS ? [MAIN_NAV_JOBS_ITEM] : []),
   {
     id: "events",
-    href: "/su-kien",
+    href: "/events",
     label: "Sự kiện",
     tip: "Open day, talkshow, workshop và cuộc thi sắp diễn ra trong 30 ngày tới",
     icon: "events",
-    isActive: (p) => p === "/su-kien" || p.startsWith("/su-kien/"),
+    isActive: (p) => p === "/events" || p.startsWith("/events/"),
   },
 ];
 
@@ -137,18 +137,18 @@ export const MAIN_NAV_GROUP_BREAK_AFTER = new Set([
 export const MAIN_NAV_FOOT_ITEMS: MainNavItem[] = [
   {
     id: "project",
-    href: "/thong-tin-du-an",
+    href: "/about",
     label: "Thông tin dự án",
     tip: "Tầm nhìn, triết lý sản phẩm và hướng phát triển của CINs",
     icon: "project",
-    isActive: (p) => p === "/thong-tin-du-an",
+    isActive: (p) => p === "/about",
   },
   {
     id: "help",
-    href: "/ho-tro",
+    href: "/support",
     label: "Trợ giúp",
     tip: "Câu hỏi thường gặp, hỗ trợ tài khoản và liên hệ với đội ngũ CINs",
     icon: "help",
-    isActive: (p) => p === "/ho-tro" || p.startsWith("/ho-tro/"),
+    isActive: (p) => p === "/support" || p.startsWith("/support/"),
   },
 ];

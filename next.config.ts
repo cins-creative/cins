@@ -18,38 +18,38 @@ const nextConfig: NextConfig = {
     return [
       /* Hub tổ chức gộp về /to-chuc — chỉ khớp path listing (exact), không đụng /:slug detail. */
       {
-        source: "/co-so-dao-tao",
-        destination: "/to-chuc",
+        source: "/university",
+        destination: "/organizations",
         permanent: true,
       },
       {
         source: "/studio",
-        destination: "/to-chuc",
+        destination: "/organizations",
         permanent: true,
       },
       {
-        source: "/truong-dai-hoc",
-        destination: "/to-chuc",
+        source: "/university",
+        destination: "/organizations",
         permanent: true,
       },
       {
         source: "/dieu-khoan",
-        destination: "/termandservice",
+        destination: "/terms",
         permanent: true,
       },
       {
         source: "/terms",
-        destination: "/termandservice",
+        destination: "/terms",
         permanent: true,
       },
       {
         source: "/terms-of-service",
-        destination: "/termandservice",
+        destination: "/terms",
         permanent: true,
       },
       {
         source: "/term-and-service",
-        destination: "/termandservice",
+        destination: "/terms",
         permanent: true,
       },
     ];

@@ -62,7 +62,7 @@ export function JourneyMilestoneInsightsModal({
     if (!open || !query) return;
     let cancelled = false;
     setState({ status: "loading" });
-    void fetch(`/api/social/su-kien?${query}`)
+    void fetch(`/api/social/events?${query}`)
       .then(async (res) => {
         if (cancelled) return;
         if (res.status === 403) {

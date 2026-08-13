@@ -401,7 +401,7 @@ export function DonCanXuLyPanel({
       setBusyId(item.id);
       setError(null);
       try {
-        const res = await fetch(`/api/shop/don/${item.id}`, {
+        const res = await fetch(`/api/shop/orders/${item.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action }),
@@ -456,7 +456,7 @@ export function DonCanXuLyPanel({
           counts={counts}
         />
         <Link
-          href="/ban-hang/don"
+          href="/seller/orders"
           className="ha-card-more"
           prefetch={false}
           aria-label="Xem tất cả đơn"

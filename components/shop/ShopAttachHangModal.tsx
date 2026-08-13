@@ -110,7 +110,7 @@ export function ShopAttachHangModal({
     setLoading(true);
     setErr(null);
     try {
-      const readyRes = await fetch("/api/user/ban-hang", { cache: "no-store" });
+      const readyRes = await fetch("/api/user/seller", { cache: "no-store" });
       const readyJson = (await readyRes.json().catch(() => null)) as {
         shopReady?: boolean;
         shopSetupHref?: string | null;
@@ -133,7 +133,7 @@ export function ShopAttachHangModal({
       const [products, lists, hRes, nhomPayload] = await Promise.all([
         fetchSanPhamCached(),
         fetchBangGiaCached(),
-        fetch(`/api/milestone/${milestoneId}/shop-hang`, { cache: "no-store" }),
+        fetch(`/api/milestone/${milestoneId}/shop-products`, { cache: "no-store" }),
         fetchNhomCached(),
       ]);
       const hJson = (await hRes.json()) as {
@@ -366,7 +366,7 @@ export function ShopAttachHangModal({
         idBangGia: bangGiaId,
         thuTu,
       }));
-      const res = await fetch(`/api/milestone/${milestoneId}/shop-hang`, {
+      const res = await fetch(`/api/milestone/${milestoneId}/shop-products`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ items }),

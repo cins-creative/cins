@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 
 import {
+  ganYeuCauVaoDanhMuc,
   listHangChoDanhMuc,
   promoteAliasUngVien,
+  tenAliasXungDot,
   xuLyYeuCauDanhMuc,
 } from "@/lib/shop/danh-muc-dong-gop";
+import { createShopDanhMuc } from "@/lib/admin/shop-danh-muc-server";
 import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { hasServiceRoleEnv } from "@/lib/supabase/service-role";
 
@@ -48,6 +51,12 @@ export async function POST(request: Request) {
     trangThai?: unknown;
     idDanhMucKetQua?: unknown;
     lyDoTuChoi?: unknown;
+    ten?: unknown;
+    slug?: unknown;
+    moTa?: unknown;
+    idCha?: unknown;
+    thuTu?: unknown;
+    aliasTuKhoa?: unknown;
   };
   try {
     body = (await request.json()) as typeof body;
@@ -84,6 +93,65 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    if (action === "tao-danh-muc") {
+      const id = typeof body.id === "string" ? body.id : "";
+      const ten = typeof body.ten === "string" ? body.ten : "";
+      if (!id || !ten.trim()) {
+        return NextResponse.json(
+          { ok: false, error: "Thiếu yêu cầu hoặc tên danh mục." },
+          { status: 400 },
+        );
+      }
+      const aliasTuKhoa =
+        typeof body.aliasTuKhoa === "string" ? body.aliasTuKhoa : ten;
+      const conflict = await tenAliasXungDot(aliasTuKhoa);
+      if (conflict) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: `Từ khóa đã thuộc «${conflict}» — đổi alias hoặc gộp vào mục đó.`,
+          },
+          { status: 409 },
+        );
+      }
+      const row = await createShopDanhMuc({
+        ten,
+        slug: typeof body.slug === "string" ? body.slug : undefined,
+        moTa: typeof body.moTa === "string" ? body.moTa : null,
+        idCha: typeof body.idCha === "string" ? body.idCha : null,
+        thuTu: typeof body.thuTu === "number" ? body.thuTu : 100,
+        nganhHang: "merch",
+      });
+      const gan = await ganYeuCauVaoDanhMuc({
+        id,
+        idDanhMuc: row.id,
+        trangThai: "da_tao",
+        aliasTuKhoa:
+          typeof body.aliasTuKhoa === "string" ? body.aliasTuKhoa : null,
+      });
+      return NextResponse.json({ ok: true, row, ...gan });
+    }
+
+    if (action === "gop-vao") {
+      const id = typeof body.id === "string" ? body.id : "";
+      const idDanhMuc =
+        typeof body.idDanhMuc === "string" ? body.idDanhMuc : "";
+      if (!id || !idDanhMuc) {
+        return NextResponse.json(
+          { ok: false, error: "Thiếu yêu cầu hoặc danh mục đích." },
+          { status: 400 },
+        );
+      }
+      const gan = await ganYeuCauVaoDanhMuc({
+        id,
+        idDanhMuc,
+        trangThai: "gop_alias",
+        aliasTuKhoa:
+          typeof body.aliasTuKhoa === "string" ? body.aliasTuKhoa : null,
+      });
+      return NextResponse.json({ ok: true, ...gan });
+    }
+
     if (action === "xu-ly-yeu-cau") {
       const id = typeof body.id === "string" ? body.id : "";
       const trangThai = body.trangThai;
@@ -117,13 +185,26 @@ export async function POST(request: Request) {
     );
   } catch (err) {
     const msg = err instanceof Error ? err.message : "";
-    if (msg === "LY_DO_REQUIRED") {
+    if (msg === "YEU_CAU_FAILED") {
       return NextResponse.json(
-        { ok: false, error: "Cần lý do khi từ chối." },
-        { status: 400 },
+        { ok: false, error: "Không từ chối được yêu cầu. Thử lại." },
+        { status: 500 },
       );
     }
+    const clientMsg =
+      msg.includes("Từ khóa") ||
+      msg.includes("Cấp cha") ||
+      msg.includes("Tên") ||
+      msg.includes("Slug") ||
+      msg.includes("Không tìm") ||
+      msg.includes("đã được xử lý") ||
+      msg.includes("Không gộp") ||
+      msg.includes("Chỉ gán") ||
+      msg.includes("đang ẩn");
     const message = err instanceof Error ? err.message : "Lỗi không xác định.";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: message },
+      { status: clientMsg ? 422 : 500 },
+    );
   }
 }

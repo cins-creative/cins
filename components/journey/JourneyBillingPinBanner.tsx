@@ -60,7 +60,7 @@ export function JourneyBillingPinBanner({
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch("/api/tai-khoan/thanh-toan", {
+        const res = await fetch("/api/account/billing", {
           cache: "no-store",
         });
         if (!res.ok || cancelled) return;
@@ -99,7 +99,7 @@ export function JourneyBillingPinBanner({
           ) : null}
         </p>
       </div>
-      <Link href="/tai-khoan/thanh-toan" className="j-billing-pin-cta">
+      <Link href="/account/billing" className="j-billing-pin-cta">
         Thanh toán
       </Link>
     </aside>

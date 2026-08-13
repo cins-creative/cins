@@ -129,7 +129,7 @@ export function CongDongCreateForm() {
 
     startTransition(async () => {
       try {
-        const res = await fetch("/api/to-chuc", {
+        const res = await fetch("/api/organizations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -152,7 +152,7 @@ export function CongDongCreateForm() {
           setErr(json?.error ?? "Không tạo được cộng đồng.");
           return;
         }
-        router.push(`/cong-dong/${json.slug}`);
+        router.push(`/community/${json.slug}`);
         router.refresh();
       } catch {
         setErr("Lỗi mạng — thử lại sau.");
@@ -386,7 +386,7 @@ export function CongDongCreateForm() {
         </details>
 
         <div className="ttc-actions">
-          <Link href="/cong-dong" className="ttc-btn ttc-btn-ghost" prefetch={false}>
+          <Link href="/community" className="ttc-btn ttc-btn-ghost" prefetch={false}>
             <ArrowLeft size={17} aria-hidden />
             Quay lại
           </Link>

@@ -107,7 +107,7 @@ export function PhiQuanLyClient({ orgId }: Props) {
     setLoading(true);
     setErr(null);
     try {
-      const res = await fetch(`/api/co-so/${orgId}/phi`, { cache: "no-store" });
+      const res = await fetch(`/api/academy/${orgId}/fees`, { cache: "no-store" });
       const json = (await res.json().catch(() => null)) as {
         gate?: Gate;
         kys?: KyRow[];
@@ -134,7 +134,7 @@ export function PhiQuanLyClient({ orgId }: Props) {
 
   const loadKn = useCallback(async () => {
     try {
-      const res = await fetch(`/api/co-so/${orgId}/phi/khieu-nai`, {
+      const res = await fetch(`/api/academy/${orgId}/fees/complaints`, {
         cache: "no-store",
       });
       if (res.status === 403) {
@@ -163,7 +163,7 @@ export function PhiQuanLyClient({ orgId }: Props) {
     setKnBusy(true);
     setKnMsg(null);
     try {
-      const res = await fetch(`/api/co-so/${orgId}/phi/khieu-nai`, {
+      const res = await fetch(`/api/academy/${orgId}/fees/complaints`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -204,7 +204,7 @@ export function PhiQuanLyClient({ orgId }: Props) {
     setTuKhaiBusy(true);
     setTuKhaiMsg(null);
     try {
-      const res = await fetch(`/api/co-so/${orgId}/phi/tu-khai-da-tra`, {
+      const res = await fetch(`/api/academy/${orgId}/fees/paid-declarations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ kyId }),

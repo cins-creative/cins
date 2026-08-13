@@ -57,14 +57,14 @@ export function CongDongGroupSettingsPanel({
     setErr(null);
     startTransition(async () => {
       const [catRes, lvRes] = await Promise.all([
-        fetch(`/api/cong-dong/${orgId}/categories`, {
+        fetch(`/api/community/${orgId}/categories`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             articleIds: draftCategories.map((c) => c.id),
           }),
         }),
-        fetch(`/api/cong-dong/${orgId}/linh-vuc`, {
+        fetch(`/api/community/${orgId}/fields`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

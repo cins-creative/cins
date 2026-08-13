@@ -68,7 +68,7 @@ const NAV: ReadonlyArray<{ id: HelpSection; label: string }> = [
 ];
 
 /** URL công khai nộp Google OAuth / đối tác — tránh `&` trên path. */
-const TERMS_PATH = "/termandservice";
+const TERMS_PATH = "/terms";
 const TERMS_PUBLIC_URL = "https://cins.vn/termandservice";
 
 const DIFF_LAYERS: ReadonlyArray<{
@@ -274,12 +274,12 @@ const ACCOUNT_TIPS: ReadonlyArray<{
 type Props = {
   open: boolean;
   onClose: () => void;
-  /** Tab mặc định khi mở — deep-link `/ho-tro/huong-dan…`. */
+  /** Tab mặc định khi mở — deep-link `/support/guides…`. */
   initialMode?: HelpMode;
   initialNhomSlug?: string | null;
   initialPhienSlug?: string | null;
   guideCatalog?: HuongDanCatalogPublic;
-  /** Đồng bộ URL khi đổi tab / nhóm (trang `/ho-tro`). Phần nội dung không có URL. */
+  /** Đồng bộ URL khi đổi tab / nhóm (trang `/support`). Phần nội dung không có URL. */
   syncUrl?: boolean;
   /** Admin / super_admin — cho phép tạo·sửa hướng dẫn trong modal. */
   isCinsAdmin?: boolean;
@@ -315,7 +315,7 @@ export function HelpCenterModal({
   function replaceUrl(nextMode: HelpMode, nhom: string | null) {
     if (!syncUrl) return;
     if (nextMode === "help") {
-      router.replace("/ho-tro");
+      router.replace("/support");
       return;
     }
     router.replace(huongDanHref(nhom));

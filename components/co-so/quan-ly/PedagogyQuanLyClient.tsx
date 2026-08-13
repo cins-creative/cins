@@ -43,7 +43,7 @@ export function PedagogyQuanLyClient({ orgId }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/co-so/${orgId}/nop-bai`, {
+      const res = await fetch(`/api/academy/${orgId}/submissions`, {
         credentials: "include",
       });
       const data = await res.json();
@@ -70,7 +70,7 @@ export function PedagogyQuanLyClient({ orgId }: Props) {
     setFlash(null);
     setError(null);
     try {
-      const res = await fetch(`/api/co-so/${orgId}/nop-bai`, {
+      const res = await fetch(`/api/academy/${orgId}/submissions`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

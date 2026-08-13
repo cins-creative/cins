@@ -147,7 +147,7 @@ function callPopupFeatures(): string {
 }
 
 /**
- * Desktop: mở popup window `/chat/goi` (kiểu Messenger). Mobile/compact: trả compact để caller dùng fullscreen portal.
+ * Desktop: mở popup window `/chat/calls` (kiểu Messenger). Mobile/compact: trả compact để caller dùng fullscreen portal.
  */
 export function openCallWindow(input: OpenCallWindowInput): OpenCallWindowResult {
   const sid = input.sid?.trim() || newSid();
@@ -166,7 +166,7 @@ export function openCallWindow(input: OpenCallWindowInput): OpenCallWindowResult
     return { ok: false, sid, reason: "compact" };
   }
 
-  const url = `/chat/goi?sid=${encodeURIComponent(sid)}`;
+  const url = `/chat/calls?sid=${encodeURIComponent(sid)}`;
   const name = `cins-call-${input.roomId.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 48)}`;
   let win = OPEN_WINDOWS.get(input.roomId);
   if (win && !win.closed) {

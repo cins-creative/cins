@@ -105,7 +105,7 @@ export async function updateOrgBaiDangClient(
 
   const res = await truongInlineFetch(
     input.orgId,
-    `/bai-dang/${encodeURIComponent(input.baiDangId)}`,
+    `/posts/${encodeURIComponent(input.baiDangId)}`,
     {
       method: "PATCH",
       body: JSON.stringify({
@@ -151,7 +151,7 @@ export async function publishOrgBaiDangClient(
   const tom_tat = contentCheck.resolution.effectiveMoTa;
 
   const statusPayload = resolveTrangThaiPayload(input);
-  const res = await truongInlineFetch(input.orgId, "/bai-dang", {
+  const res = await truongInlineFetch(input.orgId, "/posts", {
     method: "POST",
     body: JSON.stringify({
       tieu_de,

@@ -18,6 +18,7 @@ import {
   normalizeGroupVaiTro,
 } from "@/lib/chat/group-roles";
 import { isCloudflareImageId } from "@/lib/chat/image-url";
+import { countUnreadMentions } from "@/lib/chat/mentions";
 import {
   assertCanDirectMessage,
   assertRoomMember,
@@ -27,7 +28,7 @@ import {
   messagePreview,
   type MessageRow,
 } from "@/lib/chat/direct-message";
-import { countUnreadMentions } from "@/lib/chat/mentions";
+import { parseChatChaoLop } from "@/lib/chat/chao-lop-notice";
 import { getAvatarUrl, getGiaiDoanLabel } from "@/lib/journey/profile";
 import { listFriends } from "@/lib/social/ket-ban";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -346,14 +347,19 @@ export async function getGroupThread(
     .map((id) => profiles.get(id))
     .filter(Boolean) as ProfileRow[];
 
-  const { data: lastMessage } = await admin
+  const { data: recent } = await admin
     .from("chat_tin_nhan")
     .select(MESSAGE_SELECT)
     .eq("id_phong", roomId)
     .eq("da_xoa", false)
     .order("tao_luc", { ascending: false })
-    .limit(1)
-    .maybeSingle<MessageRow>();
+    .limit(8)
+    .returns<MessageRow[]>();
+  const lastMessage =
+    (recent ?? []).find(
+      (msg) =>
+        !parseChatChaoLop(msg.ngu_canh) || msg.id_nguoi_gui === viewerId,
+    ) ?? null;
 
   const unread = await countUnreadInRoom(roomId, viewerId);
   const unreadMentions = await countUnreadMentionsInRoom(roomId, viewerId);
@@ -451,6 +457,13 @@ export async function listGroupThreads(viewerId: string): Promise<ChatThread[]> 
 
   const lastByRoom = new Map<string, MessageRow>();
   for (const msg of messages ?? []) {
+    /* Chao_lop chỉ của HV được chào — không đẩy preview/lastAt lên người khác. */
+    if (
+      parseChatChaoLop(msg.ngu_canh) &&
+      msg.id_nguoi_gui !== viewerId
+    ) {
+      continue;
+    }
     if (!lastByRoom.has(msg.id_phong)) {
       lastByRoom.set(msg.id_phong, msg);
     }
@@ -458,28 +471,14 @@ export async function listGroupThreads(viewerId: string): Promise<ChatThread[]> 
 
   const { data: reads } = await admin
     .from("chat_da_doc")
-    .select("id_phong, id_tin_nhan_cuoi_doc")
+    .select("id_phong, cap_nhat_luc")
     .eq("id_nguoi_dung", viewerId)
     .in("id_phong", roomIds);
 
-  const readMessageIds = [...new Set((reads ?? []).map((r) => r.id_tin_nhan_cuoi_doc))];
   const readAtByRoom = new Map<string, string>();
-
-  if (readMessageIds.length > 0) {
-    const { data: readMessages } = await admin
-      .from("chat_tin_nhan")
-      .select("id, tao_luc")
-      .in("id", readMessageIds)
-      .returns<Array<{ id: string; tao_luc: string }>>();
-
-    const readAtByMessageId = new Map(
-      (readMessages ?? []).map((row) => [row.id, row.tao_luc]),
-    );
-
-    for (const read of reads ?? []) {
-      const readAt = readAtByMessageId.get(read.id_tin_nhan_cuoi_doc);
-      if (readAt) readAtByRoom.set(read.id_phong, readAt);
-    }
+  for (const read of reads ?? []) {
+    const luc = (read as { cap_nhat_luc?: string }).cap_nhat_luc;
+    if (luc) readAtByRoom.set(read.id_phong as string, luc);
   }
 
   const threads: ChatThread[] = [];
@@ -500,7 +499,9 @@ export async function listGroupThreads(viewerId: string): Promise<ChatThread[]> 
     const roomMessages = (messages ?? []).filter((msg) => msg.id_phong === room.id);
     const unread = roomMessages.filter(
       (msg) =>
-        msg.id_nguoi_gui !== viewerId && (!readAt || msg.tao_luc > readAt),
+        msg.id_nguoi_gui !== viewerId &&
+        (!readAt || msg.tao_luc > readAt) &&
+        parseChatChaoLop(msg.ngu_canh) == null,
     ).length;
     const unreadMentions = countUnreadMentions(roomMessages, viewerId, readAt);
 

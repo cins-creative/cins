@@ -14,7 +14,7 @@ export function QuanLyKhoList({ items }: { items: QuanLyKhoItem[] }) {
       {items.map((it) => (
         <Link
           key={it.bienTheId}
-          href="/ban-hang/kho"
+          href="/seller/inventory"
           className={`ha-kho-row ha-kho-row--${it.mucDo}`}
           prefetch={false}
         >

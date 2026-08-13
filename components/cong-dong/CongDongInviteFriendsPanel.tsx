@@ -21,7 +21,7 @@ export function CongDongInviteFriendsPanel({ orgId, onDone }: Props) {
     setLoading(true);
     setError(null);
     void (async () => {
-      const res = await fetch(`/api/cong-dong/${encodeURIComponent(orgId)}/invite`, {
+      const res = await fetch(`/api/community/${encodeURIComponent(orgId)}/invite`, {
         cache: "no-store",
       });
       const json = (await res.json().catch(() => null)) as {
@@ -73,7 +73,7 @@ export function CongDongInviteFriendsPanel({ orgId, onDone }: Props) {
     if (selected.size === 0) return;
     startTransition(async () => {
       setError(null);
-      const res = await fetch(`/api/cong-dong/${encodeURIComponent(orgId)}/invite`, {
+      const res = await fetch(`/api/community/${encodeURIComponent(orgId)}/invite`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userIds: [...selected] }),

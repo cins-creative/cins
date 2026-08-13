@@ -53,32 +53,32 @@ const TAB_COPY: Record<
   { href: string; label: string; shortLabel: string }
 > = {
   kho: {
-    href: "/ban-hang/kho",
+    href: "/seller/inventory",
     label: "Kho hàng",
     shortLabel: "Kho",
   },
   don: {
-    href: "/ban-hang/don",
+    href: "/seller/orders",
     label: "Đơn hàng",
     shortLabel: "Đơn",
   },
   "su-kien": {
-    href: "/ban-hang/su-kien",
+    href: "/seller/events",
     label: "Sự kiện",
     shortLabel: "Sự kiện",
   },
   "cua-hang": {
-    href: "/ban-hang/cua-hang",
+    href: "/seller/store",
     label: "Quản lý cửa hàng",
     shortLabel: "Cửa hàng",
   },
   "bao-cao": {
-    href: "/ban-hang/bao-cao",
+    href: "/seller/reports",
     label: "Báo cáo doanh thu",
     shortLabel: "Báo cáo",
   },
   "uu-dai": {
-    href: "/ban-hang/uu-dai",
+    href: "/seller/promotions",
     label: "Combo & Voucher",
     shortLabel: "Ưu đãi",
   },
@@ -178,7 +178,7 @@ function ShopVisibleToggle() {
     setSaving(true);
     setErr(null);
     try {
-      const res = await fetch("/api/user/ban-hang", {
+      const res = await fetch("/api/user/seller", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ shopVisible: nextVisible }),
@@ -350,7 +350,7 @@ function ShopTamDongToggle() {
     setSaving(true);
     setErr(null);
     try {
-      const res = await fetch("/api/shop/cua-hang", {
+      const res = await fetch("/api/shop/store", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(patch),
@@ -621,7 +621,7 @@ export function ShopDashTabs({
         /* Entry path — server redirect sang shopSlug; fallback nếu fetch shop fail. */
         setShopHref(shopEntryHref(slug));
         try {
-          const shopRes = await fetch("/api/shop/cua-hang", { cache: "no-store" });
+          const shopRes = await fetch("/api/shop/store", { cache: "no-store" });
           const shopJson = (await shopRes.json().catch(() => null)) as {
             shop?: { ten?: string | null } | null;
           } | null;

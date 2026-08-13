@@ -178,7 +178,7 @@ export function ShopGioChungButton() {
     setLoading(true);
     setErr(null);
     try {
-      const res = await fetch("/api/shop/gio-chung", { cache: "no-store" });
+      const res = await fetch("/api/shop/shared-cart", { cache: "no-store" });
       const json = (await res.json().catch(() => null)) as {
         gio?: ShopGioChung;
         error?: string;
@@ -278,7 +278,7 @@ export function ShopGioChungButton() {
     pendingQtyRef.current.delete(idBienThe);
     const epoch = qtyEpochRef.current.get(idBienThe) ?? 0;
     try {
-      const res = await fetch("/api/shop/gio-chung", {
+      const res = await fetch("/api/shop/shared-cart", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idBienThe, soLuong }),
@@ -700,7 +700,7 @@ function GioChungComboBlock({ group }: { group: ShopGioChungNhom }) {
   useEffect(() => {
     let cancelled = false;
     void fetch(
-      `/api/shop/combo/cong-khai?sellerId=${encodeURIComponent(group.idNguoiBan)}`,
+      `/api/shop/combos/public?sellerId=${encodeURIComponent(group.idNguoiBan)}`,
       { cache: "no-store" },
     )
       .then((r) => (r.ok ? r.json() : null))
@@ -935,7 +935,7 @@ function ShopGioChungGroup({
     }
     let alive = true;
     setPxLoading(true);
-    fetch(`/api/vn/phuong-xa?tinh=${encodeURIComponent(tinh)}`, {
+    fetch(`/api/vn/wards?tinh=${encodeURIComponent(tinh)}`, {
       cache: "force-cache",
     })
       .then((r) => r.json())
@@ -998,8 +998,8 @@ function ShopGioChungGroup({
       };
       const res = await fetch(
         dcEditId
-          ? `/api/shop/dia-chi-nhan/${dcEditId}`
-          : "/api/shop/dia-chi-nhan",
+          ? `/api/shop/shipping-addresses/${dcEditId}`
+          : "/api/shop/shipping-addresses",
         {
           method: dcEditId ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
@@ -1039,7 +1039,7 @@ function ShopGioChungGroup({
   const deleteDiaChi = useCallback(
     async (id: string) => {
       try {
-        const res = await fetch(`/api/shop/dia-chi-nhan/${id}`, {
+        const res = await fetch(`/api/shop/shipping-addresses/${id}`, {
           method: "DELETE",
         });
         if (res.ok) await refetchDiaChi();
@@ -1142,7 +1142,7 @@ function ShopGioChungGroup({
     setPayErr(null);
     try {
       const res = await fetch(
-        `/api/shop/cua-hang/thanh-toan?sellerId=${encodeURIComponent(group.idNguoiBan)}`,
+        `/api/shop/store/checkout?sellerId=${encodeURIComponent(group.idNguoiBan)}`,
         { cache: "no-store" },
       );
       const json = (await res.json().catch(() => null)) as {
@@ -1193,10 +1193,10 @@ function ShopGioChungGroup({
       try {
         const [coRes, viRes] = await Promise.all([
           fetch(
-            `/api/shop/voucher/co-dang-chay?sellerId=${encodeURIComponent(group.idNguoiBan)}`,
+            `/api/shop/vouchers/active?sellerId=${encodeURIComponent(group.idNguoiBan)}`,
             { cache: "no-store" },
           ),
-          fetch("/api/shop/voucher/vi", { cache: "no-store" }),
+          fetch("/api/shop/vouchers/wallet", { cache: "no-store" }),
         ]);
         if (!alive) return;
         const coJson = (await coRes.json().catch(() => null)) as {
@@ -1254,7 +1254,7 @@ function ShopGioChungGroup({
       setVoucherChecking(true);
       setVoucherErr(null);
       try {
-        const res = await fetch("/api/shop/voucher/kiem-tra", {
+        const res = await fetch("/api/shop/vouchers/validate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sellerId: group.idNguoiBan, ma }),
@@ -1305,7 +1305,7 @@ function ShopGioChungGroup({
     setSending(true);
     setErr(null);
     try {
-      const res = await fetch("/api/shop/gio-chung/don", {
+      const res = await fetch("/api/shop/shared-cart/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

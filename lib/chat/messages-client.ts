@@ -42,3 +42,22 @@ export async function fetchRoomMessagesPage(
     return null;
   }
 }
+
+/** Đánh dấu đã xem phòng — server lấy tin mới nhất, không tin cursor client cũ. */
+export async function markRoomReadClient(
+  roomId: string,
+  lastMessageId?: string,
+): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/chat/rooms/${roomId}/read`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(
+        lastMessageId ? { id_tin_nhan_cuoi: lastMessageId } : {},
+      ),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}

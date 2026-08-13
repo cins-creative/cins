@@ -1,9 +1,12 @@
-/** Client-safe taxonomy payload cho hub `/cua-hang`. */
+/** Client-safe taxonomy payload cho hub `/shopping`. */
 
 export type HubDanhMucChip = {
   slug: string;
   ten: string;
   thuTu: number;
+  chaSlug: string | null;
+  chaTen: string | null;
+  chaThuTu: number | null;
 };
 
 export type HubFacetGiaTri = {

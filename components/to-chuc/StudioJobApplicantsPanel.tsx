@@ -40,7 +40,7 @@ export function StudioJobApplicantsPanel({
     setLoading(true);
     setError(null);
 
-    fetch(`/api/studio/tuyen-dung/${jobId}/ung-vien`, {
+    fetch(`/api/studio/jobs/${jobId}/candidates`, {
       credentials: "same-origin",
       cache: "no-store",
       signal: controller.signal,

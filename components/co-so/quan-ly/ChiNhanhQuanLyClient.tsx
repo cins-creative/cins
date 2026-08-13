@@ -37,7 +37,7 @@ async function uploadBranchCover(
     process.env.NEXT_PUBLIC_ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN?.trim();
   const headers: HeadersInit = {};
   if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`/api/truong/${encodeURIComponent(orgId)}/upload`, {
+  const res = await fetch(`/api/university/${encodeURIComponent(orgId)}/upload`, {
     method: "POST",
     body: form,
     headers,
@@ -154,7 +154,7 @@ export function ChiNhanhQuanLyClient({ orgId }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/co-so/${orgId}/chi-nhanh`, {
+      const res = await fetch(`/api/academy/${orgId}/branches`, {
         credentials: "include",
       });
       const data = await res.json();
@@ -223,7 +223,7 @@ export function ChiNhanhQuanLyClient({ orgId }: Props) {
     setError(null);
     try {
       if (isCreating) {
-        const res = await fetch(`/api/co-so/${orgId}/chi-nhanh`, {
+        const res = await fetch(`/api/academy/${orgId}/branches`, {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
@@ -240,7 +240,7 @@ export function ChiNhanhQuanLyClient({ orgId }: Props) {
         if (!res.ok) throw new Error(data.error || "Không tạo.");
         setFlash("Đã thêm — đồng bộ trang cơ sở.");
       } else {
-        const res = await fetch(`/api/co-so/${orgId}/chi-nhanh`, {
+        const res = await fetch(`/api/academy/${orgId}/branches`, {
           method: "PATCH",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
@@ -271,7 +271,7 @@ export function ChiNhanhQuanLyClient({ orgId }: Props) {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/co-so/${orgId}/chi-nhanh`, {
+      const res = await fetch(`/api/academy/${orgId}/branches`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

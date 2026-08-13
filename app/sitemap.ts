@@ -19,9 +19,9 @@ const STATIC_HUBS: ReadonlyArray<{
   { path: NGANH_HOC_HUB_PATH, changeFrequency: "weekly", priority: 0.9 },
   { path: TO_CHUC_HUB_PATH, changeFrequency: "weekly", priority: 0.8 },
   { path: TIM_KHOA_HOC_HUB_PATH, changeFrequency: "weekly", priority: 0.8 },
-  { path: "/ho-tro", changeFrequency: "monthly", priority: 0.4 },
-  { path: "/ho-tro/huong-dan", changeFrequency: "weekly", priority: 0.45 },
-  { path: "/termandservice", changeFrequency: "yearly", priority: 0.2 },
+  { path: "/support", changeFrequency: "monthly", priority: 0.4 },
+  { path: "/support/guides", changeFrequency: "weekly", priority: 0.45 },
+  { path: "/terms", changeFrequency: "yearly", priority: 0.2 },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

@@ -272,7 +272,7 @@ export function CongDongNotifySidebar({
   const loadSuKien = useCallback(async () => {
     try {
       const res = await fetch(
-        `/api/org/${encodeURIComponent(orgId)}/su-kien`,
+        `/api/org/${encodeURIComponent(orgId)}/events`,
         { credentials: "include" },
       );
       const data = (await res.json()) as { suKien?: SuKienCardData[] };

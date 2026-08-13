@@ -55,6 +55,7 @@ import {
   isChiChuNenId,
 } from "@/lib/journey/plain-text-bg";
 import { markEngagementCanTinhLaiForTarget } from "@/lib/cins/feed-scoring-write";
+import { RESERVED_TOP_SEGMENTS } from "@/lib/navigation/hard-nav";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { notifyMilestoneComment } from "@/lib/social/follow";
 import { TINH_THANH_CODE_SET } from "@/lib/truong/contact";
@@ -68,36 +69,24 @@ const GIAI_DOAN_VALID = new Set<GiaiDoan>([
 ]);
 
 const SLUG_RE = /^[a-z0-9_-]+$/;
+
+/**
+ * Slug người dùng không được trùng segment top-level của app.
+ * Lấy từ `RESERVED_TOP_SEGMENTS` (đã gồm cả tên tiếng Việt cũ còn redirect)
+ * cộng thêm vài tên nhạy cảm không phải route.
+ */
 const RESERVED_SLUGS = new Set<string>([
-  "admin",
-  "api",
-  "auth",
-  "login",
+  ...RESERVED_TOP_SEGMENTS,
   "logout",
-  "onboarding",
-  "maintenance",
   "settings",
-  "chat",
-  "bai-viet",
-  "nghe-nghiep",
-  "co-so-dao-tao",
-  "nganh-hoc",
-  "truong-dai-hoc",
-  "software",
-  "phan-mem",
-  "keyword",
-  "search",
-  "s",
   "gallery",
   "invite",
   "verify",
-  "termandservice",
+  "phan-mem",
   "term-and-service",
   "dieu-khoan",
-  "terms",
   "terms-of-service",
   "chinh-sach-rieng-tu",
-  "thong-tin-du-an",
 ]);
 
 export type { ActionResult } from "@/lib/journey/action-result";

@@ -42,7 +42,7 @@ export function normalizeVanChuyenDvvc(raw: unknown): string | null {
   return trimmed;
 }
 
-/** URL tra cứu công khai theo ĐVVC + mã (buyer mở tab mới). */
+/** URL trang tra cứu ĐVVC — không gắn mã; khách copy mã rồi dán trên trang đó. */
 export function buildTheoDoiUrl(
   dvvc: string | null | undefined,
   ma: string | null | undefined,
@@ -50,24 +50,23 @@ export function buildTheoDoiUrl(
   const code = ma?.trim();
   const carrier = dvvc?.trim();
   if (!code || !carrier) return null;
-  const enc = encodeURIComponent(code);
   switch (carrier) {
     case "ViettelPost":
-      return `https://www.viettelpost.com.vn/Tracking2?KEY=${enc}`;
+      return "https://viettelpost.com.vn/tra-cuu-hanh-trinh-don/";
     case "GHN":
-      return `https://donhang.ghn.vn/?order_code=${enc}`;
+      return "https://donhang.ghn.vn/";
     case "GHTK":
-      return `https://i.ghtk.vn/${enc}`;
+      return "https://i.ghtk.vn/";
     case "J&T":
-      return `https://jtexpress.vn/vi/tracking?type=track&billcode=${enc}`;
+      return "https://jtexpress.vn/vi/tracking";
     case "SPX":
-      return `https://spx.vn/track?id=${enc}`;
+      return "https://spx.vn/track";
     case "Ninja Van":
-      return `https://www.ninjavan.co/vi-vn/tracking?id=${enc}`;
+      return "https://www.ninjavan.co/vi-vn/tracking";
     case "Ahamove":
-      return `https://app.ahamove.com/`;
+      return "https://app.ahamove.com/";
     case "Grab":
-      return `https://www.grab.com/vn/`;
+      return "https://www.grab.com/vn/";
     case "Khác":
       return null;
     default:

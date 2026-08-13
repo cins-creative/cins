@@ -92,7 +92,7 @@ export function TruongTabTuyensinh({ school: schoolProp, tuyenSinh: tuyenProp }:
         phuongThuc: r.phuongThuc.filter((p) => p.id !== pt.id),
       })),
     );
-    const res = await truongInlineFetch(ctx.orgId, `/phuong-thuc/${pt.id}`, {
+    const res = await truongInlineFetch(ctx.orgId, `/admission-methods/${pt.id}`, {
       method: "DELETE",
     });
     if (!res.ok) {

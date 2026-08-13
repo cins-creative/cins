@@ -39,13 +39,13 @@ export type AdminInboxCountKey = (typeof COUNT_KEYS)[number];
 
 /** Nav href → hàng đợi cần duyệt / xử lý. */
 export const ADMIN_NAV_INBOX_KEY: Record<string, AdminInboxCountKey> = {
-  "/admin/bao-cao": "baoCao",
-  "/admin/gop-y": "gopY",
-  "/admin/bai-viet": "dongGop",
-  "/admin/noi-dung-dang": "noiDungChoXacThuc",
+  "/admin/reports": "baoCao",
+  "/admin/feedback": "gopY",
+  "/admin/articles": "dongGop",
+  "/admin/content": "noiDungChoXacThuc",
   "/admin/mo-shop": "moShop",
-  "/admin/tranh-chap": "tranhChap",
-  "/admin/danh-muc": "danhMuc",
+  "/admin/disputes": "tranhChap",
+  "/admin/catalog": "danhMuc",
   "/admin/tai-khoan-ai": "nickSeeding",
 };
 

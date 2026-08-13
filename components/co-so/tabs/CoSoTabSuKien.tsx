@@ -106,7 +106,7 @@ export function CoSoTabSuKien({
     setLoading(true);
     setLoadError(null);
 
-    fetch(`/api/org/${encodeURIComponent(orgId)}/su-kien`, {
+    fetch(`/api/org/${encodeURIComponent(orgId)}/events`, {
       credentials: "include",
     })
       .then(async (res) => {
@@ -181,7 +181,7 @@ export function CoSoTabSuKien({
     setDeletingId(suKien.id);
     try {
       const res = await fetch(
-        `/api/org/${encodeURIComponent(orgId)}/su-kien/${encodeURIComponent(suKien.id)}`,
+        `/api/org/${encodeURIComponent(orgId)}/events/${encodeURIComponent(suKien.id)}`,
         { method: "DELETE", credentials: "include" },
       );
       if (res.ok) {

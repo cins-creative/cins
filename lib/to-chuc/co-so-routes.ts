@@ -10,7 +10,7 @@ export function isCoSoTabId(value: string): value is CoSoTabId {
 }
 
 export function coSoRootPath(orgSlug: string): string {
-  return `/co-so/${encodeURIComponent(orgSlug)}`;
+  return `/academy/${encodeURIComponent(orgSlug)}`;
 }
 
 export function coSoTabPath(orgSlug: string, tab: CoSoTabId): string {
@@ -21,7 +21,7 @@ export function coSoKhoaHocDetailPath(orgSlug: string, khoaSlug: string): string
   return `${coSoRootPath(orgSlug)}/khoa-hoc/${encodeURIComponent(khoaSlug)}`;
 }
 
-/** URL sâu tới một tin tuyển dụng: `/co-so/:slug/tuyen-dung/:jobId`. */
+/** URL sâu tới một tin tuyển dụng: `/academy/:slug/jobs/:jobId`. */
 export function coSoBaiDangPostPath(orgSlug: string, baiDangId: string): string {
   return `${coSoTabPath(orgSlug, "bai-dang")}/${encodeURIComponent(baiDangId)}`;
 }
@@ -30,7 +30,7 @@ export function coSoJobPath(orgSlug: string, jobId: string): string {
   return `${coSoTabPath(orgSlug, "tuyen-dung")}/${encodeURIComponent(jobId)}`;
 }
 
-/** URL sâu tới một sự kiện: `/co-so/:slug/su-kien/:suKienId`. */
+/** URL sâu tới một sự kiện: `/academy/:slug/events/:suKienId`. */
 export function coSoSuKienPath(orgSlug: string, suKienId: string): string {
   return `${coSoTabPath(orgSlug, "su-kien")}/${encodeURIComponent(suKienId)}`;
 }
@@ -97,7 +97,7 @@ const DEFAULT_PATH_STATE: CoSoPathState = {
   suKienId: null,
 };
 
-/** Kiểm tra segment URL hợp lệ dưới `/co-so/[slug]/`. */
+/** Kiểm tra segment URL hợp lệ dưới `/academy/[slug]/`. */
 export function validateCoSoSegments(segments: readonly string[]): boolean {
   if (segments.length === 1) {
     return isCoSoTabId(segments[0]);
@@ -170,7 +170,7 @@ export function parseCoSoLayoutSegments(segments: readonly string[]): CoSoPathSt
 /** Parse tab/khóa từ pathname — không phụ thuộc slug org khớp payload. */
 export function parseCoSoRouteFromPathname(pathname: string): CoSoPathState | null {
   const normalizedPath = pathname.split("?")[0].split("#")[0];
-  const prefix = "/co-so/";
+  const prefix = "/academy/";
   if (!normalizedPath.startsWith(prefix)) return null;
 
   const withoutPrefix = normalizedPath.slice(prefix.length);
@@ -192,7 +192,7 @@ export function parseCoSoRouteFromPathname(pathname: string): CoSoPathState | nu
   return parseCoSoLayoutSegments(segments);
 }
 
-/** Parse full pathname `/co-so/:orgSlug/...` → tab + optional khóa slug. */
+/** Parse full pathname `/academy/:orgSlug/...` → tab + optional khóa slug. */
 export function parseCoSoPathname(
   pathname: string,
   orgSlug: string,

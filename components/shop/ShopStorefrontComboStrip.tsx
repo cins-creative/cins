@@ -116,11 +116,11 @@ export function ShopStorefrontComboStrip({
       try {
         const [comboRes, voucherRes] = await Promise.all([
           fetch(
-            `/api/shop/combo/cong-khai?sellerId=${encodeURIComponent(sellerId)}`,
+            `/api/shop/combos/public?sellerId=${encodeURIComponent(sellerId)}`,
             { signal: ac.signal, credentials: "same-origin" },
           ),
           fetch(
-            `/api/shop/voucher/cong-khai?sellerId=${encodeURIComponent(sellerId)}`,
+            `/api/shop/vouchers/public?sellerId=${encodeURIComponent(sellerId)}`,
             { signal: ac.signal, credentials: "same-origin" },
           ),
         ]);

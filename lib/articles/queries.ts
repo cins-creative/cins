@@ -90,7 +90,7 @@ export async function getArticleBySlug(
   }
 }
 
-/** Chi tiết nghề — `article_bai_viet` (hub + `/nghe-nghiep/[slug]`). */
+/** Chi tiết nghề — `article_bai_viet` (hub + `/careers/[slug]`). */
 export async function getNgheArticleBySlug(
   slug: string,
 ): Promise<ArticleBaiViet | null> {
@@ -935,7 +935,7 @@ export async function attachArticleNhomFromGanNhom(
 }
 
 /**
- * Danh sách bài nghề (`loai_bai_viet = nghe`, `published`) cho hub `/nghe-nghiep`.
+ * Danh sách bài nghề (`loai_bai_viet = nghe`, `published`) cho hub `/careers`.
  * Lọc lĩnh vực qua `article_bai_viet.id_linh_vuc` (không qua `article_gan_nhom`).
  */
 /** Đếm số bài nghề đã publish — dùng cho stats (rẻ hơn kéo full rows). */

@@ -19,7 +19,7 @@ export type SuKienQuanLyThanhVien = {
 
 export type SuKienQuanLyPayload = {
   stats: SuKienQuanLyStats;
-  /** Preview facepile (ít avatar) — list đầy đủ qua `/quan-ly/thanh-vien`. */
+  /** Preview facepile (ít avatar) — list đầy đủ qua `/manage/members`. */
   thanhVien: SuKienQuanLyThanhVien[];
 };
 

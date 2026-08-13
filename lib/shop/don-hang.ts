@@ -40,13 +40,14 @@ import type {
   ShopThanhToanSnapshot,
   ShopTrangThaiDon,
 } from "@/lib/shop/types";
-import { SHOP_TRANG_THAI_DON_LABEL } from "@/lib/shop/types";
+import { SHOP_LY_DO_HUY_MAX, SHOP_TRANG_THAI_DON_LABEL } from "@/lib/shop/types";
 import {
   buildTheoDoiUrl,
   normalizeVanChuyenDvvc,
   normalizeVanChuyenMa,
 } from "@/lib/shop/van-chuyen";
 import { getCinsTaiChinh } from "@/lib/cins/tai-chinh-config";
+import { insertSocialThongBao } from "@/lib/social/thong-bao-insert";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { labelTinhThanh } from "@/lib/truong/contact";
 
@@ -75,6 +76,9 @@ type DonRow = {
   huy_luc?: string | null;
   ly_do_huy?: string | null;
   huy_boi?: string | null;
+  yeu_cau_huy_luc?: string | null;
+  yeu_cau_huy_ly_do?: string | null;
+  yeu_cau_huy_boi?: string | null;
   nguoi_mua_chap_nhan_luc?: string | null;
   nguoi_mua_chap_nhan_van_ban?: string | null;
   nguoi_mua_chap_nhan_phien_ban?: string | null;
@@ -100,7 +104,7 @@ type DonRow = {
 };
 
 const DON_SELECT =
-  "id, ma_don, id_nguoi_mua, id_nguoi_ban, id_cot_moc, id_su_kien, loai_don, trang_thai, tien_te, tong_tien, tong_hang, tien_giam_combo, tien_giam_voucher, id_voucher, giam_snapshot, ghi_chu, da_tru_kho, tao_luc, xac_nhan_luc, hoan_thanh_luc, hoan_thanh_boi, huy_luc, ly_do_huy, huy_boi, nguoi_mua_chap_nhan_luc, nguoi_mua_chap_nhan_van_ban, nguoi_mua_chap_nhan_phien_ban, thanh_toan_snapshot, bien_lai_anh_url, bien_lai_anh_id, mua_ho_ten, mua_so_dien_thoai, mua_dia_chi, mua_phuong_xa, mua_phuong_xa_code, mua_tinh_thanh, hinh_thuc_giao, van_chuyen_link, van_chuyen_ma, van_chuyen_dvvc, khao_sat_luc, khao_sat_tra_loi, so_lan_hoan_chua_nhan, hoan_khao_sat_den, dong_tu_dong_luc, dong_boi";
+  "id, ma_don, id_nguoi_mua, id_nguoi_ban, id_cot_moc, id_su_kien, loai_don, trang_thai, tien_te, tong_tien, tong_hang, tien_giam_combo, tien_giam_voucher, id_voucher, giam_snapshot, ghi_chu, da_tru_kho, tao_luc, xac_nhan_luc, hoan_thanh_luc, hoan_thanh_boi, huy_luc, ly_do_huy, huy_boi, yeu_cau_huy_luc, yeu_cau_huy_ly_do, yeu_cau_huy_boi, nguoi_mua_chap_nhan_luc, nguoi_mua_chap_nhan_van_ban, nguoi_mua_chap_nhan_phien_ban, thanh_toan_snapshot, bien_lai_anh_url, bien_lai_anh_id, mua_ho_ten, mua_so_dien_thoai, mua_dia_chi, mua_phuong_xa, mua_phuong_xa_code, mua_tinh_thanh, hinh_thuc_giao, van_chuyen_link, van_chuyen_ma, van_chuyen_dvvc, khao_sat_luc, khao_sat_tra_loi, so_lan_hoan_chua_nhan, hoan_khao_sat_den, dong_tu_dong_luc, dong_boi";
 
 function normalizeThanhToanSnapshot(
   raw: unknown,
@@ -297,6 +301,9 @@ async function attachDong(dons: DonRow[]): Promise<ShopDonHang[]> {
     huyLuc: d.huy_luc ?? null,
     lyDoHuy: d.ly_do_huy ?? null,
     huyBoi: d.huy_boi ?? null,
+    yeuCauHuyLuc: d.yeu_cau_huy_luc ?? null,
+    yeuCauHuyLyDo: d.yeu_cau_huy_ly_do ?? null,
+    yeuCauHuyBoi: d.yeu_cau_huy_boi ?? null,
     nguoiMuaChapNhanLuc: d.nguoi_mua_chap_nhan_luc ?? null,
     nguoiMuaChapNhanVanBan: d.nguoi_mua_chap_nhan_van_ban ?? null,
     nguoiMuaChapNhanPhienBan: d.nguoi_mua_chap_nhan_phien_ban ?? null,
@@ -1049,6 +1056,12 @@ export async function capNhatVanChuyenDonHang(
     (don.trangThai === "da_nhan_tien" || don.trangThai === "cho_lay_hang");
   if (autoGiao) {
     patch.trang_thai = "dang_giao";
+    /* Đơn rời da_nhan_tien → banner yêu cầu hủy không còn nghĩa. */
+    if (don.yeuCauHuyLuc) {
+      patch.yeu_cau_huy_luc = null;
+      patch.yeu_cau_huy_ly_do = null;
+      patch.yeu_cau_huy_boi = null;
+    }
   }
 
   const admin = createServiceRoleClient();
@@ -1250,7 +1263,7 @@ async function restockDon(dong: ShopDonHangDong[]): Promise<void> {
  * Seller hủy đơn `cho_xac_nhan` (→ `huy`) + hoàn kho nếu đã trừ. `lyDo` bắt buộc.
  * Nền tảng KHÔNG tự hủy — chỉ shop quyết định (nền tảng chỉ nhắc qua aging UI).
  *
- * Idempotent: update có điều kiện `trang_thai = 'cho_xac_nhan'`; chỉ winner
+ * Idempotent: update có điều kiện `trang_thai`; chỉ winner
  * (update trúng 1 dòng) mới hoàn kho → không double-restock khi gọi trùng.
  */
 export async function cancelDonHang(
@@ -1266,9 +1279,152 @@ export async function cancelDonHang(
   const reason = lyDo.trim();
   if (!reason) throw new Error("REASON_REQUIRED");
 
+  return applyCancel(don, actorId, reason, ["cho_xac_nhan"]);
+}
+
+/**
+ * Buyer hủy: `cho_xac_nhan` tự hủy; `da_nhan_tien` chỉ khi shop đã gửi yêu cầu.
+ */
+export async function cancelDonHangByBuyer(
+  actorId: string,
+  donId: string,
+  lyDo?: string | null,
+): Promise<ShopDonHang> {
+  const don = await getDonHang(donId);
+  if (!don) throw new Error("NOT_FOUND");
+  if (don.idNguoiMua !== actorId) throw new Error("FORBIDDEN");
+
+  if (don.trangThai === "cho_xac_nhan") {
+    const reason = (lyDo ?? "").trim();
+    if (!reason) throw new Error("REASON_REQUIRED");
+    const updated = await applyCancel(don, actorId, reason, ["cho_xac_nhan"]);
+    await thongBaoHuyDon(updated, don.idNguoiBan, actorId);
+    return updated;
+  }
+
+  if (don.trangThai === "da_nhan_tien") {
+    if (!don.yeuCauHuyLuc) throw new Error("NEED_SHOP_REQUEST");
+    const shopLyDo = don.yeuCauHuyLyDo?.trim() || "Shop yêu cầu hủy";
+    const reason =
+      (lyDo ?? "").trim() || `Shop yêu cầu hủy: ${shopLyDo}`.slice(0, SHOP_LY_DO_HUY_MAX);
+    const updated = await applyCancel(don, actorId, reason, ["da_nhan_tien"]);
+    await thongBaoHuyDon(updated, don.idNguoiBan, actorId);
+    return updated;
+  }
+
+  throw new Error("INVALID_STATE");
+}
+
+/**
+ * Shop nhờ khách hủy đơn `da_nhan_tien`. Buyer mới là người bấm hủy.
+ * Gọi lại khi đã có yêu cầu → cập nhật lý do.
+ */
+export async function yeuCauHuyDonHang(
+  actorId: string,
+  donId: string,
+  lyDo: string,
+): Promise<ShopDonHang> {
+  const don = await getDonHang(donId);
+  if (!don) throw new Error("NOT_FOUND");
+  if (don.idNguoiBan !== actorId) throw new Error("FORBIDDEN");
+  if (don.trangThai !== "da_nhan_tien") throw new Error("INVALID_STATE");
+  if (await donCoKhieuNaiMo(donId)) throw new Error("KHIEU_NAI_MO");
+
+  const reason = lyDo.trim().slice(0, SHOP_LY_DO_HUY_MAX);
+  if (!reason) throw new Error("REASON_REQUIRED");
+
   const admin = createServiceRoleClient();
   const now = new Date().toISOString();
-  /* Cửa đua: chỉ 1 tiến trình flip được cho_xac_nhan → huy. */
+  const { data: rows, error } = await admin
+    .from("shop_don_hang")
+    .update({
+      yeu_cau_huy_luc: now,
+      yeu_cau_huy_ly_do: reason,
+      yeu_cau_huy_boi: actorId,
+      cap_nhat_luc: now,
+    })
+    .eq("id", donId)
+    .eq("trang_thai", "da_nhan_tien")
+    .select("id");
+  if (error) throw new Error("UPDATE_FAILED");
+  if (!rows?.length) throw new Error("INVALID_STATE");
+
+  const updated = await getDonHang(donId);
+  if (!updated) throw new Error("NOT_FOUND");
+
+  await bumpDonHangChatMessage(updated, actorId, "yeu_cau_huy");
+
+  try {
+    await insertSocialThongBao(admin, {
+      nguoi_nhan: don.idNguoiMua,
+      loai: "thong_tin",
+      loai_doi_tuong: "shop_don_hang",
+      id_doi_tuong: don.id,
+      noi_dung: `Shop đề nghị hủy đơn ${don.maDon ?? don.id.slice(0, 8)}: ${reason}. Mở đơn để đồng ý hủy.`,
+    });
+  } catch (e) {
+    console.error("[shop] thongBao yeuCauHuy", e);
+  }
+
+  return updated;
+}
+
+/** Seller rút lại yêu cầu hủy — đơn tiếp tục `da_nhan_tien`. */
+export async function huyYeuCauHuyDonHang(
+  actorId: string,
+  donId: string,
+): Promise<ShopDonHang> {
+  const don = await getDonHang(donId);
+  if (!don) throw new Error("NOT_FOUND");
+  if (don.idNguoiBan !== actorId) throw new Error("FORBIDDEN");
+  if (don.trangThai !== "da_nhan_tien") throw new Error("INVALID_STATE");
+  if (!don.yeuCauHuyLuc) throw new Error("INVALID_STATE");
+
+  const admin = createServiceRoleClient();
+  const now = new Date().toISOString();
+  const { data: rows, error } = await admin
+    .from("shop_don_hang")
+    .update({
+      yeu_cau_huy_luc: null,
+      yeu_cau_huy_ly_do: null,
+      yeu_cau_huy_boi: null,
+      cap_nhat_luc: now,
+    })
+    .eq("id", donId)
+    .eq("trang_thai", "da_nhan_tien")
+    .select("id");
+  if (error) throw new Error("UPDATE_FAILED");
+  if (!rows?.length) throw new Error("INVALID_STATE");
+
+  const updated = await getDonHang(donId);
+  if (!updated) throw new Error("NOT_FOUND");
+  await bumpDonHangChatMessage(updated, actorId, "bo_yeu_cau_huy");
+  return updated;
+}
+
+async function donCoKhieuNaiMo(donId: string): Promise<boolean> {
+  const admin = createServiceRoleClient();
+  const { count } = await admin
+    .from("shop_khieu_nai")
+    .select("id", { count: "exact", head: true })
+    .eq("id_don_hang", donId)
+    .in("trang_thai", ["mo", "cho_phan_hoi", "dang_xu_ly"]);
+  return (count ?? 0) > 0;
+}
+
+async function applyCancel(
+  don: ShopDonHang,
+  actorId: string,
+  lyDo: string,
+  allowed: ShopTrangThaiDon[],
+): Promise<ShopDonHang> {
+  if (await donCoKhieuNaiMo(don.id)) throw new Error("KHIEU_NAI_MO");
+
+  const reason = lyDo.trim().slice(0, SHOP_LY_DO_HUY_MAX);
+  if (!reason) throw new Error("REASON_REQUIRED");
+
+  const admin = createServiceRoleClient();
+  const now = new Date().toISOString();
   const { data: updatedRows, error } = await admin
     .from("shop_don_hang")
     .update({
@@ -1277,14 +1433,17 @@ export async function cancelDonHang(
       ly_do_huy: reason,
       huy_boi: actorId,
       da_tru_kho: false,
+      yeu_cau_huy_luc: null,
+      yeu_cau_huy_ly_do: null,
+      yeu_cau_huy_boi: null,
+      hoan_khao_sat_den: null,
       cap_nhat_luc: now,
     })
-    .eq("id", donId)
-    .eq("trang_thai", "cho_xac_nhan")
+    .eq("id", don.id)
+    .in("trang_thai", allowed)
     .select("id");
   if (error) throw new Error("UPDATE_FAILED");
   if (!updatedRows || updatedRows.length === 0) {
-    /* Đơn đã đổi trạng thái bởi tiến trình khác — không hoàn kho lần nữa. */
     throw new Error("INVALID_STATE");
   }
 
@@ -1292,14 +1451,43 @@ export async function cancelDonHang(
     await restockDon(don.dong);
   }
 
-  await hoanVoucherChoDon(donId);
+  await hoanVoucherChoDon(don.id);
 
-  const updated = await getDonHang(donId);
+  if (don.trangThai === "da_nhan_tien") {
+    try {
+      await loaiTruPhiDong(don.id, reason);
+    } catch (e) {
+      console.error("[shop] loaiTru after buyer/seller cancel", e);
+    }
+  }
+
+  const updated = await getDonHang(don.id);
   if (!updated) throw new Error("NOT_FOUND");
 
   await bumpDonHangChatMessage(updated, actorId);
 
   return updated;
+}
+
+async function thongBaoHuyDon(
+  don: ShopDonHang,
+  nguoiNhan: string,
+  _actorId: string,
+): Promise<void> {
+  try {
+    const admin = createServiceRoleClient();
+    await insertSocialThongBao(admin, {
+      nguoi_nhan: nguoiNhan,
+      loai: "thong_tin",
+      loai_doi_tuong: "shop_don_hang",
+      id_doi_tuong: don.id,
+      noi_dung: `Đơn ${don.maDon ?? don.id.slice(0, 8)} đã bị hủy${
+        don.lyDoHuy?.trim() ? ` — ${don.lyDoHuy.trim()}` : ""
+      }.`,
+    });
+  } catch (e) {
+    console.error("[shop] thongBao huyDon", e);
+  }
 }
 
 /**
@@ -1310,6 +1498,7 @@ function donCapNhatPayload(
   don: ShopDonHang,
   actorId: string,
   luc: string,
+  suKien?: "yeu_cau_huy" | "bo_yeu_cau_huy",
 ): Record<string, unknown> {
   const boi =
     actorId === don.idNguoiBan
@@ -1317,17 +1506,38 @@ function donCapNhatPayload(
       : actorId === don.idNguoiMua
         ? "nguoi_mua"
         : "he_thong";
+  const nhan =
+    suKien === "yeu_cau_huy"
+      ? "Shop đề nghị hủy đơn"
+      : suKien === "bo_yeu_cau_huy"
+        ? "Đã rút yêu cầu hủy"
+        : SHOP_TRANG_THAI_DON_LABEL[don.trangThai];
+  const lyDo =
+    suKien === "yeu_cau_huy"
+      ? don.yeuCauHuyLyDo?.trim() || null
+      : don.trangThai === "huy"
+        ? don.lyDoHuy?.trim() || null
+        : null;
   return {
     trangThai: don.trangThai,
-    nhan: SHOP_TRANG_THAI_DON_LABEL[don.trangThai],
-    lyDo: don.trangThai === "huy" ? don.lyDoHuy?.trim() || null : null,
+    nhan,
+    lyDo,
     boi,
     luc,
+    ...(suKien ? { suKien } : {}),
   };
 }
 
 /** Body tin sau khi bump — giữ lý do hủy trong text để tìm kiếm / preview thấy. */
-function donCapNhatNoiDung(don: ShopDonHang): string {
+function donCapNhatNoiDung(
+  don: ShopDonHang,
+  suKien?: "yeu_cau_huy" | "bo_yeu_cau_huy",
+): string {
+  if (suKien === "yeu_cau_huy") {
+    const lyDo = don.yeuCauHuyLyDo?.trim();
+    return lyDo ? `Shop đề nghị hủy đơn — ${lyDo}` : "Shop đề nghị hủy đơn";
+  }
+  if (suKien === "bo_yeu_cau_huy") return "Đã rút yêu cầu hủy";
   const nhan = SHOP_TRANG_THAI_DON_LABEL[don.trangThai];
   const lyDo = don.trangThai === "huy" ? don.lyDoHuy?.trim() : null;
   return lyDo ? `${nhan} — ${lyDo}` : nhan;
@@ -1340,6 +1550,7 @@ function donCapNhatNoiDung(don: ShopDonHang): string {
 async function bumpDonHangChatMessage(
   don: ShopDonHang,
   actorId: string,
+  suKien?: "yeu_cau_huy" | "bo_yeu_cau_huy",
 ): Promise<void> {
   const admin = createServiceRoleClient();
   const ctx = donHangToChatContext(don);
@@ -1373,7 +1584,7 @@ async function bumpDonHangChatMessage(
       : null;
   const nextNguCanh: Record<string, unknown> = {
     ...ctx,
-    capNhat: donCapNhatPayload(don, actorId, now),
+    capNhat: donCapNhatPayload(don, actorId, now, suKien),
   };
   if (prev && Array.isArray(prev.mentions)) {
     nextNguCanh.mentions = prev.mentions;
@@ -1394,7 +1605,7 @@ async function bumpDonHangChatMessage(
       ngu_canh: nextNguCanh,
       tao_luc: now,
       id_nguoi_gui: actorId,
-      noi_dung: donCapNhatNoiDung(don),
+      noi_dung: donCapNhatNoiDung(don, suKien),
     })
     .eq("id", msg.id);
   if (updErr) {
@@ -1450,6 +1661,7 @@ export function donHangToChatContext(don: ShopDonHang): {
   moTa: string;
   href: string;
   anh?: string | null;
+  yeuCauHuy?: { lyDo: string | null; luc: string | null } | null;
 } {
   const ma = don.maDon?.trim() || don.id.slice(0, 8);
   const loaiLabel =
@@ -1471,12 +1683,25 @@ export function donHangToChatContext(don: ShopDonHang): {
     .filter((l) => l && !l.startsWith("Hóa đơn thanh toán:"))
     .join(" ")
     .trim();
+  const yeuCauHuy =
+    don.trangThai === "da_nhan_tien" && don.yeuCauHuyLuc
+      ? {
+          lyDo: don.yeuCauHuyLyDo?.trim() || null,
+          luc: don.yeuCauHuyLuc,
+        }
+      : null;
   const parts = [
     loaiLabel,
     `Tình trạng: ${trangThaiLabel}`,
     `Tổng: ${tong}`,
     lines,
   ];
+  if (yeuCauHuy) {
+    parts.push(
+      `Shop đề nghị hủy đơn: ${yeuCauHuy.lyDo ?? ""}`.trim(),
+    );
+    parts.push("Người mua bấm Đồng ý hủy để đóng đơn.");
+  }
   if (don.trangThai === "huy" && don.lyDoHuy?.trim()) {
     parts.push(`Lý do hủy: ${don.lyDoHuy.trim()}`);
     parts.push("Nền tảng không giữ tiền — hai bên tự dàn xếp hoàn tiền.");
@@ -1508,7 +1733,8 @@ export function donHangToChatContext(don: ShopDonHang): {
     id: don.id,
     tieuDe: `Đơn ${ma}`,
     moTa: parts.filter(Boolean).join("\n"),
-    href: `/ban-hang/don?id=${don.id}`,
+    href: `/seller/orders?id=${don.id}`,
     ...(bienLaiAnh ? { anh: bienLaiAnh } : {}),
+    ...(yeuCauHuy ? { yeuCauHuy } : {}),
   };
 }

@@ -273,7 +273,7 @@ export function LopHocQuanLyPanel({
       setError(null);
       try {
         const res = await fetch(
-          `/api/co-so/${encodeURIComponent(orgId)}/lop-hoc`,
+          `/api/academy/${encodeURIComponent(orgId)}/classes`,
           { credentials: "include" },
         );
         const data = await res.json();
@@ -405,7 +405,7 @@ export function LopHocQuanLyPanel({
     setError(null);
     try {
       const res = await fetch(
-        `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/${encodeURIComponent(row.khoaId)}/lop/${encodeURIComponent(row.id)}`,
+        `/api/academy/${encodeURIComponent(orgId)}/courses/${encodeURIComponent(row.khoaId)}/classes/${encodeURIComponent(row.id)}`,
         {
           method: "PATCH",
           credentials: "include",
@@ -474,7 +474,7 @@ export function LopHocQuanLyPanel({
       }
 
       const patchRes = await fetch(
-        `/api/co-so/${encodeURIComponent(orgId)}/lop-hoc/${encodeURIComponent(lopId)}/avatar`,
+        `/api/academy/${encodeURIComponent(orgId)}/classes/${encodeURIComponent(lopId)}/avatar`,
         {
           method: "PATCH",
           credentials: "include",

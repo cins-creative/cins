@@ -600,7 +600,7 @@ async function loadCongDongOrgMeta(
   for (const row of data ?? []) {
     map.set(row.id, {
       name: row.ten,
-      href: `/cong-dong/${row.slug}`,
+      href: `/community/${row.slug}`,
     });
   }
   return map;

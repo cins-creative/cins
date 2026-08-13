@@ -352,7 +352,7 @@ export function CoSoDetailView({
   viewerLoggedIn = false,
 }: Props) {
   const pathname = usePathname() ?? "";
-  if (pathname.includes("/quan-ly")) {
+  if (pathname.includes("/manage")) {
     return null;
   }
 

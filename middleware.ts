@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { buildCanonicalHostRedirect } from "@/lib/auth/auth-origin";
 import { OG_IMAGE_CACHE_CONTROL } from "@/lib/journey/og-image-url";
+import {
+  rewriteLegacyPath,
+  rewriteLegacyQuery,
+} from "@/lib/navigation/legacy-url-map";
 import { getSupabaseCookieOptions } from "@/lib/supabase/cookie-options";
 import {
   getTrimmedSupabaseAnonKey,
@@ -75,33 +79,34 @@ function isProtectedPath(pathname: string): boolean {
   return false;
 }
 
-/** URL cũ `?tab=nganh-hoc` → `/nganh-hoc` (giữ `q`, `nhom`) trước khi render trang. */
+/** URL cũ `?tab=nganh-hoc` → `/majors` (giữ `q`, `group`) trước khi render trang. */
 function redirectLegacyNganhHubTab(request: NextRequest): NextResponse | null {
   const { pathname, searchParams } = request.nextUrl;
-  if (pathname !== "/nghe-nghiep") {
-    return null;
-  }
+  if (pathname !== "/careers") return null;
   if (searchParams.get("tab") !== "nganh-hoc") return null;
 
   const url = request.nextUrl.clone();
-  url.pathname = "/nganh-hoc";
+  url.pathname = "/majors";
   url.searchParams.delete("tab");
   return NextResponse.redirect(url, 308);
 }
 
-/** `/truong-dai-hoc` → `/co-so-dao-tao` (308). */
-function redirectLegacyTruongDaiHocPath(
-  request: NextRequest,
-): NextResponse | null {
-  const { pathname } = request.nextUrl;
-  if (
-    pathname !== "/truong-dai-hoc" &&
-    !pathname.startsWith("/truong-dai-hoc/")
-  ) {
-    return null;
-  }
+/**
+ * URL tiếng Việt cũ → URL tiếng Anh hiện tại (308 — giữ method + body nên POST
+ * tới `/api/*` cũ vẫn chạy đúng). Thay 2 hàm redirect legacy rời rạc trước đây;
+ * `/truong-dai-hoc` → `/university` giờ chỉ còn 1 chặng.
+ *
+ * Bảng sinh tự động: `lib/navigation/legacy-url-map.ts`.
+ */
+function redirectLegacyUrl(request: NextRequest): NextResponse | null {
+  const { pathname, searchParams } = request.nextUrl;
+  const nextPath = rewriteLegacyPath(pathname);
+  const nextQuery = rewriteLegacyQuery(searchParams);
+  if (!nextPath && nextQuery === null) return null;
+
   const url = request.nextUrl.clone();
-  url.pathname = pathname.replace(/^\/truong-dai-hoc/, "/co-so-dao-tao");
+  if (nextPath) url.pathname = nextPath;
+  if (nextQuery !== null) url.search = nextQuery ? `?${nextQuery}` : "";
   return NextResponse.redirect(url, 308);
 }
 
@@ -130,20 +135,20 @@ function isReservedOrgSegment(seg: string): boolean {
   return seg.startsWith("_") || seg.includes(".") || RESERVED_ORG_SEGMENTS.has(seg);
 }
 
-/** `/co-so/:slug` → `/co-so/:slug/bai-dang` — tránh redirect RSC (meta refresh) gây lỗi lần đầu. */
+/** `/academy/:slug` → `/academy/:slug/posts` — tránh redirect RSC (meta refresh) gây lỗi lần đầu. */
 function redirectCoSoRootToDefaultTab(
   request: NextRequest,
 ): NextResponse | null {
   const { pathname } = request.nextUrl;
-  const match = pathname.match(/^\/co-so\/([^/]+)\/?$/);
+  const match = pathname.match(/^\/academy\/([^/]+)\/?$/);
   if (!match || isReservedOrgSegment(match[1])) return null;
 
   const url = request.nextUrl.clone();
-  url.pathname = `/co-so/${match[1]}/bai-dang`;
+  url.pathname = `/academy/${match[1]}/posts`;
   return NextResponse.redirect(url, 308);
 }
 
-/** `/studio/:slug` → `/studio/:slug/bai-dang` — cùng pattern với cơ sở đào tạo. */
+/** `/studio/:slug` → `/studio/:slug/posts` — cùng pattern với cơ sở đào tạo. */
 function redirectStudioRootToDefaultTab(
   request: NextRequest,
 ): NextResponse | null {
@@ -152,20 +157,20 @@ function redirectStudioRootToDefaultTab(
   if (!match || isReservedOrgSegment(match[1])) return null;
 
   const url = request.nextUrl.clone();
-  url.pathname = `/studio/${match[1]}/bai-dang`;
+  url.pathname = `/studio/${match[1]}/posts`;
   return NextResponse.redirect(url, 308);
 }
 
-/** `/co-so-dao-tao/:slug` → `/co-so-dao-tao/:slug/bai-dang` — tránh meta refresh RSC. */
+/** `/university/:slug` → `/university/:slug/posts` — tránh meta refresh RSC. */
 function redirectTruongRootToDefaultTab(
   request: NextRequest,
 ): NextResponse | null {
   const { pathname } = request.nextUrl;
-  const match = pathname.match(/^\/co-so-dao-tao\/([^/]+)\/?$/);
+  const match = pathname.match(/^\/university\/([^/]+)\/?$/);
   if (!match || isReservedOrgSegment(match[1])) return null;
 
   const url = request.nextUrl.clone();
-  url.pathname = `/co-so-dao-tao/${match[1]}/bai-dang`;
+  url.pathname = `/university/${match[1]}/posts`;
   return NextResponse.redirect(url, 308);
 }
 
@@ -275,8 +280,8 @@ export async function middleware(request: NextRequest) {
 
   const legacyNganh = redirectLegacyNganhHubTab(request);
   if (legacyNganh) return legacyNganh;
-  const legacyTruong = redirectLegacyTruongDaiHocPath(request);
-  if (legacyTruong) return legacyTruong;
+  const legacyUrl = redirectLegacyUrl(request);
+  if (legacyUrl) return legacyUrl;
   const legacyJourney = redirectLegacyJourneyPath(request);
   if (legacyJourney) return legacyJourney;
   const coSoRoot = redirectCoSoRootToDefaultTab(request);

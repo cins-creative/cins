@@ -73,7 +73,7 @@ export function OrgNotifySettingsMenu({
       },
     }));
     try {
-      const res = await fetch(`/api/org/${id}/chat/thong-bao`, {
+      const res = await fetch(`/api/org/${id}/chat/notifications`, {
         credentials: "include",
         cache: "no-store",
       });
@@ -198,7 +198,7 @@ export function OrgNotifySettingsMenu({
       },
     }));
     try {
-      const res = await fetch(`/api/org/${id}/chat/thong-bao`, {
+      const res = await fetch(`/api/org/${id}/chat/notifications`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

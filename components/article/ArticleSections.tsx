@@ -33,7 +33,7 @@ export function ArticleRelatedGrid({ items }: { items: ArticleCard[] }) {
       <ul className="article-card-grid">
         {items.map((a) => (
           <li key={a.id}>
-            <Link href={`/bai-viet/${a.slug}`} className="article-card">
+            <Link href={`/articles/${a.slug}`} className="article-card">
               <div className="article-card-top">
                 <ArticleLoaiBadge loai={a.loai_bai_viet} />
                 {a.loai_quan_he ? (

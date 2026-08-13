@@ -133,7 +133,7 @@ export function TinNhanQuanLyClient({
   useEffect(() => {
     void (async () => {
       try {
-        const res = await fetch(`/api/co-so/${orgId}/hoc-vien?page=1&meta=1`, {
+        const res = await fetch(`/api/academy/${orgId}/students?page=1&meta=1`, {
           credentials: "include",
         });
         const data = await res.json();
@@ -373,7 +373,7 @@ function StaffActionModal({
         if (!addLopId) throw new Error("Chọn lớp.");
         const selected = lop.find((l) => l.id === addLopId);
         if (!selected) throw new Error("Lớp không hợp lệ.");
-        const enrollRes = await fetch(`/api/co-so/${orgId}/hoc-vien`, {
+        const enrollRes = await fetch(`/api/academy/${orgId}/students`, {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
@@ -421,7 +421,7 @@ function StaffActionModal({
                   : null),
             };
 
-      const res = await fetch(`/api/co-so/${orgId}/hoc-phi/don-chat`, {
+      const res = await fetch(`/api/academy/${orgId}/tuition/chat-orders`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

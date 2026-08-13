@@ -66,9 +66,28 @@ export function isDanhMucLa(d: ShopDanhMuc, parentIds: Set<string>): boolean {
   return !parentIds.has(d.id);
 }
 
+export type ShopDanhMucVoiCha = ShopDanhMuc & {
+  chaTen: string | null;
+  chaThuTu: number | null;
+};
+
+/** Gắn tên/thứ tự cấp cha — cùng join hub overlay dùng. */
+export function withDanhMucCha(list: ShopDanhMuc[]): ShopDanhMucVoiCha[] {
+  const byId = new Map(list.map((d) => [d.id, d]));
+  return list.map((d) => {
+    const cha = d.idCha ? byId.get(d.idCha) : null;
+    return {
+      ...d,
+      chaTen: cha?.ten ?? null,
+      chaThuTu: cha?.thuTu ?? null,
+    };
+  });
+}
+
 /**
  * Cây danh mục đang `hien`.
- * `forHubFilter`: bỏ `khac` và cấp cha (chip chỉ lá).
+ * `forHubFilter`: bỏ `khac` và cấp cha (chip chỉ lá). Overlay hub gom nhóm
+ * theo `idCha` ở `loadCuaHangHubTaxonomy` — không dùng flag này cho payload đầy đủ.
  */
 export async function listDanhMucTree(opts?: {
   nganhHang?: string;

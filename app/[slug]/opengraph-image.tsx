@@ -22,7 +22,7 @@ export const alt = "Hành trình sáng tạo trên CINs";
 type Params = Promise<{ slug: string }>;
 type SearchParams = Promise<{
   view?: string;
-  nhom?: string;
+  group?: string;
   filter?: string;
   v?: string;
 }>;
@@ -38,8 +38,8 @@ function siteOrigin(): string {
 async function resolveOgSearch(
   sp: Awaited<SearchParams>,
 ): Promise<{ view?: string; nhom?: string; filter?: string }> {
-  if (sp.view || sp.nhom || sp.filter) {
-    return { view: sp.view, nhom: sp.nhom, filter: sp.filter };
+  if (sp.view || sp.group || sp.filter) {
+    return { view: sp.view, nhom: sp.group, filter: sp.filter };
   }
   try {
     const { headers } = await import("next/headers");
@@ -55,7 +55,7 @@ async function resolveOgSearch(
       : new URL(raw, "https://cins.vn");
     return {
       view: url.searchParams.get("view") ?? undefined,
-      nhom: url.searchParams.get("nhom") ?? undefined,
+      nhom: url.searchParams.get("group") ?? undefined,
       filter: url.searchParams.get("filter") ?? undefined,
     };
   } catch {

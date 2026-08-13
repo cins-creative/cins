@@ -11,7 +11,7 @@ const khoaHocListCache = createCachedResource<KhoaHocCardData[], [string]>({
   ttlMs: 120_000,
   keyFromArgs: (orgId) => orgId,
   fetcher: async (orgId) => {
-    const res = await fetch(`/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc`, {
+    const res = await fetch(`/api/academy/${encodeURIComponent(orgId)}/courses`, {
       credentials: "include",
       cache: "no-store",
     });

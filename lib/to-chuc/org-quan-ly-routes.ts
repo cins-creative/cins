@@ -2,7 +2,7 @@ import { coSoRootPath } from "@/lib/to-chuc/co-so-routes";
 import { studioRootPath } from "@/lib/to-chuc/studio-routes";
 import { truongRootPath } from "@/lib/truong/truong-routes";
 
-/** Các loại org có dashboard `/quan-ly`. */
+/** Các loại org có dashboard `/manage`. */
 export type OrgQuanLyKind =
   | "co_so_dao_tao"
   | "truong_dai_hoc"
@@ -105,7 +105,7 @@ const STUDIO_SECTIONS = new Set<OrgQuanLySectionResolved>([
   "cai-dat",
 ]);
 
-/** Section mặc định khi vào `/quan-ly` (index redirect). */
+/** Section mặc định khi vào `/manage` (index redirect). */
 export function orgQuanLyDefaultSection(
   kind: OrgQuanLyKind,
 ): OrgQuanLySectionResolved {

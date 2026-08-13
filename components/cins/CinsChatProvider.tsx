@@ -8,7 +8,9 @@ import {
   useMemo,
   useRef,
   useState,
+  type Dispatch,
   type ReactNode,
+  type SetStateAction,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -23,6 +25,7 @@ import {
   writeRoomMessagesCache,
   type ChatThreadsSnapshot,
 } from "@/lib/chat/chat-session-cache";
+import { sumUnreadExcludingRoom } from "@/lib/chat/unread-focus";
 import {
   prefetchChatThreads,
   prefetchRoomMessages,
@@ -115,7 +118,8 @@ type CinsChatContextValue = {
   /** Đóng panel. Nếu `nextHref` — điều hướng tới đó (không `back`/`replace("/")` đua với nav). */
   closeChat: (nextHref?: string) => void;
   refreshUnread: () => Promise<void>;
-  setTotalUnread: (count: number) => void;
+  /** Setter React thô — consumer được dùng dạng updater để tránh đọc state cũ. */
+  setTotalUnread: Dispatch<SetStateAction<number>>;
   subscribeChatMessages: (listener: ChatMessageListener) => () => void;
   setChatFocus: (roomId: string | null, surface: ChatFocusSurface) => void;
   getCachedThreads: () => ChatThreadsSnapshot | null;
@@ -220,6 +224,16 @@ export function CinsChatProvider({
     surface: null,
   });
 
+  const applyUnreadFromThreads = useCallback(
+    (threads: Array<{ roomId: string; unread: number }>) => {
+      const focusId = focusRef.current.surface
+        ? focusRef.current.roomId
+        : null;
+      setTotalUnread(sumUnreadExcludingRoom(threads, focusId));
+    },
+    [],
+  );
+
   const refreshUnread = useCallback(async () => {
     if (!viewerProfileId) {
       setTotalUnread(0);
@@ -232,11 +246,15 @@ export function CinsChatProvider({
         threads?: ChatThread[];
         totalUnread?: number;
       };
-      setTotalUnread(json.totalUnread ?? 0);
+      if (json.threads?.length) {
+        applyUnreadFromThreads(json.threads);
+      } else {
+        setTotalUnread(json.totalUnread ?? 0);
+      }
     } catch {
       /* ignore */
     }
-  }, [viewerProfileId]);
+  }, [applyUnreadFromThreads, viewerProfileId]);
 
   const getCachedThreads = useCallback((): ChatThreadsSnapshot | null => {
     return readChatThreadsCache(viewerProfileId);
@@ -253,10 +271,10 @@ export function CinsChatProvider({
     if (!viewerProfileId) return null;
     const snapshot = await prefetchChatThreads(viewerProfileId);
     if (snapshot) {
-      setTotalUnread(snapshot.totalUnread);
+      applyUnreadFromThreads(snapshot.threads);
     }
     return snapshot;
-  }, [viewerProfileId]);
+  }, [applyUnreadFromThreads, viewerProfileId]);
 
   const prefetchRoomMessagesForViewer = useCallback(
     async (roomId: string): Promise<ChatMessage[] | null> => {
@@ -470,7 +488,7 @@ export function CinsChatProvider({
 
     const cached = readChatThreadsCache(viewerProfileId);
     if (cached) {
-      setTotalUnread(cached.totalUnread);
+      applyUnreadFromThreads(cached.threads);
     }
 
     const cancelIdle = scheduleWhenIdle(() => {
@@ -524,8 +542,14 @@ export function CinsChatProvider({
   const setChatFocus = useCallback(
     (roomId: string | null, surface: ChatFocusSurface) => {
       focusRef.current = { roomId, surface };
+      const cached = viewerProfileId
+        ? readChatThreadsCache(viewerProfileId)
+        : null;
+      if (cached) {
+        applyUnreadFromThreads(cached.threads);
+      }
     },
-    [],
+    [applyUnreadFromThreads, viewerProfileId],
   );
 
   const handleRealtimeInsert = useCallback(
@@ -540,6 +564,10 @@ export function CinsChatProvider({
 
       const fromPeer = event.senderId !== viewerProfileId;
       if (!fromPeer) return;
+
+      if (event.message.kind === "chao_lop" || event.message.chaoLop) {
+        return;
+      }
 
       /* Cuộc gọi đến → chuông riêng (ChatIncomingCallHost), không beep tin nhắn. */
       if (event.message.kind === "cuoc_goi" || event.message.cuocGoi) {

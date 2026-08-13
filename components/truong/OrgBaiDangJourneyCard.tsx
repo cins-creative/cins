@@ -228,11 +228,11 @@ export function OrgBaiDangJourneyCard({
 
   const tagsApiUrl =
     orgId && post.id
-      ? `/api/truong/${encodeURIComponent(orgId)}/bai-dang/${encodeURIComponent(post.id)}/tags`
+      ? `/api/university/${encodeURIComponent(orgId)}/posts/${encodeURIComponent(post.id)}/tags`
       : undefined;
   const tacGiaApiUrl =
     orgId && post.id
-      ? `/api/truong/${encodeURIComponent(orgId)}/bai-dang/${encodeURIComponent(post.id)}/tac-gia`
+      ? `/api/university/${encodeURIComponent(orgId)}/posts/${encodeURIComponent(post.id)}/authors`
       : undefined;
   const [expanded, setExpanded] = useState(Boolean(initialExpanded));
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -603,7 +603,7 @@ export function OrgBaiDangJourneyCard({
                   {post.tags.map((tag) => (
                     <Link
                       key={tag.slug}
-                      href={`/nganh-hoc/${encodeURIComponent(tag.slug)}`}
+                      href={`/majors/${encodeURIComponent(tag.slug)}`}
                       className="org-tl-tag"
                     >
                       {tag.label}

@@ -48,7 +48,7 @@ export function JourneyOwnCoAuthorRoleEditor({
     setError(null);
     try {
       const res = await fetch(
-        `/api/tac-pham/${encodeURIComponent(tacPhamId)}/tac-gia/${encodeURIComponent(userId)}`,
+        `/api/artworks/${encodeURIComponent(tacPhamId)}/authors/${encodeURIComponent(userId)}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },

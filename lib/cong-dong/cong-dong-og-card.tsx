@@ -68,7 +68,7 @@ function CommunityLogo({ src }: { src: string | null }) {
   );
 }
 
-/** OG card động cho cộng đồng nghề (`/cong-dong/[slug]`). */
+/** OG card động cho cộng đồng nghề (`/community/[slug]`). */
 export function CongDongOgShareCard({
   ctx,
   logoUrl,

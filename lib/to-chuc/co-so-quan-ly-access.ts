@@ -67,7 +67,7 @@ export async function getCoSoModuleQuyen(
   return map[module];
 }
 
-/** Vào dashboard `/co-so/[slug]/quan-ly`: founder tier, hoặc có ≥1 module ≠ "an". */
+/** Vào dashboard `/academy/[slug]/manage`: founder tier, hoặc có ≥1 module ≠ "an". */
 export async function canAccessCoSoQuanLyAsync(
   orgId: string,
   actorId: string | null | undefined,

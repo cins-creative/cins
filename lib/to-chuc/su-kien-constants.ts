@@ -64,7 +64,7 @@ export type SuKienLoaiVeInput = {
 
 export type SuKienCardData = {
   id: string;
-  /** Slug URL `/su-kien/{slug}` — null/undefined khi chưa migrate cột. */
+  /** Slug URL `/events/{slug}` — null/undefined khi chưa migrate cột. */
   slug?: string | null;
   ten: string;
   loaiSuKien: LoaiSuKien;

@@ -22,7 +22,7 @@ export function TaoToChucTypePicker({ userSlug }: { userSlug: string }) {
         </p>
 
         <div className="ttc-type-grid">
-          <Link href="/tao-to-chuc/studio" className="ttc-type-card" prefetch={false}>
+          <Link href="/create-organization/studio" className="ttc-type-card" prefetch={false}>
             <div className="ttc-type-ico studio">
               <Briefcase size={26} aria-hidden />
             </div>
@@ -35,7 +35,7 @@ export function TaoToChucTypePicker({ userSlug }: { userSlug: string }) {
             </span>
           </Link>
 
-          <Link href="/tao-to-chuc/co-so" className="ttc-type-card" prefetch={false}>
+          <Link href="/create-organization/academy" className="ttc-type-card" prefetch={false}>
             <div className="ttc-type-ico edu">
               <GraduationCap size={26} aria-hidden />
             </div>

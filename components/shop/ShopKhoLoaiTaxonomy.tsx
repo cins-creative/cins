@@ -29,6 +29,11 @@ import {
   titlesMatchQuery,
 } from "@/lib/tag/suggest-index-client";
 import type { ShopNhom } from "@/lib/shop/types";
+import {
+  ID_NHOM_MOI,
+  matchParentByTen,
+  moTaDeXuatDanhMuc,
+} from "@/lib/shop/danh-muc-yeu-cau-text";
 
 type TagInputValue = {
   id: string;
@@ -46,7 +51,16 @@ type DanhMucOpt = {
   ten: string;
   moTa: string | null;
   idCha?: string | null;
+  id_cha?: string | null;
+  thuTu?: number;
+  chaTen?: string | null;
+  chaThuTu?: number | null;
 };
+
+function idChaOf(d: DanhMucOpt): string | null {
+  const v = d.idCha ?? d.id_cha;
+  return typeof v === "string" && v.trim() ? v.trim() : null;
+}
 
 type GiaTriOpt = {
   id: string;
@@ -77,17 +91,32 @@ type Props = {
 let taxonomyCache: TaxonomyPayload | null = null;
 let taxonomyPromise: Promise<TaxonomyPayload | null> | null = null;
 
+/** Payload thiếu row cha → không join được tên nhóm (mọi lá rơi vào «Không nhóm»). */
+function taxonomyCanGroupByCha(p: TaxonomyPayload): boolean {
+  const ids = new Set(p.danhMuc.map((d) => d.id));
+  for (const d of p.danhMuc) {
+    const cha = idChaOf(d);
+    if (cha && !d.chaTen && !ids.has(cha)) return false;
+  }
+  return true;
+}
+
 async function loadTaxonomy(): Promise<TaxonomyPayload | null> {
-  if (taxonomyCache) return taxonomyCache;
+  if (taxonomyCache && taxonomyCanGroupByCha(taxonomyCache)) {
+    return taxonomyCache;
+  }
   if (!taxonomyPromise) {
-    taxonomyPromise = fetch("/api/shop/danh-muc", { cache: "force-cache" })
+    taxonomyPromise = fetch("/api/shop/catalog", { cache: "no-store" })
       .then(async (res) => {
         const json = (await res.json().catch(() => null)) as
           | (TaxonomyPayload & { error?: string })
           | null;
         if (!res.ok || !json?.danhMuc || !json?.facets) return null;
         taxonomyCache = {
-          danhMuc: json.danhMuc,
+          danhMuc: json.danhMuc.map((d) => ({
+            ...d,
+            idCha: idChaOf(d),
+          })),
           facets: json.facets.filter((f) => f.slug !== "fandom"),
         };
         return taxonomyCache;
@@ -106,46 +135,114 @@ function sameIdSet(a: string[], b: string[]): boolean {
   return b.every((id) => set.has(id));
 }
 
+/** Lá ảo trên Kho khi chờ admin — không phải UUID `shop_danh_muc`. */
+const PENDING_DANH_MUC_ID = "__pending__";
+
+function pendingDeXuatTen(n: ShopNhom): string {
+  return n.danhMucDeXuat?.trim() || "";
+}
+
 type DropdownOption = {
   id: string;
   ten: string;
   moTa?: string | null;
   group?: string | null;
+  groupOrder?: number;
+  idCha?: string | null;
+  pending?: boolean;
 };
+
+function clusterDropdownOptions(
+  options: DropdownOption[],
+): Array<{ key: string; label: string | null; items: DropdownOption[] }> {
+  if (!options.some((o) => o.group)) {
+    return [{ key: "all", label: null, items: options }];
+  }
+  const buckets = new Map<
+    string,
+    { label: string | null; order: number; items: DropdownOption[] }
+  >();
+  for (const o of options) {
+    const key = o.group ?? "";
+    const cur = buckets.get(key) ?? {
+      label: o.group ?? null,
+      order: o.groupOrder ?? 9999,
+      items: [],
+    };
+    cur.items.push(o);
+    buckets.set(key, cur);
+  }
+  return [...buckets.entries()]
+    .sort(
+      ([, a], [, b]) =>
+        a.order - b.order ||
+        (a.label ?? "я").localeCompare(b.label ?? "я", "vi"),
+    )
+    .map(([key, g]) => ({
+      key: key || "orphans",
+      label: g.label,
+      items: g.items,
+    }));
+}
 
 function BaoThieuDanhMucForm({
   nhomId,
   tuKhoa,
-  ganNhat,
+  parents,
   disabled,
   onSubmitted,
   onError,
   onDone,
+  onCancel,
 }: {
   nhomId: string;
   tuKhoa: string;
-  ganNhat: DropdownOption[];
+  parents: Array<{ id: string; ten: string }>;
   disabled?: boolean;
   onSubmitted: (n: ShopNhom) => void;
   onError: (msg: string | null) => void;
   onDone: () => void;
+  onCancel: () => void;
 }) {
-  const [moTa, setMoTa] = useState("");
-  const [ganNhatId, setGanNhatId] = useState("");
+  const [chaId, setChaId] = useState("");
+  const [tenNhomMoi, setTenNhomMoi] = useState("");
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const deXuatNhomMoi = chaId === ID_NHOM_MOI;
+  const chaTen = deXuatNhomMoi
+    ? null
+    : (parents.find((p) => p.id === chaId)?.ten ?? null);
+  const locked = disabled || busy;
+  const tenNhomMoiTrim = tenNhomMoi.trim();
+  const canSubmit =
+    Boolean(tuKhoa.trim()) &&
+    (!deXuatNhomMoi || tenNhomMoiTrim.length >= 2);
 
   async function submit() {
     setBusy(true);
+    setErr(null);
     onError(null);
     try {
-      const res = await fetch("/api/shop/danh-muc/yeu-cau", {
+      const matched = deXuatNhomMoi
+        ? matchParentByTen(parents, tenNhomMoiTrim)
+        : null;
+      const idChaGui = matched?.id ?? (deXuatNhomMoi ? null : chaId || null);
+      const tenMoi = deXuatNhomMoi && !matched ? tenNhomMoiTrim : null;
+      const res = await fetch("/api/shop/catalog/requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(20_000),
         body: JSON.stringify({
           idNhom: nhomId,
-          moTa,
+          moTa: moTaDeXuatDanhMuc({
+            tuKhoa,
+            chaTen: matched?.ten ?? chaTen,
+            laTen: null,
+            tenNhomMoi: tenMoi,
+          }),
           tuKhoa,
-          idDanhMucGanNhat: ganNhatId || null,
+          idDanhMucGanNhat: idChaGui,
         }),
       });
       const json = (await res.json().catch(() => null)) as {
@@ -153,13 +250,21 @@ function BaoThieuDanhMucForm({
         error?: string;
       } | null;
       if (!res.ok || !json?.item) {
-        onError(json?.error ?? "Không gửi được yêu cầu.");
+        const msg = json?.error ?? "Không gửi được yêu cầu.";
+        setErr(msg);
+        onError(msg);
         return;
       }
       onSubmitted(json.item);
       onDone();
-    } catch {
-      onError("Không gửi được yêu cầu.");
+    } catch (e) {
+      const timedOut =
+        e instanceof DOMException && e.name === "TimeoutError";
+      const msg = timedOut
+        ? "Hết thời gian chờ. Thử lại."
+        : "Không gửi được yêu cầu. Thử lại.";
+      setErr(msg);
+      onError(msg);
     } finally {
       setBusy(false);
     }
@@ -167,45 +272,81 @@ function BaoThieuDanhMucForm({
 
   return (
     <div className="shop-kho-loai-dd-missing">
-      <p className="shop-kho-loai-dd-empty">
-        Đề xuất «{tuKhoa.trim() || "danh mục mới"}»
-      </p>
-      <p className="shop-kho-loai-dd-missing-lead">
-        Danh mục này chưa có trên CINs. Gửi đề xuất — hàng vẫn bán, chưa lên bộ
-        lọc.
-      </p>
-      <textarea
-        value={moTa}
-        disabled={disabled || busy}
-        placeholder="Nó là cái gì / dùng để làm gì? (tối thiểu 20 ký tự)"
-        rows={3}
-        onChange={(e) => setMoTa(e.target.value)}
-      />
-      {ganNhat.length > 0 ? (
-        <label className="shop-kho-loai-dd-missing-near">
-          Gần giống (không bắt buộc)
-          <select
-            value={ganNhatId}
-            disabled={disabled || busy}
-            onChange={(e) => setGanNhatId(e.target.value)}
-          >
-            <option value="">Không thuộc mục nào đang có</option>
-            {ganNhat.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.ten}
-              </option>
-            ))}
-          </select>
+      <header className="shop-kho-loai-dd-missing-head">
+        <p className="shop-kho-loai-dd-missing-kicker">Đề xuất danh mục</p>
+        <h4 className="shop-kho-loai-dd-missing-name">
+          <span>{tuKhoa.trim() || "danh mục mới"}</span>
+        </h4>
+        <p className="shop-kho-loai-dd-missing-lead">
+          Danh mục mới này sẽ chờ admin duyệt, Hàng của bạn vẫn sẽ bán được bình
+          thường nhé!
+        </p>
+      </header>
+
+      <label className="shop-kho-loai-dd-missing-field">
+        Thuộc nhóm
+        <select
+          value={chaId}
+          disabled={locked}
+          aria-label="Thuộc nhóm nào"
+          onChange={(e) => {
+            setChaId(e.target.value);
+            if (e.target.value !== ID_NHOM_MOI) setTenNhomMoi("");
+          }}
+        >
+          <option value={ID_NHOM_MOI}>+ Đề xuất nhóm mới…</option>
+          <option value="">Chưa rõ</option>
+          {parents.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.ten}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {deXuatNhomMoi ? (
+        <label className="shop-kho-loai-dd-missing-field">
+          Tên nhóm mới
+          <input
+            type="text"
+            value={tenNhomMoi}
+            maxLength={80}
+            disabled={locked}
+            placeholder="vd. Phụ kiện bàn phím"
+            aria-label="Tên nhóm mới"
+            onChange={(e) => setTenNhomMoi(e.target.value)}
+          />
+          <span className="shop-kho-loai-dd-missing-hint">
+            Admin duyệt — không tạo ngay. Trùng tên nhóm có sẵn thì gộp vào nhóm
+            đó.
+          </span>
         </label>
       ) : null}
-      <button
-        type="button"
-        className="shop-kho-loai-dd-sheet-done"
-        disabled={disabled || busy || moTa.trim().length < 20}
-        onClick={() => void submit()}
-      >
-        {busy ? "Đang gửi…" : "Gửi đề xuất"}
-      </button>
+
+      {err ? (
+        <p className="shop-kho-loai-dd-missing-err" role="alert">
+          {err}
+        </p>
+      ) : null}
+
+      <div className="shop-kho-loai-dd-missing-actions">
+        <button
+          type="button"
+          className="shop-kho-loai-dd-sheet-ghost"
+          disabled={locked}
+          onClick={onCancel}
+        >
+          Hủy
+        </button>
+        <button
+          type="button"
+          className="shop-kho-loai-dd-sheet-done"
+          disabled={locked || !canSubmit}
+          onClick={() => void submit()}
+        >
+          {busy ? "Đang gửi…" : "Gửi đề xuất"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -236,6 +377,7 @@ function TaxSelectDropdown({
   onClear?: () => void;
   missingCategory?: {
     nhomId: string;
+    parents: Array<{ id: string; ten: string }>;
     onSubmitted: (n: ShopNhom) => void;
     onError: (msg: string | null) => void;
   };
@@ -282,7 +424,9 @@ function TaxSelectDropdown({
   }, [options, selectedIds]);
 
   const pendingTen = pendingLabel?.trim() || "";
-  const hasPending = selected.length === 0 && Boolean(pendingTen);
+  const hasPending =
+    selected.some((o) => o.pending) ||
+    (selected.length === 0 && Boolean(pendingTen));
   const hasValue = selected.length > 0 || hasPending;
 
   const filtered = useMemo(() => {
@@ -310,7 +454,8 @@ function TaxSelectDropdown({
         : `${selected[0]!.ten} +${selected.length - 1}`;
 
   function pick(id: string) {
-    onToggle(id);
+    const opt = options.find((o) => o.id === id);
+    if (!opt?.pending) onToggle(id);
     if (!multiple) setOpen(false);
   }
 
@@ -335,13 +480,15 @@ function TaxSelectDropdown({
                 <div className="shop-kho-loai-dd-sheet-titles">
                   <h3 id={titleId}>{label}</h3>
                   <p>
-                    {multiple
-                      ? selected.length > 0
-                        ? `Đã chọn ${selected.length}`
-                        : "Chọn một hoặc nhiều"
-                      : hasPending
-                        ? "Đã gửi đề xuất — chọn mục có sẵn nếu thấy đúng"
-                        : "Chọn một mục, hoặc đề xuất nếu chưa có"}
+                    {deXuatOpen
+                      ? "Chọn nhóm rồi gửi — không cần mô tả"
+                      : multiple
+                        ? selected.length > 0
+                          ? `Đã chọn ${selected.length}`
+                          : "Chọn một hoặc nhiều"
+                        : hasPending
+                          ? "Đã gửi đề xuất — chọn mục có sẵn nếu thấy đúng"
+                          : "Chọn một mục, hoặc đề xuất nếu chưa có"}
                   </p>
                 </div>
                 <button
@@ -359,11 +506,11 @@ function TaxSelectDropdown({
                   <Search size={15} strokeWidth={2.2} aria-hidden />
                   <input
                     ref={searchRef}
-                    type="search"
+                    type="text"
                     value={q}
                     placeholder={
                       missingCategory
-                        ? "Tìm hoặc gõ tên rồi bấm +"
+                        ? "Tìm hoặc gõ tên danh mục…"
                         : searchPlaceholder
                     }
                     disabled={disabled}
@@ -393,69 +540,86 @@ function TaxSelectDropdown({
                       <X size={14} strokeWidth={2.4} aria-hidden />
                     </button>
                   ) : null}
-                  {missingCategory ? (
-                    <button
-                      type="button"
-                      className="shop-kho-loai-dd-search-add"
-                      aria-label={
-                        canDeXuat
-                          ? `Đề xuất danh mục «${q.trim()}»`
-                          : "Gõ tên danh mục chưa có rồi bấm +"
-                      }
-                      title={
-                        exactMatch
-                          ? "Danh mục này đã có — chọn trong danh sách"
-                          : "Đề xuất danh mục hàng chưa có"
-                      }
-                      disabled={disabled || !canDeXuat}
-                      onClick={() => setDeXuatOpen(true)}
-                    >
-                      <Plus size={16} strokeWidth={2.4} aria-hidden />
-                    </button>
-                  ) : null}
                 </label>
               ) : null}
 
               <div
-                className="shop-kho-loai-dd-options shop-kho-loai-dd-options--sheet"
+                className={`shop-kho-loai-dd-options shop-kho-loai-dd-options--sheet${
+                  deXuatOpen ? " is-dexuat" : ""
+                }`}
                 id={listId}
-                role="listbox"
-                aria-multiselectable={multiple || undefined}
+                role={deXuatOpen ? undefined : "listbox"}
+                aria-multiselectable={
+                  deXuatOpen ? undefined : multiple || undefined
+                }
                 aria-label={label}
               >
-                {filtered.map((o, i) => {
-                  const on = selectedIds.includes(o.id);
-                  const prev = i > 0 ? filtered[i - 1] : null;
-                  const showGroup =
-                    Boolean(o.group) && o.group !== prev?.group;
-                  return (
-                    <div key={o.id}>
-                      {showGroup ? (
-                        <p className="shop-kho-loai-dd-group">{o.group}</p>
-                      ) : null}
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={on}
-                        className={`shop-kho-loai-dd-option${on ? " is-on" : ""}`}
-                        disabled={disabled}
-                        onClick={() => pick(o.id)}
-                      >
-                        <span
-                          className={`shop-kho-loai-dd-check${on ? " is-on" : ""}`}
-                          aria-hidden
+                {deXuatOpen && missingCategory && q.trim() ? (
+                  <BaoThieuDanhMucForm
+                    nhomId={missingCategory.nhomId}
+                    tuKhoa={q}
+                    parents={missingCategory.parents}
+                    disabled={disabled}
+                    onSubmitted={missingCategory.onSubmitted}
+                    onError={missingCategory.onError}
+                    onDone={() => {
+                      setDeXuatOpen(false);
+                      setOpen(false);
+                    }}
+                    onCancel={() => setDeXuatOpen(false)}
+                  />
+                ) : (
+                  <>
+                {clusterDropdownOptions(filtered).map((cluster) => (
+                  <section
+                    key={cluster.key}
+                    className={`shop-kho-loai-dd-tree-group${cluster.label ? " has-parent" : ""}`}
+                    aria-label={cluster.label ?? undefined}
+                  >
+                    {cluster.label ? (
+                      <h3 className="shop-kho-loai-dd-tree-parent">
+                        {cluster.label}
+                      </h3>
+                    ) : null}
+                    <div className="shop-kho-loai-dd-tree-leaves">
+                    {cluster.items.map((o) => {
+                      const on = selectedIds.includes(o.id);
+                      return (
+                        <button
+                          key={o.id}
+                          type="button"
+                          role="option"
+                          aria-selected={on}
+                          title={
+                            o.pending
+                              ? `${o.ten} — chờ admin duyệt`
+                              : cluster.label
+                                ? `${cluster.label} · ${o.ten}`
+                                : o.ten
+                          }
+                          className={`shop-kho-loai-dd-option${on ? " is-on" : ""}${
+                            o.pending ? " is-pending" : ""
+                          }`}
+                          disabled={disabled}
+                          onClick={() => pick(o.id)}
                         >
-                          {on ? <Check size={12} strokeWidth={3} /> : null}
-                        </span>
-                        <span className="shop-kho-loai-dd-option-copy">
-                          <strong>{o.ten}</strong>
-                          {o.moTa ? <em>{o.moTa}</em> : null}
-                        </span>
-                      </button>
+                          <span
+                            className={`shop-kho-loai-dd-check${on ? " is-on" : ""}`}
+                            aria-hidden
+                          >
+                            {on ? <Check size={12} strokeWidth={3} /> : null}
+                          </span>
+                          <span className="shop-kho-loai-dd-option-copy">
+                            <strong>{o.ten}</strong>
+                            {o.pending ? <em>Chờ admin duyệt</em> : null}
+                          </span>
+                        </button>
+                      );
+                    })}
                     </div>
-                  );
-                })}
-                {canDeXuat && !deXuatOpen ? (
+                  </section>
+                ))}
+                {canDeXuat ? (
                   <button
                     type="button"
                     className="shop-kho-loai-dd-option shop-kho-loai-dd-option--create"
@@ -474,22 +638,14 @@ function TaxSelectDropdown({
                     </span>
                   </button>
                 ) : null}
-                {deXuatOpen && missingCategory && q.trim() ? (
-                  <BaoThieuDanhMucForm
-                    nhomId={missingCategory.nhomId}
-                    tuKhoa={q}
-                    ganNhat={options}
-                    disabled={disabled}
-                    onSubmitted={missingCategory.onSubmitted}
-                    onError={missingCategory.onError}
-                    onDone={() => setOpen(false)}
-                  />
-                ) : null}
-                {filtered.length === 0 && !canDeXuat && !deXuatOpen ? (
+                {filtered.length === 0 && !canDeXuat ? (
                   <p className="shop-kho-loai-dd-empty">Không khớp.</p>
                 ) : null}
+                  </>
+                )}
               </div>
 
+              {deXuatOpen ? null : (
               <footer className="shop-kho-loai-dd-sheet-foot">
                 {onClear && hasValue ? (
                   <button
@@ -511,6 +667,7 @@ function TaxSelectDropdown({
                   {multiple ? "Xong" : "Đóng"}
                 </button>
               </footer>
+              )}
             </div>
           </div>,
           document.body,
@@ -542,15 +699,15 @@ function TaxSelectDropdown({
               key={o.id}
               type="button"
               className="shop-kho-loai-dd-tag"
-              disabled={disabled}
-              onClick={() => onToggle(o.id)}
-              title={`Bỏ «${o.ten}»`}
+              disabled={disabled || (o.pending && !onClear)}
+              onClick={() => (o.pending ? onClear?.() : onToggle(o.id))}
+              title={o.pending ? `Bỏ đề xuất «${o.ten}»` : `Bỏ «${o.ten}»`}
             >
               <span>{o.ten}</span>
               <X size={12} strokeWidth={2.4} aria-hidden />
             </button>
           ))}
-          {hasPending ? (
+          {hasPending && selected.length === 0 ? (
             <button
               type="button"
               className="shop-kho-loai-dd-tag"
@@ -1055,8 +1212,14 @@ export function ShopKhoLoaiTaxonomy({
   onUpdated,
   onError,
 }: Props) {
-  const [tax, setTax] = useState<TaxonomyPayload | null>(taxonomyCache);
-  const [loadingTax, setLoadingTax] = useState(!taxonomyCache);
+  const [tax, setTax] = useState<TaxonomyPayload | null>(() =>
+    taxonomyCache && taxonomyCanGroupByCha(taxonomyCache)
+      ? taxonomyCache
+      : null,
+  );
+  const [loadingTax, setLoadingTax] = useState(
+    () => !(taxonomyCache && taxonomyCanGroupByCha(taxonomyCache)),
+  );
   const [saving, setSaving] = useState(false);
   const [idDanhMuc, setIdDanhMuc] = useState(nhom.idDanhMuc ?? "");
   const [giaTriIds, setGiaTriIds] = useState<string[]>(() => [
@@ -1071,6 +1234,7 @@ export function ShopKhoLoaiTaxonomy({
     })),
   );
   const [suggestions, setSuggestions] = useState<DanhMucOpt[]>([]);
+  const [dismissedPending, setDismissedPending] = useState(false);
   const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -1087,9 +1251,15 @@ export function ShopKhoLoaiTaxonomy({
   }, [nhom.id, nhom.idDanhMuc, nhom.giaTriIds, nhom.fandoms]);
 
   useEffect(() => {
+    setDismissedPending(false);
+  }, [nhom.id, nhom.danhMucDeXuat]);
+
+  useEffect(() => {
     let cancelled = false;
     void (async () => {
-      setLoadingTax(!taxonomyCache);
+      setLoadingTax(
+        !(taxonomyCache && taxonomyCanGroupByCha(taxonomyCache)),
+      );
       const data = await loadTaxonomy();
       if (cancelled) return;
       setTax(data);
@@ -1111,7 +1281,7 @@ export function ShopKhoLoaiTaxonomy({
       void (async () => {
         try {
           const res = await fetch(
-            `/api/shop/danh-muc?q=${encodeURIComponent(q)}`,
+            `/api/shop/catalog?q=${encodeURIComponent(q)}`,
           );
           const json = (await res.json().catch(() => null)) as {
             suggestions?: DanhMucOpt[];
@@ -1135,22 +1305,71 @@ export function ShopKhoLoaiTaxonomy({
   const danhMucOptions = useMemo<DropdownOption[]>(() => {
     const all = tax?.danhMuc ?? [];
     const parentIds = new Set(
-      all.map((d) => d.idCha).filter((id): id is string => Boolean(id)),
+      all.map((d) => idChaOf(d)).filter((id): id is string => Boolean(id)),
     );
     const byId = new Map(all.map((d) => [d.id, d]));
-    return all
+    const leaves: DropdownOption[] = all
       .filter((d) => !parentIds.has(d.id) && d.slug !== "khac")
       .map((d) => {
-        const cha = d.idCha ? byId.get(d.idCha) : null;
-        return { id: d.id, ten: d.ten, moTa: d.moTa, group: cha?.ten ?? null };
+        const idCha = idChaOf(d);
+        const cha = idCha ? byId.get(idCha) : null;
+        return {
+          id: d.id,
+          ten: d.ten,
+          group: d.chaTen ?? cha?.ten ?? "Không nhóm",
+          groupOrder: d.chaThuTu ?? cha?.thuTu ?? (idCha ? 50 : 999),
+          idCha,
+        };
       });
+
+    const pendingTen = dismissedPending ? "" : pendingDeXuatTen(nhom);
+    if (pendingTen) {
+      const idCha = nhom.danhMucDeXuatIdCha?.trim() || null;
+      const cha = idCha ? byId.get(idCha) : null;
+      const group =
+        cha?.ten ?? (nhom.danhMucDeXuatChaTen?.trim() || "Không nhóm");
+      leaves.push({
+        id: PENDING_DANH_MUC_ID,
+        ten: pendingTen,
+        group,
+        groupOrder:
+          cha?.thuTu ?? (idCha || nhom.danhMucDeXuatChaTen ? 50 : 999),
+        idCha,
+        pending: true,
+      });
+    }
+
+    return leaves.sort(
+      (a, b) =>
+        (a.groupOrder ?? 999) - (b.groupOrder ?? 999) ||
+        (a.group ?? "").localeCompare(b.group ?? "", "vi") ||
+        Number(Boolean(b.pending)) - Number(Boolean(a.pending)) ||
+        a.ten.localeCompare(b.ten, "vi"),
+    );
+  }, [
+    tax,
+    nhom.danhMucSlug,
+    nhom.danhMucDeXuat,
+    nhom.danhMucDeXuatIdCha,
+    nhom.danhMucDeXuatChaTen,
+    dismissedPending,
+  ]);
+
+  const danhMucParents = useMemo(() => {
+    const all = tax?.danhMuc ?? [];
+    const parentIds = new Set(
+      all.map((d) => idChaOf(d)).filter((id): id is string => Boolean(id)),
+    );
+    return all
+      .filter((d) => parentIds.has(d.id))
+      .map((d) => ({ id: d.id, ten: d.ten }));
   }, [tax]);
 
   async function patchTaxonomy(body: Record<string, unknown>) {
     setSaving(true);
     onError(null);
     try {
-      const res = await fetch(`/api/shop/nhom/${encodeURIComponent(nhom.id)}`, {
+      const res = await fetch(`/api/shop/groups/${encodeURIComponent(nhom.id)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -1176,6 +1395,9 @@ export function ShopKhoLoaiTaxonomy({
   }
 
   async function onDanhMucPick(nextId: string) {
+    if (nextId === PENDING_DANH_MUC_ID) return;
+    if (nextId) setDismissedPending(true);
+    else setDismissedPending(false);
     const prev = nhom.idDanhMuc ?? "";
     const cleared = idDanhMuc === nextId ? "" : nextId;
     setIdDanhMuc(cleared);
@@ -1245,6 +1467,7 @@ export function ShopKhoLoaiTaxonomy({
     }
   }
 
+  const pendingTen = dismissedPending ? "" : pendingDeXuatTen(nhom);
   const busy = disabled || saving || loadingTax;
   const selectedFacetIds = (facet: FacetOpt) => {
     const inFacet = new Set(facet.giaTri.map((g) => g.id));
@@ -1254,7 +1477,7 @@ export function ShopKhoLoaiTaxonomy({
   return (
     <div className="shop-kho-loai-tax">
       <div className="shop-kho-loai-tax-head">
-        <strong>Phân loại hàng mới</strong>
+        <strong>Phân loại</strong>
       </div>
 
       {loadingTax ? (
@@ -1271,7 +1494,13 @@ export function ShopKhoLoaiTaxonomy({
               label="Danh mục hàng"
               placeholder="Chọn danh mục…"
               options={danhMucOptions}
-              selectedIds={idDanhMuc ? [idDanhMuc] : []}
+              selectedIds={
+                pendingTen
+                  ? [PENDING_DANH_MUC_ID]
+                  : idDanhMuc
+                    ? [idDanhMuc]
+                    : []
+              }
               multiple={false}
               searchable
               searchPlaceholder="Tìm danh mục…"
@@ -1280,12 +1509,11 @@ export function ShopKhoLoaiTaxonomy({
               onClear={() => void onDanhMucPick("")}
               missingCategory={{
                 nhomId: nhom.id,
+                parents: danhMucParents,
                 onSubmitted: onUpdated,
                 onError,
               }}
-              pendingLabel={
-                nhom.danhMucSlug === "khac" ? nhom.danhMucDeXuat : null
-              }
+              pendingLabel={pendingTen || null}
             />
 
             {chatLieuFacet ? (

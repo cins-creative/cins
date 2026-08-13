@@ -288,7 +288,7 @@ export function JourneyShopLoaiClient({
   const { openAuthModal } = useAuthGate();
   const setShopSlugCtx = useJourneyViewOptional()?.setShopSlug;
   const searchParams = useSearchParams();
-  const mauFromQuery = searchParams.get("mau")?.trim() || null;
+  const mauFromQuery = searchParams.get("variant")?.trim() || null;
   const comboFromQuery = searchParams.get("combo")?.trim() || null;
   const [detail, setDetail] = useState<ShopStorefrontNhomDetail | null>(null);
   const [shop, setShop] = useState<ShopCuaHang | null>(null);
@@ -485,7 +485,7 @@ export function JourneyShopLoaiClient({
   const loadOtherNhom = useCallback(async () => {
     try {
       const res = await fetch(
-        `/api/shop/cua-hang/mat-hang?slug=${encodeURIComponent(ownerSlug)}`,
+        `/api/shop/store/category?slug=${encodeURIComponent(ownerSlug)}`,
         { cache: "no-store" },
       );
       const json = (await res.json().catch(() => null)) as {
@@ -508,7 +508,7 @@ export function JourneyShopLoaiClient({
     setErr(null);
     try {
       const res = await fetch(
-        `/api/shop/cua-hang/nhom/${encodeURIComponent(nhomId)}?slug=${encodeURIComponent(ownerSlug)}`,
+        `/api/shop/store/groups/${encodeURIComponent(nhomId)}?slug=${encodeURIComponent(ownerSlug)}`,
         { cache: "no-store" },
       );
       const json = (await res.json().catch(() => null)) as {
@@ -524,7 +524,7 @@ export function JourneyShopLoaiClient({
       const fromQuery = mauFromQuery
         ? json.detail.mau.find((m) => m.sanPhamId === mauFromQuery)
         : null;
-      /* Chỉ auto-chọn khi vào từ search (?mau=). Không pick → hiện giá mặc định loại. */
+      /* Chỉ auto-chọn khi vào từ search (?variant=). Không pick → hiện giá mặc định loại. */
       if (fromQuery) {
         setSelectedSpId(fromQuery.sanPhamId);
         const bt =
@@ -585,7 +585,7 @@ export function JourneyShopLoaiClient({
       }
       const q = params.toString() ? `?${params}` : "";
       const res = await fetch(
-        `/api/shop/nhom/${encodeURIComponent(nhomId)}/danh-gia${q}`,
+        `/api/shop/groups/${encodeURIComponent(nhomId)}/danh-gia${q}`,
         { cache: "no-store" },
       );
       const json = (await res.json().catch(() => null)) as {
@@ -1031,7 +1031,7 @@ export function JourneyShopLoaiClient({
 
     void (async () => {
       try {
-        const res = await fetch("/api/shop/gio-chung", {
+        const res = await fetch("/api/shop/shared-cart", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ idBienThe, delta }),
@@ -1109,7 +1109,7 @@ export function JourneyShopLoaiClient({
     setReviewErr(null);
     try {
       const res = await fetch(
-        `/api/shop/nhom/${encodeURIComponent(nhomId)}/danh-gia`,
+        `/api/shop/groups/${encodeURIComponent(nhomId)}/reviews`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1142,7 +1142,7 @@ export function JourneyShopLoaiClient({
     setReviewBusy(true);
     try {
       await fetch(
-        `/api/shop/nhom/${encodeURIComponent(nhomId)}/danh-gia?danhGiaId=${encodeURIComponent(id)}`,
+        `/api/shop/groups/${encodeURIComponent(nhomId)}/reviews?danhGiaId=${encodeURIComponent(id)}`,
         { method: "DELETE" },
       );
       await loadReviews();
@@ -1175,7 +1175,7 @@ export function JourneyShopLoaiClient({
             <span className="j-shop-action-btn-label">Kho hàng</span>
           </Link>
           <Link
-            href="/ban-hang/don"
+            href="/seller/orders"
             className="j-shop-action-btn"
             aria-label="Đơn hàng"
             onMouseEnter={warmPrefetchBanHang}
@@ -1197,7 +1197,7 @@ export function JourneyShopLoaiClient({
         </span>
       )}
       <Link
-        href="/ban-hang/cua-hang"
+        href="/seller/store"
         className="j-shop-action-btn"
         aria-label="Quản lý cửa hàng"
         onMouseEnter={warmPrefetchBanHang}

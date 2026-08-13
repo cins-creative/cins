@@ -83,7 +83,7 @@ export function CoSoDaoTaoCreateForm({ userSlug }: { userSlug: string }) {
     }
     setSlugChecking(true);
     try {
-      const res = await fetch(`/api/to-chuc/slug?slug=${encodeURIComponent(s)}`);
+      const res = await fetch(`/api/organizations/slug?slug=${encodeURIComponent(s)}`);
       const json = (await res.json().catch(() => null)) as {
         available?: boolean;
         error?: string;
@@ -211,7 +211,7 @@ export function CoSoDaoTaoCreateForm({ userSlug }: { userSlug: string }) {
 
         if (logoId) body.avatar_id = logoId;
 
-        const res = await fetch("/api/to-chuc", {
+        const res = await fetch("/api/organizations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
@@ -539,7 +539,7 @@ export function CoSoDaoTaoCreateForm({ userSlug }: { userSlug: string }) {
           </details>
 
           <div className="ttc-actions">
-            <Link href="/tao-to-chuc" className="ttc-btn ttc-btn-ghost" prefetch={false}>
+            <Link href="/create-organization" className="ttc-btn ttc-btn-ghost" prefetch={false}>
               <ArrowLeft size={17} aria-hidden />
               Quay lại
             </Link>

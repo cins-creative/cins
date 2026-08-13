@@ -24,7 +24,7 @@ async function flushQueue() {
 
   try {
     const qs = new URLSearchParams({ ids: ids.join(",") });
-    const res = await fetch(`/api/ket-ban/status?${qs.toString()}`);
+    const res = await fetch(`/api/friends/status?${qs.toString()}`);
     if (res.ok) {
       const json = (await res.json()) as {
         items?: Record<string, KetBanStatusSummary>;

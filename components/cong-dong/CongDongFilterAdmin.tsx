@@ -57,7 +57,7 @@ export function CongDongFilterAdminPanel({ orgId, filters, onChange }: PanelProp
     e.preventDefault();
     setErr(null);
     startTransition(async () => {
-      const res = await fetch(`/api/cong-dong/${orgId}/filters`, {
+      const res = await fetch(`/api/community/${orgId}/filters`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -85,7 +85,7 @@ export function CongDongFilterAdminPanel({ orgId, filters, onChange }: PanelProp
     if (!confirm(`Xóa nhãn "${filter.ten}"?`)) return;
     startTransition(async () => {
       const res = await fetch(
-        `/api/cong-dong/${orgId}/filters/${filter.id}`,
+        `/api/community/${orgId}/filters/${filter.id}`,
         { method: "DELETE" },
       );
       if (!res.ok) {

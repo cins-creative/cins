@@ -120,7 +120,7 @@ export async function syncOrgGoiLinksForKhoa(input: {
       ? [...new Set([...current, input.khoaId])]
       : current.filter((id) => id !== input.khoaId);
     const res = await fetch(
-      `/api/co-so/${encodeURIComponent(input.orgId)}/hoc-phi/goi`,
+      `/api/academy/${encodeURIComponent(input.orgId)}/tuition/packages`,
       {
         method: "PATCH",
         credentials: "include",
@@ -182,7 +182,7 @@ export async function syncOrgComboLinksForKhoa(input: {
     }
 
     const res = await fetch(
-      `/api/co-so/${encodeURIComponent(input.orgId)}/hoc-phi/combo/${encodeURIComponent(c.id)}`,
+      `/api/academy/${encodeURIComponent(input.orgId)}/tuition/combos/${encodeURIComponent(c.id)}`,
       {
         method: "PATCH",
         credentials: "include",
@@ -278,10 +278,10 @@ export function KhoaHocGoiPhiEditor({
     setLoadError(null);
     try {
       const [goiRes, comboRes] = await Promise.all([
-        fetch(`/api/co-so/${encodeURIComponent(orgId)}/hoc-phi/goi`, {
+        fetch(`/api/academy/${encodeURIComponent(orgId)}/tuition/packages`, {
           credentials: "include",
         }),
-        fetch(`/api/co-so/${encodeURIComponent(orgId)}/hoc-phi/combo`, {
+        fetch(`/api/academy/${encodeURIComponent(orgId)}/tuition/combos`, {
           credentials: "include",
         }),
       ]);

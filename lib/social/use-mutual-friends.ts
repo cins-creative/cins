@@ -31,7 +31,7 @@ export function useMutualFriends(
     setLoading(true);
     try {
       const qs = new URLSearchParams({ id_nguoi: targetUserId });
-      const res = await fetch(`/api/ket-ban/chung?${qs.toString()}`);
+      const res = await fetch(`/api/friends/mutual?${qs.toString()}`);
       if (!res.ok) return;
       const data = (await res.json()) as {
         count: number;

@@ -114,7 +114,7 @@ export function WorldJourneyGuestLeftAside({
           ))}
         </div>
         <div className="wj-guest-cat-links">
-          <Link href="/to-chuc" className="wj-guest-cat-link" prefetch={false}>
+          <Link href="/organizations" className="wj-guest-cat-link" prefetch={false}>
             <Building2 size={17} strokeWidth={2} aria-hidden />
             Tổ chức
             <CinsArrowIos size={15} strokeWidth={2} className="wj-guest-cat-arr" aria-hidden />

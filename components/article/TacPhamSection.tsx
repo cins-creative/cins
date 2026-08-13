@@ -9,7 +9,7 @@ type Props = {
   items: TacPhamGalleryItem[];
   /** Hiện gallery placeholder cộng đồng (giống trang nghề) khi chưa có tác phẩm gắn bài. */
   showCommunityFallback?: boolean;
-  /** Link "Xem tất cả" — bỏ trống thì ẩn (không còn hub `/bai-viet`). */
+  /** Link "Xem tất cả" — bỏ trống thì ẩn (không còn hub `/articles`). */
   viewAllHref?: string;
 };
 

@@ -12,8 +12,8 @@ import {
 import { countDongGopChoDuyetForAdmin } from "@/lib/article/dong-gop/admin-list";
 
 import "@/styles/article-rich-content.css";
-import "@/app/bai-viet/article-layout-nghe.css";
-import "@/app/bai-viet/entity-article.css";
+import "@/app/articles/article-layout-nghe.css";
+import "@/app/articles/entity-article.css";
 import "@/styles/nghe-inline-draft.css";
 
 export const dynamic = "force-dynamic";

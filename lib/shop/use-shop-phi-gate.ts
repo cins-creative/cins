@@ -26,11 +26,11 @@ export function fmtPhiVnd(n: number): string {
 /** Link trang thanh toán phí nền tảng cho shop. */
 export function phiThanhToanHref(gate: ShopPhiGateLite): string {
   const dvParam = gate.dichVuId ?? gate.sellerId;
-  return `/tai-khoan/thanh-toan?dv=${encodeURIComponent(dvParam)}`;
+  return `/account/billing?dv=${encodeURIComponent(dvParam)}`;
 }
 
 /**
- * Đọc trạng thái gate phí nền tảng shop từ `/api/shop/phi/gate`.
+ * Đọc trạng thái gate phí nền tảng shop từ `/api/shop/fees/gate`.
  * Trả `null` khi chưa tải hoặc lỗi (không chặn UI).
  */
 export function useShopPhiGate(): ShopPhiGateLite | null {
@@ -40,7 +40,7 @@ export function useShopPhiGate(): ShopPhiGateLite | null {
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch("/api/shop/phi/gate", {
+        const res = await fetch("/api/shop/fees/gate", {
           cache: "no-store",
           credentials: "include",
         });

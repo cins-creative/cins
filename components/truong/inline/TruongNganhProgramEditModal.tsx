@@ -294,7 +294,7 @@ export function TruongNganhProgramEditModal({
         if (tuyenRow?.id) {
           const res = await truongInlineFetch(
             ctx.orgId,
-            `/tuyen-sinh/${tuyenRow.id}`,
+            `/admissions/${tuyenRow.id}`,
             {
               method: "PATCH",
               body: JSON.stringify({ chi_tieu, diem_chuan }),
@@ -317,7 +317,7 @@ export function TruongNganhProgramEditModal({
                 ? thoi_gian_thang
                 : null,
           };
-          const res = await truongInlineFetch(ctx.orgId, "/tuyen-sinh", {
+          const res = await truongInlineFetch(ctx.orgId, "/admissions", {
             method: "POST",
             body: JSON.stringify({ nam: y, entries: [entry] }),
           });
@@ -347,7 +347,7 @@ export function TruongNganhProgramEditModal({
         if (he) programPatch.he_dao_tao = he;
 
         if (Object.keys(programPatch).length) {
-          const res = await truongInlineFetch(ctx.orgId, `/nganh/${prog.id}`, {
+          const res = await truongInlineFetch(ctx.orgId, `/majors/${prog.id}`, {
             method: "PATCH",
             body: JSON.stringify(programPatch),
           });
@@ -407,7 +407,7 @@ export function TruongNganhProgramEditModal({
     try {
       const res = await truongInlineFetch(
         ctx.orgId,
-        `/nganh/${encodeURIComponent(prog.id)}`,
+        `/majors/${encodeURIComponent(prog.id)}`,
         { method: "DELETE" },
       );
       if (!res.ok) {

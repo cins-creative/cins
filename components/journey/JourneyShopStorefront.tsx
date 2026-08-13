@@ -355,7 +355,7 @@ function ShopEventBanner({
     setBusy(true);
     setErr(null);
     try {
-      const res = await fetch("/api/shop/cua-hang", {
+      const res = await fetch("/api/shop/store", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -594,7 +594,7 @@ export function JourneyShopStorefront({
   const refreshGio = useCallback(async () => {
     if (!canShop || !viewerProfileId) return;
     try {
-      const gRes = await fetch("/api/shop/gio-chung", { cache: "no-store" });
+      const gRes = await fetch("/api/shop/shared-cart", { cache: "no-store" });
       const gJson = (await gRes.json().catch(() => null)) as {
         gio?: ShopGioChung;
       } | null;
@@ -612,7 +612,7 @@ export function JourneyShopStorefront({
       pendingQtyRef.current.delete(idBienThe);
       const epoch = qtyEpochRef.current.get(idBienThe) ?? 0;
       try {
-        const res = await fetch("/api/shop/gio-chung", {
+        const res = await fetch("/api/shop/shared-cart", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ idBienThe, soLuong }),

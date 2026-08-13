@@ -50,6 +50,7 @@ export async function POST(request: Request) {
     thuTu?: number;
     nganhHang?: string;
     trangThai?: "hien" | "an";
+    idCha?: string | null;
   };
   try {
     body = await request.json();
@@ -76,12 +77,17 @@ export async function POST(request: Request) {
       thuTu: body.thuTu,
       nganhHang: body.nganhHang,
       trangThai: body.trangThai,
+      idCha: typeof body.idCha === "string" ? body.idCha : null,
     });
     return NextResponse.json({ ok: true, row }, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Lỗi không xác định.";
     const status =
-      message.includes("Slug") || message.includes("Tên") ? 422 : 500;
+      message.includes("Slug") ||
+      message.includes("Tên") ||
+      message.includes("Cấp cha")
+        ? 422
+        : 500;
     return NextResponse.json({ ok: false, error: message }, { status });
   }
 }

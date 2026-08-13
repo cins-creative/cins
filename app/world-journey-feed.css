@@ -862,7 +862,7 @@
   flex-direction: row;
   align-items: flex-start;
   justify-content: flex-start;
-  gap: 8px;
+  gap: 12px;
   columns: auto;
   width: 100%;
   max-width: none;
@@ -872,18 +872,18 @@
 .world-journey-home .wj-feed.view-grid .j-main-gallery-grid--masonry-balanced .j-main-gallery-grid__mcol {
   flex: 0 0
     calc(
-      (100% - (var(--masonry-cols, 5) - 1) * 8px) / var(--masonry-cols, 5)
+      (100% - (var(--masonry-cols, 5) - 1) * 12px) / var(--masonry-cols, 5)
     );
   width: calc(
-    (100% - (var(--masonry-cols, 5) - 1) * 8px) / var(--masonry-cols, 5)
+    (100% - (var(--masonry-cols, 5) - 1) * 12px) / var(--masonry-cols, 5)
   );
   max-width: calc(
-    (100% - (var(--masonry-cols, 5) - 1) * 8px) / var(--masonry-cols, 5)
+    (100% - (var(--masonry-cols, 5) - 1) * 12px) / var(--masonry-cols, 5)
   );
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 16px;
 }
 
 .world-journey-home.view-grid .j-main-gallery-grid--masonry-balanced > .j-main-gallery-item,
@@ -899,95 +899,6 @@
   margin-bottom: 0;
 }
 
-/* ── Trang chủ: card gallery mặc định hiện avatar + tên người/tổ chức;
-   hover mới hiện thêm tiêu đề + trích dẫn ───────────────────────────── */
-.world-journey-home .j-main-gallery-item .j-main-gallery-overlay {
-  opacity: 1;
-  background: linear-gradient(
-    180deg,
-    rgba(15, 23, 42, 0) 0%,
-    rgba(15, 23, 42, 0) 62%,
-    rgba(15, 23, 42, 0.58) 100%
-  );
-}
-.world-journey-home .j-main-gallery-item .j-main-gallery-overlay-body {
-  gap: 0;
-}
-.world-journey-home .j-main-gallery-item .j-main-gallery-author {
-  opacity: 1;
-}
-.world-journey-home .j-main-gallery-item .j-main-gallery-overlay-title,
-.world-journey-home .j-main-gallery-item .j-main-gallery-overlay-excerpt {
-  opacity: 0;
-  max-height: 0;
-  overflow: hidden;
-  transition:
-    opacity 0.18s var(--j-ease),
-    max-height 0.18s var(--j-ease),
-    margin-top 0.18s var(--j-ease);
-}
-.world-journey-home .j-main-gallery-item:hover .j-main-gallery-overlay,
-.world-journey-home .j-main-gallery-item:focus-visible .j-main-gallery-overlay,
-.world-journey-home .j-main-gallery-item:focus-within .j-main-gallery-overlay {
-  background: linear-gradient(
-    180deg,
-    rgba(15, 23, 42, 0) 0%,
-    rgba(15, 23, 42, 0) 34%,
-    rgba(15, 23, 42, 0.9) 100%
-  );
-}
-.world-journey-home .j-main-gallery-item:hover .j-main-gallery-overlay-title,
-.world-journey-home .j-main-gallery-item:hover .j-main-gallery-overlay-excerpt,
-.world-journey-home
-  .j-main-gallery-item:focus-visible
-  .j-main-gallery-overlay-title,
-.world-journey-home
-  .j-main-gallery-item:focus-visible
-  .j-main-gallery-overlay-excerpt,
-.world-journey-home
-  .j-main-gallery-item:focus-within
-  .j-main-gallery-overlay-title,
-.world-journey-home
-  .j-main-gallery-item:focus-within
-  .j-main-gallery-overlay-excerpt {
-  opacity: 1;
-  max-height: 4.5em;
-  margin-top: 4px;
-}
-
-/* Tab Video — listing masonry: luôn hiện avatar + tên + tiêu đề (không chờ hover). */
-.world-journey-home.view-video-list .j-main-gallery-item .j-main-gallery-overlay {
-  opacity: 1;
-  background: linear-gradient(
-    180deg,
-    rgba(15, 23, 42, 0) 0%,
-    rgba(15, 23, 42, 0) 42%,
-    rgba(15, 23, 42, 0.78) 100%
-  );
-}
-.world-journey-home.view-video-list .j-main-gallery-overlay-body {
-  gap: 6px;
-}
-.world-journey-home.view-video-list .j-main-gallery-item .j-main-gallery-overlay-title {
-  order: -1;
-  opacity: 1;
-  max-height: 2.6em;
-  margin-top: 0;
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.3;
-  letter-spacing: 0;
-}
-.world-journey-home.view-video-list .j-main-gallery-item .j-main-gallery-overlay-excerpt {
-  display: none;
-}
-.world-journey-home.view-video-list .j-main-gallery-overlay {
-  pointer-events: none;
-}
-.world-journey-home.view-video-list .j-main-gallery-overlay .j-user-pop-wrap {
-  pointer-events: auto;
-}
-
 @container wj-grid-feed (max-width: 479.98px) {
   .world-journey-home.view-grid .j-main-gallery-grid--masonry-balanced,
   .world-journey-home .wj-feed.view-grid .j-main-gallery-grid--masonry-balanced {
@@ -996,7 +907,7 @@
 
   .world-journey-home.view-grid .j-main-gallery-grid--masonry-balanced .j-main-gallery-grid__mcol,
   .world-journey-home .wj-feed.view-grid .j-main-gallery-grid--masonry-balanced .j-main-gallery-grid__mcol {
-    gap: 8px;
+    gap: 12px;
   }
 }
 
@@ -4208,11 +4119,15 @@
     border-radius: 5px;
   }
 
+  .world-journey-home .wj-feed.view-grid .j-main-gallery-item--caption-below {
+    border-radius: 0;
+  }
+
   .world-journey-home
     .wj-feed.view-grid
     .j-main-gallery-grid:not(.j-main-gallery-grid--card)
     .j-main-gallery-thumb {
-    border-radius: 5px;
+    border-radius: 8px;
   }
 
   .world-journey-home

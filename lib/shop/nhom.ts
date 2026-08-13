@@ -210,6 +210,8 @@ function mapNhom(row: NhomRow): ShopNhom {
     danhMucXacNhan: row.danh_muc_xac_nhan === true,
     danhMucSlug: null,
     danhMucDeXuat: null,
+    danhMucDeXuatIdCha: null,
+    danhMucDeXuatChaTen: null,
     facets: {},
     giaTriIds: [],
     fandomIds: [],
@@ -246,16 +248,17 @@ async function enrichNhomTaxonomy(nhoms: ShopNhom[]): Promise<void> {
       ? (slugById.get(n.idDanhMuc) ?? null)
       : null;
     n.danhMucDeXuat = null;
+    n.danhMucDeXuatIdCha = null;
+    n.danhMucDeXuatChaTen = null;
   }
 
-  const khacNhomIds = nhoms
-    .filter((n) => n.danhMucSlug === "khac")
-    .map((n) => n.id);
-  if (khacNhomIds.length > 0) {
-    const deXuatByNhom = await mapDeXuatDanhMucByNhomIds(khacNhomIds);
-    for (const n of nhoms) {
-      n.danhMucDeXuat = deXuatByNhom.get(n.id) ?? null;
-    }
+  const deXuatByNhom = await mapDeXuatDanhMucByNhomIds(nhomIds);
+  for (const n of nhoms) {
+    const dx = deXuatByNhom.get(n.id);
+    if (!dx) continue;
+    n.danhMucDeXuat = dx.ten;
+    n.danhMucDeXuatIdCha = dx.idCha;
+    n.danhMucDeXuatChaTen = dx.chaTen;
   }
 
   for (const n of nhoms) {
@@ -654,25 +657,33 @@ export async function updateNhom(
     patch.noi_bat = input.noiBat;
   }
 
+  let aliasDanhMucId: string | null = null;
+
   if (input.idDanhMuc !== undefined) {
     if (!taxonomyColsSupported) throw new Error("TAXONOMY_UNAVAILABLE");
     const dmId = input.idDanhMuc?.trim() || null;
     if (dmId) {
       const { data: dm, error: dmErr } = await admin
         .from("shop_danh_muc")
-        .select("id")
+        .select("id, slug, trang_thai")
         .eq("id", dmId)
-        .eq("trang_thai", "hien")
-        .maybeSingle<{ id: string }>();
+        .maybeSingle<{ id: string; slug: string; trang_thai: string }>();
       if (dmErr || !dm) throw new Error("DANH_MUC_INVALID");
-      const { data: child } = await admin
-        .from("shop_danh_muc")
-        .select("id")
-        .eq("id_cha", dm.id)
-        .eq("trang_thai", "hien")
-        .limit(1)
-        .maybeSingle<{ id: string }>();
-      if (child) throw new Error("DANH_MUC_INVALID");
+      const isKhac = dm.slug === "khac";
+      if (!isKhac && dm.trang_thai !== "hien") {
+        throw new Error("DANH_MUC_INVALID");
+      }
+      if (!isKhac) {
+        const { data: child } = await admin
+          .from("shop_danh_muc")
+          .select("id")
+          .eq("id_cha", dm.id)
+          .eq("trang_thai", "hien")
+          .limit(1)
+          .maybeSingle<{ id: string }>();
+        if (child) throw new Error("DANH_MUC_INVALID");
+        aliasDanhMucId = dm.id;
+      }
       patch.id_danh_muc = dm.id;
       patch.danh_muc_xac_nhan =
         input.danhMucXacNhan === false ? false : true;
@@ -741,11 +752,7 @@ export async function updateNhom(
   const mapped = mapNhom(updatedRow);
   await enrichNhomTaxonomy([mapped]);
 
-  if (
-    input.idDanhMuc !== undefined &&
-    typeof patch.id_danh_muc === "string" &&
-    patch.id_danh_muc
-  ) {
+  if (aliasDanhMucId) {
     const { ghiAliasUngVienTuChonTay } = await import(
       "@/lib/shop/danh-muc-dong-gop"
     );
@@ -753,7 +760,7 @@ export async function updateNhom(
       ownerId,
       nhomId,
       nhan: nextNhan,
-      idDanhMuc: patch.id_danh_muc,
+      idDanhMuc: aliasDanhMucId,
     });
   }
 

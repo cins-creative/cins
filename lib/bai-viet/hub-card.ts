@@ -1,4 +1,4 @@
-/** Nhãn a11y cho thẻ hub `/bai-viet` (dùng trên server + client). */
+/** Nhãn a11y cho thẻ hub `/articles` (dùng trên server + client). */
 export function baiVietHubCardAriaLabel(
   title: string,
   titleVi: string | null,

@@ -95,7 +95,7 @@ export default async function OnboardingPage({
       <footer className="cins-onb-footer">
         <span>© {year} C.INS Vietnam · Creative hub</span>
         <div className="cins-onb-footer-links">
-          <Link href="/ho-tro">Trợ giúp</Link>
+          <Link href="/support">Trợ giúp</Link>
           <Link href="/chinh-sach-rieng-tu">Bảo mật</Link>
           <Link href="/dieu-khoan">Điều khoản</Link>
         </div>

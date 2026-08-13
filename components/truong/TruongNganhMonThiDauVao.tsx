@@ -71,7 +71,7 @@ export function TruongNganhMonThiDauVao({
     });
 
     void fetch(
-      `/api/truong/${encodeURIComponent(orgId)}/cau-hinh-tinh-diem?${params}`,
+      `/api/university/${encodeURIComponent(orgId)}/score-config?${params}`,
     )
       .then(async (res) => {
         if (cancelled) return;

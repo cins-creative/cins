@@ -23,8 +23,8 @@ export function CareerHubCongDongSection({
   if (!communities.length) return null;
 
   const allHref = linhVucSlug
-    ? `/cong-dong?linh_vuc=${encodeURIComponent(linhVucSlug)}`
-    : "/cong-dong";
+    ? `/community?linh_vuc=${encodeURIComponent(linhVucSlug)}`
+    : "/community";
 
   return (
     <section
@@ -52,7 +52,7 @@ export function CareerHubCongDongSection({
           return (
             <li key={org.id}>
               <Link
-                href={`/cong-dong/${org.slug}`}
+                href={`/community/${org.slug}`}
                 className="hn-cong-dong-card"
               >
                 <span className="hn-cong-dong-avatar" aria-hidden>

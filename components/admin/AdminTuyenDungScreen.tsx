@@ -60,7 +60,7 @@ export function AdminTuyenDungScreen({ jobs: jobsProp }: Props) {
     }
     setMsg(null);
     startTransition(async () => {
-      const res = await fetch("/api/admin/tuyen-dung", {
+      const res = await fetch("/api/admin/jobs", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
@@ -155,7 +155,7 @@ export function AdminTuyenDungScreen({ jobs: jobsProp }: Props) {
                 const editing = editingId === job.id;
                 const labels = giaiDoanMucTieuLabels(job.giaiDoanMucTieu);
                 const studioHref = job.orgSlug
-                  ? `/studio/${encodeURIComponent(job.orgSlug)}/tuyen-dung`
+                  ? `/studio/${encodeURIComponent(job.orgSlug)}/jobs`
                   : null;
                 return (
                   <tr key={job.id} className={editing ? "is-editing" : undefined}>

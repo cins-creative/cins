@@ -162,7 +162,7 @@ export function QuanLyKhoPanel({
           counts={counts}
         />
         <Link
-          href="/ban-hang/kho"
+          href="/seller/inventory"
           className="ha-card-more"
           prefetch={false}
           aria-label="Quản lý kho"

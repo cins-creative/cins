@@ -20,7 +20,7 @@ export function buildOgShareSearchParams(
   if (filter) {
     params.set("filter", filter);
   } else if (nhom && nhom !== "all") {
-    params.set("nhom", nhom);
+    params.set("group", nhom);
   }
   return params;
 }

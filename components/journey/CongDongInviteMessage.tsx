@@ -24,7 +24,7 @@ export function CongDongInviteMessage({
   className = "j-coauthor-pending-message j-cong-dong-invite-message",
 }: Props): ReactNode {
   const initial = (inviterName || "?").slice(0, 1).toUpperCase();
-  const orgHref = `/cong-dong/${encodeURIComponent(orgSlug)}`;
+  const orgHref = `/community/${encodeURIComponent(orgSlug)}`;
 
   const sender = (
     <span className="j-coauthor-invite-sender">

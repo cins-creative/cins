@@ -7,7 +7,7 @@ export type { BillingJourneyPin };
 
 /**
  * Ghim đầu Journey (chỉ chủ thể): còn nợ phí thì trả pin; hết nợ → null.
- * Cùng nguồn với hub `/tai-khoan/thanh-toan`.
+ * Cùng nguồn với hub `/account/billing`.
  */
 export async function getBillingJourneyPin(
   userId: string,

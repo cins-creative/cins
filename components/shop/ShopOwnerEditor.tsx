@@ -118,7 +118,7 @@ export function ShopOwnerEditor({ ownerSlug, ownerName }: Props) {
     setSaving(true);
     setErr(null);
     try {
-      const res = await fetch("/api/shop/cua-hang", {
+      const res = await fetch("/api/shop/store", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -223,7 +223,7 @@ export function ShopOwnerEditor({ ownerSlug, ownerName }: Props) {
     setDeleting(true);
     setErr(null);
     try {
-      const res = await fetch("/api/shop/cua-hang", { method: "DELETE" });
+      const res = await fetch("/api/shop/store", { method: "DELETE" });
       const json = (await res.json().catch(() => null)) as {
         error?: string;
       } | null;
@@ -294,16 +294,16 @@ export function ShopOwnerEditor({ ownerSlug, ownerName }: Props) {
           {" · "}
           <Link href={
             shop?.idNguoiDung
-              ? `/tai-khoan/thanh-toan?dv=${encodeURIComponent(shop.idNguoiDung)}`
-              : "/tai-khoan/thanh-toan"
+              ? `/account/billing?dv=${encodeURIComponent(shop.idNguoiDung)}`
+              : "/account/billing"
           }>Phí nền tảng CINs</Link>
         </p>
       ) : (
         <p className="j-shop-owner-editor-view">
           <Link href={
             shop?.idNguoiDung
-              ? `/tai-khoan/thanh-toan?dv=${encodeURIComponent(shop.idNguoiDung)}`
-              : "/tai-khoan/thanh-toan"
+              ? `/account/billing?dv=${encodeURIComponent(shop.idNguoiDung)}`
+              : "/account/billing"
           }>Phí nền tảng CINs</Link>
         </p>
       )}

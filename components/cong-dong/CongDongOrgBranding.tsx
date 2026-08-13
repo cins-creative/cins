@@ -47,7 +47,7 @@ async function patchOrgBranding(
   orgId: string,
   patch: { avatarId?: string; coverId?: string },
 ): Promise<{ avatarId: string | null; coverId: string | null }> {
-  const res = await fetch(`/api/cong-dong/${orgId}/profile`, {
+  const res = await fetch(`/api/community/${orgId}/profile`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(patch),

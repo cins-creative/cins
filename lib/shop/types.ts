@@ -92,9 +92,13 @@ export type ShopNhom = {
   danhMucSlug: string | null;
   /**
    * Tên seller đề xuất khi loại đang gán `khac` + yêu cầu `moi`.
-   * Chỉ để hiện UI Kho — không phải lá canonical.
+   * Chỉ để hiện UI Kho — không phải lá canonical / chip hub.
    */
   danhMucDeXuat: string | null;
+  /** Parent `id_danh_muc_gan_nhat` của yêu cầu đang `moi` (null nếu đề xuất nhóm mới / chưa rõ). */
+  danhMucDeXuatIdCha: string | null;
+  /** Tên nhóm cha để gom lá ảo trên Kho (tên cha có sẵn, hoặc «Nhóm cha đề xuất»). */
+  danhMucDeXuatChaTen: string | null;
   /**
    * Facet gắn loại — key = slug facet, value = slug giá trị.
    * Enrich khi list. Key `fandom` lấy từ `shop_nhom_fandom` (entity).
@@ -662,6 +666,10 @@ export type ShopDonHang = {
   lyDoHuy?: string | null;
   /** Người thực hiện hủy — null nếu hệ thống auto-expire. */
   huyBoi?: string | null;
+  /** Shop nhờ khách hủy đơn `da_nhan_tien`. */
+  yeuCauHuyLuc?: string | null;
+  yeuCauHuyLyDo?: string | null;
+  yeuCauHuyBoi?: string | null;
   /** Snapshot chấp nhận rủi ro chuyển khoản (`mua_ngay`). */
   nguoiMuaChapNhanLuc?: string | null;
   nguoiMuaChapNhanVanBan?: string | null;
@@ -747,7 +755,7 @@ export type ShopQuaySuKien = {
   suKienBatDau?: string | null;
   orgTen?: string | null;
   taoLuc: string;
-  /** Card shop (listing `/cua-hang`) — mặt tiền quầy sự kiện. */
+  /** Card shop (listing `/shopping`) — mặt tiền quầy sự kiện. */
   shop?: PublicShopListingItem | null;
   /**
    * Legacy — bài gắn quầy (không còn hydrate ở list quầy công khai).

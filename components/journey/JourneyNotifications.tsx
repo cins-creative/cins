@@ -1077,7 +1077,7 @@ export function JourneyNotifications({
       return;
     }
     startTransition(async () => {
-      const res = await fetch(`/api/ket-ban/${recordId}`, {
+      const res = await fetch(`/api/friends/${recordId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),
@@ -1102,7 +1102,7 @@ export function JourneyNotifications({
     removeCoAuthorInviteOptimistic(invite.tacPhamId);
     startTransition(async () => {
       const res = await fetch(
-        `/api/tac-pham/${invite.tacPhamId}/tac-gia/${viewerProfileId}`,
+        `/api/artworks/${invite.tacPhamId}/authors/${viewerProfileId}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -1163,7 +1163,7 @@ export function JourneyNotifications({
     setError(null);
     startTransition(async () => {
       const res = await fetch(
-        `/api/co-so/${encodeURIComponent(invite.orgId)}/members/${encodeURIComponent(invite.membershipId)}/respond`,
+        `/api/academy/${encodeURIComponent(invite.orgId)}/members/${encodeURIComponent(invite.membershipId)}/respond`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1190,7 +1190,7 @@ export function JourneyNotifications({
     setError(null);
     startTransition(async () => {
       const res = await fetch(
-        `/api/cong-dong/invites/${encodeURIComponent(invite.notificationId)}/respond`,
+        `/api/community/invites/${encodeURIComponent(invite.notificationId)}/respond`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1350,7 +1350,7 @@ export function JourneyNotifications({
                         />
                         <div className="j-notify-inline-actions">
                           <Link
-                            href={`/cong-dong/${encodeURIComponent(invite.orgSlug)}`}
+                            href={`/community/${encodeURIComponent(invite.orgSlug)}`}
                             className="j-notify-mini-action is-link"
                           >
                             Xem cộng đồng

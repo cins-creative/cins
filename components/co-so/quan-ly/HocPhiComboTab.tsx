@@ -83,9 +83,9 @@ export function HocPhiComboTab({ orgId }: Props) {
     setError(null);
     try {
       const [comboRes, goiRes, khoaRes] = await Promise.all([
-        fetch(`/api/co-so/${orgId}/hoc-phi/combo`, { credentials: "include" }),
-        fetch(`/api/co-so/${orgId}/hoc-phi/goi`, { credentials: "include" }),
-        fetch(`/api/co-so/${orgId}/khoa-hoc`, { credentials: "include" }),
+        fetch(`/api/academy/${orgId}/tuition/combos`, { credentials: "include" }),
+        fetch(`/api/academy/${orgId}/tuition/packages`, { credentials: "include" }),
+        fetch(`/api/academy/${orgId}/courses`, { credentials: "include" }),
       ]);
       const comboData = await comboRes.json();
       if (!comboRes.ok) {
@@ -142,7 +142,7 @@ export function HocPhiComboTab({ orgId }: Props) {
             ? patch.hienTrangKhoa
             : nextDang,
       };
-      const res = await fetch(`/api/co-so/${orgId}/hoc-phi/combo/${c.id}`, {
+      const res = await fetch(`/api/academy/${orgId}/tuition/combos/${c.id}`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -165,7 +165,7 @@ export function HocPhiComboTab({ orgId }: Props) {
     if (!window.confirm(`Ẩn / xóa combo «${c.ten}»?`)) return;
     setBusyId(c.id);
     try {
-      const res = await fetch(`/api/co-so/${orgId}/hoc-phi/combo/${c.id}`, {
+      const res = await fetch(`/api/academy/${orgId}/tuition/combos/${c.id}`, {
         method: "DELETE",
         credentials: "include",
       });

@@ -327,7 +327,6 @@ export async function dangBaiJourneyChoUser(
 
   revalidatePath(`/${input.slugChu}`);
   revalidatePath("/");
-  revalidatePath("/luoi");
 
   return {
     ok: true,

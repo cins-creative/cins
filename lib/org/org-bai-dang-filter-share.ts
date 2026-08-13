@@ -34,7 +34,7 @@ export function orgBaiDangFilterShareUrl(
   if (spec.kind === "personal-label") {
     params.set("filter", spec.slug);
   } else if (spec.kind === "group" && spec.group !== "all") {
-    params.set("nhom", spec.group);
+    params.set("group", spec.group);
   }
   const path = orgBaiDangTabPath(ctx);
   const qs = params.toString();
@@ -49,9 +49,9 @@ export function orgBaiDangFilterKeyFromSearch(
   const personalSlug = personalFilterSlugFromSearch(q);
   if (personalSlug) return orgBaiDangNhanFilterKey(personalSlug);
 
-  const nhom = new URLSearchParams(q).get("nhom")?.trim();
-  if (nhom && nhom !== "all") {
-    return nhom as BaiDangTimelineFilter;
+  const group = new URLSearchParams(q).get("group")?.trim();
+  if (group && group !== "all") {
+    return group as BaiDangTimelineFilter;
   }
   return "all";
 }

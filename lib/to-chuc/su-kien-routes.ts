@@ -6,7 +6,7 @@ import {
   truongTabPath,
 } from "@/lib/truong/truong-routes";
 
-export const SU_KIEN_LISTING_PATH = "/su-kien";
+export const SU_KIEN_LISTING_PATH = "/events";
 
 /** Chế độ xem tab Quầy — query `?quay=shop|mat-hang|hang`. */
 export const SU_KIEN_QUAY_VIEWS = ["shop", "mat-hang", "hang"] as const;
@@ -55,8 +55,8 @@ export function withoutSuKienQuayView(
 }
 
 /**
- * Deep-link tab Quầy trên trang `/su-kien/{slug}`.
- * VD: `/su-kien/{slug}?quay=hang`
+ * Deep-link tab Quầy trên trang `/events/{slug}`.
+ * VD: `/events/{slug}?quay=hang`
  */
 export function suKienQuayViewHref(
   slugOrId: string,
@@ -66,7 +66,7 @@ export function suKienQuayViewHref(
   return withSuKienQuayView(suKienDetailPath(slugOrId), view, currentSearch);
 }
 
-/** Trang chi tiết sự kiện độc lập: `/su-kien/:slug` (hoặc id khi chưa có slug). */
+/** Trang chi tiết sự kiện độc lập: `/events/:slug` (hoặc id khi chưa có slug). */
 export function suKienDetailPath(slugOrId: string): string {
   return `${SU_KIEN_LISTING_PATH}/${encodeURIComponent(slugOrId.trim())}`;
 }
@@ -81,7 +81,7 @@ export function suKienCardPath(sk: {
 }
 
 /**
- * Deep-link tab Quản lý trên trang sự kiện độc lập (`/su-kien/{slug}?manage=1`).
+ * Deep-link tab Quản lý trên trang sự kiện độc lập (`/events/{slug}?manage=1`).
  * `orgLoai` / `orgSlug` giữ để tương thích caller; không còn bắt buộc.
  */
 export function suKienManageHref(

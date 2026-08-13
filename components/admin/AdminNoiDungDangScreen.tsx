@@ -42,7 +42,7 @@ import type {
 type ViewMode = NoiDungDangView;
 
 type Props = {
-  /** Deep-link từ route `/admin/noi-dung-dang/...`. */
+  /** Deep-link từ route `/admin/content/...`. */
   initialView?: ViewMode;
 };
 

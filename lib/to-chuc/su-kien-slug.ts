@@ -5,7 +5,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 const MAX_BASE_LEN = 72;
 const MAX_TOTAL_LEN = 80;
 
-/** Slug URL `/su-kien/{slug}` — kebab ASCII, bỏ dấu. */
+/** Slug URL `/events/{slug}` — kebab ASCII, bỏ dấu. */
 export function slugifySuKienTen(value: string): string {
   const cleaned = value
     .toLowerCase()

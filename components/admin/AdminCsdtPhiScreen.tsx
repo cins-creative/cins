@@ -134,7 +134,7 @@ export function AdminCsdtPhiScreen() {
     setMsg(null);
     setErr(null);
     try {
-      const res = await fetch("/api/admin/csdt-phi/ky", {
+      const res = await fetch("/api/admin/csdt-phi/periods", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -160,7 +160,7 @@ export function AdminCsdtPhiScreen() {
     setBusy(true);
     setErr(null);
     try {
-      const res = await fetch("/api/admin/csdt-phi/gan-giao-dich", {
+      const res = await fetch("/api/admin/csdt-phi/link-transaction", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -188,7 +188,7 @@ export function AdminCsdtPhiScreen() {
     setMsg(null);
     setErr(null);
     try {
-      const res = await fetch("/api/admin/csdt-phi/gan-giao-dich", {
+      const res = await fetch("/api/admin/csdt-phi/link-transaction", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ thanhToanId: ganGdId, kyId }),

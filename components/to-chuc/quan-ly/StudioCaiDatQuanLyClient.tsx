@@ -6,7 +6,7 @@ type Props = {
   orgId: string;
 };
 
-/** Thành viên + tổ chức (founder) trên `/quan-ly/cai-dat`. */
+/** Thành viên + tổ chức (founder) trên `/manage/settings`. */
 export function StudioCaiDatQuanLyClient({ orgId }: Props) {
   return (
     <div className="cso-co-so-stack">

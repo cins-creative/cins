@@ -31,7 +31,7 @@ export function BaiVietArticleView({
   draftUiEnabled = false,
   draftPersistEnabled = false,
 }: Props) {
-  const slugPath = `/bai-viet/${article.slug}`;
+  const slugPath = `/articles/${article.slug}`;
   const body =
     article.noi_dung?.trim() || article.noi_dung_markdown?.trim() || "";
   const breadcrumbShort =
@@ -107,7 +107,7 @@ export function BaiVietArticleView({
                   {tagExplore.map((t) => (
                     <Link
                       key={`${t.loai_bai_viet}-${t.id}`}
-                      href={`/bai-viet/${t.slug}`}
+                      href={`/articles/${t.slug}`}
                       className="bv-detail-tag"
                     >
                       {t.tieu_de}

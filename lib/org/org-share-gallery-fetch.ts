@@ -8,7 +8,7 @@ export type OrgShareGalleryPreview = {
 
 async function fetchCoSoDoanGallery(orgId: string): Promise<OrgShareGalleryPreview> {
   const res = await fetch(
-    `/api/org/${encodeURIComponent(orgId)}/doan-projects?featured=1`,
+    `/api/org/${encodeURIComponent(orgId)}/student-projects?featured=1`,
     { credentials: "include", cache: "no-store" },
   );
   if (!res.ok) return { thumbs: [], tacPham: 0 };

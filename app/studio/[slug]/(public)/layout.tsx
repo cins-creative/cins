@@ -12,7 +12,7 @@ type Props = {
 
 /**
  * Shell trang public studio (tab / showcase / tuyển dụng…).
- * Không bọc `/quan-ly/*` — nhóm route đó nằm ngoài `(public)`.
+ * Không bọc `/manage/*` — nhóm route đó nằm ngoài `(public)`.
  */
 export default async function StudioPublicLayout({ children, params }: Props) {
   const { slug } = await params;

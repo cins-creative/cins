@@ -1,4 +1,4 @@
-export const TIM_KIEM_PATH = "/tim-kiem";
+export const TIM_KIEM_PATH = "/search";
 
 export function buildTimKiemUrl(options?: {
   q?: string;

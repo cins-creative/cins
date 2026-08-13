@@ -126,7 +126,7 @@ const FEED_NAV_TABS: ReadonlyArray<FeedNavTab> = [
   { kind: "view", id: "gallery", label: "Gallery", icon: LayoutDashboard },
   { kind: "view", id: "video", label: "Video", icon: Clapperboard },
   { kind: "view", id: "shop", label: "Giỏ hàng", icon: ShoppingBag },
-  { kind: "link", href: "/cua-hang", label: "Cửa hàng", icon: Store },
+  { kind: "link", href: "/shopping", label: "Cửa hàng", icon: Store },
 ];
 
 function parseFeedSurfaceView(raw: string | null): FeedSurfaceView | null {
@@ -747,7 +747,7 @@ export function WorldJourneyFeed({
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("view") === "store") {
-      window.location.replace("/cua-hang");
+      window.location.replace("/shopping");
       return;
     }
     setSurfaceView(initialSurfaceView(window.location.search));

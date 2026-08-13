@@ -120,7 +120,7 @@ function buildPostsUrl(
     params.append("filter", slug);
   }
   const qs = params.toString();
-  return `/api/cong-dong/${orgId}/posts${qs ? `?${qs}` : ""}`;
+  return `/api/community/${orgId}/posts${qs ? `?${qs}` : ""}`;
 }
 
 function postsMatchingFilterSlugs(
@@ -245,7 +245,7 @@ export function CongDongPageClient({
       return;
     }
     let cancelled = false;
-    void fetch(`/api/org/${encodeURIComponent(org.id)}/su-kien/quan-ly`, {
+    void fetch(`/api/org/${encodeURIComponent(org.id)}/events/manage`, {
       credentials: "include",
       cache: "no-store",
     })
@@ -1036,7 +1036,7 @@ function usePostSocial(orgId: string, post: CongDongPost, canInteract: boolean) 
       if (comments.length > 0) return;
       startTransition(async () => {
         const res = await fetch(
-          `/api/cong-dong/${orgId}/posts/${post.id}/comments`,
+          `/api/community/${orgId}/posts/${post.id}/comments`,
         );
         const json = (await res.json().catch(() => null)) as {
           comments?: CongDongComment[];
@@ -1074,7 +1074,7 @@ function usePostSocial(orgId: string, post: CongDongPost, canInteract: boolean) 
       idToChuc?: string | null,
     ) => {
       const res = await fetch(
-        `/api/cong-dong/${orgId}/posts/${post.id}/comments`,
+        `/api/community/${orgId}/posts/${post.id}/comments`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1550,7 +1550,7 @@ function CommentsPanel({
 
   const joinToComment = () => {
     startJoin(async () => {
-      const res = await fetch(`/api/cong-dong/${orgId}/tham-gia`, {
+      const res = await fetch(`/api/community/${orgId}/join`, {
         method: "POST",
       });
       const json = (await res.json().catch(() => null)) as {

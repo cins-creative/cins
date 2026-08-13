@@ -164,7 +164,7 @@ export function LopHocEditModal({
     void (async () => {
       try {
         const res = await fetch(
-          `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/dia-diem`,
+          `/api/academy/${encodeURIComponent(orgId)}/courses/locations`,
           { credentials: "include" },
         );
         const json = (await res.json()) as {
@@ -258,8 +258,8 @@ export function LopHocEditModal({
       return;
     }
     const url = isEdit
-      ? `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/${encodeURIComponent(khoaId)}/lop/${encodeURIComponent(editing!.id)}`
-      : `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/${encodeURIComponent(khoaId)}/lop`;
+      ? `/api/academy/${encodeURIComponent(orgId)}/courses/${encodeURIComponent(khoaId)}/classes/${encodeURIComponent(editing!.id)}`
+      : `/api/academy/${encodeURIComponent(orgId)}/courses/${encodeURIComponent(khoaId)}/classes`;
 
     try {
       const res = await fetch(url, {

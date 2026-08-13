@@ -47,7 +47,7 @@ type Props = {
 
 /**
  * Xin / quản lý quầy sự kiện theo shop (`id_cot_moc = null`).
- * Dùng trên tab `/ban-hang/su-kien`.
+ * Dùng trên tab `/seller/events`.
  */
 export function ShopXinQuayPanel({ active = true }: Props) {
   const listId = useId();
@@ -109,7 +109,7 @@ export function ShopXinQuayPanel({ active = true }: Props) {
   const loadMine = useCallback(async () => {
     setMineLoading(true);
     try {
-      const res = await fetch("/api/shop/quay/cua-toi", { cache: "no-store" });
+      const res = await fetch("/api/shop/booths/mine", { cache: "no-store" });
       const json = (await res.json().catch(() => null)) as {
         items?: ShopQuaySuKien[];
       } | null;
@@ -137,7 +137,7 @@ export function ShopXinQuayPanel({ active = true }: Props) {
     setLoading(true);
     void (async () => {
       try {
-        const res = await fetch("/api/su-kien/list?upcoming=1&limit=24", {
+        const res = await fetch("/api/events/list?upcoming=1&limit=24", {
           cache: "no-store",
         }).catch(() => null);
         if (res?.ok) {
@@ -292,7 +292,7 @@ export function ShopXinQuayPanel({ active = true }: Props) {
         });
       }
 
-      const res = await fetch(`/api/su-kien/${applyEvent.id}/quay`, {
+      const res = await fetch(`/api/events/${applyEvent.id}/booths`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bangChung }),
@@ -325,7 +325,7 @@ export function ShopXinQuayPanel({ active = true }: Props) {
     setBusyQuayId(withdrawId);
     setErr(null);
     try {
-      const res = await fetch(`/api/su-kien/${row.idSuKien}/quay/${row.id}`, {
+      const res = await fetch(`/api/events/${row.idSuKien}/booths/${row.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "withdraw", lyDo }),

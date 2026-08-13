@@ -17,7 +17,7 @@ const JOB_THUMB_TONES = [
 const JOBS_INITIAL = 6;
 
 function ngheCareerHref(slug: string): string {
-  return `/huong-nghiep/nghe/${encodeURIComponent(slug)}`;
+  return `/guidance/career/${encodeURIComponent(slug)}`;
 }
 
 function ngheLabel(row: NgheNganhRow): string {

@@ -29,7 +29,7 @@ export function BaiVietHubPageHead({
             <span className="hn-crumbs-here">{here}</span>
           </nav>
 
-          <form action="/bai-viet" method="get" className="hn-head-search" role="search">
+          <form action="/articles" method="get" className="hn-head-search" role="search">
             {activeLoai ? <input type="hidden" name="loai" value={activeLoai} /> : null}
             {activeCapDo ? (
               <input type="hidden" name="cap_do" value={activeCapDo} />

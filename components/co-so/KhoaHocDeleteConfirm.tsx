@@ -54,7 +54,7 @@ export function KhoaHocDeleteConfirm({
     void (async () => {
       try {
         const res = await fetch(
-          `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/${encodeURIComponent(khoa.id)}/xoa-preflight`,
+          `/api/academy/${encodeURIComponent(orgId)}/courses/${encodeURIComponent(khoa.id)}/delete-preflight`,
           { credentials: "include" },
         );
         const json = (await res.json()) as XoaPreflight & { error?: string };
@@ -93,7 +93,7 @@ export function KhoaHocDeleteConfirm({
     setSubmitting(true);
     try {
       const res = await fetch(
-        `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/${encodeURIComponent(khoa.id)}`,
+        `/api/academy/${encodeURIComponent(orgId)}/courses/${encodeURIComponent(khoa.id)}`,
         { method: "DELETE", credentials: "include" },
       );
       const json = (await res.json()) as {

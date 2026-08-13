@@ -1,6 +1,6 @@
 import type { KhoaHocDetailPayload } from "@/lib/to-chuc/khoa-hoc-types";
 
-/** Slug cố định — mở `/co-so/{org}/khoa-hoc/_mockup-chi-tiet-khoa` để xem mockup đầy đủ. */
+/** Slug cố định — mở `/academy/{org}/khoa-hoc/_mockup-chi-tiet-khoa` để xem mockup đầy đủ. */
 export const KHOA_HOC_DETAIL_MOCK_SLUG = "_mockup-chi-tiet-khoa";
 
 /** Gộp dữ liệu API với mock khi section chưa có — giữ landing đầy đủ trên khóa thật. */

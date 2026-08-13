@@ -1,4 +1,4 @@
-/** DTO hub `/cua-hang` — client-safe (không `server-only`). */
+/** DTO hub `/shopping` — client-safe (không `server-only`). */
 
 /** Loại / mẫu hiện trên card hoặc kết quả search hàng. */
 export type PublicShopListingHang = {

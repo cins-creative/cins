@@ -3,7 +3,10 @@
  *  - `timeline`     → dòng thời gian Journey (ở lại bare URL; client sẽ pin
  *                     `?view=journey` để sticky sau action/F5)
  *  - `gallery`      → Gallery dạng thẻ   (?view=gallery)
- *  - `gallery_luoi` → Masonry layout     (?view=gallery&display=luoi) */
+ *  - `gallery_luoi` → Masonry layout     (?view=gallery&display=grid)
+ *
+ *  Tên giá trị `gallery_luoi` là dữ liệu lưu trong `user_*` — giữ nguyên;
+ *  chỉ query param trên URL đổi sang tiếng Anh. */
 export type JourneyDefaultView = "timeline" | "gallery" | "gallery_luoi";
 
 export const JOURNEY_DEFAULT_VIEW_VALUES: readonly JourneyDefaultView[] = [
@@ -24,7 +27,7 @@ export function journeyDefaultViewHref(
 ): string {
   const s = encodeURIComponent(slug);
   if (view === "gallery") return `/${s}?view=gallery`;
-  if (view === "gallery_luoi") return `/${s}?view=gallery&display=luoi`;
+  if (view === "gallery_luoi") return `/${s}?view=gallery&display=grid`;
   return `/${s}`;
 }
 

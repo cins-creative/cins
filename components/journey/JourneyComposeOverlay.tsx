@@ -73,6 +73,23 @@ type LoadErrorBoundaryProps = {
 
 type LoadErrorBoundaryState = { error: Error | null };
 
+function formatEditLoadError(raw: string): string {
+  const t = raw.trim();
+  if (!t) return "Không tải được bài viết để chỉnh sửa.";
+  if (t === "not_found") {
+    return "Không tải được bài viết để chỉnh sửa. Không tìm thấy bài này.";
+  }
+  if (t === "forbidden" || t === "Forbidden") {
+    return "Không tải được bài viết để chỉnh sửa. Bạn không có quyền sửa bài này.";
+  }
+  if (t === "Unauthorized") {
+    return "Không tải được bài viết để chỉnh sửa. Cần đăng nhập lại.";
+  }
+  return t.startsWith("Không tải được")
+    ? t
+    : `Không tải được bài viết để chỉnh sửa. ${t}`;
+}
+
 /** Bắt lỗi import/render EditorView — tránh kẹt skeleton vô hạn che cả app. */
 class ComposeLoadErrorBoundary extends Component<
   LoadErrorBoundaryProps,
@@ -203,10 +220,12 @@ export function JourneyComposeOverlay({
     const loadEdit = orgBaiDangCompose
       ? truongInlineFetch(
           orgBaiDangCompose.orgId,
-          `/bai-dang/${encodeURIComponent(compose.postSlug)}/edit`,
+          `/posts/${encodeURIComponent(compose.postSlug)}/edit`,
         ).then(async (res) => {
           if (!res.ok) {
-            throw new Error(await readTruongInlineError(res));
+            throw new Error(
+              `load failed ${await readTruongInlineError(res)}`,
+            );
           }
           return res.json() as Promise<{
             initial: EditorInitial;
@@ -221,16 +240,16 @@ export function JourneyComposeOverlay({
             try {
               const body = (await res.json()) as { error?: string };
               if (body.error === "Unauthorized") {
-                detail = " Cần đăng nhập lại.";
+                detail = "Unauthorized";
               } else if (body.error === "Forbidden") {
-                detail = " Bạn không có quyền sửa bài này.";
+                detail = "Forbidden";
               } else if (body.error) {
-                detail = ` (${body.error})`;
+                detail = body.error;
               }
             } catch {
               /* ignore non-JSON */
             }
-            throw new Error(`load failed${detail}`);
+            throw new Error(`load failed ${detail}`.trim());
           }
           return res.json() as Promise<{
             initial: EditorInitial;
@@ -250,19 +269,17 @@ export function JourneyComposeOverlay({
         const extra =
           err instanceof Error && err.message.startsWith("load failed")
             ? err.message.slice("load failed".length).trim()
-            : "";
-        setEditError(
-          extra
-            ? `Không tải được bài viết để chỉnh sửa.${extra.startsWith("(") ? ` ${extra}` : extra}`
-            : "Không tải được bài viết để chỉnh sửa.",
-        );
+            : err instanceof Error
+              ? err.message.trim()
+              : "";
+        setEditError(formatEditLoadError(extra));
         setEditLoading(false);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [compose, ownerSlug, orgBaiDangCompose]);
+  }, [compose, ownerSlug, orgBaiDangCompose?.orgId]);
 
   if (typeof document === "undefined") return null;
 

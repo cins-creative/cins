@@ -87,7 +87,7 @@ export type PublishPostInput = {
   blocks: Block[];
   ownerVaiTro?: string;
   coAuthors?: CoAuthorDraft[];
-  /** Đăng song song lên feed cộng đồng (compose từ `/cong-dong/[slug]`). */
+  /** Đăng song song lên feed cộng đồng (compose từ `/community/[slug]`). */
   congDong?: {
     orgId: string;
     filterSlugs: string[];
@@ -482,7 +482,6 @@ export async function publishPost(
   /* 6. Revalidate profile + feed trang chủ (compose từ World Journey). */
   revalidatePath(`/${contentOwnerSlug}`);
   revalidatePath("/");
-  revalidatePath("/luoi");
 
   const milestone = await buildMilestoneItemForCotMoc(admin, cotMoc.id);
 

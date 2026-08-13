@@ -90,7 +90,7 @@ export function CongDongMembersModal({
     setLoading(true);
     setErr(null);
     try {
-      const res = await fetch(`/api/cong-dong/${orgId}/members`);
+      const res = await fetch(`/api/community/${orgId}/members`);
       const json = (await res.json().catch(() => null)) as {
         members?: CongDongMemberAdmin[];
         pending?: CongDongMemberAdmin[];
@@ -181,7 +181,7 @@ export function CongDongMembersModal({
   function onAddUser(user: SearchUser) {
     setErr(null);
     startTransition(async () => {
-      const res = await fetch(`/api/cong-dong/${orgId}/members`, {
+      const res = await fetch(`/api/community/${orgId}/members`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: user.id, vaiTro: addRole }),
@@ -205,7 +205,7 @@ export function CongDongMembersModal({
     setErr(null);
     startTransition(async () => {
       const res = await fetch(
-        `/api/cong-dong/${orgId}/members/${member.id}`,
+        `/api/community/${orgId}/members/${member.id}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -228,7 +228,7 @@ export function CongDongMembersModal({
     setErr(null);
     startTransition(async () => {
       const res = await fetch(
-        `/api/cong-dong/${orgId}/members/${member.id}`,
+        `/api/community/${orgId}/members/${member.id}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -252,7 +252,7 @@ export function CongDongMembersModal({
     setErr(null);
     startTransition(async () => {
       const res = await fetch(
-        `/api/cong-dong/${orgId}/members/${member.id}`,
+        `/api/community/${orgId}/members/${member.id}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -276,7 +276,7 @@ export function CongDongMembersModal({
     setTransferPending(true);
     void (async () => {
       try {
-        const res = await fetch(`/api/cong-dong/${orgId}/transfer-owner`, {
+        const res = await fetch(`/api/community/${orgId}/transfer-owner`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

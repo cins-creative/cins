@@ -129,7 +129,7 @@ export function HaOrgUpEventPopover({ item, cardClassName, children }: Props) {
     const key = item.suKienKey;
     if (!key || preview || loading) return;
     setLoading(true);
-    void fetch(`/api/su-kien/preview?key=${encodeURIComponent(key)}`)
+    void fetch(`/api/events/preview?key=${encodeURIComponent(key)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => setPreview(json?.suKien ?? null))
       .catch(() => undefined)

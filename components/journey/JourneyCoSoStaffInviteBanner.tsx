@@ -33,7 +33,7 @@ export function JourneyCoSoStaffInviteBanner({ invites }: Props) {
           return next;
         });
         const res = await fetch(
-          `/api/co-so/${encodeURIComponent(invite.orgId)}/members/${encodeURIComponent(invite.membershipId)}/respond`,
+          `/api/academy/${encodeURIComponent(invite.orgId)}/members/${encodeURIComponent(invite.membershipId)}/respond`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -67,7 +67,7 @@ export function JourneyCoSoStaffInviteBanner({ invites }: Props) {
         const error = errors.get(invite.membershipId);
         const isStudio =
           invite.loaiToChuc === "studio" || invite.loaiToChuc === "doanh_nghiep";
-        const orgHref = `${isStudio ? "/studio" : "/co-so"}/${invite.orgSlug}`;
+        const orgHref = `${isStudio ? "/studio" : "/academy"}/${invite.orgSlug}`;
         return (
           <div
             key={invite.membershipId}

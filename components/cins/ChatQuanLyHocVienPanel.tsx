@@ -50,7 +50,7 @@ export function ChatQuanLyHocVienPanel({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/chat/rooms/${roomId}/tien-do`, {
+      const res = await fetch(`/api/chat/rooms/${roomId}/progress`, {
         credentials: "include",
         cache: "no-store",
       });
@@ -142,7 +142,7 @@ export function ChatQuanLyHocVienPanel({
     setBusy(true);
     setMsg(null);
     try {
-      const res = await fetch(`/api/chat/rooms/${roomId}/tien-do`, {
+      const res = await fetch(`/api/chat/rooms/${roomId}/progress`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -170,7 +170,7 @@ export function ChatQuanLyHocVienPanel({
       setBusy(true);
       setMsg(null);
       try {
-        const res = await fetch(`/api/chat/rooms/${roomId}/tien-do`, {
+        const res = await fetch(`/api/chat/rooms/${roomId}/progress`, {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },

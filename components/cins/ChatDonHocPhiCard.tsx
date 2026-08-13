@@ -138,7 +138,7 @@ export function ChatDonHocPhiCard({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/hoc-phi/${card.id}/xac-nhan`, {
+      const res = await fetch(`/api/tuition/${card.id}/confirm`, {
         method: "POST",
         credentials: "include",
       });

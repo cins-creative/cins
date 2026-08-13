@@ -130,7 +130,7 @@ async function loadAllFriends(): Promise<MutualFriendProfile[]> {
   const out: MutualFriendProfile[] = [];
   let offset = 0;
   for (let page = 0; page < 8; page += 1) {
-    const res = await fetch(`/api/ket-ban/danh-sach?offset=${offset}`, {
+    const res = await fetch(`/api/friends/list?offset=${offset}`, {
       cache: "no-store",
     });
     const json = (await res.json().catch(() => null)) as {

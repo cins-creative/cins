@@ -95,7 +95,7 @@ export function JourneyFriendsView({
     if (!isOwner) return;
     setLoadingInvites(true);
     try {
-      const res = await fetch("/api/ket-ban/loi-moi");
+      const res = await fetch("/api/friends/requests");
       if (!res.ok) return;
       const data = (await res.json()) as {
         invites: PendingFollowRequest[];
@@ -119,7 +119,7 @@ export function JourneyFriendsView({
     const recordId = request.ketBanId;
     if (!recordId) return;
     startTransition(async () => {
-      const res = await fetch(`/api/ket-ban/${recordId}`, {
+      const res = await fetch(`/api/friends/${recordId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),

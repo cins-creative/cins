@@ -117,7 +117,7 @@ export function UserAccountMenu({
           </Link>
 
           <Link
-            href="/tao-to-chuc"
+            href="/create-organization"
             className="app-user-menu-item"
             role="menuitem"
             onClick={() => setOpen(false)}
@@ -128,7 +128,7 @@ export function UserAccountMenu({
             <span>Tạo tổ chức</span>
           </Link>
           <Link
-            href="/cong-dong/tao"
+            href="/community/create"
             className="app-user-menu-item"
             role="menuitem"
             onClick={() => setOpen(false)}
@@ -154,7 +154,7 @@ export function UserAccountMenu({
             <span>Cài đặt</span>
           </button>
           <Link
-            href="/ho-tro"
+            href="/support"
             className="app-user-menu-item"
             role="menuitem"
             onClick={() => setOpen(false)}

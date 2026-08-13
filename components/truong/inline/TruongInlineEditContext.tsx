@@ -215,7 +215,7 @@ export function TruongInlineEditProvider({
     if (!orgId) return;
 
     let cancelled = false;
-    void truongInlineFetch(orgId, "/bai-dang/scheduled")
+    void truongInlineFetch(orgId, "/posts/scheduled")
       .then(async (res) => {
         if (!res.ok || cancelled) return;
         const json = (await res.json()) as { posts?: TruongBaiDang[] };
@@ -393,7 +393,7 @@ export function TruongInlineEditProvider({
       const headers: HeadersInit = {};
       if (token) headers.Authorization = `Bearer ${token}`;
       const res = await fetch(
-        `/api/truong/${encodeURIComponent(school.id)}/upload`,
+        `/api/university/${encodeURIComponent(school.id)}/upload`,
         { method: "POST", body: form, headers, credentials: "same-origin" },
       );
       if (!res.ok) return null;

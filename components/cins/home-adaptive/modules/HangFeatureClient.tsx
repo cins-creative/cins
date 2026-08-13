@@ -113,7 +113,7 @@ export function HangFeaturePanel({ initialItems, limit }: PanelProps) {
           limit: String(limit),
           exclude: uniq.join(","),
         });
-        const res = await fetch(`/api/home/hang-feature?${qs}`, {
+        const res = await fetch(`/api/home/product-feature?${qs}`, {
           credentials: "include",
         });
         const data = (await res.json().catch(() => null)) as {
@@ -140,7 +140,7 @@ export function HangFeaturePanel({ initialItems, limit }: PanelProps) {
     <ModuleCard
       icon={Package}
       title="Hàng feature"
-      moreHref="/cua-hang"
+      moreHref="/shopping"
       moreLabel="Khám phá cửa hàng"
       className="ha-card--hang"
       headTrailing={

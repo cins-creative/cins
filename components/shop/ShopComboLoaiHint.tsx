@@ -104,7 +104,7 @@ export function ShopComboLoaiHint({
       if (!activeId) return;
       try {
         const res = await fetch(
-          `/api/shop/combo/cong-khai?sellerId=${encodeURIComponent(sellerId)}`,
+          `/api/shop/combos/public?sellerId=${encodeURIComponent(sellerId)}`,
           { signal: ac.signal, credentials: "same-origin" },
         );
         if (!res.ok || cancelled) return;
@@ -127,7 +127,7 @@ export function ShopComboLoaiHint({
   }, [sellerId, comboId]);
 
   const loadGio = () => {
-    void fetch("/api/shop/gio-chung", { cache: "no-store" })
+    void fetch("/api/shop/shared-cart", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((json: ShopGioChung | null) => {
         const nhom = json?.nhom.find((g) => g.idNguoiBan === sellerId);

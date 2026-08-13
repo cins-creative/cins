@@ -44,7 +44,8 @@ const PhongHocMeeting = dynamic(
 import { addChatMessageToCanvas } from "@/lib/chat/canvas/add-message-client";
 import { canvasBridge } from "@/components/cins/canvas/canvas-bridge";
 import { avatarBg, avatarHueFromSeed, avatarInitialFromName } from "@/lib/chat/avatar";
-import { writeChatThreadsCache, writeRoomMessagesCache } from "@/lib/chat/chat-session-cache";
+import { patchChatThreadUnreadInCache, writeChatThreadsCache, writeRoomMessagesCache } from "@/lib/chat/chat-session-cache";
+import { sumUnreadExcludingRoom } from "@/lib/chat/unread-focus";
 import {
   revokeDraftImageUrls,
   type PendingImageDraft,
@@ -69,7 +70,7 @@ import {
 } from "@/lib/chat/optimistic-message";
 import { isPendingRoomId } from "@/lib/chat/optimistic-thread";
 import { applyOptimisticReaction } from "@/lib/chat/optimistic-reactions";
-import { fetchRoomMessagesPage } from "@/lib/chat/messages-client";
+import { fetchRoomMessagesPage, markRoomReadClient } from "@/lib/chat/messages-client";
 import { updateMessageInList } from "@/lib/chat/patch-thread-messages";
 import type { MediaCallMode } from "@/lib/media/call-mode";
 import {
@@ -187,6 +188,57 @@ function mergePeekThreads(
   return [...merged.values()].sort(
     (a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime(),
   );
+}
+
+/** Phòng đang mở mini — không để reconcile API kéo lại badge đỏ. */
+function zeroUnreadIfViewing(
+  threads: ChatThread[],
+  viewingRoomId: string | null,
+): ChatThread[] {
+  if (!viewingRoomId) return threads;
+  return threads.map((t) =>
+    t.roomId === viewingRoomId && t.unread > 0 ? { ...t, unread: 0 } : t,
+  );
+}
+
+/**
+ * Phòng vừa xem trong phiên: lastAt chưa mới hơn mốc xem thì không hiện lại
+ * badge khi đóng mini / sync API (watermark cursor cũ vẫn trả unread).
+ */
+function applyReadWatermarks(
+  threads: ChatThread[],
+  watermarks: Map<string, number>,
+): ChatThread[] {
+  if (watermarks.size === 0) return threads;
+  return threads.map((t) => {
+    const seen = watermarks.get(t.roomId);
+    if (seen == null || t.unread <= 0) return t;
+    const last = Date.parse(t.lastAt);
+    if (Number.isFinite(last) && last > seen) return t;
+    return { ...t, unread: 0, unreadMentions: 0 };
+  });
+}
+
+function bumpReadWatermark(
+  watermarks: Map<string, number>,
+  roomId: string,
+  lastAt?: string | null,
+) {
+  const fromThread = lastAt ? Date.parse(lastAt) : NaN;
+  const ts = Math.max(
+    Date.now(),
+    Number.isFinite(fromThread) ? fromThread : 0,
+  );
+  watermarks.set(roomId, Math.max(watermarks.get(roomId) ?? 0, ts));
+}
+
+function persistPeekRoomRead(
+  roomId: string,
+  lastMessageId: string | undefined,
+  viewerProfileId: string | null,
+) {
+  patchChatThreadUnreadInCache(viewerProfileId, roomId, 0);
+  void markRoomReadClient(roomId, lastMessageId);
 }
 
 function MiniAvatar({
@@ -383,6 +435,8 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   const [atMentionIndex, setAtMentionIndex] = useState(0);
   const dismissedPeekRef = useRef<Set<string>>(new Set());
   const viewedRoomsRef = useRef<Set<string>>(new Set());
+  /** roomId → ms đã xem. Sync sau khi đóng mini không kéo lại badge cũ. */
+  const readWatermarkRef = useRef<Map<string, number>>(new Map());
   const hydratedRoomsRef = useRef<Set<string>>(new Set());
   const composeByRoomRef = useRef<Map<string, RoomComposeDraft>>(new Map());
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -952,36 +1006,68 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       const snapshot = await prefetchChatData();
       if (!snapshot) return;
 
+      const viewing =
+        miniOpenRef.current && !miniLeavingRef.current
+          ? miniRoomIdRef.current
+          : null;
+      const fromApi = zeroUnreadIfViewing(
+        applyReadWatermarks(snapshot.threads, readWatermarkRef.current),
+        viewing,
+      );
+      const totalUnread = sumUnreadExcludingRoom(fromApi, viewing);
+
       if (viewerProfileId) {
-        writeChatThreadsCache(viewerProfileId, snapshot);
+        writeChatThreadsCache(viewerProfileId, {
+          threads: fromApi,
+          totalUnread,
+        });
       }
+      setTotalUnread(totalUnread);
 
       if (open) return;
 
       setPeekThreads((prev) =>
-        mergePeekThreads(
-          prev,
-          snapshot.threads,
-          dismissedPeekRef.current,
-          pinnedRoomIdSet,
-          pinnedThreadSnapshots,
+        zeroUnreadIfViewing(
+          mergePeekThreads(
+            prev,
+            fromApi,
+            dismissedPeekRef.current,
+            pinnedRoomIdSet,
+            pinnedThreadSnapshots,
+          ),
+          viewing,
         ),
       );
     } catch {
       /* ignore */
     }
-  }, [open, pinnedRoomIdSet, pinnedThreadSnapshots, prefetchChatData, viewerProfileId]);
+  }, [
+    open,
+    pinnedRoomIdSet,
+    pinnedThreadSnapshots,
+    prefetchChatData,
+    setTotalUnread,
+    viewerProfileId,
+  ]);
 
   const applyPeekFromThreads = useCallback(
     (threads: ChatThread[]) => {
       if (open) return;
+      const viewing =
+        miniOpenRef.current && !miniLeavingRef.current
+          ? miniRoomIdRef.current
+          : null;
+      const fromApi = applyReadWatermarks(threads, readWatermarkRef.current);
       setPeekThreads((prev) =>
-        mergePeekThreads(
-          prev,
-          threads,
-          dismissedPeekRef.current,
-          pinnedRoomIdSet,
-          pinnedThreadSnapshots,
+        zeroUnreadIfViewing(
+          mergePeekThreads(
+            prev,
+            fromApi,
+            dismissedPeekRef.current,
+            pinnedRoomIdSet,
+            pinnedThreadSnapshots,
+          ),
+          viewing,
         ),
       );
     },
@@ -1001,8 +1087,19 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
           threads?: ChatThread[];
           totalUnread?: number;
         };
-        setTotalUnread(json.totalUnread ?? 0);
-        applyPeekFromThreads(json.threads ?? []);
+        const viewing =
+          miniOpenRef.current && !miniLeavingRef.current
+            ? miniRoomIdRef.current
+            : null;
+        const threads = zeroUnreadIfViewing(
+          applyReadWatermarks(
+            json.threads ?? [],
+            readWatermarkRef.current,
+          ),
+          viewing,
+        );
+        setTotalUnread(sumUnreadExcludingRoom(threads, viewing));
+        applyPeekFromThreads(threads);
       } catch {
         /* ignore */
       }
@@ -1017,7 +1114,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       setPeekThreads((prev) =>
         mergePeekThreads(
           prev,
-          cached.threads,
+          applyReadWatermarks(cached.threads, readWatermarkRef.current),
           dismissedPeekRef.current,
           pinnedRoomIdSet,
           pinnedThreadSnapshots,
@@ -1106,11 +1203,12 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         );
 
         if (message.from === "them") {
-          void fetch(`/api/chat/rooms/${event.roomId}/read`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id_tin_nhan_cuoi: message.id }),
-          });
+          persistPeekRoomRead(event.roomId, message.id, viewerProfileId);
+          setPeekThreads((prev) =>
+            prev.map((t) =>
+              t.roomId === event.roomId ? { ...t, unread: 0 } : t,
+            ),
+          );
         }
 
         const container = messagesContainerRef.current;
@@ -1178,7 +1276,15 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   const loadRecentMessages = useCallback(
     async (thread: ChatThread) => {
       const { roomId } = thread;
-      if (hydratedRoomsRef.current.has(roomId)) return;
+      if (hydratedRoomsRef.current.has(roomId)) {
+        viewedRoomsRef.current.add(roomId);
+        const lastId = roomStatesRef.current[roomId]?.messages.at(-1)?.id;
+        persistPeekRoomRead(roomId, lastId, viewerProfileId);
+        setPeekThreads((prev) =>
+          prev.map((t) => (t.roomId === roomId ? { ...t, unread: 0 } : t)),
+        );
+        return;
+      }
 
       const cached = getCachedRoomMessages(roomId);
       if (cached?.length) {
@@ -1201,11 +1307,16 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       setLoadError(null);
 
       try {
-        const page = await fetchRoomMessagesPage(roomId);
+        const page = await fetchRoomMessagesPage(roomId, { markRead: true });
         if (!page) {
           if (!cached?.length) {
             throw new Error("Không tải được tin nhắn.");
           }
+          const cachedLastId = cached.at(-1)?.id;
+          persistPeekRoomRead(roomId, cachedLastId, viewerProfileId);
+          setPeekThreads((prev) =>
+            prev.map((t) => (t.roomId === roomId ? { ...t, unread: 0 } : t)),
+          );
           return;
         }
 
@@ -1226,20 +1337,17 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         viewedRoomsRef.current.add(roomId);
 
         const lastId = page.messages.at(-1)?.id;
-        if (lastId) {
-          void fetch(`/api/chat/rooms/${roomId}/read`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id_tin_nhan_cuoi: lastId }),
-          });
-        }
+        persistPeekRoomRead(roomId, lastId, viewerProfileId);
 
         const snapshot = await prefetchChatData();
         if (snapshot) {
           setPeekThreads((prev) =>
             mergePeekThreads(
               prev,
-              snapshot.threads,
+              applyReadWatermarks(
+                snapshot.threads,
+                readWatermarkRef.current,
+              ),
               dismissedPeekRef.current,
               pinnedRoomIdSet,
               pinnedThreadSnapshots,
@@ -1344,6 +1452,19 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       setLoadError(null);
       shouldScrollToBottomRef.current = true;
 
+      const unreadNow = thread.unread;
+      if (unreadNow > 0) {
+        setTotalUnread((count) => Math.max(0, count - unreadNow));
+      }
+      bumpReadWatermark(readWatermarkRef.current, thread.roomId, thread.lastAt);
+      setPeekThreads((prev) =>
+        prev.map((t) => (t.roomId === thread.roomId ? { ...t, unread: 0 } : t)),
+      );
+      const lastId =
+        roomStatesRef.current[thread.roomId]?.messages.at(-1)?.id ??
+        thread.messages?.at(-1)?.id;
+      persistPeekRoomRead(thread.roomId, lastId, viewerProfileId);
+
       /* Pop-out từ overlay thường mang sẵn messages — seed ngay rồi vẫn fetch. */
       if (thread.messages?.length) {
         const seeded = applyChatViewerPerspective(
@@ -1364,6 +1485,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       if (!hydratedRoomsRef.current.has(thread.roomId)) {
         void loadRecentMessages(thread);
       } else {
+        viewedRoomsRef.current.add(thread.roomId);
         scheduleScrollToBottom("auto");
       }
     },
@@ -1378,6 +1500,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       restoreComposeForRoom,
       saveComposeForRoom,
       scheduleScrollToBottom,
+      setTotalUnread,
       viewerProfileId,
     ],
   );
@@ -1523,6 +1646,18 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   const closeMini = useCallback(() => {
     if (!miniOpen || miniLeavingRef.current || !miniThread) return;
     const roomId = miniThread.roomId;
+    const lastAt =
+      roomStatesRef.current[roomId]?.messages.at(-1)?.sentAt ??
+      miniThread.lastAt;
+    bumpReadWatermark(readWatermarkRef.current, roomId, lastAt);
+    setPeekThreads((prev) =>
+      prev.map((t) => (t.roomId === roomId ? { ...t, unread: 0 } : t)),
+    );
+    persistPeekRoomRead(
+      roomId,
+      roomStatesRef.current[roomId]?.messages.at(-1)?.id,
+      viewerProfileId,
+    );
     saveComposeForRoom(roomId);
     markRoomDismissable(roomId);
     setStickerPickerOpen(false);
@@ -1536,6 +1671,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     miniOpen,
     miniThread,
     saveComposeForRoom,
+    viewerProfileId,
   ]);
 
   /**
@@ -1704,7 +1840,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     if (!roomId || isPendingRoomId(roomId) || !canJoinPhongHoc) return;
     const ac = new AbortController();
     void fetch(
-      `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/ensure`,
+      `/api/chat/rooms/${encodeURIComponent(roomId)}/classroom/ensure`,
       { method: "POST", signal: ac.signal },
     ).catch(() => {});
     return () => ac.abort();
@@ -1774,7 +1910,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       });
       try {
         const res = await fetch(
-          `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/token`,
+          `/api/chat/rooms/${encodeURIComponent(roomId)}/classroom/token`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -2632,7 +2768,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
               const isPinned = pinnedRoomIdSet.has(thread.roomId);
               const isProjectChild = Boolean(thread.parentRoomId);
               const parentThread = resolveParentThread(thread);
-              const showCount = thread.unread > 0;
+              const showCount = !isActive && thread.unread > 0;
               const canClose = canDismissBubble(thread, isPinned, isActive);
               const showDismiss = canClose && !showCount;
               const isDraggingThis =
@@ -2688,10 +2824,10 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                     type="button"
                     className="j-chat-bubble-btn"
                     aria-label={
-                      thread.unread > 0
-                        ? `${thread.unread} tin nhắn chưa đọc từ ${displayTitle}`
-                        : isActive
-                          ? `Thu chat với ${displayTitle}`
+                      isActive
+                        ? `Thu chat với ${displayTitle}`
+                        : thread.unread > 0
+                          ? `${thread.unread} tin nhắn chưa đọc từ ${displayTitle}`
                           : isPinned
                             ? `Chat đã ghim với ${displayTitle}`
                             : `Mở chat với ${displayTitle}`

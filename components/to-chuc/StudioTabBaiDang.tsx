@@ -31,7 +31,7 @@ type Props = {
   guestEmptyMessage?: string;
   /** Chỉ áp cho Showcase — chế độ xem mặc định từ `cau_hinh`. */
   showcaseDefaultView?: OrgBaiDangView;
-  /** Deep link `/studio/:slug/bai-dang|:showcase/:id`. */
+  /** Deep link `/studio/:slug/posts|:showcase/:id`. */
   activeBaiDangId?: string | null;
 };
 

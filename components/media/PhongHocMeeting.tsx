@@ -582,7 +582,7 @@ export function PhongHocMeeting({
     if (!roomId || !callMessageId) return;
     try {
       await fetch(
-        `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/signal`,
+        `/api/chat/rooms/${encodeURIComponent(roomId)}/classroom/signal`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

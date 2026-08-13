@@ -50,7 +50,7 @@ export function shopLoaiHref(
   return `${shopPublicHref(ownerSlug, shopSlug)}/loai/${encodeURIComponent(nhomId.trim())}`;
 }
 
-/** Trang loại + chọn sẵn mẫu (`?mau=` = sanPhamId). */
+/** Trang loại + chọn sẵn mẫu (`?variant=` = sanPhamId). */
 export function shopLoaiMauHref(
   ownerSlug: string,
   shopSlug: string,
@@ -60,17 +60,17 @@ export function shopLoaiMauHref(
   const base = shopLoaiHref(ownerSlug, shopSlug, nhomId);
   const id = sanPhamId.trim();
   if (!id) return base;
-  return `${base}?mau=${encodeURIComponent(id)}`;
+  return `${base}?variant=${encodeURIComponent(id)}`;
 }
 
 /** Owner setup / quản lý cửa hàng — trang /ban-hang/cua-hang. */
 export function shopSetupHref(_slug?: string): string {
-  return "/ban-hang/cua-hang";
+  return "/seller/store";
 }
 
-/** Hub quản lý kho — `/ban-hang/kho`. */
+/** Hub quản lý kho — `/seller/inventory`. */
 export function shopKhoHubHref(): string {
-  return "/ban-hang/kho";
+  return "/seller/inventory";
 }
 
 /** Segment URL cho loại chưa gán trên Kho. */
@@ -90,7 +90,7 @@ export function shopKhoLoaiPathSegment(
   return `${base}-${id.slice(0, 8)}`;
 }
 
-/** Chi tiết loại trên Kho — `/ban-hang/kho/{segment}`. */
+/** Chi tiết loại trên Kho — `/seller/inventory/{segment}`. */
 export function shopKhoLoaiHref(
   nhom: { id: string; nhan: string },
   siblings: ReadonlyArray<{ id: string; nhan: string }> = [],

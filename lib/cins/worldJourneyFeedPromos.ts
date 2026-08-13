@@ -177,12 +177,12 @@ function mapCourses(
   return {
     kind: "courses",
     title,
-    moreHref: "/to-chuc",
+    moreHref: "/organizations",
     items: courses.map((k) => ({
       id: k.id,
       title: k.ten,
       sub: `${k.orgTen} · ${k.sub}`,
-      href: `/co-so/${k.orgSlug}/khoa-hoc/${k.slug}`,
+      href: `/academy/${k.orgSlug}/courses/${k.slug}`,
       imageUrl: k.thumbnailUrl,
       orgLogoUrl: k.orgAvatarUrl,
     })),
@@ -279,7 +279,7 @@ export async function loadFeedInlinePromos(
     people: mapPeople(people) ?? undefined,
     events: events ?? undefined,
     studios:
-      mapOrgs(studios, "studios", "Studio gợi ý", "/to-chuc", "studio") ??
+      mapOrgs(studios, "studios", "Studio gợi ý", "/organizations", "studio") ??
       undefined,
     courses: mapCourses(courses, "Khóa học gợi ý") ?? undefined,
     schools:
@@ -287,7 +287,7 @@ export async function loadFeedInlinePromos(
         schools,
         "schools",
         "Cơ sở đào tạo",
-        "/to-chuc",
+        "/organizations",
         "co_so_dao_tao",
       ) ?? undefined,
   };

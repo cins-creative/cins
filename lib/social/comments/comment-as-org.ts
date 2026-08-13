@@ -35,7 +35,7 @@ function orgHref(loai: string, slug: string): string | null {
   if (loai === "truong_dai_hoc") return truongTabPath(slug, TRUONG_DEFAULT_TAB);
   if (loai === "co_so_dao_tao") return coSoTabPath(slug, CO_SO_DEFAULT_TAB);
   if (loai === "studio") return studioTabPath(slug, STUDIO_DEFAULT_TAB);
-  if (loai === "cong_dong") return `/cong-dong/${slug}`;
+  if (loai === "cong_dong") return `/community/${slug}`;
   if (loai === "doanh_nghiep") return `/doanh-nghiep/${slug}`;
   return null;
 }

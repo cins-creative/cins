@@ -10,14 +10,14 @@ export function ShopUuDaiSubTabs({ active }: Props) {
   return (
     <nav className="shop-dash-subtabs" aria-label="Combo và voucher">
       <Link
-        href="/ban-hang/uu-dai/combo"
+        href="/seller/promotions/combos"
         className={`shop-dash-subtab${active === "combo" ? " is-active" : ""}`}
         aria-current={active === "combo" ? "page" : undefined}
       >
         Combo & discount
       </Link>
       <Link
-        href="/ban-hang/uu-dai/voucher"
+        href="/seller/promotions/vouchers"
         className={`shop-dash-subtab${active === "voucher" ? " is-active" : ""}`}
         aria-current={active === "voucher" ? "page" : undefined}
       >

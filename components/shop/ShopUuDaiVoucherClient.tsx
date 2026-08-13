@@ -193,7 +193,7 @@ export function ShopUuDaiVoucherClient() {
     setToggleBusy(v.id);
     setErr(null);
     try {
-      const res = await fetch(`/api/shop/voucher/${v.id}`, {
+      const res = await fetch(`/api/shop/vouchers/${v.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ kichHoat: !v.kichHoat }),
@@ -222,7 +222,7 @@ export function ShopUuDaiVoucherClient() {
     if (!window.confirm(`Xóa voucher «${v.ma}»?`)) return;
     setErr(null);
     try {
-      const res = await fetch(`/api/shop/voucher/${v.id}`, {
+      const res = await fetch(`/api/shop/vouchers/${v.id}`, {
         method: "DELETE",
       });
       const json = (await res.json().catch(() => null)) as { error?: string };
@@ -263,8 +263,8 @@ export function ShopUuDaiVoucherClient() {
     };
     try {
       const url = editingId
-        ? `/api/shop/voucher/${editingId}`
-        : "/api/shop/voucher";
+        ? `/api/shop/vouchers/${editingId}`
+        : "/api/shop/vouchers";
       const res = await fetch(url, {
         method: editingId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },

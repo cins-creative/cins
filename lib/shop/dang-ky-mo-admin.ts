@@ -178,3 +178,26 @@ export async function updateShopDangKyMoAdmin(input: {
   }
   return { ok: true };
 }
+
+/** Gỡ lead khỏi hàng đợi — không xóa `shop_cua_hang`. Slot concierge được trả. */
+export async function deleteShopDangKyMoAdmin(
+  id: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const trimmed = id.trim();
+  if (!trimmed) return { ok: false, error: "Thiếu id lead." };
+
+  const admin = createServiceRoleClient();
+  const { data, error } = await admin
+    .from("shop_dang_ky_mo")
+    .delete()
+    .eq("id", trimmed)
+    .select("id")
+    .maybeSingle<{ id: string }>();
+
+  if (error) {
+    console.error("[shop] deleteShopDangKyMoAdmin", error.message);
+    return { ok: false, error: "Không gỡ được lead." };
+  }
+  if (!data) return { ok: false, error: "Lead không còn trong danh sách." };
+  return { ok: true };
+}

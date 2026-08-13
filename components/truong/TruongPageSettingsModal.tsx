@@ -150,7 +150,7 @@ export function TruongPageSettingsModal({
     setLoading(true);
     setErr(null);
     try {
-      const res = await fetch(`/api/truong/${encodeURIComponent(orgId)}/settings`);
+      const res = await fetch(`/api/university/${encodeURIComponent(orgId)}/settings`);
       const json = (await res.json().catch(() => null)) as {
         settings?: SettingsData;
         error?: string;
@@ -173,7 +173,7 @@ export function TruongPageSettingsModal({
       process.env.NEXT_PUBLIC_ARTICLE_INLINE_IMAGE_UPLOAD_TOKEN?.trim();
     const headers: HeadersInit = {};
     if (token) headers.Authorization = `Bearer ${token}`;
-    const res = await fetch(`/api/truong/${encodeURIComponent(orgId)}/upload`, {
+    const res = await fetch(`/api/university/${encodeURIComponent(orgId)}/upload`, {
       method: "POST",
       body: form,
       headers,
@@ -250,7 +250,7 @@ export function TruongPageSettingsModal({
     setErr(null);
     const prevSlug = draft.slug;
     startTransition(async () => {
-      const res = await fetch(`/api/truong/${encodeURIComponent(orgId)}/settings`, {
+      const res = await fetch(`/api/university/${encodeURIComponent(orgId)}/settings`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(savePayloadForSection(section, draft)),

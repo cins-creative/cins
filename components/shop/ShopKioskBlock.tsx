@@ -123,6 +123,13 @@ export function ShopKioskBlock({
 
   const itemsRef = useRef(items);
   itemsRef.current = items;
+  /** Ticker chỉ hiện hàng có ảnh — ô trống không chạy trên dải. */
+  const tickerItems = useMemo(
+    () => items.filter((it) => Boolean(it.anhUrl?.trim())),
+    [items],
+  );
+  const tickerItemsRef = useRef(tickerItems);
+  tickerItemsRef.current = tickerItems;
   /** idBienThe → số lượng chờ sync (sau debounce). */
   const pendingQtyRef = useRef(new Map<string, number>());
   const syncTimersRef = useRef(
@@ -204,7 +211,7 @@ export function ShopKioskBlock({
     const track = tickerTrackRef.current;
     if (!el || !track) return;
 
-    const n = itemsRef.current.length;
+    const n = tickerItemsRef.current.length;
     if (n === 0) {
       if (tickerLoopRef.current) setTickerLoop(false);
       if (tickerCopiesRef.current !== TICKER_COPIES_MIN) {
@@ -507,7 +514,7 @@ export function ShopKioskBlock({
     );
     root.querySelectorAll("[data-shop-track-sp]").forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, [items, tickerCopies, isOwner, previewOnly]);
+  }, [tickerItems, tickerCopies, isOwner, previewOnly]);
 
   useEffect(() => {
     if (!catalogOpen || isOwner || previewOnly) return;
@@ -567,7 +574,7 @@ export function ShopKioskBlock({
       }
       try {
         const res = await fetch(
-          `/api/shop/cua-hang/mat-hang?slug=${encodeURIComponent(sellerSlug.trim())}`,
+          `/api/shop/store/category?slug=${encodeURIComponent(sellerSlug.trim())}`,
           { cache: "no-store" },
         );
         const json = (await res.json().catch(() => null)) as {
@@ -619,7 +626,7 @@ export function ShopKioskBlock({
       return;
     }
     try {
-      const res = await fetch(`/api/milestone/${postId}/shop-hang`, {
+      const res = await fetch(`/api/milestone/${postId}/shop-products`, {
         cache: "no-store",
       });
       const json = (await res.json().catch(() => null)) as {
@@ -638,7 +645,7 @@ export function ShopKioskBlock({
   const loadGio = useCallback(async () => {
     if (previewOnly || !viewerProfileId || isOwner || !sellerUserId) return;
     try {
-      const res = await fetch("/api/shop/gio-chung", { cache: "no-store" });
+      const res = await fetch("/api/shop/shared-cart", { cache: "no-store" });
       const json = (await res.json().catch(() => null)) as {
         gio?: ShopGioChung;
       } | null;
@@ -702,7 +709,7 @@ export function ShopKioskBlock({
   /* Đo lại dải hàng mỗi khi danh sách / số bản nhân / loop đổi. */
   useLayoutEffect(() => {
     measureTicker();
-  }, [items, tickerLoop, tickerCopies, measureTicker]);
+  }, [tickerItems, tickerLoop, tickerCopies, measureTicker]);
 
   /* Khung / dải hàng đổi size (resize, ảnh load) → đo lại số bản nhân. */
   useEffect(() => {
@@ -713,7 +720,7 @@ export function ShopKioskBlock({
     ro.observe(el);
     if (track) ro.observe(track);
     return () => ro.disconnect();
-  }, [items, measureTicker, tickerCopies, tickerLoop]);
+  }, [tickerItems, measureTicker, tickerCopies, tickerLoop]);
 
   /* Modal mở → tạm giữ ticker; đóng → gỡ. */
   useEffect(() => {
@@ -909,7 +916,7 @@ export function ShopKioskBlock({
       pendingQtyRef.current.delete(idBienThe);
       const epoch = qtyEpochRef.current.get(idBienThe) ?? 0;
       try {
-        const res = await fetch("/api/shop/gio-chung", {
+        const res = await fetch("/api/shop/shared-cart", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ idBienThe, soLuong }),
@@ -1349,7 +1356,7 @@ export function ShopKioskBlock({
               {Array.from({
                 length: tickerLoop ? tickerCopies : 1,
               }).flatMap((_, copy) =>
-                items.map((it, i) => {
+                tickerItems.map((it, i) => {
                   /* Bản nhân đôi (copy > 0) ẩn với trợ năng, khỏi lặp tab/đọc. */
                   const dup = copy > 0;
                   const key = `${it.id}-${copy}-${i}`;
@@ -1358,7 +1365,7 @@ export function ShopKioskBlock({
                     it.idSanPham,
                     it.anhThumbFit,
                   );
-                  return it.anhUrl ? (
+                  return (
                     <button
                       key={key}
                       type="button"
@@ -1375,19 +1382,13 @@ export function ShopKioskBlock({
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={it.anhUrl}
+                        src={it.anhUrl!}
                         alt=""
                         className="shop-kiosk-ticker-thumb"
                         data-shop-thumb-fit={fit}
                         draggable={false}
                       />
                     </button>
-                  ) : (
-                    <span
-                      key={key}
-                      className="shop-kiosk-ticker-thumb shop-kiosk-ticker-thumb--empty"
-                      aria-hidden
-                    />
                   );
                 }),
               )}

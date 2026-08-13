@@ -93,7 +93,7 @@ export async function fandomIdsByNhomIds(
 }
 
 /**
- * Chip fandom cho hub `/cua-hang` — top N theo số loại hàng đang gắn.
+ * Chip fandom cho hub `/shopping` — top N theo số loại hàng đang gắn.
  * Shape giống giá trị facet cũ để UI không đổi.
  */
 export async function listFandomChipsForHub(

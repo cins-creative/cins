@@ -145,7 +145,7 @@ export function AdminTagScreen() {
     if (!editRow) return;
     setPendingId(editRow.id);
     try {
-      const res = await fetch(`/api/admin/tag/${editRow.id}/tom-tat`, {
+      const res = await fetch(`/api/admin/tag/${editRow.id}/summary`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tom_tat: editTomTat }),

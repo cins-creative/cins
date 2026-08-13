@@ -269,7 +269,7 @@ export function MoShopForm({
   const [shareCopied, setShareCopied] = useState(false);
 
   const shareFormUrl = useMemo(() => {
-    if (typeof window === "undefined") return "/mo-shop";
+    if (typeof window === "undefined") return "/open-shop";
     return `${window.location.origin}/mo-shop`;
   }, [thankYou]);
 
@@ -361,7 +361,7 @@ export function MoShopForm({
           link: item.link.trim(),
         }))
         .filter((item) => item.link.length > 0);
-      const res = await fetch("/api/mo-shop", {
+      const res = await fetch("/api/open-shop", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -801,7 +801,7 @@ export function MoShopForm({
             />
             <span>
               Tôi đồng ý{" "}
-              <Link href="/termandservice" target="_blank">
+              <Link href="/terms" target="_blank">
                 điều khoản CINs
               </Link>{" "}
               và cho CINs dùng ảnh từ link tôi gửi để dựng shop nháp. Shop chỉ

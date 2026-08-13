@@ -61,7 +61,7 @@ export async function createCongDongCreatorMilestone(params: {
     loai_nguoi_xac_nhan: "to_chuc",
     id_nguoi_xac_nhan: null,
     trang_thai: "da_xac_nhan",
-    url_proof: `/cong-dong/${params.orgSlug}`,
+    url_proof: `/community/${params.orgSlug}`,
     xu_ly_luc: now,
   });
 

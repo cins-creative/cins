@@ -43,7 +43,7 @@ export function CinsTopbarSearch() {
 
   const q = sp.get("q") ?? "";
   const linhVuc = sp.get("linh_vuc") ?? "";
-  const nhom = sp.get("nhom") ?? "";
+  const nhom = sp.get("group") ?? "";
   const kind = sp.get("kind") ?? "";
 
   const [draft, setDraft] = useState(q);

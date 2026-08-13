@@ -29,7 +29,7 @@ function badgeFromThreads(threads: OrgInboxThread[]): number {
 type TruongMessageInboxProps = {
   /** Override org — dùng khi ngoài TruongInlineEdit. */
   orgId?: string;
-  /** `nav` legacy — quan-ly dùng route `/tin-nhan`; giữ cho tương thích. */
+  /** `nav` legacy — quan-ly dùng route `/messages`; giữ cho tương thích. */
   variant?: "sidebar" | "nav";
   /** Hiện luôn khi có orgId (không cần đang editing trang public). */
   alwaysAvailable?: boolean;

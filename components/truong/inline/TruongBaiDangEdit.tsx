@@ -47,7 +47,7 @@ export function TruongBaiDangEditProvider({ children }: { children: ReactNode })
       const prevScheduled = ctx.scheduledBaidang;
       ctx.setBaidang((list) => list.filter((p) => p.id !== id));
       ctx.setScheduledBaidang((list) => list.filter((p) => p.id !== id));
-      const res = await truongInlineFetch(ctx.orgId, `/bai-dang/${id}`, {
+      const res = await truongInlineFetch(ctx.orgId, `/posts/${id}`, {
         method: "DELETE",
       });
       if (!res.ok) {
@@ -79,7 +79,7 @@ export function TruongBaiDangEditProvider({ children }: { children: ReactNode })
         ),
       );
 
-      const res = await truongInlineFetch(ctx.orgId, `/bai-dang/${id}`, {
+      const res = await truongInlineFetch(ctx.orgId, `/posts/${id}`, {
         method: "PATCH",
         body: JSON.stringify({ loai_bai_dang: normalized }),
       });
@@ -123,7 +123,7 @@ export function TruongBaiDangEditProvider({ children }: { children: ReactNode })
 
       const prev = ctx.baidang;
 
-      const res = await truongInlineFetch(ctx.orgId, `/bai-dang/${id}/filters`, {
+      const res = await truongInlineFetch(ctx.orgId, `/posts/${id}/filters`, {
         method: "PUT",
         body: JSON.stringify({ filterIds }),
       });
@@ -166,7 +166,7 @@ export function TruongBaiDangEditProvider({ children }: { children: ReactNode })
         ),
       );
 
-      const res = await truongInlineFetch(ctx.orgId, `/bai-dang/${id}`, {
+      const res = await truongInlineFetch(ctx.orgId, `/posts/${id}`, {
         method: "PATCH",
         body: JSON.stringify({ ghim }),
       });

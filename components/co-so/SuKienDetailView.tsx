@@ -785,7 +785,7 @@ function SuKienDetailViewInner({
     const run = () => {
       if (cancelled) return;
       void fetch(
-        `/api/org/${encodeURIComponent(orgId)}/su-kien/${encodeURIComponent(suKien.id)}/quan-ly`,
+        `/api/org/${encodeURIComponent(orgId)}/events/${encodeURIComponent(suKien.id)}/manage`,
         { credentials: "include", cache: "no-store" },
       )
         .then(async (res) => {
@@ -823,7 +823,7 @@ function SuKienDetailViewInner({
   const refresh = useCallback(() => {
     setActionError(null);
     void fetch(
-      `/api/org/${encodeURIComponent(orgId)}/su-kien/${encodeURIComponent(suKien.id)}/dang-ky`,
+      `/api/org/${encodeURIComponent(orgId)}/events/${encodeURIComponent(suKien.id)}/register`,
       { credentials: "include" },
     )
       .then(async (res) => {
@@ -874,7 +874,7 @@ function SuKienDetailViewInner({
     startTransition(async () => {
       setActionError(null);
       const res = await fetch(
-        `/api/org/${encodeURIComponent(orgId)}/su-kien/${encodeURIComponent(suKien.id)}/dang-ky`,
+        `/api/org/${encodeURIComponent(orgId)}/events/${encodeURIComponent(suKien.id)}/register`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

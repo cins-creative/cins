@@ -161,7 +161,7 @@ function CongDongPostMenuInner({
     startTransition(async () => {
       setError(null);
       setEditError(null);
-      const res = await fetch(`/api/cong-dong/${orgId}/posts/${post.id}`, {
+      const res = await fetch(`/api/community/${orgId}/posts/${post.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -189,7 +189,7 @@ function CongDongPostMenuInner({
   const handleDelete = () => {
     startTransition(async () => {
       setError(null);
-      const res = await fetch(`/api/cong-dong/${orgId}/posts/${post.id}`, {
+      const res = await fetch(`/api/community/${orgId}/posts/${post.id}`, {
         method: "DELETE",
       });
       const json = (await res.json().catch(() => null)) as { error?: string } | null;

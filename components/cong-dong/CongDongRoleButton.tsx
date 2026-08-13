@@ -84,7 +84,7 @@ export function CongDongRoleButton({
   const join = useCallback(() => {
     requireCongDongAuth(() => {
       startJoin(async () => {
-        const res = await fetch(`/api/cong-dong/${orgId}/tham-gia`, {
+        const res = await fetch(`/api/community/${orgId}/join`, {
           method: "POST",
         });
         const json = (await res.json().catch(() => null)) as {
@@ -107,7 +107,7 @@ export function CongDongRoleButton({
 
   const cancelPending = useCallback(() => {
     startLeave(async () => {
-      const res = await fetch(`/api/cong-dong/${orgId}/tham-gia`, {
+      const res = await fetch(`/api/community/${orgId}/join`, {
         method: "DELETE",
       });
       if (!res.ok) return;

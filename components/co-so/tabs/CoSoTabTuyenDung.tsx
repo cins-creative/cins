@@ -32,7 +32,7 @@ type Props = {
   orgTen: string;
   canEdit: boolean;
   viewerLoggedIn: boolean;
-  /** jobId từ URL `/co-so/:slug/tuyen-dung/:jobId` — mở popup chi tiết. */
+  /** jobId từ URL `/academy/:slug/jobs/:jobId` — mở popup chi tiết. */
   activeJobId: string | null;
   num?: string;
 };

@@ -74,7 +74,7 @@ export function GopYButton() {
     setStatus("sending");
     setErrorMsg(null);
     try {
-      const res = await fetch("/api/gop-y", {
+      const res = await fetch("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

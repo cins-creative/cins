@@ -53,7 +53,7 @@ export function CongDongProfileSection({
     setSavedFlash(false);
 
     try {
-      const res = await fetch(`/api/cong-dong/${encodeURIComponent(orgId)}/profile`, {
+      const res = await fetch(`/api/community/${encodeURIComponent(orgId)}/profile`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",

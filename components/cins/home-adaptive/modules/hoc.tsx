@@ -60,7 +60,7 @@ export async function DuongToiDoModule({ ctx }: { ctx: HomeModuleCtx }) {
 
   if (suggested.length > 0) {
     return (
-      <ModuleCard icon={GraduationCap} title="Cơ sở đào tạo" moreHref="/to-chuc">
+      <ModuleCard icon={GraduationCap} title="Cơ sở đào tạo" moreHref="/organizations">
         {suggested.map((o) => (
           <HaOrgSuggestionRow key={o.id} org={o} />
         ))}
@@ -72,7 +72,7 @@ export async function DuongToiDoModule({ ctx }: { ctx: HomeModuleCtx }) {
   if (schools.length === 0) return null;
 
   return (
-    <ModuleCard icon={GraduationCap} title="Cơ sở đào tạo" moreHref="/to-chuc">
+    <ModuleCard icon={GraduationCap} title="Cơ sở đào tạo" moreHref="/organizations">
       {schools.map((s) => (
         <Link
           key={s.id}
@@ -118,7 +118,7 @@ export async function KhoaHocGoiYModule(_props: { ctx: HomeModuleCtx }) {
       {courses.map((k) => (
         <Link
           key={k.id}
-          href={`/co-so/${k.orgSlug}/khoa-hoc/${k.slug}`}
+          href={`/academy/${k.orgSlug}/courses/${k.slug}`}
           className="ha-trow ha-trow--course"
           prefetch={false}
         >

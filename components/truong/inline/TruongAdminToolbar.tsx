@@ -13,7 +13,7 @@ import {
 
 type Props = {
   onOpenSettings?: (section: TruongSettingsSection) => void;
-  /** Deep-link sang dashboard `/quan-ly` (CoSo / Studio). */
+  /** Deep-link sang dashboard `/manage` (CoSo / Studio). */
   quanLyHref?: string | null;
   quanLyLabel?: string;
 };

@@ -68,7 +68,7 @@ export function ChatGroupInviteClient({
       <div className="cins-chat-invite-actions">
         {!isLoggedIn ? (
           <Link
-            href={`/login?next=${encodeURIComponent(`/chat/nhom/moi/${maMoi}`)}`}
+            href={`/login?next=${encodeURIComponent(`/chat/groups/invite/${maMoi}`)}`}
             className="cins-chat-invite-primary"
           >
             Đăng nhập để xin gia nhập

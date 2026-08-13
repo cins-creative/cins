@@ -27,7 +27,7 @@ export function JourneyAuthorRowFriendAction({
       return;
     }
     const qs = new URLSearchParams({ id_nguoi: targetUserId });
-    const statusRes = await fetch(`/api/ket-ban/status?${qs.toString()}`);
+    const statusRes = await fetch(`/api/friends/status?${qs.toString()}`);
     if (!statusRes.ok) {
       setLoaded(true);
       return;
@@ -41,7 +41,7 @@ export function JourneyAuthorRowFriendAction({
     setKetBanId(statusJson.ket_ban_id ?? null);
 
     if (nextQuanHe !== "accepted") {
-      const mutualRes = await fetch(`/api/ket-ban/chung?${qs.toString()}`);
+      const mutualRes = await fetch(`/api/friends/mutual?${qs.toString()}`);
       if (mutualRes.ok) {
         const mutualJson = (await mutualRes.json()) as { count?: number };
         setMutualCount(mutualJson.count ?? 0);
@@ -78,7 +78,7 @@ export function JourneyAuthorRowFriendAction({
 
   const sendFriendRequest = () => {
     startTransition(async () => {
-      const res = await fetch("/api/ket-ban", {
+      const res = await fetch("/api/friends", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id_nguoi_nhan: targetUserId }),
@@ -92,7 +92,7 @@ export function JourneyAuthorRowFriendAction({
   const respondIncoming = (action: "accept" | "decline") => {
     if (!ketBanId) return;
     startTransition(async () => {
-      const res = await fetch(`/api/ket-ban/${ketBanId}`, {
+      const res = await fetch(`/api/friends/${ketBanId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),
@@ -106,7 +106,7 @@ export function JourneyAuthorRowFriendAction({
   const cancelSent = () => {
     if (!ketBanId) return;
     startTransition(async () => {
-      const res = await fetch(`/api/ket-ban/${ketBanId}`, { method: "DELETE" });
+      const res = await fetch(`/api/friends/${ketBanId}`, { method: "DELETE" });
       if (!res.ok) return;
       await refresh();
       emitNotificationsChanged();

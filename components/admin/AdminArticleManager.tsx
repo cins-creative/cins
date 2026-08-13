@@ -210,7 +210,7 @@ export function AdminArticleManager({ initialRows }: Props) {
                 <div className="flex flex-wrap items-center gap-3">
                   {trang_thai === "published" ? (
                     <Link
-                      href={`/bai-viet/${slug}`}
+                      href={`/articles/${slug}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm font-medium text-blue-600 hover:underline"
@@ -219,7 +219,7 @@ export function AdminArticleManager({ initialRows }: Props) {
                     </Link>
                   ) : (
                     <span className="text-sm text-amber-700">
-                      Chỉ bài <code>published</code> hiển thị công khai trên `/bai-viet/…`
+                      Chỉ bài <code>published</code> hiển thị công khai trên `/articles/…`
                     </span>
                   )}
                   <span className="text-xs text-slate-500">

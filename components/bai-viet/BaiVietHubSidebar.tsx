@@ -112,7 +112,7 @@ export function BaiVietHubSidebar({
       </ul>
 
       {hasFilters ? (
-        <Link href="/bai-viet" className="bv-hub-rail-reset">
+        <Link href="/articles" className="bv-hub-rail-reset">
           Xóa bộ lọc
         </Link>
       ) : null}

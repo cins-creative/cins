@@ -18,6 +18,7 @@ import { createPortal } from "react-dom";
 import type { ShopDonHang } from "@/lib/shop/types";
 import { SHOP_TRANG_THAI_DON_LABEL } from "@/lib/shop/types";
 
+import { ShopDonDetailModal } from "./ShopDonDetailModal";
 import "./shop-mua-history.css";
 
 type Filter = "all" | "paid" | "unpaid";
@@ -181,6 +182,7 @@ export function ShopMuaHistory({
   const [recipLoading, setRecipLoading] = useState(false);
   const [recipQuery, setRecipQuery] = useState("");
   const [sendingRoom, setSendingRoom] = useState<string | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   useEffect(() => setPortalReady(true), []);
 
@@ -188,7 +190,7 @@ export function ShopMuaHistory({
     setLoading(true);
     setErr(null);
     try {
-      const res = await fetch("/api/shop/don?role=buyer", { cache: "no-store" });
+      const res = await fetch("/api/shop/orders?role=buyer", { cache: "no-store" });
       const json = (await res.json().catch(() => null)) as {
         items?: ShopDonHang[];
         error?: string;
@@ -497,10 +499,21 @@ export function ShopMuaHistory({
                         <Store size={14} strokeWidth={1.9} aria-hidden />
                         {d.banTen ?? "Cửa hàng"}
                       </span>
-                      <span
-                        className={`mua-history-status ${paid ? "is-paid" : "is-unpaid"}`}
-                      >
-                        {SHOP_TRANG_THAI_DON_LABEL[d.trangThai]}
+                      <span className="mua-history-status-row">
+                        <span
+                          className={`mua-history-status ${paid ? "is-paid" : "is-unpaid"}`}
+                        >
+                          {SHOP_TRANG_THAI_DON_LABEL[d.trangThai]}
+                        </span>
+                        {d.trangThai === "da_nhan_tien" && d.yeuCauHuyLuc ? (
+                          <button
+                            type="button"
+                            className="mua-history-status is-yeu-cau"
+                            onClick={() => setDetailId(d.id)}
+                          >
+                            Shop đề nghị hủy
+                          </button>
+                        ) : null}
                       </span>
                     </div>
                     <div className="mua-history-order-sub">
@@ -650,6 +663,18 @@ export function ShopMuaHistory({
         ) : null}
 
         {toast ? <div className="mua-history-toast">{toast}</div> : null}
+
+        <ShopDonDetailModal
+          donId={detailId}
+          open={Boolean(detailId)}
+          onClose={() => setDetailId(null)}
+          viewerRole="buyer"
+          onDonChange={(next) => {
+            setOrders((prev) =>
+              prev.map((it) => (it.id === next.id ? { ...it, ...next } : it)),
+            );
+          }}
+        />
       </div>
     </div>,
     document.body,

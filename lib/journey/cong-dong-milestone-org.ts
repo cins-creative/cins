@@ -33,7 +33,7 @@ export async function loadCongDongOrgsForMilestones(
       orgId: org.id,
       name: org.ten,
       slug: org.slug,
-      href: `/cong-dong/${org.slug}`,
+      href: `/community/${org.slug}`,
       avatarUrl: getAvatarUrl(org.avatar_id) ?? null,
       coverUrl: getProfileCoverUrl(org.cover_id) ?? null,
       initial: org.ten.charAt(0).toUpperCase(),

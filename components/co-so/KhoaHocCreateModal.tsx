@@ -45,7 +45,7 @@ import { orgQuanLyPath } from "@/lib/to-chuc/org-quan-ly-routes";
 type Props = {
   open: boolean;
   orgId: string;
-  /** Để link «Quản lý gói» → `/quan-ly/hoc-phi`. */
+  /** Để link «Quản lý gói» → `/manage/tuition`. */
   orgSlug?: string | null;
   orgDiaChi?: string | null;
   editing?: KhoaHocCardData | null;
@@ -180,7 +180,7 @@ export function KhoaHocCreateModal({
     void (async () => {
       try {
         const res = await fetch(
-          `/api/co-so/${encodeURIComponent(orgId)}/bo-giao-trinh`,
+          `/api/academy/${encodeURIComponent(orgId)}/curriculum-sets`,
           { credentials: "include" },
         );
         const json = (await res.json().catch(() => null)) as {
@@ -215,7 +215,7 @@ export function KhoaHocCreateModal({
     void (async () => {
       try {
         const res = await fetch(
-          `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/${encodeURIComponent(editing.id)}/bai-tap`,
+          `/api/academy/${encodeURIComponent(orgId)}/courses/${encodeURIComponent(editing.id)}/assignments`,
           { credentials: "include" },
         );
         const json = (await res.json().catch(() => null)) as {
@@ -284,7 +284,7 @@ export function KhoaHocCreateModal({
   ): Promise<{ ok: true } | { ok: false; error: string }> {
     try {
       const res = await fetch(
-        `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/${encodeURIComponent(khoaId)}/bo-giao-trinh`,
+        `/api/academy/${encodeURIComponent(orgId)}/courses/${encodeURIComponent(khoaId)}/curriculum-sets`,
         {
           method: "PATCH",
           credentials: "include",
@@ -313,7 +313,7 @@ export function KhoaHocCreateModal({
   ): Promise<{ ok: true } | { ok: false; error: string }> {
     try {
       const res = await fetch(
-        `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/${encodeURIComponent(khoaId)}/bai-tap`,
+        `/api/academy/${encodeURIComponent(orgId)}/courses/${encodeURIComponent(khoaId)}/assignments`,
         {
           method: "PATCH",
           credentials: "include",
@@ -435,7 +435,7 @@ export function KhoaHocCreateModal({
 
       if (isEdit && editing) {
         const res = await fetch(
-          `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/${encodeURIComponent(editing.id)}`,
+          `/api/academy/${encodeURIComponent(orgId)}/courses/${encodeURIComponent(editing.id)}`,
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
@@ -498,7 +498,7 @@ export function KhoaHocCreateModal({
       }
 
       const createBody: TaoKhoaHocInput = body;
-      const res = await fetch(`/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc`, {
+      const res = await fetch(`/api/academy/${encodeURIComponent(orgId)}/courses`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(createBody),

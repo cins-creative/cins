@@ -56,7 +56,7 @@ export function galleryGroupFromSearch(search: string): FilterGroup | null {
   const raw = new URLSearchParams(
     search.startsWith("?") ? search.slice(1) : search,
   )
-    .get("nhom")
+    .get("group")
     ?.trim();
   if (!raw || !VALID_GALLERY_GROUP.has(raw) || raw === "all") return null;
   return raw as FilterGroup;
@@ -70,12 +70,12 @@ export function galleryFilterShareUrl(
   const params = new URLSearchParams();
   params.set("view", "gallery");
   if (display === "grid") {
-    params.set("display", "luoi");
+    params.set("display", "grid");
   }
   if (spec.kind === "personal-label") {
     params.set("filter", spec.slug);
   } else if (spec.kind === "group" && spec.group !== "all") {
-    params.set("nhom", spec.group);
+    params.set("group", spec.group);
   }
   const qs = params.toString();
   return absoluteShareUrl(`/${encodeURIComponent(slug)}?${qs}`);
@@ -87,7 +87,7 @@ export const PORTFOLIO_ALL_FILTER_SHARE_SPEC: JourneyGalleryFilterShareSpec = {
   label: "Tất cả",
 };
 
-/** Ghi `nhom` lên URL khi đổi filter nhóm (giữ các param khác, xóa nhãn riêng). */
+/** Ghi `group` lên URL khi đổi filter nhóm (giữ các param khác, xóa nhãn riêng). */
 export function buildGalleryGroupFilterSearchUrl(
   pathname: string,
   search: string,
@@ -95,9 +95,9 @@ export function buildGalleryGroupFilterSearchUrl(
 ): string {
   const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
   if (group === "all") {
-    params.delete("nhom");
+    params.delete("group");
   } else {
-    params.set("nhom", group);
+    params.set("group", group);
   }
   params.delete("filter");
   const q = params.toString();

@@ -179,7 +179,7 @@ export function JourneyBookmarkButton({
     saveAbortRef.current = controller;
 
     const endpoint = saveEndpoint?.({ visibility, privateNote }) ?? {
-      url: "/api/luu-bai",
+      url: "/api/saved-posts",
       body: {
         loai_doi_tuong: "cot_moc",
         id_doi_tuong: milestoneId,

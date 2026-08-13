@@ -239,7 +239,7 @@ export function ShopUuDaiComboClient() {
     setCatalogLoading(true);
     try {
       const [nhomRes, spItems] = await Promise.all([
-        fetch("/api/shop/nhom?truc=1", { cache: "no-store" }),
+        fetch("/api/shop/groups?truc=1", { cache: "no-store" }),
         fetchSanPhamCached(),
       ]);
       const nhomJson = (await nhomRes.json().catch(() => null)) as {
@@ -329,7 +329,7 @@ export function ShopUuDaiComboClient() {
     setToggleBusy(combo.id);
     setErr(null);
     try {
-      const res = await fetch(`/api/shop/combo/${combo.id}`, {
+      const res = await fetch(`/api/shop/combos/${combo.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ kichHoat: !combo.kichHoat }),
@@ -358,7 +358,7 @@ export function ShopUuDaiComboClient() {
     if (!window.confirm(`Xóa combo «${combo.ten}»?`)) return;
     setErr(null);
     try {
-      const res = await fetch(`/api/shop/combo/${combo.id}`, {
+      const res = await fetch(`/api/shop/combos/${combo.id}`, {
         method: "DELETE",
       });
       const json = (await res.json().catch(() => null)) as { error?: string };
@@ -414,8 +414,8 @@ export function ShopUuDaiComboClient() {
     };
     try {
       const url = editingId
-        ? `/api/shop/combo/${editingId}`
-        : "/api/shop/combo";
+        ? `/api/shop/combos/${editingId}`
+        : "/api/shop/combos";
       const res = await fetch(url, {
         method: editingId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },

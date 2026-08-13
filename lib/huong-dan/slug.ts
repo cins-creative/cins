@@ -21,6 +21,6 @@ export function isValidHuongDanSlug(value: string): boolean {
  */
 export function huongDanHref(nhomSlug?: string | null): string {
   const nhom = nhomSlug?.trim();
-  if (!nhom) return "/ho-tro/huong-dan";
-  return `/ho-tro/huong-dan/${encodeURIComponent(nhom)}`;
+  if (!nhom) return "/support/guides";
+  return `/support/guides/${encodeURIComponent(nhom)}`;
 }

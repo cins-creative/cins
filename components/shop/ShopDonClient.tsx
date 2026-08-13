@@ -154,7 +154,20 @@ function donActOptions(d: ShopDonHang): DonActOption[] {
     case "da_nhan_tien":
     case "cho_lay_hang":
     case "dang_giao":
-      return [{ action: "hoan_thanh", label: "Hoàn thành" }];
+      return [
+        { action: "hoan_thanh", label: "Hoàn thành" },
+        ...(d.trangThai === "da_nhan_tien"
+          ? [
+              {
+                action: "mo_yeu_cau_huy",
+                label: d.yeuCauHuyLuc
+                  ? "Yêu cầu hủy đã gửi"
+                  : "Nhờ khách hủy",
+                danger: true,
+              },
+            ]
+          : []),
+      ];
     case "da_giao_tai_su_kien":
       return [{ action: "hoan_thanh", label: "Hoàn thành" }];
     default:
@@ -620,11 +633,15 @@ export function ShopDonClient() {
   /** Bước tiếp theo trên hàng (xác nhận / lấy hàng / giao / hoàn thành / hoàn trả). */
   const actOne = useCallback(
     async (d: ShopDonHang, action: string) => {
+      if (action === "mo_yeu_cau_huy") {
+        setDetailId(d.id);
+        return;
+      }
       if (rowCompletingId) return;
       setRowCompletingId(d.id);
       setCompleteErr(null);
       try {
-        const res = await fetch(`/api/shop/don/${d.id}`, {
+        const res = await fetch(`/api/shop/orders/${d.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action }),
@@ -669,7 +686,7 @@ export function ShopDonClient() {
       setCompleteErr(null);
       const prev = d;
       try {
-        const res = await fetch(`/api/shop/don/${d.id}`, {
+        const res = await fetch(`/api/shop/orders/${d.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

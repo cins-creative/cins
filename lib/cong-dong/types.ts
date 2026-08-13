@@ -38,7 +38,7 @@ export type CongDongOrg = {
   viewerVaiTro: CongDongVaiTro | null;
 };
 
-/** Chip lọc trên `/cong-dong`. */
+/** Chip lọc trên `/community`. */
 export type CongDongListingFacet = {
   id: string;
   slug: string;

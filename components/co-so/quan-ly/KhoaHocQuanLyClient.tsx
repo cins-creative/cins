@@ -71,7 +71,7 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/co-so/${orgId}/khoa-hoc`, {
+      const res = await fetch(`/api/academy/${orgId}/courses`, {
         credentials: "include",
       });
       const data = await res.json();
@@ -87,7 +87,7 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
   const loadLop = useCallback(async () => {
     setLopLoading(true);
     try {
-      const res = await fetch(`/api/co-so/${encodeURIComponent(orgId)}/lop-hoc`, {
+      const res = await fetch(`/api/academy/${encodeURIComponent(orgId)}/classes`, {
         credentials: "include",
       });
       const data = await res.json();
@@ -105,7 +105,7 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
   const loadGoiLinks = useCallback(async () => {
     try {
       const res = await fetch(
-        `/api/co-so/${encodeURIComponent(orgId)}/hoc-phi/goi`,
+        `/api/academy/${encodeURIComponent(orgId)}/tuition/packages`,
         { credentials: "include" },
       );
       const data = (await res.json()) as {
@@ -196,7 +196,7 @@ export function KhoaHocQuanLyClient({ orgId, orgSlug }: Props) {
     setError(null);
     try {
       const res = await fetch(
-        `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/${encodeURIComponent(khoa.id)}`,
+        `/api/academy/${encodeURIComponent(orgId)}/courses/${encodeURIComponent(khoa.id)}`,
         {
           method: "PATCH",
           credentials: "include",

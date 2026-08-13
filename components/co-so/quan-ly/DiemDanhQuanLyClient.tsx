@@ -39,7 +39,7 @@ export function DiemDanhQuanLyClient({ orgId }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const loadMeta = useCallback(async () => {
-    const res = await fetch(`/api/co-so/${orgId}/diem-danh`, {
+    const res = await fetch(`/api/academy/${orgId}/attendance`, {
       credentials: "include",
     });
     const data = await res.json();
@@ -60,7 +60,7 @@ export function DiemDanhQuanLyClient({ orgId }: Props) {
     setError(null);
     try {
       const params = new URLSearchParams({ lopId, ngay });
-      const res = await fetch(`/api/co-so/${orgId}/diem-danh?${params}`, {
+      const res = await fetch(`/api/academy/${orgId}/attendance?${params}`, {
         credentials: "include",
       });
       const data = await res.json();
@@ -100,7 +100,7 @@ export function DiemDanhQuanLyClient({ orgId }: Props) {
     setFlash(null);
     setError(null);
     try {
-      const res = await fetch(`/api/co-so/${orgId}/diem-danh`, {
+      const res = await fetch(`/api/academy/${orgId}/attendance`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

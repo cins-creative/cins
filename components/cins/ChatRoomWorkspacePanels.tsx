@@ -577,7 +577,7 @@ export function ChatRoomMocsPanel({
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const res = await fetch(`/api/chat/rooms/${roomId}/mocs`);
+    const res = await fetch(`/api/chat/rooms/${roomId}/milestones`);
     const json = (await res.json().catch(() => null)) as {
       mocs?: MocRow[];
       error?: string;
@@ -596,7 +596,7 @@ export function ChatRoomMocsPanel({
   const toggleLichLop = (enabled: boolean) => {
     if (!canManage || !isLopHocRoom || pending) return;
     startTransition(async () => {
-      const res = await fetch(`/api/chat/rooms/${roomId}/mocs/lich-lop`, {
+      const res = await fetch(`/api/chat/rooms/${roomId}/milestones/class-schedule`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ enabled }),
@@ -664,8 +664,8 @@ export function ChatRoomMocsPanel({
     startTransition(async () => {
       const res = await fetch(
         isEdit
-          ? `/api/chat/rooms/${roomId}/mocs/${editingMocId}`
-          : `/api/chat/rooms/${roomId}/mocs`,
+          ? `/api/chat/rooms/${roomId}/milestones/${editingMocId}`
+          : `/api/chat/rooms/${roomId}/milestones`,
         {
           method: isEdit ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
@@ -695,7 +695,7 @@ export function ChatRoomMocsPanel({
         onNotice?.(json.notice);
       }
       // Sau tạo/sửa lịch: tick ngay để gửi nhắc nếu đã tới giờ (vd. nhắc 1 phút).
-      void fetch("/api/chat/mocs/tick", {
+      void fetch("/api/chat/milestones/tick", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ roomId }),
@@ -721,7 +721,7 @@ export function ChatRoomMocsPanel({
     if (!canManage || pending) return;
     if (!window.confirm("Xóa mốc này?")) return;
     startTransition(async () => {
-      const res = await fetch(`/api/chat/rooms/${roomId}/mocs/${mocId}`, {
+      const res = await fetch(`/api/chat/rooms/${roomId}/milestones/${mocId}`, {
         method: "DELETE",
       });
       if (!res.ok) {

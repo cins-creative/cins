@@ -13,18 +13,21 @@ export async function readTruongInlineError(res: Response): Promise<string> {
   return res.statusText || "Yêu cầu thất bại";
 }
 
+/**
+ * Fetch API inline org. Auth = cookie phiên (`credentials: same-origin`).
+ * Không gắn Bearer token upload — secret đó chỉ cho `/upload` / ảnh; gắn
+ * lên mọi request làm `getCurrentSessionAndProfile` nuốt cookie.
+ */
 export async function truongInlineFetch(
   orgId: string,
   path: string,
   init?: RequestInit,
 ): Promise<Response> {
-  const token = getTruongInlineUploadTokenClient();
   const headers = new Headers(init?.headers);
-  if (token) headers.set("Authorization", `Bearer ${token}`);
   if (init?.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  return fetch(`/api/truong/${encodeURIComponent(orgId)}${path}`, {
+  return fetch(`/api/university/${encodeURIComponent(orgId)}${path}`, {
     ...init,
     credentials: "same-origin",
     headers,

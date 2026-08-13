@@ -131,7 +131,7 @@ export function NganhChiTietView({
 
   const congDongCount = congDong.length;
   const congDongAvatars = congDong.slice(0, 5);
-  const congDongHref = `/cong-dong?nganh=${encodeURIComponent(article.slug)}`;
+  const congDongHref = `/community?nganh=${encodeURIComponent(article.slug)}`;
 
   return (
     <>
@@ -147,7 +147,7 @@ export function NganhChiTietView({
               <span>/</span>
               <Link href={NGHE_NGHIEP_HUB_PATH}>Hướng nghiệp</Link>
               <span>/</span>
-              <Link href="/nganh-hoc">Ngành đào tạo</Link>
+              <Link href="/majors">Ngành đào tạo</Link>
               <span>/</span>
               <span className="here">{titleVi}</span>
             </nav>

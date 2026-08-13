@@ -9,7 +9,7 @@ import type { NganhHubItem, NganhHubSection, NganhSidebarGroup } from "@/lib/nga
 export type NganhHubListingParams = {
   q?: string;
   nhom?: string;
-  /** Giới hạn catalog (hub `/tim-khoa-hoc` dùng mẫu nhỏ; hub ngành mặc định 500). */
+  /** Giới hạn catalog (hub `/find-courses` dùng mẫu nhỏ; hub ngành mặc định 500). */
   limit?: number;
 };
 

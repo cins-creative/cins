@@ -19,7 +19,10 @@ import { useWorldBoostAdminOptional } from "@/components/cins/world-journey/Worl
 import { MoTaMarkdown } from "@/components/editor/compose/MoTaMarkdown";
 import { GalleryAuthorCornerBadge } from "@/components/journey/GalleryAuthorCornerBadge";
 import { GalleryItemVisual, GalleryEmbedPlatformBadge, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
-import { GalleryMainHoverOverlay } from "@/components/journey/GalleryMainHoverOverlay";
+import {
+  GalleryAuthorRow,
+  GalleryMainHoverOverlay,
+} from "@/components/journey/GalleryMainHoverOverlay";
 import { GalleryOrgCreateCardBody } from "@/components/journey/GalleryOrgCreateCardBody";
 import { GalleryVerifiedBadge } from "@/components/journey/GalleryVerifiedBadge";
 import { coverThumbAspectCss } from "@/lib/journey/cover-thumb";
@@ -168,6 +171,7 @@ function GalleryMainItemTile({
   thumbAspect,
   isOwner = false,
   ownerSlug = null,
+  captionBelow = false,
 }: {
   item: GalleryMainItem;
   onOpenPost: (cotMocId: string, opts?: { href?: string | null }) => void;
@@ -175,6 +179,8 @@ function GalleryMainItemTile({
   thumbAspect?: number;
   isOwner?: boolean;
   ownerSlug?: string | null;
+  /** World Journey masonry: tiêu đề + author dưới ảnh, không overlay. */
+  captionBelow?: boolean;
 }) {
   const [insightsOpen, setInsightsOpen] = useState(false);
   const { adminSeedingEdit } = useJourneyCompose();
@@ -182,9 +188,11 @@ function GalleryMainItemTile({
   const isOrgCreate = isOrgCreateGalleryItem(item);
   const worldBoostAdmin = useWorldBoostAdminOptional();
   const boostTarget = worldBoostTargetFromGalleryLike(item);
+  const showCaptionBelow = captionBelow && !isOrgCreate;
   const className = [
     galleryItemClassName(item),
     layout === "portrait-rail" ? "is-portrait-rail" : "",
+    showCaptionBelow ? "j-main-gallery-item--caption-below" : "",
     item.worldBoosted ||
     (boostTarget &&
       worldBoostAdmin?.isBoosted(boostTarget.loai, boostTarget.id))
@@ -333,16 +341,25 @@ function GalleryMainItemTile({
         ) : null}
         {boostToggle}
       </div>
-      <GalleryMainHoverOverlay
-        label={item.label}
-        meta={item.meta}
-        authorName={item.authorName}
-        authorAvatarUrl={item.authorAvatarUrl}
-        authorSlug={item.authorSlug}
-      />
+      {showCaptionBelow ? null : (
+        <GalleryMainHoverOverlay
+          label={item.label}
+          meta={item.meta}
+          authorName={item.authorName}
+          authorAvatarUrl={item.authorAvatarUrl}
+          authorSlug={item.authorSlug}
+        />
+      )}
       <span className="j-main-gallery-info-panel">
         <strong className="j-main-gallery-info-title">{item.label}</strong>
-        {item.meta ? (
+        {showCaptionBelow ? (
+          <GalleryAuthorRow
+            authorName={item.authorName}
+            authorAvatarUrl={item.authorAvatarUrl}
+            authorSlug={item.authorSlug}
+          />
+        ) : null}
+        {item.meta && !showCaptionBelow ? (
           <MoTaMarkdown
             text={item.meta}
             as="small"
@@ -915,6 +932,7 @@ export function JourneyGalleryGridView({
                         thumbAspect={masonryAspectById.get(item.id)}
                         isOwner={isOwner}
                         ownerSlug={scrollLoad?.ownerSlug}
+                        captionBelow={hideToolbar}
                       />
                     ))}
                   </div>
@@ -936,6 +954,7 @@ export function JourneyGalleryGridView({
                     }
                     isOwner={isOwner}
                     ownerSlug={scrollLoad?.ownerSlug}
+                    captionBelow={hideToolbar && showMasonry}
                   />
                 ))}
               </>

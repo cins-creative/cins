@@ -81,7 +81,7 @@ function TruongHinhAnhManageTable({
     ctx!.setHinhanh((list) => list.filter((p) => p.id !== photoId));
     const res = await truongInlineFetch(
       ctx!.orgId,
-      `/hinh-anh?photoId=${encodeURIComponent(photoId)}`,
+      `/images?photoId=${encodeURIComponent(photoId)}`,
       { method: "DELETE" },
     );
     setDeletingId(null);
@@ -308,7 +308,7 @@ function TruongHinhAnhManageDialog({
     editCtx.setHinhanh(applyDraftToList(prev));
 
     for (const { photoId, patch } of patches) {
-      const res = await truongInlineFetch(editCtx.orgId, "/hinh-anh", {
+      const res = await truongInlineFetch(editCtx.orgId, "/images", {
         method: "PATCH",
         body: JSON.stringify({ photoId, ...patch }),
       });

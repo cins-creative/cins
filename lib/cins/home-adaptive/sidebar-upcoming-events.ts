@@ -82,7 +82,7 @@ function pickOrg(org: SuKienRow["org_to_chuc"]): OrgEmbed | null {
 
 function orgSuKienHref(loai: string, slug: string): string {
   if (loai === "co_so_dao_tao") return coSoTabPath(slug, "su-kien");
-  if (loai === "cong_dong") return `/cong-dong/${slug}`;
+  if (loai === "cong_dong") return `/community/${slug}`;
   if (loai === "studio" || loai === "doanh_nghiep") {
     return studioTabPath(slug, STUDIO_DEFAULT_TAB);
   }
@@ -771,9 +771,9 @@ export const loadSidebarUpcomingEvents = cache(
           orgName: q.orgTen?.trim() || "Tổ chức",
           orgLoai,
           href: q.suKienSlug
-            ? `/su-kien/${encodeURIComponent(q.suKienSlug)}`
+            ? `/events/${encodeURIComponent(q.suKienSlug)}`
             : q.idSuKien
-              ? `/su-kien/${encodeURIComponent(q.idSuKien)}`
+              ? `/events/${encodeURIComponent(q.idSuKien)}`
               : "#",
           label: q.suKienTen?.trim() || "Sự kiện",
           dateLabel,

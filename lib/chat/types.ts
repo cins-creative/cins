@@ -110,6 +110,8 @@ export type ChatDonCapNhat = {
   lyDo?: string | null;
   boi?: ChatDonCapNhatBoi | null;
   luc?: string | null;
+  /** Sự kiện không đổi `trangThai` — yêu cầu / rút yêu cầu hủy. */
+  suKien?: "yeu_cau_huy" | "bo_yeu_cau_huy" | null;
 };
 
 /** Snapshot card ngữ cảnh (lưu trong `chat_tin_nhan.ngu_canh`). */
@@ -124,6 +126,8 @@ export type ChatContextCard = {
   /** Logo/avatar CSĐT — tách khỏi `anh` (VietQR trên đơn học phí). */
   orgAnh?: string | null;
   capNhat?: ChatDonCapNhat | null;
+  /** Shop đang nhờ khách hủy — card hiện nút Đồng ý hủy. */
+  yeuCauHuy?: { lyDo: string | null; luc: string | null } | null;
 };
 
 /** Người được @nhắc — lưu trong `chat_tin_nhan.ngu_canh.mentions`. */

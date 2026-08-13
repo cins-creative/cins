@@ -39,6 +39,8 @@
     "node_modules",
     "scripts",
     "**/*.test.ts",
-    ".next/dev"
+    ".next/dev",
+    ".open-next",
+    "worker.ts"
   ]
 }

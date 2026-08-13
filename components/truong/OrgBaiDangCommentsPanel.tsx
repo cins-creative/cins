@@ -37,7 +37,7 @@ export function OrgBaiDangCommentsPanel({ postId, onCountChange }: Props) {
     (async () => {
       try {
         const res = await fetch(
-          `/api/org-bai-dang/${encodeURIComponent(postId)}/comments`,
+          `/api/org-posts/${encodeURIComponent(postId)}/comments`,
           { cache: "no-store" },
         );
         const json = (await res.json().catch(() => null)) as {

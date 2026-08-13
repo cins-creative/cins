@@ -213,7 +213,7 @@ export function ThanhToanHubClient({ initial }: Props) {
     setLoading(true);
     setErr(null);
     try {
-      const res = await fetch("/api/tai-khoan/thanh-toan", {
+      const res = await fetch("/api/account/billing", {
         cache: "no-store",
         credentials: "include",
       });
@@ -264,7 +264,7 @@ export function ThanhToanHubClient({ initial }: Props) {
     if (next === "all") sp.delete("dv");
     else sp.set("dv", next);
     const q = sp.toString();
-    router.replace(q ? `?${q}` : "/tai-khoan/thanh-toan", { scroll: false });
+    router.replace(q ? `?${q}` : "/account/billing", { scroll: false });
   }
 
   /** Poll SePay đối soát — 5s, dừng 10 phút / hết nợ / tab ẩn. Plan §5. */
@@ -328,7 +328,7 @@ export function ThanhToanHubClient({ initial }: Props) {
       }
       setPollWaiting(true);
       try {
-        const res = await fetch("/api/tai-khoan/thanh-toan/poll", {
+        const res = await fetch("/api/account/billing/poll", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -427,7 +427,7 @@ export function ThanhToanHubClient({ initial }: Props) {
         h.nguon === "org_phi_ky"
           ? { hoaDonId: h.id, orgId: h.thamChieuId }
           : { hoaDonId: h.id };
-      const res = await fetch("/api/tai-khoan/thanh-toan/tu-khai-da-tra", {
+      const res = await fetch("/api/account/billing/paid-declarations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -507,7 +507,7 @@ export function ThanhToanHubClient({ initial }: Props) {
     setKnBusy(true);
     setKnMsg(null);
     try {
-      const res = await fetch("/api/tai-khoan/thanh-toan/khieu-nai", {
+      const res = await fetch("/api/account/billing/complaints", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -552,7 +552,7 @@ export function ThanhToanHubClient({ initial }: Props) {
     setTtBusy(true);
     setTtMsg(null);
     try {
-      const res = await fetch("/api/tai-khoan/thanh-toan/thong-tin", {
+      const res = await fetch("/api/account/billing/info", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -594,7 +594,7 @@ export function ThanhToanHubClient({ initial }: Props) {
     setTtBusy(true);
     setTtMsg(null);
     try {
-      const res = await fetch("/api/tai-khoan/thanh-toan/thong-tin", {
+      const res = await fetch("/api/account/billing/info", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

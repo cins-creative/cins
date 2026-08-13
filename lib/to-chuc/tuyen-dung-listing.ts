@@ -112,7 +112,7 @@ function salary(row: Row): string | null {
 }
 
 /**
- * Tin tuyển dụng đang mở toàn sàn cho trang `/tuyen-dung`.
+ * Tin tuyển dụng đang mở toàn sàn cho trang `/jobs`.
  * Public read — chỉ tin `trang_thai = dang_mo`, chưa xóa. Có phân trang.
  */
 export async function loadTuyenDungListing(

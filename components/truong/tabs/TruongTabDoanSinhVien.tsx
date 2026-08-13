@@ -52,7 +52,7 @@ export function TruongTabDoanSinhVien() {
     const controller = new AbortController();
     setLoadingProjects(true);
     void fetchJson<{ projects?: OrgDoanProjectItem[] }>(
-      `/api/org/${orgId}/doan-projects?featured=1`,
+      `/api/org/${orgId}/student-projects?featured=1`,
       controller.signal,
     )
       .then((json) => {
@@ -78,7 +78,7 @@ export function TruongTabDoanSinhVien() {
     const controller = new AbortController();
     setLoadingMilestones(true);
     void fetchJson<{ milestones?: MilestoneItem[] }>(
-      `/api/org/${orgId}/doan-milestones?sort=${encodeURIComponent(sort)}`,
+      `/api/org/${orgId}/student-milestones?sort=${encodeURIComponent(sort)}`,
       controller.signal,
     )
       .then((json) => {
@@ -133,7 +133,7 @@ export function TruongTabDoanSinhVien() {
         ngungDay?: boolean;
       }>;
     }>(
-      `/api/truong/${orgId}/nganh/${selectedProgramId}/mon`,
+      `/api/university/${orgId}/majors/${selectedProgramId}/subjects`,
       controller.signal,
     )
       .then((json) => {

@@ -131,7 +131,7 @@ function OrgRow({ ten, avatarUrl }: { ten: string; avatarUrl: string | null }) {
   );
 }
 
-/** OG card động cho khóa học (`/co-so/[org]/khoa-hoc/[slug]`). */
+/** OG card động cho khóa học (`/academy/[org]/courses/[slug]`). */
 export function KhoaHocOgShareCard({
   ctx,
   logoUrl,

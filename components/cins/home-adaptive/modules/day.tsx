@@ -60,7 +60,7 @@ export async function HocVienCuaBanModule({ ctx }: { ctx: HomeModuleCtx }) {
   if (students.length === 0) return null;
 
   return (
-    <ModuleCard icon={GraduationCap} title="Học viên của bạn" moreHref="/to-chuc">
+    <ModuleCard icon={GraduationCap} title="Học viên của bạn" moreHref="/organizations">
       {students.map((s) => (
         <Link key={s.userId} href={`/${s.slug}`} className="ha-row" prefetch={false}>
           {s.avatarUrl ? (

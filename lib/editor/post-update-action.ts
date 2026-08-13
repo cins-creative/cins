@@ -491,7 +491,6 @@ export async function updatePost(
   /* 7. Revalidate profile + feed trang chủ. */
   revalidatePath(`/${contentOwnerSlug}`);
   revalidatePath("/");
-  revalidatePath("/luoi");
 
   const milestone = await buildMilestoneItemForCotMoc(admin, input.cotMocId);
 

@@ -255,7 +255,7 @@ function matchesKhoaQuery(item: KhoaHocListItem, query: string): boolean {
 }
 
 /**
- * Khóa học đang mở toàn sàn cho trang `/tim-khoa-hoc`.
+ * Khóa học đang mở toàn sàn cho trang `/find-courses`.
  * Service role (server-only) — catalog công khai; RLS anon thường không đọc được `org_khoa_hoc`.
  * Lọc: cơ sở đào tạo, trạng thái mở, không ẩn (`cheDoHienThi`).
  */

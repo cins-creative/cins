@@ -115,7 +115,7 @@ export function TruongAdmissionCalc({
       }
 
       const res = await fetch(
-        `/api/truong/${encodeURIComponent(orgId)}/cau-hinh-tinh-diem?${params}`,
+        `/api/university/${encodeURIComponent(orgId)}/score-config?${params}`,
       );
       if (gen !== fetchGenRef.current) return;
 
@@ -152,7 +152,7 @@ export function TruongAdmissionCalc({
       return;
     }
     let cancelled = false;
-    void fetch(`/api/truong/${encodeURIComponent(orgId)}/mon-thi-catalog`)
+    void fetch(`/api/university/${encodeURIComponent(orgId)}/exam-subject-catalog`)
       .then(async (res) => {
         if (!res.ok) return [];
         const json = (await res.json()) as { items?: MonThiCatalogItem[] };

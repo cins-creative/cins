@@ -59,7 +59,7 @@ const GALLERY_FEATURE_LABELS: Record<
 };
 
 export function congDongRootPath(slug: string): string {
-  return `/cong-dong/${encodeURIComponent(slug.trim())}`;
+  return `/community/${encodeURIComponent(slug.trim())}`;
 }
 
 export function orgShareContextForKind(

@@ -10,7 +10,7 @@ import {
 } from "react";
 
 import { GalleryItemVisual, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
-import { GalleryMainHoverOverlay } from "@/components/journey/GalleryMainHoverOverlay";
+import { GalleryAuthorRow } from "@/components/journey/GalleryMainHoverOverlay";
 import { useBalancedMasonryColumns } from "@/components/journey/useBalancedMasonryColumns";
 import { useGalleryMasonryAspects } from "@/components/journey/useGalleryMasonryAspects";
 import { GALLERY_GRID_IMAGE_SIZES } from "@/lib/cloudflare/cf-variant-url";
@@ -199,7 +199,7 @@ function VideoListingTile({
   return (
     <button
       type="button"
-      className="j-main-gallery-item"
+      className="j-main-gallery-item j-main-gallery-item--caption-below"
       onClick={(e) => {
         if (
           e.target instanceof Element &&
@@ -227,12 +227,14 @@ function VideoListingTile({
         />
         <GalleryVideoPlayBadge />
       </div>
-      <GalleryMainHoverOverlay
-        label={item.label}
-        authorName={item.authorName}
-        authorAvatarUrl={item.authorAvatarUrl}
-        authorSlug={item.authorSlug}
-      />
+      <span className="j-main-gallery-info-panel">
+        <strong className="j-main-gallery-info-title">{item.label}</strong>
+        <GalleryAuthorRow
+          authorName={item.authorName}
+          authorAvatarUrl={item.authorAvatarUrl}
+          authorSlug={item.authorSlug}
+        />
+      </span>
     </button>
   );
 }

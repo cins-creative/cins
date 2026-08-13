@@ -108,7 +108,7 @@ import {
   avatarInitialFromName,
   formatChatTime,
 } from "@/lib/chat/avatar";
-import { writeChatThreadsCache, writeRoomMessagesCache } from "@/lib/chat/chat-session-cache";
+import { patchChatThreadUnreadInCache, writeChatThreadsCache, writeRoomMessagesCache } from "@/lib/chat/chat-session-cache";
 import { formatUnreadTabCount } from "@/lib/chat/document-unread-badge";
 import {
   groupToChucThreads,
@@ -153,7 +153,7 @@ import {
   patchChatMessage,
   toggleChatReaction,
 } from "@/lib/chat/message-actions-client";
-import { fetchRoomMessagesPage } from "@/lib/chat/messages-client";
+import { fetchRoomMessagesPage, markRoomReadClient } from "@/lib/chat/messages-client";
 import {
   mentionsIncludeUser,
   resolveMentionsAgainstMembers,
@@ -1246,6 +1246,17 @@ export function CinsChatOverlay({
   const activeMessagesRef = useRef<ChatMessage[]>([]);
   const shouldScrollToBottomRef = useRef(true);
 
+  const persistViewedRoom = useCallback(
+    (roomId: string, lastMessageId?: string) => {
+      if (!roomId || isPendingRoomId(roomId)) return;
+      void markRoomReadClient(roomId, lastMessageId).then((ok) => {
+        if (!ok) return;
+        patchChatThreadUnreadInCache(viewerProfileId, roomId, 0);
+      });
+    },
+    [viewerProfileId],
+  );
+
   const scrollMessagesToBottom = useCallback((behavior: ScrollBehavior = "auto") => {
     const el = messagesContainerRef.current;
     if (!el) return;
@@ -1704,7 +1715,7 @@ export function CinsChatOverlay({
     if (!banHangBat) return;
     if (khachHangTagsLoaded) return;
     try {
-      const res = await fetch("/api/shop/khach-hang/the", {
+      const res = await fetch("/api/shop/customers/tags", {
         credentials: "include",
       });
       if (!res.ok) return;
@@ -1784,7 +1795,7 @@ export function CinsChatOverlay({
       );
       setKhachHangTagBusy(true);
       try {
-        const res = await fetch(`/api/shop/khach-hang/${buyerId}/the`, {
+        const res = await fetch(`/api/shop/customers/${buyerId}/tags`, {
           method: "PUT",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
@@ -1819,7 +1830,7 @@ export function CinsChatOverlay({
     async (tagId: string): Promise<boolean> => {
       setKhachHangTagBusy(true);
       try {
-        const res = await fetch(`/api/shop/khach-hang/the/${tagId}`, {
+        const res = await fetch(`/api/shop/customers/tags/${tagId}`, {
           method: "DELETE",
           credentials: "include",
         });
@@ -1862,7 +1873,7 @@ export function CinsChatOverlay({
     ): Promise<ShopKhachHangTag | null> => {
       setKhachHangTagBusy(true);
       try {
-        const res = await fetch(`/api/shop/khach-hang/the/${tagId}`, {
+        const res = await fetch(`/api/shop/customers/tags/${tagId}`, {
           method: "PATCH",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
@@ -2048,7 +2059,7 @@ export function CinsChatOverlay({
 
     const runTick = async () => {
       try {
-        const res = await fetch("/api/chat/mocs/tick", {
+        const res = await fetch("/api/chat/milestones/tick", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ roomId }),
@@ -2228,11 +2239,7 @@ export function CinsChatOverlay({
         event.roomId === activeRoomIdRef.current &&
         message.from === "them"
       ) {
-        void fetch(`/api/chat/rooms/${event.roomId}/read`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id_tin_nhan_cuoi: message.id }),
-        });
+        persistViewedRoom(event.roomId, message.id);
       }
 
       if (event.roomId === activeRoomIdRef.current) {
@@ -2283,7 +2290,7 @@ export function CinsChatOverlay({
         })();
       }
     });
-  }, [subscribeChatMessages, unhideRoom, viewerProfileId]);
+  }, [subscribeChatMessages, unhideRoom, viewerProfileId, persistViewedRoom]);
 
   useEffect(() => {
     if (!launch?.thread) return;
@@ -2475,6 +2482,12 @@ export function CinsChatOverlay({
 
       const status = roomStatusRef.current[roomId] ?? "idle";
       if (!options?.force && (status === "loading" || status === "ready")) {
+        if (status === "ready" && activeRoomIdRef.current === roomId) {
+          persistViewedRoom(
+            roomId,
+            getCachedRoomMessages(roomId)?.at(-1)?.id,
+          );
+        }
         return;
       }
 
@@ -2504,7 +2517,7 @@ export function CinsChatOverlay({
       }
 
       try {
-        const page = await fetchRoomMessagesPage(roomId);
+        const page = await fetchRoomMessagesPage(roomId, { markRead: true });
         if (!page) {
           throw new Error("Không tải được tin nhắn.");
         }
@@ -2557,18 +2570,14 @@ export function CinsChatOverlay({
         patchRoomStatus(roomId, "ready");
 
         if (activeRoomIdRef.current === roomId && page.messages.length > 0) {
-          const lastId = page.messages.at(-1)?.id;
-          if (lastId) {
-            void fetch(`/api/chat/rooms/${roomId}/read`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ id_tin_nhan_cuoi: lastId }),
-            });
-          }
+          persistViewedRoom(roomId, page.messages.at(-1)?.id);
         }
       } catch (error) {
         if (cached?.length) {
           patchRoomStatus(roomId, "ready");
+          if (activeRoomIdRef.current === roomId) {
+            persistViewedRoom(roomId, cached.at(-1)?.id);
+          }
         } else {
           patchRoomStatus(roomId, "error");
           setLoadError(
@@ -2588,6 +2597,7 @@ export function CinsChatOverlay({
       getCachedRoomMessages,
       onUnreadChange,
       patchRoomStatus,
+      persistViewedRoom,
       scrollMessagesToBottom,
       viewerProfileId,
     ],
@@ -2667,6 +2677,12 @@ export function CinsChatOverlay({
     loadMessages,
   ]);
 
+  useEffect(() => {
+    const roomId = active?.roomId;
+    if (!roomId || isPendingRoomId(roomId)) return;
+    persistViewedRoom(roomId, active.messages.at(-1)?.id);
+  }, [active?.messages.at(-1)?.id, active?.roomId, persistViewedRoom]);
+
   /**
    * Phòng tư vấn org (staff inbox): Realtime phụ thuộc RLS `chat_thanh_vien`.
    * Poll nhẹ khi đang mở hội thoại để đồng bộ preview + tin mới nếu channel miss.
@@ -2737,7 +2753,7 @@ export function CinsChatOverlay({
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch(`/api/chat/rooms/${roomId}/lop-access`, {
+        const res = await fetch(`/api/chat/rooms/${roomId}/class-access`, {
           credentials: "include",
           cache: "no-store",
         });
@@ -2821,17 +2837,16 @@ export function CinsChatOverlay({
         requestAnimationFrame(() => scrollMessagesToBottom("auto"));
       }
 
-      if (thread.messages.length > 0) {
-        void fetch(`/api/chat/rooms/${thread.roomId}/read`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id_tin_nhan_cuoi: thread.messages.at(-1)?.id,
-          }),
-        });
-      }
+      persistViewedRoom(thread.roomId, thread.messages.at(-1)?.id);
     },
-    [draft, loadMessages, pendingImages, restoreComposeForRoom, scrollMessagesToBottom],
+    [
+      draft,
+      loadMessages,
+      pendingImages,
+      persistViewedRoom,
+      restoreComposeForRoom,
+      scrollMessagesToBottom,
+    ],
   );
 
   const removeThreadFromSidebar = useCallback(
@@ -2960,7 +2975,7 @@ export function CinsChatOverlay({
         return;
       }
       try {
-        const res = await fetch(`/api/ket-ban/${targetUserId}/block`, {
+        const res = await fetch(`/api/friends/${targetUserId}/block`, {
           method: "POST",
         });
         const json = (await res.json().catch(() => null)) as {
@@ -3144,7 +3159,7 @@ export function CinsChatOverlay({
     if (!roomId || isPendingRoomId(roomId) || !canJoinPhongHoc) return;
     const ac = new AbortController();
     void fetch(
-      `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/ensure`,
+      `/api/chat/rooms/${encodeURIComponent(roomId)}/classroom/ensure`,
       { method: "POST", signal: ac.signal },
     ).catch(() => {});
     return () => ac.abort();
@@ -3501,7 +3516,7 @@ export function CinsChatOverlay({
           ? (msg) => {
               if (!active?.roomId) return;
               const roomId = active.roomId;
-              void fetch(`/api/chat/rooms/${roomId}/nop-bai`, {
+              void fetch(`/api/chat/rooms/${roomId}/submissions`, {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
@@ -3521,7 +3536,7 @@ export function CinsChatOverlay({
         ? (msg) => {
             if (!active?.roomId) return;
             const roomId = active.roomId;
-            void fetch(`/api/chat/rooms/${roomId}/nop-bai`, {
+            void fetch(`/api/chat/rooms/${roomId}/submissions`, {
               method: "PATCH",
               credentials: "include",
               headers: { "Content-Type": "application/json" },
@@ -3783,7 +3798,7 @@ export function CinsChatOverlay({
       });
       try {
         const res = await fetch(
-          `/api/chat/rooms/${encodeURIComponent(roomId)}/phong-hoc/token`,
+          `/api/chat/rooms/${encodeURIComponent(roomId)}/classroom/token`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -5143,7 +5158,7 @@ export function CinsChatOverlay({
                     void (async () => {
                       try {
                         const res = await fetch(
-                          `/api/chat/rooms/${active.roomId}/gia-han`,
+                          `/api/chat/rooms/${active.roomId}/renew`,
                           {
                             method: "POST",
                             credentials: "include",
@@ -5331,7 +5346,7 @@ export function CinsChatOverlay({
                       void (async () => {
                         try {
                           const res = await fetch(
-                            `/api/chat/rooms/${active.roomId}/gia-han`,
+                            `/api/chat/rooms/${active.roomId}/renew`,
                             {
                               method: "POST",
                               credentials: "include",

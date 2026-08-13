@@ -827,7 +827,7 @@ function DetailContent({
                 iconSize={15}
                 disableActorsReveal
                 saveEndpoint={({ visibility, privateNote }) => ({
-                  url: "/api/luu-bai",
+                  url: "/api/saved-posts",
                   body: {
                     loai_doi_tuong: "org_khoa_hoc",
                     id_doi_tuong: khoa.id,
@@ -1087,7 +1087,7 @@ export function KhoaHocDetailView({
     baiTapMigratedRef.current = false;
   }, [orgId, khoa.id]);
 
-  const baiTapApiUrl = `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/${encodeURIComponent(khoa.id)}/bai-tap`;
+  const baiTapApiUrl = `/api/academy/${encodeURIComponent(orgId)}/courses/${encodeURIComponent(khoa.id)}/assignments`;
 
   async function persistBaiTapList(list: BaiTapKhoaData[]) {
     const res = await fetch(baiTapApiUrl, {
@@ -1178,7 +1178,7 @@ export function KhoaHocDetailView({
 
   async function refetchDetail() {
     const res = await fetch(
-      `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/${encodeURIComponent(khoa.id)}`,
+      `/api/academy/${encodeURIComponent(orgId)}/courses/${encodeURIComponent(khoa.id)}`,
     );
     const body = (await res.json()) as {
       detail?: KhoaHocDetailPayload;
@@ -1380,7 +1380,7 @@ export function KhoaHocDetailView({
     setError(null);
 
     fetch(
-      `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/${encodeURIComponent(khoa.id)}`,
+      `/api/academy/${encodeURIComponent(orgId)}/courses/${encodeURIComponent(khoa.id)}`,
     )
       .then(async (res) => {
         const body = (await res.json()) as {

@@ -33,7 +33,7 @@ export function JourneyCongDongInviteBanner({ invites }: Props) {
           return next;
         });
         const res = await fetch(
-          `/api/cong-dong/invites/${encodeURIComponent(invite.notificationId)}/respond`,
+          `/api/community/invites/${encodeURIComponent(invite.notificationId)}/respond`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -65,7 +65,7 @@ export function JourneyCongDongInviteBanner({ invites }: Props) {
     <div className="j-coauthor-pending-stack j-cong-dong-invite-stack" aria-live="polite">
       {visibleInvites.map((invite) => {
         const error = errors.get(invite.notificationId);
-        const orgHref = `/cong-dong/${encodeURIComponent(invite.orgSlug)}`;
+        const orgHref = `/community/${encodeURIComponent(invite.orgSlug)}`;
         return (
           <div
             key={invite.notificationId}

@@ -13,8 +13,8 @@ import "@/app/cins-truong-inline-edit.css";
 import "@/app/cins-truong-listing.css";
 import "@/components/tag/entity-page.css";
 import "@/styles/article-rich-content.css";
-import "@/app/co-so/co-so-page.css";
-import "@/app/co-so/cso-quan-ly.css";
+import "@/app/academy/co-so-page.css";
+import "@/app/academy/cso-quan-ly.css";
 import "@/app/org-notify-fab.css";
 import "@/app/studio/[slug]/studio-page.css";
 /* JourneyPostModal — load sau truong CSS để byline/BL thắng cascade. */

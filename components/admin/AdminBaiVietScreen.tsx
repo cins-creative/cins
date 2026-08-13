@@ -637,8 +637,8 @@ export function AdminBaiVietScreen({
                           <Link
                             href={
                               r.loai_bai_viet === "nganh_dao_tao"
-                                ? `/nganh-hoc/${r.slug}`
-                                : `/bai-viet/${r.slug}`
+                                ? `/majors/${r.slug}`
+                                : `/articles/${r.slug}`
                             }
                             className="action-btn view"
                             target="_blank"

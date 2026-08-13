@@ -118,7 +118,7 @@ export async function addMonHocToNganh(
 
     if (eIns) return { ok: false, message: eIns.message };
 
-    revalidatePath(`/nganh-hoc/${nganhSlug}`);
+    revalidatePath(`/majors/${nganhSlug}`);
     const items = await fetchMonHocDungTrongNganh(nganhArticleId);
     return { ok: true, items };
   } catch (e) {
@@ -236,7 +236,7 @@ export async function addMonHocBatchToNganh(
 
     if (eIns) return { ok: false, message: eIns.message };
 
-    revalidatePath(`/nganh-hoc/${nganhSlug}`);
+    revalidatePath(`/majors/${nganhSlug}`);
     const items = await fetchMonHocDungTrongNganh(nganhArticleId);
     return { ok: true, items, added: rows.length };
   } catch (e) {
@@ -384,7 +384,7 @@ export async function addTruongToNganh(
       if (eIns) return { ok: false, message: eIns.message };
     }
 
-    revalidatePath(`/nganh-hoc/${nganhSlug}`);
+    revalidatePath(`/majors/${nganhSlug}`);
     const items = await fetchTruongDaoTaoForNganhAdmin(nganhArticleId);
     return { ok: true, items };
   } catch (e) {
@@ -414,7 +414,7 @@ export async function removeTruongFromNganh(
 
     if (error) return { ok: false, message: error.message };
 
-    revalidatePath(`/nganh-hoc/${nganhSlug}`);
+    revalidatePath(`/majors/${nganhSlug}`);
     const items = await fetchTruongDaoTaoForNganhAdmin(nganhArticleId);
     return { ok: true, items };
   } catch (e) {
@@ -463,8 +463,8 @@ export async function updateNganhHubCover(
     if (!data) return { ok: false, message: "Không tìm thấy bài ngành." };
 
     const slug = String(data.slug ?? "").trim();
-    revalidatePath("/nganh-hoc", "page");
-    if (slug) revalidatePath(`/nganh-hoc/${slug}`, "page");
+    revalidatePath("/majors", "page");
+    if (slug) revalidatePath(`/majors/${slug}`, "page");
 
     const cover_url =
       uploaded.data.url ||
@@ -567,8 +567,8 @@ export async function createNganhFromHub(
       }
     }
 
-    revalidatePath("/nganh-hoc");
-    revalidatePath(`/nganh-hoc/${articleSlug}`);
+    revalidatePath("/majors");
+    revalidatePath(`/majors/${articleSlug}`);
     return { ok: true, id: articleId, slug: articleSlug };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Lỗi không xác định.";
@@ -608,7 +608,7 @@ export async function removeNganhFromNhom(
 
     if (error) return { ok: false, message: error.message };
 
-    revalidatePath("/nganh-hoc");
+    revalidatePath("/majors");
     return { ok: true };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Lỗi không xác định.";
@@ -638,7 +638,7 @@ export async function removeMonHocFromNganh(
 
     if (error) return { ok: false, message: error.message };
 
-    revalidatePath(`/nganh-hoc/${nganhSlug}`);
+    revalidatePath(`/majors/${nganhSlug}`);
     const items = await fetchMonHocDungTrongNganh(nganhArticleId);
     return { ok: true, items };
   } catch (e) {

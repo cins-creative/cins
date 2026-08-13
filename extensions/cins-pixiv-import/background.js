@@ -25,7 +25,7 @@ async function guiMuc({ apiBase, secret, body }) {
     return { ok: false, error: "Thiếu items." };
   }
 
-  const endpoint = String(apiBase).replace(/\/$/, "") + "/api/noi-bo/auto/muc";
+  const endpoint = String(apiBase).replace(/\/$/, "") + "/api/internal/auto/items";
   const res = await fetch(endpoint, {
     method: "POST",
     headers: {

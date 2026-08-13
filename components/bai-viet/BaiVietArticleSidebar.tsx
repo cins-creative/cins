@@ -26,7 +26,7 @@ export function BaiVietArticleSidebar({ related, explore }: Props) {
               {related.map((r) => (
                 <Link
                   key={r.id}
-                  href={`/bai-viet/${r.slug}`}
+                  href={`/articles/${r.slug}`}
                   className="bv-side-related"
                 >
                   <span className="bv-side-related-thumb">
@@ -53,7 +53,7 @@ export function BaiVietArticleSidebar({ related, explore }: Props) {
               {explore.map((item) => (
                 <Link
                   key={`${item.loai_bai_viet}-${item.id}`}
-                  href={`/bai-viet/${item.slug}`}
+                  href={`/articles/${item.slug}`}
                   className="bv-side-item"
                 >
                   <span className={exploreDotClass(item.loai_bai_viet)} aria-hidden />

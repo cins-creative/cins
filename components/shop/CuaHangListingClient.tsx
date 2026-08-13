@@ -10,9 +10,11 @@ import {
   useMemo,
   useRef,
   useState,
+  type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
 
+import { CuaHangHubDeXuatDanhMuc } from "@/components/shop/CuaHangHubDeXuatDanhMuc";
 import { CuaHangListCard } from "@/components/shop/CuaHangListCard";
 import { ChListingImg } from "@/components/shop/ChListingImg";
 import { CuaHangSanVoucher } from "@/components/shop/CuaHangSanVoucher";
@@ -42,10 +44,10 @@ function listingTabHref(
 ): string {
   const base =
     mode === "shop"
-      ? "/cua-hang/shop"
+      ? "/shopping/shops"
       : mode === "mat-hang"
-        ? "/cua-hang/mat-hang"
-        : "/cua-hang/hang";
+        ? "/shopping/category"
+        : "/shopping/products";
   const qs = searchParams.toString();
   return qs ? `${base}?${qs}` : base;
 }
@@ -79,6 +81,8 @@ type FilterOption = {
   ten: string;
   count: number;
   title?: string;
+  group?: string | null;
+  groupOrder?: number;
 };
 
 function normalizeQuery(raw: string): string {
@@ -93,7 +97,41 @@ function filterOptionMatches(option: FilterOption, q: string): boolean {
   if (!q) return true;
   if (textMatches(option.ten, q)) return true;
   if (option.title && textMatches(option.title, q)) return true;
+  if (option.group && textMatches(option.group, q)) return true;
   return false;
+}
+
+function clusteredFilterOptions(
+  options: FilterOption[],
+): Array<{ key: string; label: string | null; items: FilterOption[] }> {
+  if (!options.some((o) => o.group)) {
+    return [{ key: "all", label: null, items: options }];
+  }
+  const buckets = new Map<
+    string,
+    { label: string | null; order: number; items: FilterOption[] }
+  >();
+  for (const o of options) {
+    const key = o.group ?? "";
+    const cur = buckets.get(key) ?? {
+      label: o.group ?? null,
+      order: o.groupOrder ?? 9999,
+      items: [],
+    };
+    cur.items.push(o);
+    buckets.set(key, cur);
+  }
+  return [...buckets.entries()]
+    .sort(
+      ([, a], [, b]) =>
+        a.order - b.order ||
+        (a.label ?? "я").localeCompare(b.label ?? "я", "vi"),
+    )
+    .map(([key, g]) => ({
+      key: key || "orphans",
+      label: g.label,
+      items: g.items,
+    }));
 }
 
 type FilterSectionDef = {
@@ -120,6 +158,7 @@ function ListingFilterSection({
   emptyMeansAll = false,
   searchQuery = "",
   hideHead = false,
+  extra,
   onToggle,
   onSelectAll,
 }: {
@@ -130,6 +169,7 @@ function ListingFilterSection({
   emptyMeansAll?: boolean;
   searchQuery?: string;
   hideHead?: boolean;
+  extra?: ReactNode;
   onToggle: (slug: string) => void;
   onSelectAll?: () => void;
 }) {
@@ -152,11 +192,19 @@ function ListingFilterSection({
 
   if (!showAll && visibleOptions.length === 0) {
     return (
-      <p className="ch-list-filter-overlay-no-match" role="status">
-        {q
-          ? `Không có mục khớp «${searchQuery.trim()}».`
-          : `Chưa có mục lọc trong «${label}».`}
-      </p>
+      <section
+        className={`ch-list-filter-section${hideHead ? " is-tab-panel" : ""}`}
+        aria-label={label}
+      >
+        <p className="ch-list-filter-overlay-no-match" role="status">
+          {q
+            ? `Không có mục khớp «${searchQuery.trim()}».`
+            : `Chưa có mục lọc trong «${label}».`}
+        </p>
+        {extra ? (
+          <div className="ch-list-filter-section-options">{extra}</div>
+        ) : null}
+      </section>
     );
   }
 
@@ -199,33 +247,55 @@ function ListingFilterSection({
             </span>
           </button>
         ) : null}
-        {visibleOptions.map((o) => {
-          const on = selected.includes(o.slug);
-          return (
-            <button
-              key={o.slug}
-              type="button"
-              role="option"
-              aria-selected={on}
-              title={o.title ?? o.ten}
-              className={`ch-list-filter-dd-option${on ? " is-on" : ""}`}
-              onClick={() => onToggle(o.slug)}
-            >
-              <span
-                className={`ch-list-filter-dd-check${on ? " is-on" : ""}`}
-                aria-hidden
-              >
-                {on ? <Check size={11} strokeWidth={3} /> : null}
-              </span>
-              <span className="ch-list-filter-dd-option-copy">
-                <strong>{o.ten}</strong>
-              </span>
-              {o.count > 0 ? (
-                <span className="ch-list-filter-option-count">{o.count}</span>
-              ) : null}
-            </button>
-          );
-        })}
+        {clusteredFilterOptions(visibleOptions).map((cluster) => (
+          <section
+            key={cluster.key}
+            className={`ch-list-filter-tree-group${cluster.label ? " has-parent" : ""}`}
+            aria-label={cluster.label ?? undefined}
+          >
+            {cluster.label ? (
+              <header className="ch-list-filter-tree-head">
+                <h3 className="ch-list-filter-tree-parent">{cluster.label}</h3>
+              </header>
+            ) : null}
+            <div className="ch-list-filter-tree-leaves">
+              {cluster.items.map((o) => {
+                const on = selected.includes(o.slug);
+                return (
+                  <button
+                    key={o.slug}
+                    type="button"
+                    role="option"
+                    aria-selected={on}
+                    title={
+                      cluster.label
+                        ? `${cluster.label} · ${o.ten}`
+                        : (o.title ?? o.ten)
+                    }
+                    className={`ch-list-filter-dd-option${on ? " is-on" : ""}`}
+                    onClick={() => onToggle(o.slug)}
+                  >
+                    <span
+                      className={`ch-list-filter-dd-check${on ? " is-on" : ""}`}
+                      aria-hidden
+                    >
+                      {on ? <Check size={11} strokeWidth={3} /> : null}
+                    </span>
+                    <span className="ch-list-filter-dd-option-copy">
+                      <strong>{o.ten}</strong>
+                    </span>
+                    {o.count > 0 ? (
+                      <span className="ch-list-filter-option-count">
+                        {o.count}
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        ))}
+        {extra}
       </div>
     </section>
   );
@@ -306,11 +376,20 @@ function ListingFiltersPopover({
         label: "Danh mục",
         emptyMeansAll: true,
         allLabel: "Tất cả",
-        options: visibleDanhMuc.map((d) => ({
-          slug: d.slug,
-          ten: d.ten,
-          count: danhMucCounts.get(d.slug) ?? 0,
-        })),
+        options: [...visibleDanhMuc]
+          .sort(
+            (a, b) =>
+              (a.chaThuTu ?? 999) - (b.chaThuTu ?? 999) ||
+              a.thuTu - b.thuTu ||
+              a.ten.localeCompare(b.ten, "vi"),
+          )
+          .map((d) => ({
+            slug: d.slug,
+            ten: d.ten,
+            count: danhMucCounts.get(d.slug) ?? 0,
+            group: d.chaTen ?? "Không nhóm",
+            groupOrder: d.chaThuTu ?? 999,
+          })),
         selected: selectedDanhMuc,
         onToggle: onToggleDanhMuc,
         onSelectAll: onSelectAllDanhMuc,
@@ -335,6 +414,7 @@ function ListingFiltersPopover({
           ten: g.ten,
           count: counts.get(g.slug) ?? 0,
           title: g.nhom ? `${g.ten} · ${g.nhom}` : g.ten,
+          group: g.nhom,
         })),
         selected,
         onToggle: (slug) =>
@@ -555,6 +635,11 @@ function ListingFiltersPopover({
                     emptyMeansAll={activeSection.emptyMeansAll}
                     searchQuery={filterSearch}
                     hideHead
+                    extra={
+                      activeSection.key === "danh-muc" ? (
+                        <CuaHangHubDeXuatDanhMuc searchQuery={filterSearch} />
+                      ) : null
+                    }
                     onToggle={activeSection.onToggle}
                     onSelectAll={activeSection.onSelectAll}
                   />

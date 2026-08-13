@@ -27,7 +27,7 @@ async function loadNgheRolePreview(
   if (pendingFetches.has(key)) return pendingFetches.get(key)!;
 
   const request = fetch(
-    `/api/nghe/role-preview?title=${encodeURIComponent(role.trim())}`,
+    `/api/careers/role-preview?title=${encodeURIComponent(role.trim())}`,
     { credentials: "same-origin" },
   )
     .then(async (res) => {

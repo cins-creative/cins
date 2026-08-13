@@ -308,7 +308,7 @@ export function StudioJobsSidebar({
   const loadSuKien = useCallback(async () => {
     try {
       const res = await fetch(
-        `/api/org/${encodeURIComponent(orgId)}/su-kien`,
+        `/api/org/${encodeURIComponent(orgId)}/events`,
         { credentials: "include" },
       );
       const data = (await res.json()) as { suKien?: SuKienCardData[] };
@@ -535,7 +535,7 @@ export function StudioJobsSidebar({
     const id = editingSuKien.id;
     try {
       const res = await fetch(
-        `/api/org/${encodeURIComponent(orgId)}/su-kien/${encodeURIComponent(id)}`,
+        `/api/org/${encodeURIComponent(orgId)}/events/${encodeURIComponent(id)}`,
         { method: "DELETE", credentials: "include" },
       );
       if (!res.ok) {

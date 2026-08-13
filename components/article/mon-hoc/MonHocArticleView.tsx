@@ -51,7 +51,7 @@ export async function MonHocArticleView({
   draftUiEnabled = false,
   draftPersistEnabled = false,
 }: Props) {
-  const slugPath = `/bai-viet/${article.slug}`;
+  const slugPath = `/articles/${article.slug}`;
   const leadSource = buildArticleLeadSource(
     entityCanonicalLeadHtml(article.noi_dung) ?? article.noi_dung_markdown,
   );

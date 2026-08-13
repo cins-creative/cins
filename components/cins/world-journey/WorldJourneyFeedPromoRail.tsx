@@ -382,7 +382,7 @@ function PromoOrgCard({
   );
 }
 
-/** `/studio/:slug/...` · `/co-so/:slug/...` · `/truong/:slug/...` */
+/** `/studio/:slug/...` · `/academy/:slug/...` · `/truong/:slug/...` */
 function orgSlugFromPromoHref(href: string): string {
   const parts = href.replace(/^\//, "").split("/").filter(Boolean);
   if (parts.length < 2) return "";

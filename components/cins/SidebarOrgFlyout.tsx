@@ -34,14 +34,14 @@ const KIND_CONFIG: Record<
     types: ["co_so_dao_tao", "truong_dai_hoc", "studio", "doanh_nghiep"],
     title: "Tổ chức của bạn",
     emptyText: "Bạn chưa quản lý tổ chức nào.",
-    createHref: "/tao-to-chuc",
+    createHref: "/create-organization",
     createLabel: "Tạo tổ chức",
   },
   community: {
     types: ["cong_dong"],
     title: "Cộng đồng của bạn",
     emptyText: "Bạn chưa quản lý cộng đồng nào.",
-    createHref: "/cong-dong/tao",
+    createHref: "/community/create",
     createLabel: "Tạo cộng đồng",
   },
 };

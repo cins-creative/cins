@@ -365,7 +365,7 @@ export function TruongNganhMonThiEditModal({
         nganh: programId,
       });
       const res = await fetch(
-        `/api/truong/${encodeURIComponent(orgId)}/cau-hinh-tinh-diem?${params}`,
+        `/api/university/${encodeURIComponent(orgId)}/score-config?${params}`,
       );
       if (!res.ok) return null;
       const json = (await res.json()) as { config?: TruongCauHinhTinhDiem };
@@ -717,7 +717,7 @@ export function TruongNganhMonThiEditModal({
     setSaving(true);
     setError(null);
     try {
-      const res = await truongInlineFetch(orgId, "/cau-hinh-tinh-diem", {
+      const res = await truongInlineFetch(orgId, "/score-config", {
         method: "PUT",
         body: JSON.stringify({
           nam: year,

@@ -64,7 +64,7 @@ export function BillingDongPhiDrawer({ hoaDonId, title, onClose }: Props) {
     void (async () => {
       try {
         const res = await fetch(
-          `/api/tai-khoan/thanh-toan/hoa-don/${encodeURIComponent(hoaDonId)}/dong`,
+          `/api/account/billing/invoices/${encodeURIComponent(hoaDonId)}/close`,
           { cache: "no-store", credentials: "include" },
         );
         const json = (await res.json().catch(() => null)) as

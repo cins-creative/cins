@@ -145,7 +145,7 @@ export function OrgBaiDangTimelineCard({ post }: Props) {
                 {post.tags.map((tag) => (
                   <Link
                     key={tag.slug}
-                    href={`/nganh-hoc/${encodeURIComponent(tag.slug)}`}
+                    href={`/majors/${encodeURIComponent(tag.slug)}`}
                     className="org-tl-tag"
                   >
                     {tag.label}

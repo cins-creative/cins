@@ -66,7 +66,7 @@ export function JourneyShopView({
     const canon = shopPublicHref(ownerSlug, shopSlug);
     const path = window.location.pathname.replace(/\/+$/, "");
     const entry = `/${encodeURIComponent(ownerSlug)}/shop`;
-    if (path.includes("/loai/")) return;
+    if (path.includes("/collections/")) return;
     const onEntry = path === entry;
     const onWrongSlug =
       path.startsWith(`${entry}/`) && path !== canon;
@@ -184,7 +184,7 @@ export function JourneyShopView({
             <p>
               Mở{" "}
               <Link
-                href="/ban-hang/cua-hang"
+                href="/seller/store"
                 onMouseEnter={warmPrefetchBanHang}
                 onFocus={warmPrefetchBanHang}
               >
@@ -228,7 +228,7 @@ export function JourneyShopView({
                       {ready ? (
                         <>
                           <Link
-                            href="/ban-hang/kho"
+                            href="/seller/inventory"
                             className="j-shop-action-btn"
                             aria-label="Kho hàng"
                             onMouseEnter={warmPrefetchBanHang}
@@ -240,7 +240,7 @@ export function JourneyShopView({
                             </span>
                           </Link>
                           <Link
-                            href="/ban-hang/don"
+                            href="/seller/orders"
                             className="j-shop-action-btn"
                             aria-label="Đơn hàng"
                             onMouseEnter={warmPrefetchBanHang}
@@ -266,7 +266,7 @@ export function JourneyShopView({
                         </span>
                       )}
                       <Link
-                        href="/ban-hang/cua-hang"
+                        href="/seller/store"
                         className="j-shop-action-btn"
                         aria-label="Quản lý cửa hàng"
                         onMouseEnter={warmPrefetchBanHang}

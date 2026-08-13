@@ -48,7 +48,7 @@ import {
   withSuKienQuayView,
 } from "@/lib/to-chuc/su-kien-routes";
 
-import "@/app/cua-hang/cua-hang-listing.css";
+import "@/app/shopping/cua-hang-listing.css";
 import "@/components/journey/journey-shop-view.css";
 import "./shop-dashboard.css";
 import "./shop-kiosk-block.css";
@@ -708,7 +708,7 @@ function QuayHangCatalogView({
   const loadGio = useCallback(async () => {
     if (!viewerProfileId) return;
     try {
-      const res = await fetch("/api/shop/gio-chung", { cache: "no-store" });
+      const res = await fetch("/api/shop/shared-cart", { cache: "no-store" });
       const json = (await res.json().catch(() => null)) as {
         gio?: ShopGioChung;
       } | null;
@@ -752,7 +752,7 @@ function QuayHangCatalogView({
       pendingQtyRef.current.delete(idBienThe);
       const epoch = qtyEpochRef.current.get(idBienThe) ?? 0;
       try {
-        const res = await fetch("/api/shop/gio-chung", {
+        const res = await fetch("/api/shop/shared-cart", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ idBienThe, soLuong }),
@@ -1112,7 +1112,7 @@ function ShopQuaySuKienPanelInner({
       if (!canManage) q.set("catalog", "1");
       const qs = q.toString();
       const res = await fetch(
-        `/api/su-kien/${suKienId}/quay${qs ? `?${qs}` : ""}`,
+        `/api/events/${suKienId}/quay${qs ? `?${qs}` : ""}`,
         { cache: "no-store" },
       );
       const json = (await res.json().catch(() => null)) as {
@@ -1156,7 +1156,7 @@ function ShopQuaySuKienPanelInner({
     setCatalogLoading(true);
     try {
       const res = await fetch(
-        `/api/su-kien/${encodeURIComponent(suKienId)}/quay?catalog=1`,
+        `/api/events/${encodeURIComponent(suKienId)}/booths?catalog=1`,
         { cache: "no-store" },
       );
       const json = (await res.json().catch(() => null)) as {
@@ -1187,7 +1187,7 @@ function ShopQuaySuKienPanelInner({
     setHangLoading(true);
     try {
       const res = await fetch(
-        `/api/su-kien/${encodeURIComponent(suKienId)}/quay/hang`,
+        `/api/events/${encodeURIComponent(suKienId)}/booths/products`,
         { cache: "no-store" },
       );
       const json = (await res.json().catch(() => null)) as {
@@ -1239,7 +1239,7 @@ function ShopQuaySuKienPanelInner({
     setBusyId(id);
     setActionErr(null);
     try {
-      const res = await fetch(`/api/su-kien/${suKienId}/quay/${id}`, {
+      const res = await fetch(`/api/events/${suKienId}/booths/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

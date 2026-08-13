@@ -3,7 +3,7 @@ import Link from "next/link";
 import { MoShopForm } from "@/components/shop/MoShopForm";
 import { renderAdminPage } from "@/lib/admin/admin-page";
 
-import "@/app/mo-shop/mo-shop.css";
+import "@/app/open-shop/mo-shop.css";
 import "../mo-shop-admin.css";
 
 export const dynamic = "force-dynamic";

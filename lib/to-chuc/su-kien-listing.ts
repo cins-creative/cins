@@ -135,7 +135,7 @@ function mapRow(
   };
 }
 
-/** Danh sách sự kiện toàn cục cho trang `/su-kien`. */
+/** Danh sách sự kiện toàn cục cho trang `/events`. */
 export const listSuKienForListing = cache(async function listSuKienForListing(): Promise<
   SuKienListItem[]
 > {

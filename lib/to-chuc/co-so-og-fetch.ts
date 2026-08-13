@@ -33,7 +33,7 @@ function pickEmbed(raw: unknown): CoSoEmbed | null {
   return null;
 }
 
-/** OG context cho trang cơ sở đào tạo (`/co-so/[slug]`). */
+/** OG context cho trang cơ sở đào tạo (`/academy/[slug]`). */
 export async function fetchCoSoOgContext(
   slug: string,
 ): Promise<OrgOgContext | null> {

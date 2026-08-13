@@ -205,17 +205,6 @@
   background: var(--bg-page, #f4f5f8);
 }
 
-.shop-kiosk-ticker-thumb--empty {
-  width: var(--shop-kiosk-ticker-size);
-  height: var(--shop-kiosk-ticker-size);
-  box-sizing: border-box;
-  border-radius: 8px;
-  flex-shrink: 0;
-  display: block;
-  border: 1px solid var(--border, #e4e6eb);
-  background: color-mix(in srgb, var(--border, #e4e6eb) 70%, #fff);
-}
-
 @media (max-width: 575.98px) {
   .shop-kiosk--ticker {
     --shop-kiosk-ticker-size: 96px;

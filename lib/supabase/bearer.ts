@@ -22,6 +22,16 @@ export function parseBearerAccessToken(
 }
 
 /**
+ * Access token user Supabase là JWT 3 phần. Secret nội bộ (upload inline,
+ * cron) cũng đi `Authorization: Bearer` nhưng không phải JWT — không gọi
+ * `auth.getUser` với chúng (sẽ fail rồi nuốt cookie session).
+ */
+export function looksLikeSupabaseUserJwt(token: string): boolean {
+  const parts = token.split(".");
+  return parts.length === 3 && parts.every((part) => part.length > 0);
+}
+
+/**
  * Client anon + JWT user — không cookie, không refresh, không persist.
  * Dùng cho app native. RLS thấy `auth.uid()` từ token.
  */

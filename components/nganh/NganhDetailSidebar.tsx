@@ -24,12 +24,12 @@ type Props = {
 
 function articleHref(card: ArticleCard): string {
   if (String(card.loai_bai_viet) === "nganh_dao_tao") {
-    return `/nganh-hoc/${card.slug}`;
+    return `/majors/${card.slug}`;
   }
   if (String(card.loai_bai_viet) === "nghe") {
-    return `/huong-nghiep/nghe/${encodeURIComponent(card.slug)}`;
+    return `/guidance/career/${encodeURIComponent(card.slug)}`;
   }
-  return `/bai-viet/${card.slug}`;
+  return `/articles/${card.slug}`;
 }
 
 export function NganhDetailSidebar({ truong, nghe, keywords }: Props) {

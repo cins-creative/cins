@@ -102,7 +102,7 @@ export function CareerHubRail({
                   <ul className="hn-rail-sub">
                     {group.links.map((link) => (
                       <li key={link.id}>
-                        <Link href={`/nganh-hoc/${link.slug}`}>
+                        <Link href={`/majors/${link.slug}`}>
                           {link.label}
                         </Link>
                       </li>

@@ -49,7 +49,7 @@ export function LopHocDeleteConfirm({
     void (async () => {
       try {
         const res = await fetch(
-          `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/${encodeURIComponent(lop.khoaId)}/lop/${encodeURIComponent(lop.id)}/xoa-preflight`,
+          `/api/academy/${encodeURIComponent(orgId)}/courses/${encodeURIComponent(lop.khoaId)}/classes/${encodeURIComponent(lop.id)}/delete-preflight`,
           { credentials: "include" },
         );
         const json = (await res.json()) as XoaPreflight & { error?: string };
@@ -84,7 +84,7 @@ export function LopHocDeleteConfirm({
     setSubmitting(true);
     try {
       const res = await fetch(
-        `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc/${encodeURIComponent(lop.khoaId)}/lop/${encodeURIComponent(lop.id)}`,
+        `/api/academy/${encodeURIComponent(orgId)}/courses/${encodeURIComponent(lop.khoaId)}/classes/${encodeURIComponent(lop.id)}`,
         { method: "DELETE", credentials: "include" },
       );
       const json = (await res.json()) as {

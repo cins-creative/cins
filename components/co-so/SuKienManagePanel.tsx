@@ -98,7 +98,7 @@ function AttendeesListModal({
     setLoading(true);
     setErr(null);
     void fetch(
-      `/api/org/${encodeURIComponent(orgId)}/su-kien/${encodeURIComponent(suKienId)}/quan-ly/thanh-vien`,
+      `/api/org/${encodeURIComponent(orgId)}/events/${encodeURIComponent(suKienId)}/manage/members`,
       { credentials: "include", cache: "no-store" },
     )
       .then(async (res) => {
@@ -249,7 +249,7 @@ export function SuKienManagePanel({
     setLoading(true);
     setErr(null);
     void fetch(
-      `/api/org/${encodeURIComponent(orgId)}/su-kien/${encodeURIComponent(suKienId)}/quan-ly`,
+      `/api/org/${encodeURIComponent(orgId)}/events/${encodeURIComponent(suKienId)}/manage`,
       { credentials: "include", cache: "no-store" },
     )
       .then(async (res) => {

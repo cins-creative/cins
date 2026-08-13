@@ -217,7 +217,7 @@ export function CongDongTopbarToolbar({
     );
     if (!ok) return;
     startLeave(async () => {
-      const res = await fetch(`/api/cong-dong/${orgId}/tham-gia`, {
+      const res = await fetch(`/api/community/${orgId}/join`, {
         method: "DELETE",
       });
       if (!res.ok) return;
@@ -229,7 +229,7 @@ export function CongDongTopbarToolbar({
   const setNotify = useCallback(
     (level: OrgNotifyLevel) => {
       startNotify(async () => {
-        const res = await fetch(`/api/cong-dong/${orgId}/theo-doi`, {
+        const res = await fetch(`/api/community/${orgId}/follow`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ muc_thong_bao: level }),

@@ -53,6 +53,7 @@
     "migrate:shop-ship-restore-dvvc": "node scripts/run-shop-ship-restore-dvvc-migration.mjs",
     "migrate:shop-don-van-chuyen": "node scripts/run-shop-don-van-chuyen-migration.mjs",
     "migrate:shop-don-van-chuyen-ma": "node scripts/run-shop-don-van-chuyen-ma-migration.mjs",
+    "migrate:shop-don-yeu-cau-huy": "node scripts/run-shop-don-yeu-cau-huy-migration.mjs",
     "migrate:shop-combo-voucher": "node scripts/run-shop-combo-voucher-migration.mjs",
     "test:shop-uu-dai": "node --experimental-strip-types --test lib/shop/uu-dai.test.ts",
     "gen:phuong-xa": "node scripts/gen-phuong-xa.mjs",

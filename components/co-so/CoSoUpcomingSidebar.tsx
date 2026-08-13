@@ -323,7 +323,7 @@ export function CoSoUpcomingSidebar({
   const loadLopPins = useCallback(async () => {
     try {
       const res = await fetch(
-        `/api/co-so/${encodeURIComponent(orgId)}/timeline-lop-pins`,
+        `/api/academy/${encodeURIComponent(orgId)}/class-timeline-pins`,
         { credentials: "include" },
       );
       const data = (await res.json()) as { pins?: CoSoLopTimelinePin[] };
@@ -338,7 +338,7 @@ export function CoSoUpcomingSidebar({
   const loadKhoa = useCallback(async () => {
     try {
       const res = await fetch(
-        `/api/co-so/${encodeURIComponent(orgId)}/khoa-hoc`,
+        `/api/academy/${encodeURIComponent(orgId)}/courses`,
         { credentials: "include" },
       );
       const data = (await res.json()) as {
@@ -355,7 +355,7 @@ export function CoSoUpcomingSidebar({
   const loadSuKien = useCallback(async () => {
     try {
       const res = await fetch(
-        `/api/org/${encodeURIComponent(orgId)}/su-kien`,
+        `/api/org/${encodeURIComponent(orgId)}/events`,
         { credentials: "include" },
       );
       const data = (await res.json()) as { suKien?: SuKienCardData[] };
@@ -623,7 +623,7 @@ export function CoSoUpcomingSidebar({
     const id = editingSuKien.id;
     try {
       const res = await fetch(
-        `/api/org/${encodeURIComponent(orgId)}/su-kien/${encodeURIComponent(id)}`,
+        `/api/org/${encodeURIComponent(orgId)}/events/${encodeURIComponent(id)}`,
         { method: "DELETE", credentials: "include" },
       );
       if (!res.ok) {

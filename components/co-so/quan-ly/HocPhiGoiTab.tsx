@@ -129,8 +129,8 @@ export function HocPhiGoiTab({ orgId }: Props) {
     setError(null);
     try {
       const [goiRes, khoaRes] = await Promise.all([
-        fetch(`/api/co-so/${orgId}/hoc-phi/goi`, { credentials: "include" }),
-        fetch(`/api/co-so/${orgId}/khoa-hoc`, { credentials: "include" }),
+        fetch(`/api/academy/${orgId}/tuition/packages`, { credentials: "include" }),
+        fetch(`/api/academy/${orgId}/courses`, { credentials: "include" }),
       ]);
       const goiData = await goiRes.json();
       if (!goiRes.ok) {
@@ -226,7 +226,7 @@ export function HocPhiGoiTab({ orgId }: Props) {
     setFormError(null);
     const body = buildPayload(draft);
     try {
-      const res = await fetch(`/api/co-so/${orgId}/hoc-phi/goi`, {
+      const res = await fetch(`/api/academy/${orgId}/tuition/packages`, {
         method: editingId ? "PATCH" : "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -252,7 +252,7 @@ export function HocPhiGoiTab({ orgId }: Props) {
     setBusy(true);
     setFlash(null);
     try {
-      const res = await fetch(`/api/co-so/${orgId}/hoc-phi/goi`, {
+      const res = await fetch(`/api/academy/${orgId}/tuition/packages`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

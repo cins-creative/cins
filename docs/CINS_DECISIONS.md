@@ -41,6 +41,14 @@
 
 ## LOG — quyết định đã chốt
 
+### Shop — người mua hủy đơn + shop nhờ khách hủy (2026-08-13)
+
+- **Chốt:** Buyer tự hủy đơn `cho_xac_nhan` (không cần shop đồng ý). Đơn `da_nhan_tien`: shop **không** tự hủy — gửi yêu cầu (`yeu_cau_huy_*`) rồi buyer bấm Đồng ý hủy (buyer xác nhận đã dàn xếp tiền). `dang_giao` / `cho_lay_hang` vẫn `hoan_tra` (seller).
+- **DB:** ALTER `shop_don_hang` 3 cột nullable — inventory **A24**. Không đổi enum.
+- **API:** `PATCH /api/shop/don/[id]` thêm `buyer_huy` · `yeu_cau_huy` · `bo_yeu_cau_huy`.
+- **Chat:** bump card `don_hang` sẵn có (`ngu_canh.yeuCauHuy` + `capNhat.suKien`); không thêm `loai` tin mới.
+- *Hệ quả:* `lib/shop/don-hang.ts` · `ShopDonDetailModal` · `ChatDonHangCard` · `ShopMuaHistory`. Plan: `PLAN_buyer_huy_don.md`. Backlog: buyer chủ động xin hủy `da_nhan_tien`; checkbox đã nhận lại tiền; guard 5 đơn/24h.
+
 ### Analytics scale P3 — feed ngừng đọc log thô (2026-08-13)
 
 - **Chốt:** `demLuotXemCuaViewer` → `social_da_xem` (`viewer_key` = UUID, PK). `demLuotXemToanCuc` → `social_dem_doi_tuong.luot_tiep_can`. Không LIMIT giả, chunk `IN` 200. World Timeline gắn `viewerSeenCount` từ da_xem (rank vẫn theo điểm L30).
@@ -419,6 +427,7 @@
 | A21 | `shop_nhom` | Thêm `id_danh_muc`, `danh_muc_xac_nhan` | uuid FK → `shop_danh_muc` ON DELETE SET NULL · `boolean NOT NULL DEFAULT false` | `id_danh_muc` YES · flag NO (default false) | Taxonomy canonical hub `/cua-hang` — map loại → danh mục CINs | Loại cũ = NULL / false; bán bình thường | **Đã duyệt §11.7 + chạy** 2026-08-07 · `migration_shop_danh_muc.sql` · `npm run migrate:shop-danh-muc` · kèm bảng mới `shop_danh_muc`/`_alias`/`shop_thuoc_tinh`/`_gia_tri`/`_alias`/`shop_nhom_thuoc_tinh` |
 | A22 | `shop_don_hang` | Thêm `tong_hang`, `tien_giam_combo`, `tien_giam_voucher`, `id_voucher`, `giam_snapshot` | `numeric` · uuid → `shop_voucher` · `jsonb` | YES (có DEFAULT 0 cho tiền giảm) | Snapshot giảm giá combo/voucher; `tong_tien` = buyer trả | Backfill `tong_hang = tong_tien` | **Đã duyệt + chạy** 2026-08-07 · `migration_shop_don_giam_gia.sql` · kèm bảng mới combo/voucher · `npm run migrate:shop-combo-voucher` |
 | A23 | `shop_don_hang` | Thêm `phien_id` | `text` NULL + index partial `shop_don_hang_phien_idx` | YES | Hash phiên client để đo xem→mua; không lưu UUID thô | Đơn cũ = NULL | **Đã chạy** 2026-08-09 · `migration_shop_don_phien_id.sql` |
+| A24 | `shop_don_hang` | Thêm `yeu_cau_huy_luc`, `yeu_cau_huy_ly_do`, `yeu_cau_huy_boi` | `timestamptz` · `text` · `uuid` → `user_nguoi_dung` ON DELETE SET NULL | YES | Shop nhờ khách hủy đơn `da_nhan_tien`; buyer bấm đồng ý | Đơn cũ = NULL (không có yêu cầu) | **Đã duyệt + chạy** 2026-08-13 · `migration_shop_don_yeu_cau_huy.sql` · `npm run migrate:shop-don-yeu-cau-huy` |
 
 > Khi user duyệt một dòng → đổi **Trạng thái** thành `Đã duyệt YYYY-MM-DD` rồi mới viết/chạy file migration. Khi đã apply trên DB → `Đã chạy` + tên file SQL. Mọi ALTER phát sinh thêm ngoài bảng này → **thêm dòng mới vào inventory trước**, không lén vào migration khác.
 

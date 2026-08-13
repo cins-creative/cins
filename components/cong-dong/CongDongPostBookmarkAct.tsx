@@ -43,7 +43,7 @@ export function CongDongPostBookmarkAct({
         return null;
       }}
       saveEndpoint={({ visibility, privateNote }) => ({
-        url: `/api/cong-dong/${orgId}/posts/${postId}/luu`,
+        url: `/api/community/${orgId}/posts/${postId}/save`,
         body: { visibility, ghi_chu_rieng: normalizeBookmarkPrivateNote(privateNote) },
       })}
     />

@@ -87,9 +87,9 @@ export function MoShopLayout({
 export function MoShopFoot() {
   return (
     <nav className="mo-shop-foot" aria-label="Liên kết phụ">
-      <Link href="/chinh-sach/phi-san">Chính sách phí</Link>
-      <Link href="/termandservice">Điều khoản</Link>
-      <Link href="/ho-tro">Trợ giúp</Link>
+      <Link href="/policies/marketplace-fee">Chính sách phí</Link>
+      <Link href="/terms">Điều khoản</Link>
+      <Link href="/support">Trợ giúp</Link>
     </nav>
   );
 }

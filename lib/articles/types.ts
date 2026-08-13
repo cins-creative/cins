@@ -141,7 +141,7 @@ export type CotMocStub = {
   tieu_de?: string | null;
 };
 
-/** Dòng danh sách `/bai-viet` */
+/** Dòng danh sách `/articles` */
 export type ArticleListItem = {
   id: string;
   slug: string;
@@ -153,7 +153,7 @@ export type ArticleListItem = {
   trang_thai_noi_dung: string;
 };
 
-/** Bài loại `nghe` cho hub `/nghe-nghiep` */
+/** Bài loại `nghe` cho hub `/careers` */
 export type NgheArticleHubRow = {
   id: string;
   slug: string;

@@ -28,7 +28,7 @@ function leadFromGioiThieu(html: string | null | undefined): string | null {
   return plain || null;
 }
 
-/** Settings (gồm bảng chi nhánh) trên `/quan-ly/co-so`. */
+/** Settings (gồm bảng chi nhánh) trên `/manage/facilities`. */
 export function CoSoThongTinQuanLyClient({
   orgId,
   orgSlug,

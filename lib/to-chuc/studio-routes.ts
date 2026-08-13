@@ -16,17 +16,17 @@ export function studioTabPath(orgSlug: string, tab: StudioTabId): string {
   return `${studioRootPath(orgSlug)}/${tab}`;
 }
 
-/** URL sâu tới một tin tuyển dụng: `/studio/:slug/tuyen-dung/:jobId`. */
+/** URL sâu tới một tin tuyển dụng: `/studio/:slug/jobs/:jobId`. */
 export function studioJobPath(orgSlug: string, jobId: string): string {
   return `${studioTabPath(orgSlug, "tuyen-dung")}/${encodeURIComponent(jobId)}`;
 }
 
-/** URL sâu tới một bài đăng: `/studio/:slug/bai-dang/:baiDangId`. */
+/** URL sâu tới một bài đăng: `/studio/:slug/posts/:baiDangId`. */
 export function studioBaiDangPostPath(orgSlug: string, baiDangId: string): string {
   return `${studioTabPath(orgSlug, "bai-dang")}/${encodeURIComponent(baiDangId)}`;
 }
 
-/** URL sâu tới một sự kiện: `/studio/:slug/su-kien/:suKienId`. */
+/** URL sâu tới một sự kiện: `/studio/:slug/events/:suKienId`. */
 export function studioSuKienPath(orgSlug: string, suKienId: string): string {
   return `${studioTabPath(orgSlug, "su-kien")}/${encodeURIComponent(suKienId)}`;
 }
@@ -50,7 +50,7 @@ const DEFAULT_PATH_STATE: StudioPathState = {
   suKienId: null,
 };
 
-/** Lấy jobId từ pathname `/studio/:slug/tuyen-dung/:jobId` (null nếu không có). */
+/** Lấy jobId từ pathname `/studio/:slug/jobs/:jobId` (null nếu không có). */
 export function parseStudioJobIdFromPathname(pathname: string): string | null {
   return parseStudioRouteFromPathname(pathname)?.jobId ?? null;
 }

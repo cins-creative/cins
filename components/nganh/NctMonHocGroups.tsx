@@ -148,7 +148,7 @@ function MonHocCard({
   if (editing) {
     return (
       <div className={`nct-mon-card nct-mon-card--edit ${color}`}>
-        <Link href={`/bai-viet/${item.slug}`} className="nct-mon-card-link">
+        <Link href={`/articles/${item.slug}`} className="nct-mon-card-link">
           {inner}
         </Link>
         {onRemove ? (
@@ -169,7 +169,7 @@ function MonHocCard({
   }
 
   return (
-    <Link href={`/bai-viet/${item.slug}`} className={`nct-mon-card ${color}`}>
+    <Link href={`/articles/${item.slug}`} className={`nct-mon-card ${color}`}>
       {inner}
     </Link>
   );

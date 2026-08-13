@@ -53,7 +53,7 @@ export function CongDongOrganizationSection({
     setSectionError(null);
     try {
       const res = await fetch(
-        `/api/cong-dong/${encodeURIComponent(orgId)}/members`,
+        `/api/community/${encodeURIComponent(orgId)}/members`,
         { credentials: "same-origin" },
       );
       const json = (await res.json().catch(() => null)) as {
@@ -107,7 +107,7 @@ export function CongDongOrganizationSection({
     setModalError(null);
     try {
       const res = await fetch(
-        `/api/cong-dong/${encodeURIComponent(orgId)}/lifecycle`,
+        `/api/community/${encodeURIComponent(orgId)}/lifecycle`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -127,7 +127,7 @@ export function CongDongOrganizationSection({
       setDanger(null);
       if (action === "close") {
         onClosed();
-        router.push("/cong-dong");
+        router.push("/community");
         router.refresh();
         return;
       }
@@ -146,7 +146,7 @@ export function CongDongOrganizationSection({
     setTransferError(null);
     try {
       const res = await fetch(
-        `/api/cong-dong/${encodeURIComponent(orgId)}/transfer-owner`,
+        `/api/community/${encodeURIComponent(orgId)}/transfer-owner`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

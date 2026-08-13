@@ -4,6 +4,7 @@ import {
   normalizeTaxonomyKeyword,
   suggestDanhMucFromTen,
 } from "@/lib/shop/danh-muc";
+import { parseTenNhomMoi } from "@/lib/shop/danh-muc-yeu-cau-text";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 const STOPWORDS = new Set([
@@ -93,7 +94,7 @@ export async function taoYeuCauDanhMuc(opts: {
   moTa: string;
   tuKhoa?: string;
   idDanhMucGanNhat?: string | null;
-}): Promise<{ idKhac: string }> {
+}): Promise<{ idKhac: string | null }> {
   const moTa = opts.moTa.trim();
   if (moTa.length < 20 || moTa.length > 500) {
     throw new Error("MO_TA_YEU_CAU");
@@ -121,15 +122,19 @@ export async function taoYeuCauDanhMuc(opts: {
   }
   if ((count ?? 0) >= YEU_CAU_PER_DAY) throw new Error("YEU_CAU_LIMIT");
 
-  const { data: khac, error: khacErr } = await admin
+  const { data: khacRows, error: khacErr } = await admin
     .from("shop_danh_muc")
     .select("id")
     .eq("slug", "khac")
-    .eq("trang_thai", "hien")
-    .maybeSingle<{ id: string }>();
-  if (khacErr || !khac) throw new Error("DANH_MUC_INVALID");
+    .limit(1)
+    .returns<Array<{ id: string }>>();
+  if (khacErr) {
+    console.error("[shop] taoYeuCauDanhMuc khac", khacErr);
+  }
+  const idKhac = khacRows?.[0]?.id ?? null;
 
   let ganNhat: string | null = opts.idDanhMucGanNhat?.trim() || null;
+  if (ganNhat === "__new__" || ganNhat === "khac") ganNhat = null;
   if (ganNhat) {
     const { data: dm } = await admin
       .from("shop_danh_muc")
@@ -148,7 +153,7 @@ export async function taoYeuCauDanhMuc(opts: {
     tu_khoa_chuan: tuKhoa,
     mo_ta: moTa,
     id_danh_muc_gan_nhat: ganNhat,
-    cum: clusterKey(moTa),
+    cum: clusterKey(tuKhoa),
     trang_thai: "moi",
   });
   if (insErr) {
@@ -156,21 +161,45 @@ export async function taoYeuCauDanhMuc(opts: {
     throw new Error("YEU_CAU_FAILED");
   }
 
-  return { idKhac: khac.id };
+  if (idKhac) {
+    const { error: attachErr } = await admin
+      .from("shop_nhom")
+      .update({
+        id_danh_muc: idKhac,
+        danh_muc_xac_nhan: true,
+        cap_nhat_luc: new Date().toISOString(),
+      })
+      .eq("id", opts.nhomId)
+      .eq("id_nguoi_dung", opts.ownerId)
+      .eq("da_xoa", false);
+    if (attachErr) {
+      console.error("[shop] taoYeuCauDanhMuc attach", attachErr);
+    }
+  } else {
+    console.error("[shop] taoYeuCauDanhMuc missing slug khac");
+  }
+
+  return { idKhac };
 }
 
-/** Tên đề xuất đang `moi` — hiện trên Kho thay vì chữ «Khác». */
+export type DeXuatDanhMucChoNhom = {
+  ten: string;
+  idCha: string | null;
+  chaTen: string | null;
+};
+
+/** Đề xuất đang `moi` — hiện lá ảo trên Kho, không đưa lên chip hub. */
 export async function mapDeXuatDanhMucByNhomIds(
   nhomIds: string[],
-): Promise<Map<string, string>> {
-  const out = new Map<string, string>();
+): Promise<Map<string, DeXuatDanhMucChoNhom>> {
+  const out = new Map<string, DeXuatDanhMucChoNhom>();
   const ids = [...new Set(nhomIds.filter(Boolean))];
   if (ids.length === 0) return out;
 
   const admin = createServiceRoleClient();
   const { data, error } = await admin
     .from("shop_danh_muc_yeu_cau")
-    .select("id_nhom, tu_khoa_chuan, tao_luc")
+    .select("id_nhom, tu_khoa_chuan, id_danh_muc_gan_nhat, mo_ta, tao_luc")
     .in("id_nhom", ids)
     .eq("trang_thai", "moi")
     .order("tao_luc", { ascending: false });
@@ -178,11 +207,45 @@ export async function mapDeXuatDanhMucByNhomIds(
     console.error("[shop] mapDeXuatDanhMucByNhomIds", error);
     return out;
   }
+
+  const chaIds = [
+    ...new Set(
+      (data ?? [])
+        .map((r) =>
+          typeof r.id_danh_muc_gan_nhat === "string"
+            ? r.id_danh_muc_gan_nhat
+            : "",
+        )
+        .filter(Boolean),
+    ),
+  ];
+  const tenChaById = new Map<string, string>();
+  if (chaIds.length > 0) {
+    const { data: chaRows } = await admin
+      .from("shop_danh_muc")
+      .select("id, ten")
+      .in("id", chaIds);
+    for (const row of chaRows ?? []) {
+      if (typeof row.id === "string" && typeof row.ten === "string") {
+        tenChaById.set(row.id, row.ten);
+      }
+    }
+  }
+
   for (const row of data ?? []) {
     const id = typeof row.id_nhom === "string" ? row.id_nhom : "";
     if (!id || out.has(id)) continue;
     const ten = String(row.tu_khoa_chuan ?? "").trim();
-    if (ten) out.set(id, ten);
+    if (!ten) continue;
+    const idCha =
+      typeof row.id_danh_muc_gan_nhat === "string"
+        ? row.id_danh_muc_gan_nhat
+        : null;
+    const chaTen =
+      (idCha ? tenChaById.get(idCha) : null) ??
+      parseTenNhomMoi(String(row.mo_ta ?? "")) ??
+      null;
+    out.set(id, { ten, idCha, chaTen });
   }
   return out;
 }
@@ -203,6 +266,7 @@ export type YeuCauDanhMucHangCho = {
   moTa: string;
   idDanhMucGanNhat: string | null;
   tenDanhMucGanNhat: string | null;
+  ganNhatLaCha: boolean;
   cum: string;
   trangThai: string;
   taoLuc: string;
@@ -313,6 +377,7 @@ export async function listHangChoDanhMuc(): Promise<{
     ),
   ];
   const tenGan = new Map<string, string>();
+  const chaGan = new Set<string>();
   if (ganIds.length > 0) {
     const { data: dms } = await admin
       .from("shop_danh_muc")
@@ -320,6 +385,16 @@ export async function listHangChoDanhMuc(): Promise<{
       .in("id", ganIds)
       .returns<Array<{ id: string; ten: string }>>();
     for (const d of dms ?? []) tenGan.set(d.id, d.ten);
+
+    const { data: kids } = await admin
+      .from("shop_danh_muc")
+      .select("id_cha")
+      .in("id_cha", ganIds)
+      .limit(500)
+      .returns<Array<{ id_cha: string | null }>>();
+    for (const k of kids ?? []) {
+      if (k.id_cha) chaGan.add(k.id_cha);
+    }
   }
 
   const shopByCum = new Map<string, Set<string>>();
@@ -349,6 +424,9 @@ export async function listHangChoDanhMuc(): Promise<{
     tenDanhMucGanNhat: r.id_danh_muc_gan_nhat
       ? (tenGan.get(r.id_danh_muc_gan_nhat) ?? null)
       : null,
+    ganNhatLaCha: r.id_danh_muc_gan_nhat
+      ? chaGan.has(r.id_danh_muc_gan_nhat)
+      : false,
     cum: r.cum,
     trangThai: r.trang_thai,
     taoLuc: r.tao_luc,
@@ -358,6 +436,28 @@ export async function listHangChoDanhMuc(): Promise<{
   return { alias, yeuCau };
 }
 
+export async function tenAliasXungDot(
+  tuKhoaRaw: string,
+  idDanhMuc?: string,
+): Promise<string | null> {
+  const tuKhoa = normalizeTaxonomyKeyword(tuKhoaRaw);
+  if (!tuKhoa) return null;
+  const admin = createServiceRoleClient();
+  const { data: existing } = await admin
+    .from("shop_danh_muc_alias")
+    .select("id_danh_muc")
+    .eq("tu_khoa", tuKhoa)
+    .maybeSingle<{ id_danh_muc: string }>();
+  if (!existing) return null;
+  if (idDanhMuc && existing.id_danh_muc === idDanhMuc) return null;
+  const { data: dm } = await admin
+    .from("shop_danh_muc")
+    .select("ten")
+    .eq("id", existing.id_danh_muc)
+    .maybeSingle<{ ten: string }>();
+  return dm?.ten ?? existing.id_danh_muc;
+}
+
 export async function promoteAliasUngVien(opts: {
   tuKhoa: string;
   idDanhMuc: string;
@@ -365,21 +465,10 @@ export async function promoteAliasUngVien(opts: {
   const tuKhoa = normalizeTaxonomyKeyword(opts.tuKhoa);
   if (!tuKhoa) throw new Error("TU_KHOA_INVALID");
 
-  const admin = createServiceRoleClient();
-  const { data: existing } = await admin
-    .from("shop_danh_muc_alias")
-    .select("id_danh_muc")
-    .eq("tu_khoa", tuKhoa)
-    .maybeSingle<{ id_danh_muc: string }>();
-  if (existing && existing.id_danh_muc !== opts.idDanhMuc) {
-    const { data: dm } = await admin
-      .from("shop_danh_muc")
-      .select("ten")
-      .eq("id", existing.id_danh_muc)
-      .maybeSingle<{ ten: string }>();
-    return { ok: false, conflictTen: dm?.ten ?? existing.id_danh_muc };
-  }
+  const conflictTen = await tenAliasXungDot(tuKhoa, opts.idDanhMuc);
+  if (conflictTen) return { ok: false, conflictTen };
 
+  const admin = createServiceRoleClient();
   const { error } = await admin.from("shop_danh_muc_alias").upsert(
     { tu_khoa: tuKhoa, id_danh_muc: opts.idDanhMuc },
     { onConflict: "tu_khoa" },
@@ -398,6 +487,115 @@ export async function promoteAliasUngVien(opts: {
   return { ok: true };
 }
 
+async function assertDanhMucLaGanDuoc(idDanhMuc: string): Promise<void> {
+  const admin = createServiceRoleClient();
+  const { data: dm, error } = await admin
+    .from("shop_danh_muc")
+    .select("id, slug, trang_thai")
+    .eq("id", idDanhMuc)
+    .maybeSingle<{ id: string; slug: string; trang_thai: string }>();
+  if (error || !dm) throw new Error("Không tìm thấy danh mục đích.");
+  if (dm.trang_thai !== "hien") throw new Error("Danh mục đích đang ẩn.");
+  if (dm.slug === "khac") throw new Error("Không gộp vào mục dự phòng «Khác».");
+  const { data: child } = await admin
+    .from("shop_danh_muc")
+    .select("id")
+    .eq("id_cha", dm.id)
+    .eq("trang_thai", "hien")
+    .limit(1)
+    .maybeSingle<{ id: string }>();
+  if (child) throw new Error("Chỉ gán được vào danh mục lá — không phải cấp cha.");
+}
+
+/**
+ * Gán yêu cầu (+ cả cụm `moi`) vào một danh mục lá: alias, remap loại, đóng hàng chờ.
+ */
+export async function ganYeuCauVaoDanhMuc(opts: {
+  id: string;
+  idDanhMuc: string;
+  trangThai: "gop_alias" | "da_tao";
+  aliasTuKhoa?: string | null;
+}): Promise<{ soNhom: number; soYeuCau: number }> {
+  await assertDanhMucLaGanDuoc(opts.idDanhMuc);
+
+  const admin = createServiceRoleClient();
+  const { data: yeuCau, error: ycErr } = await admin
+    .from("shop_danh_muc_yeu_cau")
+    .select("id, id_nhom, tu_khoa_chuan, cum, trang_thai")
+    .eq("id", opts.id)
+    .maybeSingle<{
+      id: string;
+      id_nhom: string;
+      tu_khoa_chuan: string;
+      cum: string;
+      trang_thai: string;
+    }>();
+  if (ycErr || !yeuCau) throw new Error("Không tìm thấy yêu cầu.");
+  if (yeuCau.trang_thai !== "moi") throw new Error("Yêu cầu đã được xử lý.");
+
+  const aliasRaw = (opts.aliasTuKhoa || yeuCau.tu_khoa_chuan).trim();
+  const aliasNorm = normalizeTaxonomyKeyword(aliasRaw);
+  if (aliasNorm) {
+    const promoted = await promoteAliasUngVien({
+      tuKhoa: aliasNorm,
+      idDanhMuc: opts.idDanhMuc,
+    });
+    if (!promoted.ok) {
+      throw new Error(
+        `Từ khóa đã thuộc «${promoted.conflictTen}» — đổi alias hoặc gộp vào mục đó.`,
+      );
+    }
+  }
+
+  const { data: cluster, error: clErr } = await admin
+    .from("shop_danh_muc_yeu_cau")
+    .select("id, id_nhom")
+    .eq("cum", yeuCau.cum)
+    .eq("trang_thai", "moi")
+    .limit(200)
+    .returns<Array<{ id: string; id_nhom: string }>>();
+  if (clErr) {
+    console.error("[shop] ganYeuCauVaoDanhMuc cluster", clErr);
+    throw new Error("Không tải được cụm yêu cầu.");
+  }
+
+  const rows = cluster ?? [{ id: yeuCau.id, id_nhom: yeuCau.id_nhom }];
+  const nhomIds = [...new Set(rows.map((r) => r.id_nhom).filter(Boolean))];
+  const now = new Date().toISOString();
+
+  if (nhomIds.length > 0) {
+    const { error: remapErr } = await admin
+      .from("shop_nhom")
+      .update({
+        id_danh_muc: opts.idDanhMuc,
+        danh_muc_xac_nhan: true,
+        cap_nhat_luc: now,
+      })
+      .in("id", nhomIds)
+      .eq("da_xoa", false);
+    if (remapErr) {
+      console.error("[shop] ganYeuCauVaoDanhMuc remap", remapErr);
+      throw new Error("Không gắn lại loại hàng.");
+    }
+  }
+
+  const ycIds = [...new Set(rows.map((r) => r.id))];
+  const { error: closeErr } = await admin
+    .from("shop_danh_muc_yeu_cau")
+    .update({
+      trang_thai: opts.trangThai,
+      id_danh_muc_ket_qua: opts.idDanhMuc,
+    })
+    .in("id", ycIds)
+    .eq("trang_thai", "moi");
+  if (closeErr) {
+    console.error("[shop] ganYeuCauVaoDanhMuc close", closeErr);
+    throw new Error("Không đóng được hàng chờ.");
+  }
+
+  return { soNhom: nhomIds.length, soYeuCau: ycIds.length };
+}
+
 export async function xuLyYeuCauDanhMuc(opts: {
   id: string;
   trangThai: "gop_alias" | "da_tao" | "tu_choi";
@@ -411,16 +609,18 @@ export async function xuLyYeuCauDanhMuc(opts: {
   if (opts.idDanhMucKetQua) patch.id_danh_muc_ket_qua = opts.idDanhMucKetQua;
   if (opts.trangThai === "tu_choi") {
     const lyDo = opts.lyDoTuChoi?.trim() || "";
-    if (!lyDo) throw new Error("LY_DO_REQUIRED");
-    patch.ly_do_tu_choi = lyDo.slice(0, 300);
+    patch.ly_do_tu_choi = lyDo ? lyDo.slice(0, 300) : null;
   }
-  const { error } = await admin
+  const { data, error } = await admin
     .from("shop_danh_muc_yeu_cau")
     .update(patch)
     .eq("id", opts.id)
-    .eq("trang_thai", "moi");
+    .eq("trang_thai", "moi")
+    .select("id")
+    .maybeSingle<{ id: string }>();
   if (error) {
     console.error("[shop] xuLyYeuCauDanhMuc", error);
     throw new Error("YEU_CAU_FAILED");
   }
+  if (!data) throw new Error("Yêu cầu đã được xử lý.");
 }

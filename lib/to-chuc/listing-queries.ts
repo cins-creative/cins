@@ -72,7 +72,7 @@ export async function countCoSoDaoTao(): Promise<number> {
   }
 }
 
-/** Cơ sở đào tạo user/CINS tạo — hiển thị trên hub `/truong-dai-hoc`. */
+/** Cơ sở đào tạo user/CINS tạo — hiển thị trên hub `/university`. */
 export async function listCoSoDaoTaoForListing(): Promise<TruongListItem[]> {
   if (!hasSupabaseEnv()) return [];
   try {

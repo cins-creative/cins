@@ -1,9 +1,9 @@
 /**
  * Cache RAM ngắn hạn cho API Shop phía client — tránh waterfall
- * ReadyGate → child cùng gọi lại `/api/user/ban-hang` khi đổi tab.
+ * ReadyGate → child cùng gọi lại `/api/user/seller` khi đổi tab.
  */
 
-import type { BaoCaoDoanhThu } from "@/app/api/shop/bao-cao/route";
+import type { BaoCaoDoanhThu } from "@/app/api/shop/reports/route";
 import {
   createCachedResource,
   registerClientCacheClear,
@@ -97,7 +97,7 @@ export async function fetchBanHangClientStatus(opts?: {
   }
 
   const run = (async (): Promise<BanHangClientStatus> => {
-    const res = await fetch("/api/user/ban-hang", { cache: "no-store" });
+    const res = await fetch("/api/user/seller", { cache: "no-store" });
     const json = (await res.json().catch(() => null)) as {
       enabled?: boolean;
       shopVisible?: boolean;
@@ -239,7 +239,7 @@ export async function fetchDonHangCached(opts?: {
   }
 
   const run = (async (): Promise<ShopDonHang[]> => {
-    const res = await fetch("/api/shop/don?role=seller", { cache: "no-store" });
+    const res = await fetch("/api/shop/orders?role=seller", { cache: "no-store" });
     const json = (await res.json().catch(() => null)) as {
       items?: ShopDonHang[];
       error?: string;
@@ -299,7 +299,7 @@ export async function fetchBaoCaoCached(opts?: {
   }
 
   const run = (async (): Promise<BaoCaoDoanhThu> => {
-    const res = await fetch("/api/shop/bao-cao", { cache: "no-store" });
+    const res = await fetch("/api/shop/reports", { cache: "no-store" });
     const json = (await res.json().catch(() => null)) as BaoCaoDoanhThu | null;
     if (!res.ok || !json) throw new Error("Không tải được báo cáo.");
     baoCaoCache = { at: Date.now(), data: json };
@@ -328,7 +328,7 @@ export function invalidateBaoCaoCache() {
 // Sổ địa chỉ nhận hàng (buyer checkout)
 // ─────────────────────────────────────────────
 
-/** Hồ sơ nhận hàng phía client — khớp `/api/shop/dia-chi-nhan`. */
+/** Hồ sơ nhận hàng phía client — khớp `/api/shop/shipping-addresses`. */
 export type ShopDiaChiNhanClient = {
   id: string;
   nhan: string | null;
@@ -439,7 +439,7 @@ export async function fetchDiaChiNhanCached(opts?: {
   }
 
   const run = (async (): Promise<ShopDiaChiNhanClient[]> => {
-    const res = await fetch("/api/shop/dia-chi-nhan", { cache: "no-store" });
+    const res = await fetch("/api/shop/shipping-addresses", { cache: "no-store" });
     const json = (await res.json().catch(() => null)) as {
       items?: ShopDiaChiNhanClient[];
       error?: string;
@@ -480,7 +480,7 @@ const sanPhamCache = createCachedResource<ShopSanPham[]>({
   keyPrefix: "shop:san-pham",
   ttlMs: 60_000,
   fetcher: async () => {
-    const res = await fetch("/api/shop/san-pham", { cache: "no-store" });
+    const res = await fetch("/api/shop/products", { cache: "no-store" });
     const json = (await res.json().catch(() => null)) as {
       items?: ShopSanPham[];
       error?: string;
@@ -494,7 +494,7 @@ const bangGiaCache = createCachedResource<ShopBangGia[]>({
   keyPrefix: "shop:bang-gia",
   ttlMs: 120_000,
   fetcher: async () => {
-    const res = await fetch("/api/shop/bang-gia", { cache: "no-store" });
+    const res = await fetch("/api/shop/price-lists", { cache: "no-store" });
     const json = (await res.json().catch(() => null)) as {
       items?: ShopBangGia[];
       error?: string;
@@ -508,7 +508,7 @@ const nhomCache = createCachedResource<ShopNhomListPayload>({
   keyPrefix: "shop:nhom",
   ttlMs: 120_000,
   fetcher: async () => {
-    const res = await fetch("/api/shop/nhom", { cache: "no-store" });
+    const res = await fetch("/api/shop/groups", { cache: "no-store" });
     const json = (await res.json().catch(() => null)) as {
       items?: ShopNhom[];
       orphanCount?: number;
@@ -528,7 +528,7 @@ const matHangCache = createCachedResource<ShopMatHangPayload, [string]>({
   keyFromArgs: (slug) => slug,
   fetcher: async (slug) => {
     const res = await fetch(
-      `/api/shop/cua-hang/mat-hang?slug=${encodeURIComponent(slug)}`,
+      `/api/shop/store/category?slug=${encodeURIComponent(slug)}`,
       { cache: "no-store" },
     );
     const json = (await res.json().catch(() => null)) as {
@@ -550,7 +550,7 @@ const quaySapCoMatCache = createCachedResource<ShopQuaySapCoMat[], [string]>({
   keyFromArgs: (slug) => slug,
   fetcher: async (slug) => {
     const res = await fetch(
-      `/api/shop/quay/sap-co-mat?slug=${encodeURIComponent(slug)}`,
+      `/api/shop/booths/upcoming?slug=${encodeURIComponent(slug)}`,
       { cache: "no-store" },
     );
     const json = (await res.json().catch(() => null)) as {
@@ -629,8 +629,8 @@ const uuDaiCache = createCachedResource<UuDaiPayload>({
   ttlMs: 60_000,
   fetcher: async () => {
     const [cRes, vRes] = await Promise.all([
-      fetch("/api/shop/combo", { cache: "no-store" }),
-      fetch("/api/shop/voucher", { cache: "no-store" }),
+      fetch("/api/shop/combos", { cache: "no-store" }),
+      fetch("/api/shop/vouchers", { cache: "no-store" }),
     ]);
     if (!cRes.ok || !vRes.ok) throw new Error("UU_DAI_FETCH");
     const cJson = (await cRes.json()) as { items?: ShopCombo[] };

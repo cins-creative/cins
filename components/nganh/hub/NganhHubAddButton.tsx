@@ -41,7 +41,7 @@ export function NganhHubAddButton({ nhomId, sectionTitle }: Props) {
     setTitleVi("");
     setMaNganh("");
     router.refresh();
-    router.push(`/nganh-hoc/${res.slug}`);
+    router.push(`/majors/${res.slug}`);
   };
 
   const Wrap = "div" as const;
@@ -102,7 +102,7 @@ export function NganhHubAddButton({ nhomId, sectionTitle }: Props) {
           </Actions>
           <p className="hn-hub-add-note">
             Ngành mới xuất bản ngay trên hub. Sau khi tạo bạn có thể sửa đầy đủ trên{" "}
-            <Link href="/nganh-hoc">trang chi tiết</Link>.
+            <Link href="/majors">trang chi tiết</Link>.
           </p>
         </Panel>
       ) : null}

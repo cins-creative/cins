@@ -29,7 +29,7 @@ const sidebarLiveCache = createCachedResource<
   ttlMs: 60_000,
   keyFromArgs: (orgId) => orgId,
   fetcher: async (orgId) => {
-    const res = await fetch(`/api/cong-dong/${orgId}/sidebar-live`, {
+    const res = await fetch(`/api/community/${orgId}/sidebar-live`, {
       cache: "no-store",
     });
     if (!res.ok) return EMPTY;

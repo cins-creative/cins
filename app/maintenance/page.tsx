@@ -89,9 +89,9 @@ export default function MaintenancePage() {
         <div className="cins-maint-nav-links">
           <Link href="/">Trang chủ</Link>
           <Link href={TO_CHUC_HUB_PATH}>Tổ chức</Link>
-          <Link href="/huong-nghiep">Hướng nghiệp</Link>
+          <Link href="/guidance">Hướng nghiệp</Link>
         </div>
-        <Link className="cins-maint-nav-cta" href="/huong-nghiep">
+        <Link className="cins-maint-nav-cta" href="/guidance">
           <IconStar />
           Quiz hướng nghiệp
         </Link>

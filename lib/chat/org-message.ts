@@ -1270,30 +1270,14 @@ export async function listOrgThreadsForUser(viewerId: string): Promise<ChatThrea
 
   const { data: reads } = await admin
     .from("chat_da_doc")
-    .select("id_phong, id_tin_nhan_cuoi_doc")
+    .select("id_phong, cap_nhat_luc")
     .eq("id_nguoi_dung", viewerId)
     .in("id_phong", roomIds);
 
-  const readMessageIds = [
-    ...new Set((reads ?? []).map((r) => r.id_tin_nhan_cuoi_doc as string)),
-  ];
   const readAtByRoom = new Map<string, string>();
-
-  if (readMessageIds.length > 0) {
-    const { data: readMessages } = await admin
-      .from("chat_tin_nhan")
-      .select("id, tao_luc")
-      .in("id", readMessageIds)
-      .returns<Array<{ id: string; tao_luc: string }>>();
-
-    const readAtByMessageId = new Map(
-      (readMessages ?? []).map((row) => [row.id, row.tao_luc]),
-    );
-
-    for (const read of reads ?? []) {
-      const readAt = readAtByMessageId.get(read.id_tin_nhan_cuoi_doc);
-      if (readAt) readAtByRoom.set(read.id_phong, readAt);
-    }
+  for (const read of reads ?? []) {
+    const luc = (read as { cap_nhat_luc?: string }).cap_nhat_luc;
+    if (luc) readAtByRoom.set(read.id_phong as string, luc);
   }
 
   const orgThreads: ChatThread[] = [];

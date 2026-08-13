@@ -30,7 +30,7 @@ export function TruongGioiThieuTruong({
   const showEditorActions = Boolean(ctx?.isEditing);
   const isCoSo =
     school.org_loai === "co_so_dao_tao" ||
-    pathname.startsWith("/co-so");
+    pathname.startsWith("/academy");
   const isStudio = pathname.startsWith("/studio");
   const buttonLabel = isCoSo
     ? "Giới thiệu cơ sở"

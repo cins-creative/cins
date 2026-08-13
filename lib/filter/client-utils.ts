@@ -22,7 +22,7 @@ export function buildPersonalFilterSearchUrl(
   const params = new URLSearchParams(search);
   if (filterSlug) {
     params.set("filter", filterSlug);
-    params.delete("nhom");
+    params.delete("group");
   } else {
     params.delete("filter");
   }

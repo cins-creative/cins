@@ -86,7 +86,7 @@ export function JourneyFollowButton({
   const unblock = () => {
     setError(null);
     startTransition(async () => {
-      const res = await fetch(`/api/ket-ban/${targetUserId}/block`, {
+      const res = await fetch(`/api/friends/${targetUserId}/block`, {
         method: "DELETE",
       });
       const json = await res.json().catch(() => ({}));
@@ -140,7 +140,7 @@ export function JourneyFollowButton({
     setNotice(null);
     setMenuOpen(false);
     startTransition(async () => {
-      const res = await fetch("/api/ket-ban", {
+      const res = await fetch("/api/friends", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id_nguoi_nhan: targetUserId }),
@@ -163,7 +163,7 @@ export function JourneyFollowButton({
     setError(null);
     setNotice(null);
     startTransition(async () => {
-      const res = await fetch(`/api/ket-ban/${ketBanId}`, {
+      const res = await fetch(`/api/friends/${ketBanId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),
@@ -216,7 +216,7 @@ export function JourneyFollowButton({
     setNotice(null);
     setUnfriending(true);
     startTransition(async () => {
-      const res = await fetch(`/api/ket-ban/${ketBanId}`, { method: "DELETE" });
+      const res = await fetch(`/api/friends/${ketBanId}`, { method: "DELETE" });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         setUnfriending(false);

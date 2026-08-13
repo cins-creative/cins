@@ -12,7 +12,7 @@ type SearchParams = Promise<{
   view?: string;
   compose?: string;
   edit?: string;
-  nhom?: string;
+  group?: string;
   filter?: string;
   display?: string;
   s?: string;
@@ -29,7 +29,7 @@ export async function generateMetadata({
   const sp = await searchParams;
   return buildJourneyMetadata(slug, {
     view: sp.view,
-    nhom: sp.nhom,
+    nhom: sp.group,
     filter: sp.filter,
     s: sp.s,
   });

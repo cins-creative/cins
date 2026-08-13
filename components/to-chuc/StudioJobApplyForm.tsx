@@ -18,7 +18,7 @@ export function StudioJobApplyForm({ jobId, onDone }: Props) {
     setPending(true);
     try {
       const res = await fetch(
-        `/api/studio/tuyen-dung/${encodeURIComponent(jobId)}/ung-tuyen`,
+        `/api/studio/jobs/${encodeURIComponent(jobId)}/apply`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
