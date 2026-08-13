@@ -132,25 +132,18 @@
   flex: 1 1 auto;
   min-width: 0;
   height: var(--shop-kiosk-ticker-size);
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: hidden;
   line-height: 0;
   padding: 0;
   cursor: grab;
   user-select: none;
   -webkit-user-select: none;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  overscroll-behavior-x: contain;
-}
-
-.shop-kiosk-ticker::-webkit-scrollbar {
-  display: none;
+  touch-action: pan-y;
 }
 
 .shop-kiosk-ticker.is-dragging {
   cursor: grabbing;
-  scroll-behavior: auto;
+  touch-action: none;
 }
 
 .shop-kiosk-ticker-track {
@@ -159,8 +152,9 @@
   gap: 3px;
   width: max-content;
   height: var(--shop-kiosk-ticker-size);
-  /* Loop vô tận: JS neo scrollLeft [oneSet, 2·oneSet); số bản nhân đủ dài do JS. */
+  /* Loop vô tận: JS neo translateX [oneSet, 2·oneSet); số bản nhân đủ dài do JS. */
   margin-inline: 0;
+  backface-visibility: hidden;
 }
 
 .shop-kiosk-ticker-thumb-btn {
@@ -195,6 +189,16 @@
   border: 1px solid var(--border, #e4e6eb);
   pointer-events: none;
   -webkit-user-drag: none;
+}
+
+.shop-kiosk[data-shop-thumb-fit="contain"] .shop-kiosk-ticker-thumb {
+  object-fit: contain;
+  background: var(--bg-page, #f4f5f8);
+}
+
+.shop-kiosk-ticker-thumb[data-shop-thumb-fit="contain"] {
+  object-fit: contain;
+  background: var(--bg-page, #f4f5f8);
 }
 
 .shop-kiosk-ticker-thumb--empty {
@@ -504,6 +508,12 @@
   border-radius: 8px;
   flex-shrink: 0;
   display: block;
+}
+
+.shop-kiosk[data-shop-thumb-fit="contain"] .shop-kiosk-thumb,
+.shop-kiosk-catalog[data-shop-thumb-fit="contain"] .shop-kiosk-thumb {
+  object-fit: contain;
+  background: var(--bg-page, #f4f5f8);
 }
 
 .shop-kiosk-thumb-btn {
@@ -1239,6 +1249,11 @@
   object-fit: cover;
   border-radius: 8px;
   background: var(--bg-page, #f4f5f8);
+}
+
+.shop-kiosk[data-shop-thumb-fit="contain"] .shop-kiosk-hoa-don-thumb,
+.shop-kiosk-catalog[data-shop-thumb-fit="contain"] .shop-kiosk-hoa-don-thumb {
+  object-fit: contain;
 }
 
 .shop-kiosk-hoa-don-thumb--empty {
@@ -2233,6 +2248,11 @@ a.shop-kiosk-catalog-kicker-link:hover {
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.shop-kiosk-catalog-thumb-btn[data-shop-thumb-fit="contain"] img {
+  object-fit: contain;
+  background: var(--bg-page, #f4f5f8);
 }
 
 .shop-kiosk-catalog-low-stock {

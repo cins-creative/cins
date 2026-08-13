@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { CuaHangListingLoader } from "@/components/shop/CuaHangListingLoader";
+import { BeMatPageTracker } from "@/components/social/BeMatPageTracker";
 import { CuaHangListingSkeleton } from "@/app/cua-hang/CuaHangListingSkeleton";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 
@@ -35,6 +36,7 @@ export default async function CuaHangMatHangPage() {
 
   return (
     <Suspense fallback={<CuaHangListingSkeleton mode="mat-hang" />}>
+      <BeMatPageTracker nguon="shop" />
       <CuaHangListingLoader browseMode="mat-hang" />
     </Suspense>
   );

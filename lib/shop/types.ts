@@ -2,6 +2,7 @@
 
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { PublicShopListingItem } from "@/lib/shop/cua-hang-listing-types";
+import type { ShopThumbFit } from "@/lib/shop/anh-thumb-fit";
 
 export type ShopLoaiDon = "mua_ngay" | "dat_truoc_nhan_su_kien";
 
@@ -224,6 +225,8 @@ export type ShopSanPham = {
   moTa: string | null;
   anhId: string | null;
   anhUrl: string | null;
+  /** Ô vuông: vừa khung (`contain`) hoặc lấp khung (`cover`). */
+  anhThumbFit: ShopThumbFit;
   /** Nhãn phân loại / nhóm (denormalized từ `shop_nhom.nhan`). */
   phanLoai: string | null;
   /** Nhãn phân loại thứ hai (denormalized từ `shop_nhom.nhan` truc=2). */
@@ -282,6 +285,8 @@ export type ShopPostHangItem = {
   /** Nhãn phân loại 2 từ `shop_san_pham.phan_loai_2`. */
   phanLoai2: string | null;
   anhUrl: string | null;
+  /** Ô vuông kiosk/giỏ — từ `shop_san_pham.anh_thumb_fit`. */
+  anhThumbFit: ShopThumbFit;
   soLuongTon: number;
   /** Tổng số lượng đã bán (dòng đơn đã trừ kho). */
   soLuongBan: number;
@@ -304,6 +309,7 @@ export type ShopStorefrontItem = {
   tenSanPham: string;
   nhanBienThe: string | null;
   anhUrl: string | null;
+  anhThumbFit?: ShopThumbFit;
   /** Null nếu chưa có dòng giá trong bảng giá nào. Giá khách trả (ưu tiên giảm). */
   giaHienThi: number | null;
   /**
@@ -337,6 +343,8 @@ export type ShopGioDong = {
   giaHienThi: number;
   tienTe: string;
   anhUrl: string | null;
+  /** Ô vuông — từ mẫu (`shop_san_pham.anh_thumb_fit`). */
+  anhThumbFit?: ShopThumbFit;
   soLuongTon: number;
 };
 

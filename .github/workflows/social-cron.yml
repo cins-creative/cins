@@ -1,0 +1,35 @@
+# Social cron — partition + rollup + scrub danh tính (~90 ngày).
+# Gọi POST /api/noi-bo/social/cron (Bearer CSDT_PHI_CRON_SECRET).
+# Nguồn chính: Workers `scheduled` (`0 */6 * * *`). File này là fallback.
+name: Social cron
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+jobs:
+  rollup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Cron đo lường tiếp cận
+        env:
+          SITE: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+          SECRET: ${{ secrets.CSDT_PHI_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          BASE="${SITE:-https://cins.vn}"
+          BASE="${BASE%/}"
+          if [ -z "${SECRET:-}" ]; then
+            echo "Missing CSDT_PHI_CRON_SECRET"
+            exit 1
+          fi
+          code=$(curl -sS -o /tmp/social-cron.json -w "%{http_code}" \
+            -X POST "${BASE}/api/noi-bo/social/cron" \
+            -H "Authorization: Bearer ${SECRET}" \
+            -H "Content-Type: application/json" \
+            -H "x-cins-cron-nguon: github")
+          cat /tmp/social-cron.json
+          echo
+          test "$code" = "200"

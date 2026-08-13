@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { SuKienDetailView } from "@/components/co-so/SuKienDetailView";
+import { SubjectPageTracker } from "@/components/social/SubjectPageTracker";
 import type { SuKienCardData } from "@/lib/to-chuc/su-kien-constants";
 import { suKienCardPath } from "@/lib/to-chuc/su-kien-routes";
 
@@ -91,6 +92,11 @@ export function SuKienStandaloneDetailHost({
 
   return (
     <>
+      <SubjectPageTracker
+        loai="su_kien"
+        id={suKien.id}
+        nguon="permalink"
+      />
       <SuKienDetailView
         orgId={orgId}
         suKien={suKien}

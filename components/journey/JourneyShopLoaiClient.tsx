@@ -59,6 +59,11 @@ import {
 } from "@/lib/shop/cua-hang-href";
 import { parseShopNhomMoTa } from "@/lib/shop/nhom-mo-ta";
 import { isShopTamDongActive } from "@/lib/shop/tam-dong";
+import {
+  trackImpression,
+  trackShopThemGio,
+  trackTuongTac,
+} from "@/lib/social/track-su-kien";
 import type {
   ShopCuaHang,
   ShopNhomDanhGia,
@@ -631,6 +636,21 @@ export function JourneyShopLoaiClient({
     return detail.mau.find((m) => m.sanPhamId === selectedSpId) ?? null;
   }, [detail, selectedSpId]);
 
+  useEffect(() => {
+    if (!selectedMau || isOwner) return;
+    trackImpression({
+      loaiDoiTuong: "shop_san_pham",
+      idDoiTuong: selectedMau.sanPhamId,
+      nguon: "shop",
+    });
+    trackTuongTac({
+      loaiDoiTuong: "shop_san_pham",
+      idDoiTuong: selectedMau.sanPhamId,
+      hanhVi: "click_sidebar_hang",
+      nguon: "shop",
+    });
+  }, [selectedMau, isOwner]);
+
   const selectedBt = useMemo(() => {
     if (!selectedMau || !selectedBtId) return null;
     return selectedMau.bienThe.find((b) => b.id === selectedBtId) ?? null;
@@ -1007,6 +1027,7 @@ export function JourneyShopLoaiClient({
     const delta = Math.max(1, qty);
     setCartErr(null);
     notifyGioChungAdded();
+    if (selectedMau?.sanPhamId) trackShopThemGio(selectedMau.sanPhamId);
 
     void (async () => {
       try {
@@ -1952,7 +1973,9 @@ export function JourneyShopLoaiClient({
             ))}
           </ul>
           {reviews.length === 0 ? (
-            <p className="j-shop-sf-empty">Chưa có đánh giá nào.</p>
+            <p className="j-shop-sf-empty">
+              Chưa có đánh giá nào. Người mua hàng mới có thể đánh giá.
+            </p>
           ) : null}
         </section>
       ) : null}

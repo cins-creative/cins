@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   computeAnchoredTooltipPosition,
@@ -37,7 +37,10 @@ export function useCursorFollowTooltip({
     cursorFollowRef.current = prefersCursorFollowTooltips();
   }, []);
 
-  const tipSize = { width, height: estHeight };
+  const tipSize = useMemo(
+    () => ({ width, height: estHeight }),
+    [width, estHeight],
+  );
 
   const resolveSize = useCallback(
     (height?: number) => ({ width, height: height ?? estHeight }),
@@ -198,7 +201,17 @@ export function useCursorFollowTooltip({
 
   useEffect(() => {
     if (!tipPos) return;
-    const dismiss = () => clearTip();
+    const dismiss = (event: Event) => {
+      const target = event.target;
+      /* Ticker / marquee ghi scroll nội bộ — tag không dời, đừng tắt tip. */
+      if (
+        target instanceof Element &&
+        target.closest("[data-cins-auto-scroll]")
+      ) {
+        return;
+      }
+      clearTip();
+    };
     window.addEventListener("scroll", dismiss, true);
     return () => window.removeEventListener("scroll", dismiss, true);
   }, [clearTip, tipPos]);

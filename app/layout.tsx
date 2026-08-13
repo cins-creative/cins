@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Be_Vietnam_Pro } from "next/font/google";
 
 import { AuthSessionRemember } from "@/components/auth/AuthSessionRemember";
@@ -25,6 +25,12 @@ const beVietnam = Be_Vietnam_Pro({
 });
 
 const siteOrigin = getConfiguredSiteOrigin() ?? "https://cins.vn";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteOrigin),

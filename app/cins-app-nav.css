@@ -1745,6 +1745,54 @@
   z-index: 250;
 }
 
+.j-notify-overlay-scrim {
+  display: none;
+}
+
+.j-notify-panel-close {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.j-notify-panel-close:hover {
+  color: var(--ink-display);
+  background: var(--bg-page, #f4f5f8);
+}
+
+@media (max-width: 960px) {
+  .j-notify-overlay-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 249;
+    background: rgba(15, 23, 42, 0.42);
+  }
+
+  .j-notify-menu.is-portal.is-overlay {
+    top: 50%;
+    left: 50%;
+    right: auto;
+    width: min(400px, calc(100vw - 32px));
+    max-height: min(76dvh, 560px);
+    transform: translate(-50%, -50%);
+    z-index: 250;
+  }
+
+  .j-notify-menu.is-overlay .j-notify-panel-close {
+    display: inline-flex;
+  }
+}
+
 .j-notify-tabs {
   display: flex;
   gap: 6px;
@@ -2863,20 +2911,51 @@ a.j-notify-mini-action.is-link:hover {
   }
 
   .cins-app-sidebar.sidebar {
-    transform: translateX(-100%);
+    transform: translate3d(-100%, 0, 0);
     width: 240px;
     min-width: 240px;
     max-width: 240px;
-    box-shadow: var(--shadow-lg);
+    box-shadow: 8px 0 32px rgba(15, 23, 42, 0.12);
     /* Closed drawer không được kéo overflow-x của document (WebKit). */
     visibility: hidden;
     pointer-events: none;
+    transition:
+      transform 0.34s cubic-bezier(0.32, 0.72, 0, 1),
+      visibility 0s linear 0.34s,
+      box-shadow 0.34s var(--app-nav-ease);
   }
 
   .cins-app-sidebar.sidebar.open {
-    transform: none;
+    transform: translate3d(0, 0, 0);
     visibility: visible;
     pointer-events: auto;
+    transition:
+      transform 0.34s cubic-bezier(0.32, 0.72, 0, 1),
+      visibility 0s linear 0s,
+      box-shadow 0.34s var(--app-nav-ease);
+  }
+
+  .cins-shell::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--cins-app-sidebar-z, 210) - 1);
+    background: rgba(15, 23, 42, 0.28);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity 0.34s cubic-bezier(0.32, 0.72, 0, 1),
+      visibility 0s linear 0.34s;
+  }
+
+  .cins-shell:has(.cins-app-sidebar.sidebar.open)::after {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition:
+      opacity 0.34s cubic-bezier(0.32, 0.72, 0, 1),
+      visibility 0s linear 0s;
   }
 
   /* Mobile drawer is always fully expanded — reveal every label (base rule
@@ -2953,6 +3032,15 @@ a.j-notify-mini-action.is-link:hover {
 
   .cins-app-topbar .tb-login {
     display: none;
+  }
+}
+
+@media (max-width: 960px) and (prefers-reduced-motion: reduce) {
+  .cins-app-sidebar.sidebar,
+  .cins-app-sidebar.sidebar.open,
+  .cins-shell::after,
+  .cins-shell:has(.cins-app-sidebar.sidebar.open)::after {
+    transition: none;
   }
 }
 

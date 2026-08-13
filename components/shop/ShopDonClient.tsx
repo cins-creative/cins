@@ -1291,7 +1291,7 @@ export function ShopDonClient() {
         <>
           {bulkBar}
           <div className="shop-grid-wrap">
-          <table className="shop-grid shop-don-sheet">
+          <table className="shop-grid shop-grid--don shop-don-sheet">
             <thead>
               <tr>
                 <th scope="col" className="shop-don-col-check">
@@ -1357,6 +1357,7 @@ export function ShopDonClient() {
                   >
                     <td
                       className="shop-don-col-check"
+                      data-label="Chọn"
                       onClick={(e) => e.stopPropagation()}
                       onKeyDown={(e) => e.stopPropagation()}
                     >
@@ -1379,13 +1380,13 @@ export function ShopDonClient() {
                         }}
                       />
                     </td>
-                    <td className="shop-don-col-time">
+                    <td className="shop-don-col-time" data-label="Thời gian">
                       {formatDonTime(d.taoLuc)}
                     </td>
-                    <td className="shop-don-col-ma">
+                    <td className="shop-don-col-ma" data-label="Mã đơn">
                       <span className="shop-dash-ma">{d.maDon ?? "—"}</span>
                     </td>
-                    <td className="shop-don-col-tt">
+                    <td className="shop-don-col-tt" data-label="Thanh toán">
                       {(() => {
                         const pay = donThanhToanBadge(d);
                         return (
@@ -1413,10 +1414,10 @@ export function ShopDonClient() {
                         );
                       })()}
                     </td>
-                    <td className="shop-don-col-mua">
+                    <td className="shop-don-col-mua" data-label="Người mua">
                       {d.muaTen?.trim() || "—"}
                     </td>
-                    <td className="shop-don-col-note">
+                    <td className="shop-don-col-note" data-label="Ghi chú">
                       {(() => {
                         const note = donGhiChuSeller(d.ghiChu);
                         if (!note) {
@@ -1429,7 +1430,7 @@ export function ShopDonClient() {
                         );
                       })()}
                     </td>
-                    <td className="shop-don-col-loai">
+                    <td className="shop-don-col-loai" data-label="Giao / loại">
                       <span className="shop-don-giao-loai">
                         <span
                           className={`shop-don-giao shop-don-giao--${d.hinhThucGiao ?? "truc_tiep"}`}
@@ -1440,6 +1441,7 @@ export function ShopDonClient() {
                     </td>
                     <td
                       className="shop-don-col-dvvc"
+                      data-label="ĐVVC"
                       onClick={(e) => e.stopPropagation()}
                       onKeyDown={(e) => e.stopPropagation()}
                     >
@@ -1487,6 +1489,7 @@ export function ShopDonClient() {
                     </td>
                     <td
                       className="shop-don-col-vc"
+                      data-label="Mã vận đơn"
                       onClick={(e) => e.stopPropagation()}
                       onKeyDown={(e) => e.stopPropagation()}
                     >
@@ -1589,12 +1592,15 @@ export function ShopDonClient() {
                         );
                       })()}
                     </td>
-                    <td className="shop-don-col-sp">{tongSoLuong(d)}</td>
-                    <td className="shop-don-col-tong">
+                    <td className="shop-don-col-sp" data-label="SP">
+                      {tongSoLuong(d)}
+                    </td>
+                    <td className="shop-don-col-tong" data-label="Tổng">
                       {d.tongTien.toLocaleString("vi-VN")} {d.tienTe}
                     </td>
                     <td
                       className="shop-don-col-act"
+                      data-label="Tiếp theo"
                       onClick={(e) => e.stopPropagation()}
                       onKeyDown={(e) => e.stopPropagation()}
                     >

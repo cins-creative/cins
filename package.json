@@ -92,7 +92,11 @@
     "pack:behance-ext": "node scripts/pack-behance-extension.mjs",
     "pack:pixiv-ext": "node scripts/pack-pixiv-extension.mjs",
     "migrate:cins-hoa-don-khieu-nai": "node scripts/run-cins-hoa-don-khieu-nai-migration.mjs",
-    "migrate:billing-tu-khai": "node scripts/run-billing-tu-khai-lan-migration.mjs"
+    "migrate:billing-tu-khai": "node scripts/run-billing-tu-khai-lan-migration.mjs",
+    "migrate:analytics-p0": "node scripts/run-analytics-p0-migration.mjs",
+    "migrate:analytics-p1": "node scripts/run-analytics-p1-migration.mjs",
+    "migrate:analytics-p2": "node scripts/run-analytics-p2-migration.mjs",
+    "migrate:analytics-p3": "node scripts/run-analytics-p3-migration.mjs"
   },
   "dependencies": {
     "@cloudflare/realtimekit-react": "^2.0.1",

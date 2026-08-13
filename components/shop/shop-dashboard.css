@@ -235,7 +235,7 @@ body:has(.shop-dash-gate) .j-chat-dock {
   z-index: 220;
 }
 
-/* Phone: cụm Hiển thị / Tạm đóng chuyển xuống strip sticky (ShopDashTabs). */
+/* Phone: cụm Hiển thị / Tạm đóng nằm giữa topbar và tab (ShopDashTabs). */
 .shop-dash-mobile-ops {
   display: none;
 }
@@ -1373,6 +1373,12 @@ body:has(.shop-dash-gate) .j-chat-dock {
   background: #fef9c3;
 }
 
+.shop-kho-loai-reach {
+  font-size: 0.72rem !important;
+  font-weight: 600;
+  color: #0f766e !important;
+}
+
 :root[data-theme="dark"] .shop-kho-loai-tax-badge {
   color: #fdba74 !important;
   background: rgba(154, 52, 18, 0.35);
@@ -1381,6 +1387,10 @@ body:has(.shop-dash-gate) .j-chat-dock {
 :root[data-theme="dark"] .shop-kho-loai-tax-badge.is-soft {
   color: #fde047 !important;
   background: rgba(133, 77, 14, 0.35);
+}
+
+:root[data-theme="dark"] .shop-kho-loai-reach {
+  color: #5eead4 !important;
 }
 
 .shop-kho-loai-tax-banner {
@@ -2231,17 +2241,21 @@ body:has(.shop-dash-gate) .j-chat-dock {
 
 .shop-kho-loai-meta-head {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px 12px;
+  min-width: 0;
   margin-bottom: 14px;
 }
 
 .shop-kho-loai-meta-head-actions {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
-  flex-shrink: 0;
+  flex: 0 0 auto;
 }
 
 .shop-kho-loai-view {
@@ -2289,6 +2303,10 @@ body:has(.shop-dash-gate) .j-chat-dock {
 .shop-kho-loai-gioi-thieu:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.shop-kho-loai-action-label {
+  min-width: 0;
 }
 
 .shop-kho-loai-gioi-thieu.is-warn {
@@ -2384,15 +2402,10 @@ body:has(.shop-dash-gate) .j-chat-dock {
 }
 
 @media (max-width: 480px) {
-  .shop-kho-loai-meta-head-actions {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-
-  .shop-kho-loai-gioi-thieu {
+  .shop-kho-loai-gioi-thieu,
+  .shop-kho-loai-delete,
+  .shop-kho-loai-view {
     min-height: 44px;
-    order: 3;
-    width: 100%;
   }
 }
 
@@ -2412,6 +2425,15 @@ body:has(.shop-dash-gate) .j-chat-dock {
 
 .shop-kho-loai-meta-head .shop-kho-loai-back {
   margin-bottom: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.shop-kho-loai-back-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .shop-kho-loai-back:hover {
@@ -2449,7 +2471,7 @@ body:has(.shop-dash-gate) .j-chat-dock {
   flex-direction: column;
   align-items: flex-end;
   gap: 6px;
-  flex-shrink: 0;
+  min-width: 0;
   max-width: min(280px, 100%);
 }
 
@@ -3231,7 +3253,7 @@ body:has(.shop-dash-gate) .j-chat-dock {
 }
 
 .shop-grid-col-thumb {
-  width: 84px;
+  width: 92px;
   padding: 4px 6px;
   overflow: visible;
 }
@@ -3541,6 +3563,39 @@ body:has(.shop-dash-gate) .j-chat-dock {
 .shop-grid-col-loai {
   width: 140px;
   position: relative;
+}
+
+/* Kho desktop: loại hàng nhường chỗ — giá gốc/giảm không bị crop. */
+@container shopdash (min-width: 721px) {
+  .shop-grid.shop-grid--kho .shop-grid-col-loai {
+    width: 108px;
+    max-width: 108px;
+    overflow: hidden;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .shop-grid.shop-grid--kho .shop-grid-col-gia,
+  .shop-grid.shop-grid--kho .shop-grid-col-gia-giam {
+    width: 168px;
+    min-width: 152px;
+  }
+
+  .shop-grid.shop-grid--kho .shop-grid-col-name {
+    width: auto;
+    min-width: 120px;
+  }
+
+  .shop-grid.shop-grid--kho .shop-tien-te-wrap {
+    width: 42px;
+  }
+
+  .shop-grid.shop-grid--kho .shop-grid-col-loai .shop-grid-readonly-val,
+  .shop-grid.shop-grid--kho .shop-grid-col-loai .shop-phan-loai-trigger-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 /* Cá»™t Ä‘ang má»Ÿ filter ná»•i trÃªn cÃ¡c th sticky káº¿ bÃªn */
@@ -4139,6 +4194,7 @@ body:has(.shop-dash-gate) .j-chat-dock {
   display: block;
   width: 48px;
   height: 48px;
+  padding: 0;
   border-radius: 10px;
   overflow: hidden;
   background: var(--bg-page, #f7f8fa);
@@ -4150,6 +4206,43 @@ body:has(.shop-dash-gate) .j-chat-dock {
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.shop-grid-readonly-thumb[data-shop-thumb-fit="contain"] img,
+.shop-thumb-frame[data-shop-thumb-fit="contain"] img {
+  object-fit: contain;
+}
+
+.shop-thumb-fit-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border, #e4e6eb);
+  border-radius: 8px;
+  background: var(--bg-surface, #fff);
+  color: var(--ink-muted, rgba(0, 0, 0, 0.45));
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.shop-thumb-fit-chip:hover:not(:disabled) {
+  color: var(--cins-blue, #1f74c9);
+  border-color: color-mix(in srgb, var(--cins-blue, #1f74c9) 40%, var(--border));
+}
+
+.shop-thumb-fit-chip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.shop-thumb-fit-chip:focus-visible {
+  outline: 2px solid var(--cins-blue, #1f74c9);
+  outline-offset: 1px;
 }
 
 .shop-grid-readonly-thumb.is-empty {
@@ -6599,9 +6692,10 @@ body:has(.shop-dash-gate) .j-chat-dock {
 /* Trang /su-kien/[id] — dính sát mép dưới site nav + topbar SK. */
 .sk-detail .shop-quay-tlb.j-tlb {
   top: calc(
-    var(--site-nav-height, 64px) + var(--sk-detail-topbar-h, 55px)
+    var(--site-nav-height, 64px) + var(--sk-detail-topbar-h, 55px) - 1px
   );
   z-index: 35;
+  transition: none;
 }
 
 .shop-quay-tlb.j-tlb > .j-tlb-date {
@@ -8743,7 +8837,7 @@ body:has(.shop-dash-gate) .j-chat-dock {
 
 /* ─── Shop dash responsive ───
  * ≤1099 — tablet: tabs full width
- * ≤720  — phone: tab bar cố định đáy, ops strip sticky, icon + nhãn ngắn
+ * ≤720  — phone: ops strip giữa topbar và tab, icon + nhãn ngắn
  * ≤480  — phone hẹp: tab icon-only, padding gọn
  */
 @media (max-width: 1099px) {
@@ -8804,11 +8898,13 @@ body:has(.shop-dash-gate) .j-chat-dock {
   }
 
   .shop-dash {
+    --shop-dash-mobile-ops-h: 44px;
+    --shop-dash-tabs-h: 40px;
     overflow: visible;
     flex: 1 1 auto;
     min-height: calc(100dvh - var(--site-nav-height, 64px));
     height: auto;
-    padding: 12px 12px calc(76px + env(safe-area-inset-bottom, 0px));
+    padding: 0 0 calc(12px + env(safe-area-inset-bottom, 0px));
     gap: 8px;
   }
 
@@ -8834,6 +8930,7 @@ body:has(.shop-dash-gate) .j-chat-dock {
     flex: 0 0 auto;
     min-height: auto;
     overflow: visible;
+    border-radius: 0;
   }
 
   .shop-grid-wrap {
@@ -8867,24 +8964,80 @@ body:has(.shop-dash-gate) .j-chat-dock {
     table-layout: auto;
   }
 
+  /* Kho mẫu / Đơn: card stack — không ép min-width 720px */
+  .shop-grid.shop-grid--kho,
+  .shop-grid.shop-grid--don {
+    width: 100%;
+    min-width: 0;
+    table-layout: auto;
+  }
+
+  .shop-dash:has(.shop-dash-card .shop-kho-toolbar) .shop-grid-wrap,
+  .shop-dash-card:has(.shop-kho-toolbar) .shop-grid-wrap {
+    overflow: visible;
+  }
+
+  .shop-dash-card:has(.shop-kho-toolbar) {
+    overflow: visible;
+  }
+
+  .shop-kho-toolbar {
+    top: calc(
+      var(--site-nav-height, 64px) + var(--shop-dash-mobile-ops-h, 44px) +
+        var(--shop-dash-tabs-h, 40px)
+    );
+  }
+
+  .shop-kho-toolbar-actions {
+    flex-wrap: wrap;
+    margin-left: 0;
+    width: 100%;
+    flex-shrink: 1;
+  }
+
+  .shop-kho-add-btn,
+  .shop-kho-add-images-btn,
+  .shop-kho-bulk-delete-btn,
+  .shop-dash-kho-edit-btn {
+    min-height: 44px;
+  }
+
+  .shop-kho-loai-view,
+  .shop-kho-loai-delete {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
   .shop-dash-mobile-ops {
     display: flex;
     align-items: center;
-    position: sticky;
-    top: 0;
-    z-index: 28;
-    margin: 0 -12px;
-    padding: 8px 12px;
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    top: auto;
+    z-index: 1;
+    margin: 0;
+    padding: 4px 10px;
+    border-top: 0;
     border-bottom: 1px solid var(--border, #e4e6eb);
-    background: color-mix(in srgb, var(--bg-page, #f4f5f8) 94%, #fff);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
   }
 
   .shop-dash-mobile-ops .shop-dash-topbar-controls {
     width: 100%;
     justify-content: space-between;
-    gap: 10px;
+    gap: 8px;
+  }
+
+  .shop-dash-mobile-ops .shop-dash-back {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 6px;
+    margin: 0;
   }
 
   .shop-dash-mobile-ops .shop-dash-head-toggles {
@@ -8910,27 +9063,28 @@ body:has(.shop-dash-gate) .j-chat-dock {
     clip: auto;
     white-space: nowrap;
     border: 0;
-    font-size: 0.72rem;
+    font-size: 0.68rem;
   }
 
   .shop-dash-mobile-ops .shop-dash-visible {
-    padding: 4px 8px;
-    gap: 6px;
-    min-height: 36px;
+    padding: 2px 6px;
+    gap: 5px;
+    min-height: 32px;
   }
 
   .shop-dash-head {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    top: auto;
+    position: sticky;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    top: var(--site-nav-height, 64px);
     z-index: 40;
-    margin: 0;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    border-top: 1px solid var(--border, #e4e6eb);
-    border-bottom: 0;
-    box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.08);
+    overflow: visible;
+    margin: 0 0 8px;
+    padding-bottom: 0;
+    border-top: 0;
+    border-bottom: 1px solid var(--border, #e4e6eb);
+    box-shadow: 0 4px 12px -8px rgba(15, 23, 42, 0.18);
   }
 
   .shop-dash-head-row {
@@ -8943,7 +9097,7 @@ body:has(.shop-dash-gate) .j-chat-dock {
     flex-wrap: nowrap;
     justify-content: space-between;
     gap: 0;
-    padding: 4px 6px 6px;
+    padding: 2px 4px;
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
@@ -8979,23 +9133,26 @@ body:has(.shop-dash-gate) .j-chat-dock {
     flex: 1 1 0;
     min-width: 0;
     max-width: none;
-    min-height: 52px;
+    min-height: 40px;
     flex-direction: column;
-    gap: 3px;
-    padding: 6px 4px;
-    font-size: 10px;
-    border-radius: 8px;
+    gap: 1px;
+    padding: 4px 2px;
+    font-size: 9px;
+    border-radius: 6px;
     scroll-snap-align: start;
   }
 
   .shop-dash-tab > svg {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
   }
 
   .shop-dash-subtabs {
     position: sticky;
-    top: 0;
+    top: calc(
+      var(--site-nav-height, 64px) + var(--shop-dash-mobile-ops-h, 44px) +
+        var(--shop-dash-tabs-h, 40px)
+    );
     z-index: 25;
     margin: 0 0 10px;
     padding: 6px 0 0;
@@ -9099,20 +9256,22 @@ body:has(.shop-dash-gate) .j-chat-dock {
   }
 
   .shop-dash-tam-dong-panel {
-    position: fixed;
-    top: auto;
-    right: max(12px, env(safe-area-inset-right, 0px));
-    left: max(12px, env(safe-area-inset-left, 0px));
-    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
-    min-width: 0;
+    position: absolute;
+    top: calc(100% + 6px);
+    bottom: auto;
+    right: 0;
+    left: auto;
+    min-width: min(280px, calc(100vw - 24px));
     width: auto;
     max-height: min(58vh, 380px);
     overflow: auto;
     -webkit-overflow-scrolling: touch;
+    z-index: 50;
   }
 
   .shop-dash-mobile-ops .shop-dash-tam-dong-panel {
-    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    right: 0;
+    left: auto;
     max-height: min(70vh, 420px);
   }
 
@@ -9122,6 +9281,11 @@ body:has(.shop-dash-gate) .j-chat-dock {
 
   .shop-don-toolbar {
     flex-direction: column;
+    position: sticky;
+    top: calc(var(--site-nav-height, 64px) + var(--shop-dash-tabs-h, 40px));
+    z-index: 26;
+    background: var(--bg-page, #f4f5f8);
+    padding: 4px 0 8px;
   }
 
   .shop-don-status-tabs {
@@ -9169,7 +9333,7 @@ body:has(.shop-dash-gate) .j-chat-dock {
   }
 
   .shop-dash-card {
-    border-radius: 10px;
+    border-radius: 0;
   }
 
   .shop-grid-wrap {
@@ -9181,18 +9345,622 @@ body:has(.shop-dash-gate) .j-chat-dock {
   }
 }
 
+/* Kho mẫu: card theo bề rộng shell (không theo viewport khi sidebar co). */
+@container shopdash (max-width: 720px) {
+  .shop-grid-wrap:has(.shop-grid--kho):has(.shop-grid-cell-apply) {
+    padding-top: 0;
+  }
+
+  .shop-grid.shop-grid--kho {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    table-layout: auto;
+  }
+
+  .shop-grid--kho thead {
+    display: block;
+    margin: 0 0 10px;
+    border: 1px solid var(--border, #e4e6eb);
+    border-radius: 12px;
+    background: var(--bg-surface, #fff);
+  }
+
+  .shop-grid--kho thead tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .shop-grid--kho thead th {
+    display: none;
+    width: auto;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    position: static;
+    white-space: nowrap;
+  }
+
+  .shop-grid--kho thead .shop-grid-col-check,
+  .shop-grid--kho thead .shop-grid-col-loai,
+  .shop-grid--kho thead .shop-grid-col-ton {
+    display: block;
+  }
+
+  .shop-grid--kho tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .shop-grid--kho tbody .shop-grid-row {
+    display: grid;
+    grid-template-columns: 100px minmax(0, 1fr);
+    grid-template-areas:
+      "thumb name"
+      "loai loai"
+      "ton ton"
+      "gia gia"
+      "giam giam"
+      "status status";
+    gap: 8px 12px;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid var(--border, #e4e6eb);
+    border-radius: 14px;
+    background: var(--bg-surface, #fff);
+  }
+
+  .shop-grid--kho tbody .shop-grid-row:has(.shop-grid-col-check) {
+    grid-template-columns: 36px 100px minmax(0, 1fr);
+    grid-template-areas:
+      "check thumb name"
+      "loai loai loai"
+      "ton ton ton"
+      "gia gia gia"
+      "giam giam giam"
+      "status status status"
+      "actions actions actions";
+  }
+
+  .shop-grid--kho tbody td {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 10px;
+    width: auto;
+    min-width: 0;
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .shop-grid--kho tbody td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--ink-muted, rgba(0, 0, 0, 0.5));
+  }
+
+  .shop-grid--kho .shop-grid-col-check {
+    grid-area: check;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .shop-grid--kho .shop-grid-col-check::before,
+  .shop-grid--kho .shop-grid-col-thumb::before,
+  .shop-grid--kho .shop-grid-col-name::before,
+  .shop-grid--kho .shop-grid-col-actions::before {
+    display: none;
+  }
+
+  .shop-grid--kho .shop-grid-col-thumb {
+    grid-area: thumb;
+    justify-content: flex-start;
+    width: auto;
+    min-width: 0;
+    overflow: hidden;
+    align-self: start;
+  }
+
+  .shop-grid--kho .shop-grid-col-name {
+    grid-area: name;
+    justify-content: flex-start;
+    width: auto;
+    min-width: 0;
+  }
+
+  .shop-grid--kho .shop-grid-col-name strong {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    overflow-wrap: anywhere;
+    font-size: 0.95rem;
+  }
+
+  .shop-grid--kho .shop-grid-col-name input {
+    min-height: 44px;
+  }
+
+  .shop-grid--kho .shop-grid-col-loai {
+    grid-area: loai;
+    width: auto;
+  }
+
+  .shop-grid--kho .shop-grid-col-ton {
+    grid-area: ton;
+    width: auto;
+  }
+
+  .shop-grid--kho .shop-grid-col-gia {
+    grid-area: gia;
+    width: auto;
+  }
+
+  .shop-grid--kho .shop-grid-col-gia-giam {
+    grid-area: giam;
+    width: auto;
+  }
+
+  .shop-grid--kho .shop-grid-col-status {
+    grid-area: status;
+    width: auto;
+  }
+
+  .shop-grid--kho .shop-grid-col-actions {
+    grid-area: actions;
+    justify-content: flex-end;
+    width: auto;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border, #e4e6eb);
+  }
+
+  .shop-grid--kho .shop-grid-readonly-thumb,
+  .shop-grid--kho .shop-thumb-frame {
+    width: 64px;
+    height: 64px;
+  }
+
+  .shop-grid--kho .shop-grid-row--empty {
+    display: block;
+    padding: 20px 12px;
+  }
+
+  .shop-grid--kho .shop-grid-row--empty td {
+    display: block;
+    text-align: center;
+  }
+
+  .shop-grid--kho .shop-grid-row--empty td::before {
+    display: none;
+  }
+
+  .shop-grid--kho .shop-grid-cell-apply {
+    position: static;
+    width: 100%;
+    white-space: normal;
+    min-height: 44px;
+  }
+
+  .shop-grid--kho input[type="text"],
+  .shop-grid--kho input:not([type]),
+  .shop-grid--kho input[type="number"],
+  .shop-grid--kho .shop-phan-loai-trigger,
+  .shop-grid--kho .shop-dash-ton,
+  .shop-grid--kho .shop-status-select {
+    font-size: max(16px, 1rem);
+    min-height: 44px;
+  }
+
+  .shop-grid--kho .shop-grid-col-check input {
+    width: 22px;
+    height: 22px;
+  }
+
+  .shop-grid--kho .shop-grid-actions button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .shop-grid--kho .shop-gia-cell {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .shop-kho-loai-meta-fields input,
+  .shop-kho-loai-meta-fields textarea,
+  .shop-kho-loai-meta-name input {
+    font-size: max(16px, 1rem);
+  }
+
+  .shop-kho-loai-dd-trigger {
+    min-height: 44px;
+  }
+
+  /* Một hàng: back (ellipsis) + 3 icon 44px. 3×44 + 2×8 = 148px. */
+  .shop-kho-loai-meta-head {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .shop-kho-loai-meta-head .shop-kho-loai-back {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    min-height: 44px;
+    padding-right: 4px;
+    overflow: hidden;
+  }
+
+  .shop-kho-loai-meta-head-actions {
+    width: auto;
+    flex: 0 0 auto;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  .shop-kho-loai-action-label {
+    display: none;
+  }
+
+  .shop-kho-loai-view,
+  .shop-kho-loai-gioi-thieu,
+  .shop-kho-loai-delete {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    gap: 0;
+    justify-content: center;
+    align-items: center;
+    line-height: 0;
+  }
+
+  .shop-kho-loai-view svg,
+  .shop-kho-loai-gioi-thieu svg,
+  .shop-kho-loai-delete svg {
+    display: block;
+    flex-shrink: 0;
+  }
+
+  .shop-kho-loai-delete-wrap {
+    flex: 0 0 auto;
+    max-width: none;
+    align-items: stretch;
+  }
+
+  .shop-kho-loai-delete-hint {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 4;
+    width: min(260px, 70cqi);
+    text-align: left;
+  }
+}
+
+/* Tablet+: bảng cuộn ngang, ghim Ảnh + Tên (và checkbox khi Sửa). */
+@container shopdash (min-width: 721px) {
+  .shop-dash:has(.shop-grid--kho) .shop-grid-wrap {
+    overflow-x: auto;
+    overflow-y: visible;
+    max-width: 100%;
+    min-width: 0;
+    overscroll-behavior-x: contain;
+  }
+
+  .shop-dash:has(.shop-dash-card .shop-kho-toolbar) .shop-grid-wrap:has(.shop-grid--kho) {
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+
+  .shop-grid.shop-grid--kho {
+    width: max(100%, 960px);
+    table-layout: auto;
+  }
+
+  .shop-dash:has(.shop-dash-card .shop-kho-toolbar) .shop-grid--kho .shop-grid-col-check,
+  .shop-dash:has(.shop-dash-card .shop-kho-toolbar) .shop-grid--kho .shop-grid-col-thumb,
+  .shop-dash:has(.shop-dash-card .shop-kho-toolbar) .shop-grid--kho .shop-grid-col-name {
+    position: sticky;
+    z-index: 1;
+    background: var(--bg-surface, #fff);
+  }
+
+  .shop-dash:has(.shop-dash-card .shop-kho-toolbar) .shop-grid--kho thead .shop-grid-col-check,
+  .shop-dash:has(.shop-dash-card .shop-kho-toolbar) .shop-grid--kho thead .shop-grid-col-thumb,
+  .shop-dash:has(.shop-dash-card .shop-kho-toolbar) .shop-grid--kho thead .shop-grid-col-name {
+    z-index: 3;
+    background: var(--bg-page, #f7f8fa);
+  }
+
+  .shop-grid--kho .shop-grid-col-check {
+    left: 0;
+  }
+
+  .shop-grid--kho .shop-grid-col-thumb {
+    left: 0;
+  }
+
+  .shop-grid--kho:has(.shop-grid-col-check) .shop-grid-col-thumb {
+    left: 40px;
+  }
+
+  .shop-grid--kho .shop-grid-col-name {
+    left: 84px;
+    box-shadow: 8px 0 12px -8px rgba(15, 23, 42, 0.2);
+  }
+
+  .shop-grid--kho:has(.shop-grid-col-check) .shop-grid-col-name {
+    left: 124px;
+  }
+
+  .shop-grid--kho .shop-grid-row.is-selected .shop-grid-col-check,
+  .shop-grid--kho .shop-grid-row.is-selected .shop-grid-col-thumb,
+  .shop-grid--kho .shop-grid-row.is-selected .shop-grid-col-name {
+    background: color-mix(in srgb, var(--cins-orange, #fdad4c) 14%, var(--bg-surface, #fff));
+  }
+
+  .shop-grid--kho .shop-grid-row.is-ngung-ban .shop-grid-col-check,
+  .shop-grid--kho .shop-grid-row.is-ngung-ban .shop-grid-col-thumb,
+  .shop-grid--kho .shop-grid-row.is-ngung-ban .shop-grid-col-name {
+    background: color-mix(in srgb, #98a2b3 12%, var(--bg-page, #f7f8fa));
+  }
+}
+
+/* Đơn hàng: card từng đơn trên khung hẹp. */
+@container shopdash (max-width: 720px) {
+  .shop-dash-body > .shop-grid-wrap:has(.shop-grid--don) {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .shop-grid.shop-grid--don {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    table-layout: auto;
+  }
+
+  .shop-grid--don thead {
+    display: none;
+  }
+
+  .shop-grid--don tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .shop-grid--don tbody .shop-don-sheet-row {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "check ma time"
+      "tt tt tt"
+      "mua mua mua"
+      "note note note"
+      "loai loai loai"
+      "dvvc dvvc dvvc"
+      "vc vc vc"
+      "sp tong tong"
+      "act act act";
+    gap: 6px 10px;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid var(--border, #e4e6eb);
+    border-radius: 14px;
+    background: var(--bg-surface, #fff);
+  }
+
+  .shop-grid--don tbody td {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 10px;
+    width: auto;
+    min-width: 0;
+    padding: 0;
+    border-bottom: 0;
+    text-align: left;
+  }
+
+  .shop-grid--don tbody td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--ink-muted, rgba(0, 0, 0, 0.5));
+  }
+
+  .shop-grid--don .shop-don-col-check::before,
+  .shop-grid--don .shop-don-col-ma::before,
+  .shop-grid--don .shop-don-col-time::before,
+  .shop-grid--don .shop-don-col-act::before {
+    display: none;
+  }
+
+  .shop-grid--don .shop-don-col-check {
+    grid-area: check;
+    justify-content: center;
+  }
+
+  .shop-grid--don .shop-don-col-check input {
+    width: 22px;
+    height: 22px;
+  }
+
+  .shop-grid--don .shop-don-col-ma {
+    grid-area: ma;
+    justify-content: flex-start;
+    width: auto;
+  }
+
+  .shop-grid--don .shop-don-col-ma .shop-dash-ma {
+    font-size: 0.95rem;
+    font-weight: 750;
+  }
+
+  .shop-grid--don .shop-don-col-time {
+    grid-area: time;
+    justify-content: flex-end;
+    width: auto;
+    font-size: 0.75rem;
+    color: var(--ink-muted, rgba(0, 0, 0, 0.55));
+  }
+
+  .shop-grid--don .shop-don-col-tt {
+    grid-area: tt;
+    width: auto;
+  }
+
+  .shop-grid--don .shop-don-col-mua {
+    grid-area: mua;
+    width: auto;
+  }
+
+  .shop-grid--don .shop-don-col-note,
+  .shop-grid--don td.shop-don-col-note {
+    display: flex;
+    grid-area: note;
+    width: auto;
+  }
+
+  .shop-grid--don .shop-don-col-loai {
+    grid-area: loai;
+    width: auto;
+  }
+
+  .shop-grid--don .shop-don-col-dvvc,
+  .shop-grid--don td.shop-don-col-dvvc {
+    display: flex;
+    grid-area: dvvc;
+    width: auto;
+    min-width: 0;
+  }
+
+  .shop-grid--don .shop-don-col-vc,
+  .shop-grid--don td.shop-don-col-vc {
+    display: flex;
+    grid-area: vc;
+    width: auto;
+    min-width: 0;
+  }
+
+  .shop-grid--don .shop-don-col-sp {
+    grid-area: sp;
+    width: auto;
+    text-align: left;
+  }
+
+  .shop-grid--don .shop-don-col-tong {
+    grid-area: tong;
+    width: auto;
+    text-align: left;
+    justify-content: space-between;
+  }
+
+  .shop-grid--don .shop-don-col-act {
+    grid-area: act;
+    width: auto;
+    min-width: 0;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border, #e4e6eb);
+    justify-content: stretch;
+  }
+
+  .shop-grid--don .shop-don-act-primary,
+  .shop-grid--don .shop-don-act-dd-btn,
+  .shop-grid--don .shop-don-act-dd {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .shop-grid--don .shop-don-dvvc-select,
+  .shop-grid--don .shop-don-vc-input {
+    font-size: max(16px, 1rem);
+    min-height: 44px;
+    height: 44px;
+  }
+
+  .shop-grid--don .shop-don-note {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+
+  .shop-don-bulk-btn {
+    min-height: 44px;
+  }
+}
+
+@container shopdash (min-width: 721px) {
+  .shop-dash-body > .shop-grid-wrap:has(.shop-grid--don) {
+    overflow-x: auto;
+    overflow-y: visible;
+    max-width: 100%;
+    min-width: 0;
+    overscroll-behavior-x: contain;
+  }
+
+  .shop-grid.shop-grid--don {
+    width: max(100%, 1100px);
+    table-layout: auto;
+  }
+
+  .shop-grid--don .shop-don-col-check,
+  .shop-grid--don .shop-don-col-ma {
+    position: sticky;
+    z-index: 1;
+    background: var(--bg-surface, #fff);
+  }
+
+  .shop-grid--don thead .shop-don-col-check,
+  .shop-grid--don thead .shop-don-col-ma {
+    z-index: 3;
+    background: var(--bg-page, #f7f8fa);
+  }
+
+  .shop-grid--don .shop-don-col-check {
+    left: 0;
+  }
+
+  .shop-grid--don .shop-don-col-ma {
+    left: 40px;
+    box-shadow: 8px 0 12px -8px rgba(15, 23, 42, 0.2);
+  }
+
+  .shop-grid--don .shop-don-sheet-row.is-selected .shop-don-col-check,
+  .shop-grid--don .shop-don-sheet-row.is-selected .shop-don-col-ma {
+    background: color-mix(in srgb, var(--cins-orange, #fdad4c) 14%, var(--bg-surface, #fff));
+  }
+}
+
 @media (max-width: 480px) {
   .shop-dash {
-    padding: 10px 10px calc(72px + env(safe-area-inset-bottom, 0px));
+    padding: 0 0 calc(10px + env(safe-area-inset-bottom, 0px));
   }
 
   .shop-dash-mobile-ops {
-    margin: 0 -10px;
-    padding: 6px 10px;
+    margin: 0;
+    padding: 3px 8px;
   }
 
   .shop-dash-head {
-    margin: 0;
+    margin: 0 0 6px;
   }
 
   .shop-dash-head-row {
@@ -9200,7 +9968,7 @@ body:has(.shop-dash-gate) .j-chat-dock {
   }
 
   .shop-dash-tabs {
-    padding: 2px 4px 4px;
+    padding: 1px 2px;
     gap: 0;
   }
 
@@ -9212,8 +9980,8 @@ body:has(.shop-dash-gate) .j-chat-dock {
   .shop-dash-tab {
     flex: 1 1 0;
     gap: 0;
-    padding: 8px 2px;
-    min-height: 48px;
+    padding: 4px 1px;
+    min-height: 36px;
     border-radius: 6px;
   }
 
@@ -9222,8 +9990,8 @@ body:has(.shop-dash-gate) .j-chat-dock {
   }
 
   .shop-dash-tab > svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
   }
 
   .shop-dash-subtab {

@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-const EFFECTIVE_DATE = "14 tháng 7 năm 2026";
+const EFFECTIVE_DATE = "9 tháng 8 năm 2026";
 const CONTACT_EMAIL = "info.cins.vn@gmail.com";
 const SITE = "https://cins.vn";
 
@@ -11,6 +11,7 @@ const TOC = [
   { id: "noi-dung", label: "Nội dung do bạn tạo" },
   { id: "verify", label: "Xác thực (verify) & danh tính nghề" },
   { id: "tuong-tac", label: "Tương tác xã hội, chat & quyền riêng tư hiển thị" },
+  { id: "do-luong", label: "Đo lường tiếp cận & quyền riêng tư số liệu" },
   { id: "bang-xep-hang", label: "Phân bổ nội dung & xếp hạng Timeline" },
   { id: "cam", label: "Hành vi bị cấm" },
   { id: "to-chuc", label: "Tổ chức trên CINs" },
@@ -267,10 +268,43 @@ export function TermAndServiceContent() {
             </ul>
           </section>
 
-          <section className="tas-section" id="bang-xep-hang">
+          <section className="tas-section" id="do-luong">
             <h2>
               <span className="tas-n" aria-hidden>
                 07
+              </span>
+              Đo lường tiếp cận &amp; quyền riêng tư số liệu
+            </h2>
+            <p>
+              CINs đo lượt thấy và tương tác với nội dung / hàng hóa để chủ bài
+              và chủ shop xem insight riêng — không công khai như bảng điểm
+              vanity. Hiệu lực mục này: 9 tháng 8 năm 2026.
+            </p>
+            <ul>
+              <li>
+                Client gửi mã phiên ẩn danh; máy chủ chỉ lưu bản hash. Chat
+                không được đo.
+              </li>
+              <li>
+                Số liệu tiếp cận bài chỉ hiện cho chủ nội dung hoặc quản trị
+                viên tổ chức (owner/admin). Funnel shop chỉ hiện cho chủ shop.
+              </li>
+              <li>
+                Số người/thiết bị duy nhất dưới ngưỡng k-anonymity (5) không
+                hiển thị. Danh tính người xem gắn sự kiện được gỡ sau khoảng 90
+                ngày.
+              </li>
+              <li>
+                Đơn hàng có thể gắn hash phiên để ước lượng xem→mua; hash này
+                không trả về danh sách đơn phía client.
+              </li>
+            </ul>
+          </section>
+
+          <section className="tas-section" id="bang-xep-hang">
+            <h2>
+              <span className="tas-n" aria-hidden>
+                08
               </span>
               Phân bổ nội dung &amp; xếp hạng Timeline
             </h2>
@@ -303,7 +337,7 @@ export function TermAndServiceContent() {
           <section className="tas-section" id="cam">
             <h2>
               <span className="tas-n" aria-hidden>
-                08
+                09
               </span>
               Hành vi bị cấm
             </h2>
@@ -336,7 +370,7 @@ export function TermAndServiceContent() {
           <section className="tas-section" id="to-chuc">
             <h2>
               <span className="tas-n" aria-hidden>
-                09
+                10
               </span>
               Tổ chức trên CINs
             </h2>
@@ -353,7 +387,7 @@ export function TermAndServiceContent() {
           <section className="tas-section" id="so-huu">
             <h2>
               <span className="tas-n" aria-hidden>
-                10
+                11
               </span>
               Sở hữu trí tuệ của CINs
             </h2>
@@ -369,7 +403,7 @@ export function TermAndServiceContent() {
           <section className="tas-section" id="ben-thu-ba">
             <h2>
               <span className="tas-n" aria-hidden>
-                11
+                12
               </span>
               Dịch vụ bên thứ ba
             </h2>
@@ -385,7 +419,7 @@ export function TermAndServiceContent() {
           <section className="tas-section" id="mien-tru">
             <h2>
               <span className="tas-n" aria-hidden>
-                12
+                13
               </span>
               Giới hạn trách nhiệm
             </h2>
@@ -406,7 +440,7 @@ export function TermAndServiceContent() {
           <section className="tas-section" id="cham-dut">
             <h2>
               <span className="tas-n" aria-hidden>
-                13
+                14
               </span>
               Tạm ngưng &amp; chấm dứt
             </h2>
@@ -433,7 +467,7 @@ export function TermAndServiceContent() {
           <section className="tas-section" id="thay-doi">
             <h2>
               <span className="tas-n" aria-hidden>
-                14
+                15
               </span>
               Thay đổi điều khoản
             </h2>
@@ -449,7 +483,7 @@ export function TermAndServiceContent() {
           <section className="tas-section" id="luat">
             <h2>
               <span className="tas-n" aria-hidden>
-                15
+                16
               </span>
               Luật áp dụng &amp; liên hệ
             </h2>

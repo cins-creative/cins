@@ -1,7 +1,7 @@
 import type { NotificationFeed } from "@/lib/social/types";
 
 const PREFIX = "cins-notifications:v1:";
-/** Cùng TTL với chat — đủ cho mở bell ngay lập tức. */
+/** TTL 10 phút — localStorage để mở chuông không chờ mạng. */
 export const NOTIFICATIONS_SESSION_CACHE_TTL_MS = 10 * 60 * 1000;
 
 type CacheEntry<T> = {
@@ -27,7 +27,7 @@ function readFeed(
   if (!viewerProfileId) return null;
   if (typeof window === "undefined") return null;
   try {
-    const raw = sessionStorage.getItem(cacheKey(viewerProfileId, filter));
+    const raw = localStorage.getItem(cacheKey(viewerProfileId, filter));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as CacheEntry<NotificationFeed>;
     if (!parsed || typeof parsed !== "object" || !isFresh(parsed)) return null;
@@ -44,7 +44,7 @@ function writeFeed(
 ): void {
   if (typeof window === "undefined") return;
   try {
-    sessionStorage.setItem(
+    localStorage.setItem(
       cacheKey(viewerProfileId, filter),
       JSON.stringify({ savedAt: Date.now(), data: feed } satisfies CacheEntry<NotificationFeed>),
     );
@@ -82,8 +82,8 @@ export function writeHistoryNotificationsCache(
 export function invalidateNotificationsCache(viewerProfileId: string): void {
   if (typeof window === "undefined") return;
   try {
-    sessionStorage.removeItem(cacheKey(viewerProfileId, "unread"));
-    sessionStorage.removeItem(cacheKey(viewerProfileId, "history"));
+    localStorage.removeItem(cacheKey(viewerProfileId, "unread"));
+    localStorage.removeItem(cacheKey(viewerProfileId, "history"));
   } catch {
     /* ignore */
   }

@@ -24,11 +24,11 @@
   "observability": {
     "enabled": true
   },
-  // Billing P2 — Cron Triggers → worker.ts `scheduled` → POST /api/noi-bo/billing/cron.
-  // GitHub Actions `billing-cron.yml` vẫn gọi HTTP (dự phòng / dual).
-  // 01:00 UTC ≈ 08:00 VN.
+  // `0 1 * * *` = billing + social (01:00 UTC ≈ 08:00 VN).
+  // `0 */6 * * *` = chỉ social (self-heal partition, 4 lần/ngày).
+  // GitHub Actions `billing-cron.yml` + `social-cron.yml` = fallback.
   "triggers": {
-    "crons": ["0 1 * * *"]
+    "crons": ["0 1 * * *", "0 */6 * * *"]
   },
   // Local preview cần chuỗi kết nối Postgres: đặt biến
   // WRANGLER_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE trong .dev.vars

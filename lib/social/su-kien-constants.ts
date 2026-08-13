@@ -3,6 +3,14 @@
  * KHÔNG import server-only ở đây.
  */
 
+/** k-anonymity lúc đọc/hiển thị — không lúc ghi. */
+export const K_ANON_NGUONG = 5;
+
+export function kAnonCount(n: number): number {
+  const v = Number(n) || 0;
+  return v >= K_ANON_NGUONG ? v : 0;
+}
+
 export const LOAI_SU_KIEN = [
   "hien_thi",
   "mo_card",
@@ -11,6 +19,9 @@ export const LOAI_SU_KIEN = [
   "xem_profile_full",
   "click_lien_ket",
   "xem_media",
+  "lot_man_hinh",
+  "thoi_gian_xem",
+  "tuong_tac",
 ] as const;
 export type LoaiSuKien = (typeof LOAI_SU_KIEN)[number];
 export const LOAI_SU_KIEN_SET: ReadonlySet<string> = new Set(LOAI_SU_KIEN);
@@ -24,6 +35,12 @@ export const LOAI_DOI_TUONG_SUKIEN = [
   "to_chuc",
   "org_bai_dang",
   "su_kien",
+  "org_tuyen_dung",
+  "article_dong_gop",
+  "shop_san_pham",
+  "shop_voucher",
+  "org_khoa_hoc",
+  "article_bai_viet",
 ] as const;
 export type LoaiDoiTuongSuKien = (typeof LOAI_DOI_TUONG_SUKIEN)[number];
 export const LOAI_DOI_TUONG_SUKIEN_SET: ReadonlySet<string> = new Set(
@@ -38,12 +55,22 @@ export const NGUON_SU_KIEN = [
   "org_page",
   "cong_dong",
   "khac",
+  "chia_se_ngoai",
+  "tim_kiem",
+  "thong_bao",
+  "shop",
 ] as const;
 export type NguonSuKien = (typeof NGUON_SU_KIEN)[number];
 export const NGUON_SU_KIEN_SET: ReadonlySet<string> = new Set(NGUON_SU_KIEN);
 
 /** Số event tối đa nhận trong 1 request (chống lạm dụng). */
-export const MAX_SU_KIEN_BATCH = 50;
+export const MAX_SU_KIEN_BATCH = 25;
+
+/** Cửa sổ feed đếm log thô (P3 sẽ thay). Khớp retention danh tính ~90 ngày. */
+export const INSIGHT_CUA_SO_NGAY = 90;
+
+/** Trần khoảng tu/den khi đọc rollup ngày (trước P4 xóa daily cũ). */
+export const INSIGHT_ROLLUP_TOI_DA_THANG = 25;
 
 export type SuKienInput = {
   loai_su_kien: LoaiSuKien;

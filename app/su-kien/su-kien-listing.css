@@ -742,6 +742,7 @@
 }
 
 .sk-detail-body {
+  --sk-detail-body-pad-x: 20px;
   display: grid;
   grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
   gap: 32px 40px;
@@ -750,7 +751,7 @@
   max-width: none;
   box-sizing: border-box;
   margin: 0;
-  padding: 20px 20px 72px;
+  padding: 20px var(--sk-detail-body-pad-x) 72px;
 }
 
 .sk-detail-aside {
@@ -1274,6 +1275,14 @@ a.sk-detail-fact-link-hint:focus-visible {
     grid-template-columns: 1fr;
     gap: 24px;
     padding-top: 16px;
+  }
+
+  .sk-detail-body .shop-quay-panel {
+    box-sizing: border-box;
+    width: calc(100% + 2 * var(--sk-detail-body-pad-x));
+    max-width: none;
+    margin-left: calc(-1 * var(--sk-detail-body-pad-x));
+    margin-right: calc(-1 * var(--sk-detail-body-pad-x));
   }
 
   .sk-detail-aside {

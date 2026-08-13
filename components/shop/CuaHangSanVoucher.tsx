@@ -2,7 +2,16 @@
 
 import Link from "next/link";
 import { TicketPercent, X } from "lucide-react";
-import { useCallback, useEffect, useId, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { createPortal } from "react-dom";
 
 import { ShopVoucherCard } from "@/components/shop/ShopVoucherCard";
@@ -20,8 +29,60 @@ type ViItem = ShopVoucherViItem;
 
 type Tab = "san" | "vi";
 
+const TICKER_RESUME_MS = 1200;
+const TICKER_RESUME_EASE_MS = 1500;
+const TICKER_DT_MAX_MS = 64;
+const TICKER_SPEED_DEFAULT = 28;
+const TICKER_COPIES_MIN = 3;
+const TICKER_COPIES_MAX = 24;
+
+function formatGiamChip(loaiGiam: CongKhaiItem["loaiGiam"], giaTri: number): string {
+  if (loaiGiam === "phan_tram") return `Giảm ${giaTri}%`;
+  return `Giảm ${giaTri.toLocaleString("vi-VN")}₫`;
+}
+
+function tickerResumeEase(t: number): number {
+  const x = t <= 0 ? 0 : t >= 1 ? 1 : t;
+  const inv = 1 - x;
+  return 1 - inv * inv * inv;
+}
+
+function SanVoucherChip({
+  v,
+  dup,
+  onOpen,
+}: {
+  v: CongKhaiItem;
+  dup: boolean;
+  onOpen: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="ch-san-voucher-chip"
+      tabIndex={dup ? -1 : 0}
+      aria-hidden={dup || undefined}
+      draggable={false}
+      onClick={onOpen}
+    >
+      <span className="ch-san-voucher-chip-stub" aria-hidden>
+        <TicketPercent size={15} strokeWidth={2.25} />
+      </span>
+      <span className="ch-san-voucher-chip-giam">
+        {formatGiamChip(v.loaiGiam, v.giaTri)}
+      </span>
+      <span className="ch-san-voucher-chip-meta">
+        <span className="ch-san-voucher-chip-shop">
+          {v.tenCuaHang?.trim() || "Shop"}
+        </span>
+        <span className="ch-san-voucher-chip-ma">{v.ma}</span>
+      </span>
+    </button>
+  );
+}
+
 /**
- * Khu «Săn voucher» + ví trên /cua-hang — nút CTA mở modal listing.
+ * Khu «Săn voucher» trên /cua-hang — ticker lặp + modal đầy đủ.
  */
 export function CuaHangSanVoucher() {
   const titleId = useId();
@@ -32,6 +93,216 @@ export function CuaHangSanVoucher() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const tickerScrollRef = useRef<HTMLDivElement>(null);
+  const tickerTrackRef = useRef<HTMLDivElement>(null);
+  const sanRef = useRef(san);
+  sanRef.current = san;
+  const tickerDragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    startScroll: number;
+    active: boolean;
+  } | null>(null);
+  const tickerSuppressClickRef = useRef(false);
+  const [tickerDragging, setTickerDragging] = useState(false);
+  const [tickerLoop, setTickerLoop] = useState(false);
+  const tickerLoopRef = useRef(false);
+  tickerLoopRef.current = tickerLoop;
+  const [tickerCopies, setTickerCopies] = useState(TICKER_COPIES_MIN);
+  const tickerCopiesRef = useRef(TICKER_COPIES_MIN);
+  tickerCopiesRef.current = tickerCopies;
+  const tickerSetWidthRef = useRef(0);
+  const tickerPosRef = useRef(0);
+  const tickerHoldReasonsRef = useRef(new Set<string>());
+  const tickerRafRef = useRef<number | null>(null);
+  const tickerLastTsRef = useRef<number | null>(null);
+  const tickerSpeedRef = useRef(TICKER_SPEED_DEFAULT);
+  const tickerEaseStartRef = useRef<number | null>(null);
+  const tickerReducedMotionRef = useRef(false);
+  const tickerResumeTimersRef = useRef(
+    new Map<string, ReturnType<typeof setTimeout>>(),
+  );
+
+  const writeTickerPos = useCallback((pos: number) => {
+    tickerPosRef.current = pos;
+    const track = tickerTrackRef.current;
+    if (track) track.style.transform = `translate3d(${-pos}px, 0, 0)`;
+  }, []);
+
+  const scheduleTickerHoldClear = useCallback((reason: string) => {
+    const timers = tickerResumeTimersRef.current;
+    const prev = timers.get(reason);
+    if (prev) clearTimeout(prev);
+    timers.set(
+      reason,
+      setTimeout(() => {
+        timers.delete(reason);
+        tickerHoldReasonsRef.current.delete(reason);
+      }, TICKER_RESUME_MS),
+    );
+  }, []);
+
+  const measureTicker = useCallback(() => {
+    const el = tickerScrollRef.current;
+    const track = tickerTrackRef.current;
+    if (!el || !track) return;
+    const n = sanRef.current.length;
+    if (n === 0) {
+      if (tickerLoopRef.current) setTickerLoop(false);
+      if (tickerCopiesRef.current !== TICKER_COPIES_MIN) {
+        setTickerCopies(TICKER_COPIES_MIN);
+      }
+      tickerSetWidthRef.current = 0;
+      writeTickerPos(0);
+      return;
+    }
+    if (!tickerLoopRef.current) {
+      setTickerLoop(true);
+      return;
+    }
+    const copies = tickerCopiesRef.current;
+    const nextCopyEl = track.children[n] as HTMLElement | undefined;
+    const oneSet =
+      nextCopyEl && copies >= 2
+        ? nextCopyEl.offsetLeft
+        : track.scrollWidth / Math.max(1, copies);
+    if (!(oneSet > 0)) return;
+    const needed = Math.min(
+      TICKER_COPIES_MAX,
+      Math.max(
+        TICKER_COPIES_MIN,
+        Math.ceil(2 + el.clientWidth / oneSet) + 1,
+      ),
+    );
+    if (needed !== copies) {
+      setTickerCopies(needed);
+      return;
+    }
+    tickerSetWidthRef.current = oneSet;
+    if (tickerPosRef.current < oneSet || tickerPosRef.current >= oneSet * 2) {
+      writeTickerPos(oneSet);
+    }
+  }, [writeTickerPos]);
+
+  const normalizeTickerLoop = useCallback(() => {
+    const oneSet = tickerSetWidthRef.current;
+    if (!tickerLoopRef.current || oneSet <= 0) return;
+    const pos = tickerPosRef.current;
+    if (pos >= oneSet * 2) {
+      writeTickerPos(pos - oneSet);
+      const drag = tickerDragRef.current;
+      if (drag) drag.startScroll -= oneSet;
+    } else if (pos < oneSet) {
+      writeTickerPos(pos + oneSet);
+      const drag = tickerDragRef.current;
+      if (drag) drag.startScroll += oneSet;
+    }
+  }, [writeTickerPos]);
+
+  const abortTickerDragHold = useCallback(() => {
+    const resumeTimer = tickerResumeTimersRef.current.get("drag");
+    if (resumeTimer) {
+      clearTimeout(resumeTimer);
+      tickerResumeTimersRef.current.delete("drag");
+    }
+    tickerHoldReasonsRef.current.delete("drag");
+    tickerEaseStartRef.current = 0;
+  }, []);
+
+  const onTickerPointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      const resumeTimer = tickerResumeTimersRef.current.get("drag");
+      if (resumeTimer) {
+        clearTimeout(resumeTimer);
+        tickerResumeTimersRef.current.delete("drag");
+      }
+      tickerEaseStartRef.current = null;
+      tickerHoldReasonsRef.current.add("drag");
+      tickerDragRef.current = {
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        startScroll: tickerPosRef.current,
+        active: false,
+      };
+    },
+    [],
+  );
+
+  const onTickerPointerMove = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      const drag = tickerDragRef.current;
+      if (!drag || drag.pointerId !== e.pointerId) return;
+      const dx = e.clientX - drag.startX;
+      const dy = e.clientY - drag.startY;
+      if (!drag.active) {
+        if (Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
+        if (e.pointerType !== "mouse" && Math.abs(dy) >= Math.abs(dx)) {
+          tickerDragRef.current = null;
+          abortTickerDragHold();
+          return;
+        }
+        if (Math.abs(dx) < 3) return;
+        drag.active = true;
+        setTickerDragging(true);
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch {
+          /* ignore */
+        }
+      }
+      writeTickerPos(drag.startScroll - dx);
+      normalizeTickerLoop();
+      e.preventDefault();
+    },
+    [abortTickerDragHold, normalizeTickerLoop, writeTickerPos],
+  );
+
+  const finishTickerDrag = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      const drag = tickerDragRef.current;
+      if (!drag || drag.pointerId !== e.pointerId) return;
+      tickerDragRef.current = null;
+      if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+        try {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch {
+          /* ignore */
+        }
+      }
+      if (drag.active) tickerSuppressClickRef.current = true;
+      setTickerDragging(false);
+      const resumeTimer = tickerResumeTimersRef.current.get("drag");
+      if (resumeTimer) {
+        clearTimeout(resumeTimer);
+        tickerResumeTimersRef.current.delete("drag");
+      }
+      tickerHoldReasonsRef.current.delete("drag");
+      tickerEaseStartRef.current = 0;
+    },
+    [],
+  );
+
+  const onTickerLostPointerCapture = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      const drag = tickerDragRef.current;
+      if (!drag || drag.pointerId !== e.pointerId) return;
+      finishTickerDrag(e);
+    },
+    [finishTickerDrag],
+  );
+
+  const onTickerClickCapture = useCallback(
+    (e: ReactMouseEvent<HTMLDivElement>) => {
+      if (!tickerSuppressClickRef.current) return;
+      tickerSuppressClickRef.current = false;
+      e.preventDefault();
+      e.stopPropagation();
+    },
+    [],
+  );
 
   const loadSan = useCallback(async () => {
     const res = await fetch("/api/shop/voucher/cong-khai", { cache: "no-store" });
@@ -135,13 +406,180 @@ export function CuaHangSanVoucher() {
     );
   }
 
+  useLayoutEffect(() => {
+    measureTicker();
+  }, [san, tickerLoop, tickerCopies, measureTicker]);
+
+  useEffect(() => {
+    const el = tickerScrollRef.current;
+    const track = tickerTrackRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => measureTicker());
+    ro.observe(el);
+    if (track) ro.observe(track);
+    return () => ro.disconnect();
+  }, [san, measureTicker, tickerCopies, tickerLoop]);
+
+  useEffect(() => {
+    if (open) tickerHoldReasonsRef.current.add("modal");
+    else tickerHoldReasonsRef.current.delete("modal");
+  }, [open]);
+
+  useEffect(() => {
+    if (!tickerLoop) {
+      if (tickerRafRef.current != null) {
+        cancelAnimationFrame(tickerRafRef.current);
+        tickerRafRef.current = null;
+      }
+      tickerLastTsRef.current = null;
+      return;
+    }
+
+    const el = tickerScrollRef.current;
+    const track = tickerTrackRef.current;
+    if (!el) return;
+
+    const root = el.closest(".ch-san-voucher-rail");
+    if (root) {
+      const raw = getComputedStyle(root)
+        .getPropertyValue("--ch-san-voucher-ticker-speed")
+        .trim();
+      const parsed = Number.parseFloat(raw);
+      tickerSpeedRef.current =
+        Number.isFinite(parsed) && parsed > 0 ? parsed : TICKER_SPEED_DEFAULT;
+    }
+
+    writeTickerPos(tickerPosRef.current);
+    const resumeTimers = tickerResumeTimersRef.current;
+    const holdReasons = tickerHoldReasonsRef.current;
+
+    const stopRaf = () => {
+      if (tickerRafRef.current != null) {
+        cancelAnimationFrame(tickerRafRef.current);
+        tickerRafRef.current = null;
+      }
+      tickerLastTsRef.current = null;
+      if (track) track.style.willChange = "";
+    };
+
+    const tick = (ts: number) => {
+      tickerRafRef.current = requestAnimationFrame(tick);
+      const last = tickerLastTsRef.current;
+      tickerLastTsRef.current = ts;
+      if (last == null) return;
+      if (holdReasons.size > 0) return;
+      let dt = ts - last;
+      if (dt > TICKER_DT_MAX_MS) dt = TICKER_DT_MAX_MS;
+      if (dt <= 0) return;
+      let speed = tickerSpeedRef.current;
+      let easeStart = tickerEaseStartRef.current;
+      if (easeStart != null) {
+        if (easeStart === 0) {
+          tickerEaseStartRef.current = ts;
+          easeStart = ts;
+        }
+        const u = (ts - easeStart) / TICKER_RESUME_EASE_MS;
+        if (u >= 1) tickerEaseStartRef.current = null;
+        else speed *= tickerResumeEase(u);
+      }
+      let pos = tickerPosRef.current + speed * (dt / 1000);
+      const oneSet = tickerSetWidthRef.current;
+      if (oneSet > 0 && pos >= oneSet * 2) pos -= oneSet;
+      writeTickerPos(pos);
+    };
+
+    const startRaf = () => {
+      if (tickerReducedMotionRef.current) return;
+      if (holdReasons.has("offscreen")) return;
+      if (tickerRafRef.current != null) return;
+      tickerLastTsRef.current = null;
+      if (track) track.style.willChange = "transform";
+      tickerRafRef.current = requestAnimationFrame(tick);
+    };
+
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const syncReducedMotion = () => {
+      tickerReducedMotionRef.current = mq.matches;
+      if (mq.matches) stopRaf();
+      else startRaf();
+    };
+    syncReducedMotion();
+    mq.addEventListener("change", syncReducedMotion);
+
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") holdReasons.add("hidden");
+      else holdReasons.delete("hidden");
+    };
+    onVisibility();
+    document.addEventListener("visibilitychange", onVisibility);
+
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) < Math.abs(e.deltaY) || e.deltaX === 0) return;
+      e.preventDefault();
+      holdReasons.add("user-scroll");
+      scheduleTickerHoldClear("user-scroll");
+      tickerEaseStartRef.current = null;
+      let pos = tickerPosRef.current + e.deltaX;
+      const oneSet = tickerSetWidthRef.current;
+      if (oneSet > 0) {
+        while (pos >= oneSet * 2) pos -= oneSet;
+        while (pos < oneSet) pos += oneSet;
+      }
+      writeTickerPos(pos);
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+
+    let io: IntersectionObserver | null = null;
+    if (typeof IntersectionObserver !== "undefined") {
+      io = new IntersectionObserver(
+        (entries) => {
+          const entry = entries[0];
+          if (!entry) return;
+          if (entry.isIntersecting) {
+            holdReasons.delete("offscreen");
+            startRaf();
+          } else {
+            holdReasons.add("offscreen");
+            stopRaf();
+          }
+        },
+        { threshold: 0, rootMargin: "80px 0px" },
+      );
+      io.observe(el);
+    } else {
+      startRaf();
+    }
+
+    return () => {
+      stopRaf();
+      mq.removeEventListener("change", syncReducedMotion);
+      document.removeEventListener("visibilitychange", onVisibility);
+      el.removeEventListener("wheel", onWheel);
+      io?.disconnect();
+      for (const t of resumeTimers.values()) clearTimeout(t);
+      resumeTimers.clear();
+      holdReasons.delete("offscreen");
+      holdReasons.delete("hidden");
+      holdReasons.delete("drag");
+      holdReasons.delete("user-scroll");
+    };
+  }, [scheduleTickerHoldClear, tickerLoop, writeTickerPos]);
+
+  useEffect(() => {
+    const resumeTimers = tickerResumeTimersRef.current;
+    return () => {
+      for (const t of resumeTimers.values()) clearTimeout(t);
+      resumeTimers.clear();
+    };
+  }, []);
+
   const list = tab === "san" ? san : vi;
   const empty =
     !loading &&
     list.length === 0 &&
     (tab === "san" || loggedIn);
 
-  const triggerLabel = loading
+  const railLabel = loading
     ? "Đang tải voucher"
     : san.length > 0
       ? `Shop Voucher, ${san.length} mã đang chạy`
@@ -282,43 +720,59 @@ export function CuaHangSanVoucher() {
         )
       : null;
 
-  const fab =
-    typeof document !== "undefined"
-      ? createPortal(
-          <div className="ch-san-voucher-fab">
-            <button
-              type="button"
-              className="ch-san-voucher-trigger"
-              aria-haspopup="dialog"
-              aria-expanded={open}
-              aria-label={triggerLabel}
-              title={
-                !loading && san.length > 0
-                  ? `${san.length} mã đang chạy`
-                  : "Shop Voucher"
-              }
-              onClick={() => setOpen(true)}
-            >
-              <span className="ch-san-voucher-trigger-shimmer" aria-hidden />
-              <span className="ch-san-voucher-trigger-ring" aria-hidden />
-              <span className="ch-san-voucher-trigger-icon" aria-hidden>
-                <TicketPercent size={32} strokeWidth={2.15} />
-              </span>
-              <span className="ch-san-voucher-trigger-label">Shop Voucher</span>
-              {!loading && san.length > 0 ? (
-                <span className="ch-san-voucher-trigger-count" aria-hidden>
-                  {san.length}
-                </span>
-              ) : null}
-            </button>
-          </div>,
-          document.body,
-        )
-      : null;
+  const showRail = loading || san.length > 0;
+  const openAll = useCallback(() => setOpen(true), []);
 
   return (
     <>
-      {fab}
+      {showRail ? (
+        <div className="ch-san-voucher-rail" aria-label={railLabel}>
+          <div
+            ref={tickerScrollRef}
+            className={`ch-san-voucher-rail-scroll${tickerDragging ? " is-dragging" : ""}`}
+            onPointerDown={onTickerPointerDown}
+            onPointerMove={onTickerPointerMove}
+            onPointerUp={finishTickerDrag}
+            onPointerCancel={finishTickerDrag}
+            onLostPointerCapture={onTickerLostPointerCapture}
+            onClickCapture={onTickerClickCapture}
+          >
+            {loading ? (
+              Array.from({ length: 4 }, (_, i) => (
+                <span
+                  key={i}
+                  className="ch-san-voucher-chip is-skeleton"
+                  aria-hidden
+                />
+              ))
+            ) : (
+              <div ref={tickerTrackRef} className="ch-san-voucher-rail-track">
+                {Array.from({
+                  length: tickerLoop ? tickerCopies : 1,
+                }).flatMap((_, copy) =>
+                  san.map((v, i) => (
+                    <SanVoucherChip
+                      key={`${v.id}-${copy}-${i}`}
+                      v={v}
+                      dup={copy > 0}
+                      onOpen={openAll}
+                    />
+                  )),
+                )}
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            className="ch-san-voucher-rail-all"
+            aria-haspopup="dialog"
+            aria-expanded={open}
+            onClick={() => setOpen(true)}
+          >
+            Xem tất cả voucher
+          </button>
+        </div>
+      ) : null}
       {modal}
     </>
   );

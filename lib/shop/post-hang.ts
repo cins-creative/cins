@@ -1,5 +1,6 @@
 import "server-only";
 
+import { parseShopThumbFit } from "@/lib/shop/anh-thumb-fit";
 import { resolveGiaBienTheMany } from "@/lib/shop/bang-gia";
 import { assertShopReady } from "@/lib/shop/cua-hang";
 import { shopImageUrl } from "@/lib/shop/settings";
@@ -57,7 +58,7 @@ export async function listPostHang(
   ];
   const { data: sps } = await admin
     .from("shop_san_pham")
-    .select("id, ten, anh_id, phan_loai, phan_loai_2, da_xoa, dang_ban")
+    .select("id, ten, anh_id, phan_loai, phan_loai_2, da_xoa, dang_ban, anh_thumb_fit")
     .in("id", spIds);
   const spMap = new Map(
     ((sps ?? []) as Array<{
@@ -68,6 +69,7 @@ export async function listPostHang(
       phan_loai_2: string | null;
       da_xoa: boolean;
       dang_ban: boolean;
+      anh_thumb_fit?: string | null;
     }>).map((s) => [s.id, s]),
   );
 
@@ -124,6 +126,7 @@ export async function listPostHang(
       phanLoai: sp.phan_loai?.trim() || null,
       phanLoai2: sp.phan_loai_2?.trim() || null,
       anhUrl: shopImageUrl(bt.anh_id ?? sp.anh_id),
+      anhThumbFit: parseShopThumbFit(sp.anh_thumb_fit),
       soLuongTon: ton,
       soLuongBan: soldByBienThe.get(bt.id) ?? 0,
       giaHienThi: Number(row.gia_hien_thi),

@@ -1,9 +1,9 @@
 /**
- * Cloudflare Workers scheduled — billing cron (P2).
+ * Cloudflare Workers scheduled — billing cron (P2) + social đo lường.
  *
  * Entry: `worker.ts` (custom OpenNext worker) gọi `runBillingScheduled`.
- * Fallback khi chưa deploy scheduled: GitHub Actions `billing-cron.yml`
- * → POST /api/noi-bo/billing/cron.
+ * Cron `0 1 * * *` = billing + social. Cron `0 */6 * * *` = chỉ social.
+ * Fallback: GitHub Actions `billing-cron.yml` + `social-cron.yml`.
  */
 
 export type BillingScheduledEnv = {
@@ -12,14 +12,30 @@ export type BillingScheduledEnv = {
   NEXT_PUBLIC_SITE_URL?: string;
 };
 
+function siteBase(env: BillingScheduledEnv): string {
+  return (
+    env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "") || "https://cins.vn"
+  );
+}
+
 function billingCronUrl(env: BillingScheduledEnv): string {
-  const base =
-    env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "") || "https://cins.vn";
-  return `${base}/api/noi-bo/billing/cron`;
+  return `${siteBase(env)}/api/noi-bo/billing/cron`;
+}
+
+function socialCronUrl(env: BillingScheduledEnv): string {
+  return `${siteBase(env)}/api/noi-bo/social/cron`;
+}
+
+function cronExpr(controller: unknown): string {
+  if (controller && typeof controller === "object" && "cron" in controller) {
+    const c = (controller as { cron?: unknown }).cron;
+    return typeof c === "string" ? c : "";
+  }
+  return "";
 }
 
 export async function runBillingScheduled(
-  _controller: unknown,
+  controller: unknown,
   env: BillingScheduledEnv,
   ctx: { waitUntil: (p: Promise<unknown>) => void },
 ): Promise<void> {
@@ -31,21 +47,48 @@ export async function runBillingScheduled(
     return;
   }
 
-  const url = billingCronUrl(env);
+  const cron = cronExpr(controller);
+  const chiSocial = cron === "0 */6 * * *";
+
+  if (!chiSocial) {
+    const url = billingCronUrl(env);
+    ctx.waitUntil(
+      fetch(url, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${secret}` },
+      }).then(async (res) => {
+        if (!res.ok) {
+          console.error(
+            "[scheduled] billing cron",
+            url,
+            res.status,
+            await res.text(),
+          );
+        } else {
+          console.info("[scheduled] billing cron ok", url, res.status);
+        }
+      }),
+    );
+  }
+
+  const socialUrl = socialCronUrl(env);
   ctx.waitUntil(
-    fetch(url, {
+    fetch(socialUrl, {
       method: "POST",
-      headers: { Authorization: `Bearer ${secret}` },
+      headers: {
+        Authorization: `Bearer ${secret}`,
+        "x-cins-cron-nguon": "worker",
+      },
     }).then(async (res) => {
       if (!res.ok) {
         console.error(
-          "[scheduled] billing cron",
-          url,
+          "[scheduled] social cron",
+          socialUrl,
           res.status,
           await res.text(),
         );
       } else {
-        console.info("[scheduled] billing cron ok", url, res.status);
+        console.info("[scheduled] social cron ok", socialUrl, res.status);
       }
     }),
   );

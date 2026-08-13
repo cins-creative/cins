@@ -192,6 +192,7 @@ export function chonBienTheChoKioskChiTiet(input: {
         phanLoai: p.phanLoai,
         phanLoai2: p.phanLoai2 ?? null,
         anhUrl: bt.anhUrl ?? p.anhUrl,
+        anhThumbFit: p.anhThumbFit,
         soLuongTon: ton,
         soLuongBan: 0,
         giaHienThi: gia,

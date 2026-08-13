@@ -36,6 +36,7 @@ export async function POST(request: Request) {
     ghiChu?: unknown;
     maDon?: unknown;
     nguoiMuaChapNhanRuiRo?: unknown;
+    phienId?: unknown;
   };
   try {
     body = (await request.json()) as typeof body;
@@ -73,6 +74,7 @@ export async function POST(request: Request) {
       ghiChu: typeof body.ghiChu === "string" ? body.ghiChu : null,
       maDon: typeof body.maDon === "string" ? body.maDon : null,
       nguoiMuaChapNhanRuiRo: body.nguoiMuaChapNhanRuiRo === true,
+      phienIdRaw: typeof body.phienId === "string" ? body.phienId : null,
     });
     return NextResponse.json(
       { don, chatContext: donHangToChatContext(don) },

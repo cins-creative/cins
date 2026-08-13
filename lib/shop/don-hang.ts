@@ -26,6 +26,7 @@ import {
 } from "@/lib/shop/terms";
 import { shopImageUrl } from "@/lib/shop/settings";
 import { resolveDiaChiSnapshot } from "@/lib/shop/dia-chi-nhan";
+import { hashPhienId } from "@/lib/social/su-kien";
 import {
   assertVoucherApDung,
   dungVoucherAtomic,
@@ -449,6 +450,8 @@ export async function createDonFromGio(
     maDon?: string | null;
     /** Bắt buộc true khi `mua_ngay` — server không tin checkbox client alone. */
     nguoiMuaChapNhanRuiRo?: boolean;
+    /** UUID phiên client thô — server hash vào `phien_id`. */
+    phienIdRaw?: string | null;
   },
 ): Promise<ShopDonHang> {
   const cotMocId =
@@ -566,6 +569,7 @@ export async function createDonFromGio(
         dieu_khoan_snapshot: shopTermsSnapshot(),
         da_tru_kho: false,
         thanh_toan_snapshot: snapshotForAttempt,
+        phien_id: hashPhienId(input.phienIdRaw),
         ...chapNhan,
       })
       .select(DON_SELECT)
@@ -665,6 +669,8 @@ export async function createDonChungForSeller(
     diaChiNhanId?: string | null;
     /** truc_tiep (mặc định) | online (ĐVVC, buyer trả ship) | tai_su_kien */
     hinhThucGiao?: "truc_tiep" | "online" | "tai_su_kien" | null;
+    /** UUID phiên client thô — server hash vào `phien_id`. */
+    phienIdRaw?: string | null;
   },
 ): Promise<ShopDonHang> {
   const sellerId = input.sellerId?.trim();
@@ -817,6 +823,7 @@ export async function createDonChungForSeller(
         mua_phuong_xa_code: nguoiNhanSnapshot.phuongXaCode ?? null,
         mua_tinh_thanh: nguoiNhanSnapshot.tinhThanh ?? null,
         hinh_thuc_giao: hinhThucGiao,
+        phien_id: hashPhienId(input.phienIdRaw),
         ...chapNhan,
       })
       .select(DON_SELECT)

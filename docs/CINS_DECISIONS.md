@@ -41,6 +41,49 @@
 
 ## LOG — quyết định đã chốt
 
+### Analytics scale P3 — feed ngừng đọc log thô (2026-08-13)
+
+- **Chốt:** `demLuotXemCuaViewer` → `social_da_xem` (`viewer_key` = UUID, PK). `demLuotXemToanCuc` → `social_dem_doi_tuong.luot_tiep_can`. Không LIMIT giả, chunk `IN` 200. World Timeline gắn `viewerSeenCount` từ da_xem (rank vẫn theo điểm L30).
+- **DB:** `social_dem_doi_tuong` (RLS, service_role); `social_rollup_dem_doi_tuong()` rebuild từ SUM ngày + COUNT da_xem. Cron gọi sau rollup tháng.
+- **Còn đọc log thô trên đường user:** insight delta hôm nay (P2, RPC 1 ngày); shop `GET /bao-cao` attribution phiên (P5). Ingest vẫn INSERT.
+- **Chưa làm:** P4 drop partition; P5 shop/admin rollup.
+- *Hệ quả:* `migration_social_dem_doi_tuong.sql` · `npm run migrate:analytics-p3`. App: `lib/social/su-kien.ts` · `social-cron.ts` · `worldJourneyFeedFetch.ts`.
+
+### Analytics scale P2 — da_xem + insight đọc rollup (2026-08-13)
+
+- **Chốt:** unique vĩnh viễn = `COUNT(*)` `social_da_xem` (không còn `count(DISTINCT)` trên log thô). `viewer_key = coalesce(nguoi_xem::text, phien_id)` — khách đã hash ở app; **không rotate `SU_KIEN_SALT`**. Không nhét salt vào SQL.
+- **so_lan idempotent:** cùng ngày cron chạy lại = thay `so_lan_ngay`; ngày cũ hơn `ngay_cuoi` không cộng lại.
+- **Đường đọc:** `luot_*` = SUM `social_thong_ke_*_ngay` (`ngay < hôm nay VN`) + RPC 4-arg delta từ 00:00 VN hôm nay. Unique không cộng RPC (tránh đếm trùng với cron cùng ngày). Mặc định insight = **toàn thời gian**, `tu`/`den` trần ~25 tháng. Cache RAM 10 phút khoá `loai:id:tu:den` sau auth — không `s-maxage`/CDN. k-anon 5 lúc đọc (unique + `nguoi` breakdown).
+- **Scrub:** `social_xoa_danh_tinh_cu` NULL thêm `social_da_xem.nguoi_xem` khi `lan_cuoi` cũ hơn mốc 90 ngày; giữ `viewer_key`.
+- **Chưa làm:** P3 feed (`demLuotXem*` vẫn đọc log thô 90 ngày); P4 drop partition.
+- **Backfill:** runner gọi `social_rollup_su_kien/nguon/nhom` 90 ngày (bảng ngày đang trống trước P2) rồi `social_backfill_da_xem` + `social_rollup_thang`. Re-run không nhân `so_lan` / `COUNT(*)`.
+- *Hệ quả:* `migration_social_da_xem.sql` · `npm run migrate:analytics-p2`. App: `lib/social/su-kien.ts` · `social-cron.ts` (`social_rollup_da_xem` + `social_rollup_thang`).
+
+### Analytics scale P1 — query shape + ingest (2026-08-13)
+
+- **Chốt:** RPC insight 4-arg (`p_tu`/`p_den`, mặc định + trần 90 ngày); 2 nhánh WHERE không `coalesce`. Index parent `viewer` / `id_doi_tuong` / `boi_canh+tao_luc` (ON ONLY + CONCURRENTLY từng partition, `indisvalid=true`). Rollup 4 hàm so sánh `tao_luc` trực tiếp. Bỏ mass `UPDATE da_xu_ly_hint` — **giữ cột** (pipeline AI hint docs §7, chưa có code).
+- **EXPLAIN:** insight có `tao_luc` = Index Only Scan tháng trong cửa sổ, prune tháng tương lai. `coalesce` cũ vẫn Seq Scan mọi partition (không còn ai gọi).
+- **Ingest:** batch dedup `hien_thi`/`lot_man_hinh`; client impression + sessionStorage 10 phút; `MAX_SU_KIEN_BATCH` 25; rate limit 20 batch/phút (hạn mềm per-isolate).
+- **Feed:** `demLuotXem*` lọc `tao_luc` 90 ngày (prune).
+- *Hệ quả:* `migration_social_su_kien_index_range.sql` · `migration_social_rollup_range.sql` · `npm run migrate:analytics-p1`. App: `lib/social/su-kien.ts` · `track-su-kien.ts` · `GET /api/social/su-kien?tu=&den=`.
+
+### Analytics scale P0 — partition an toàn + cron lease (2026-08-13)
+
+- **Chốt bước:** P0 của `PLAN_analytics_scale.md` (chặn mất dữ liệu ghi + ổn định vận hành). P1–P2 đã làm 2026-08-13. P3–P5 chưa làm. Câu §10 (unique / retention / rate limit DO) **chưa chốt** — P2 dùng `social_da_xem` exact unique (đề xuất plan).
+- **Introspect DB:** `social_luot_xem` `RANGE (tao_luc)`; bound **UTC midnight**; 5 partition `2026_05`–`2026_09`; không PK parent; **không DEFAULT**. EXPLAIN xác nhận insight `coalesce(id_boi_canh,id_doi_tuong)` = Seq Scan mọi partition.
+- **DB mới:** `cins_cron_lease`, `cins_cron_log` (RLS, không policy public); `social_luot_xem_default` (DEFAULT partition); hàm `social_ensure_partition(int)` + wrapper tên cũ; dump bảng `social_thong_ke_nguon_ngay` / `_nhom_ngay` / `shop_thong_ke_san_pham_ngay`.
+- **Scrub:** `social_xoa_danh_tinh_cu` chỉ NULL `nguoi_xem` (giữ `phien_id`); thêm cận dưới 32 ngày + filter `tao_luc` trực tiếp.
+- **Cron:** Workers nguồn chính — `0 */6 * * *` chỉ social, `0 1 * * *` billing+social. GitHub `social-cron.yml` fallback cùng `0 */6`. Lease 10 phút chống chồng. Ngày rollup = lịch VN (`ymdVn`), không UTC.
+- **Không ALTER cột** trên `social_luot_xem`. `ADD COLUMN IF NOT EXISTS` trên `social_thong_ke_doi_tuong_ngay` = sync repo với cột extra đã có live (no-op production).
+- *Hệ quả file:* `supabase/sql/migration_cins_cron_lease.sql` · `migration_social_cron_functions.sql` · `migration_social_partition_an_toan.sql` · `lib/social/social-cron.ts` · `workers/scheduled.ts` · `wrangler.jsonc` · `.github/workflows/social-cron.yml`. Chạy: `npm run migrate:analytics-p0`.
+
+### Đo lường tiếp cận nội dung (2026-08-09 · code port 2026-08-13)
+
+- **Chốt:** k-anonymity **5** lúc đọc; retention viewer ~**90 ngày**; giữ `article_bai_viet.luot_xem` song song; không lọc nick seed; **không vanity công khai**; **không đo chat**; `shop_don_hang.phien_id` = hash (`hashPhienId` + `SU_KIEN_SALT`); tiếp cận loại hàng gom **chỉ trục 1** (`id_nhom`) — hiện báo cáo + badge hub kho.
+- **DB:** cột `phien_id` + partition `social_luot_xem` + rollup shop **đã apply** 2026-08-09 — không ALTER lại.
+- **App:** checkout gửi `phienId` → hash trên đơn; `GET /api/shop/bao-cao` (attribution + `loaiTiepCan`); `GET /api/shop/tiep-can-loai` (session seller); cron `POST /api/noi-bo/social/cron`.
+- *Hệ quả:* `lib/shop/don-hang.ts` · `tiep-can-loai.ts` · `lib/social/social-cron.ts` · `ShopBaoCaoClient` · `ShopKhoLoaiHub` · điều khoản mục đo lường. Inventory **A23**.
+
 ### Tag — gỡ verify CINs tuyệt đối + Phân loại (fandom) UX (2026-08-12)
 
 - **Chốt verify:** Admin **không** verify bất kỳ loại tag nào (`keyword` / `phan_mem` / `fandom` / …). Cộng đồng tạo tự do; không badge Verified trên entity / light / aggregation / TagInput / editor / Journey rail (thẻ bài viết).
@@ -375,6 +418,7 @@
 | A20 | *(bảng mới)* `org_goi_hoc_phi_khoa` | N–N gói ↔ khóa | `id_goi` → `org_goi_hoc_phi` · `id_khoa_hoc` → `org_khoa_hoc` · UNIQUE cặp | — | Một gói gắn nhiều khóa (VD 1 tháng Online × 3 môn) | Backfill từ `org_goi_hoc_phi.id_khoa_hoc` | **Đã duyệt + chạy** 2026-08-03 · `migration_goi_hoc_phi_nhieu_khoa.sql` · `npm run migrate:goi-nhieu-khoa` |
 | A21 | `shop_nhom` | Thêm `id_danh_muc`, `danh_muc_xac_nhan` | uuid FK → `shop_danh_muc` ON DELETE SET NULL · `boolean NOT NULL DEFAULT false` | `id_danh_muc` YES · flag NO (default false) | Taxonomy canonical hub `/cua-hang` — map loại → danh mục CINs | Loại cũ = NULL / false; bán bình thường | **Đã duyệt §11.7 + chạy** 2026-08-07 · `migration_shop_danh_muc.sql` · `npm run migrate:shop-danh-muc` · kèm bảng mới `shop_danh_muc`/`_alias`/`shop_thuoc_tinh`/`_gia_tri`/`_alias`/`shop_nhom_thuoc_tinh` |
 | A22 | `shop_don_hang` | Thêm `tong_hang`, `tien_giam_combo`, `tien_giam_voucher`, `id_voucher`, `giam_snapshot` | `numeric` · uuid → `shop_voucher` · `jsonb` | YES (có DEFAULT 0 cho tiền giảm) | Snapshot giảm giá combo/voucher; `tong_tien` = buyer trả | Backfill `tong_hang = tong_tien` | **Đã duyệt + chạy** 2026-08-07 · `migration_shop_don_giam_gia.sql` · kèm bảng mới combo/voucher · `npm run migrate:shop-combo-voucher` |
+| A23 | `shop_don_hang` | Thêm `phien_id` | `text` NULL + index partial `shop_don_hang_phien_idx` | YES | Hash phiên client để đo xem→mua; không lưu UUID thô | Đơn cũ = NULL | **Đã chạy** 2026-08-09 · `migration_shop_don_phien_id.sql` |
 
 > Khi user duyệt một dòng → đổi **Trạng thái** thành `Đã duyệt YYYY-MM-DD` rồi mới viết/chạy file migration. Khi đã apply trên DB → `Đã chạy` + tên file SQL. Mọi ALTER phát sinh thêm ngoài bảng này → **thêm dòng mới vào inventory trước**, không lén vào migration khác.
 

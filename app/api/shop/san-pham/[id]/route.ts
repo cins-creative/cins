@@ -5,8 +5,10 @@ import {
   softDeleteBienThe,
   softDeleteSanPham,
   updateSanPham,
+  updateSanPhamAnhThumbFit,
   upsertBienThe,
 } from "@/lib/shop/catalog";
+import { parseShopThumbFit } from "@/lib/shop/anh-thumb-fit";
 import { SHOP_FEATURE_MAX } from "@/lib/shop/types";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -25,6 +27,25 @@ export async function PATCH(request: Request, ctx: Ctx) {
   }
 
   try {
+    if (
+      (body.anhThumbFit === "contain" || body.anhThumbFit === "cover") &&
+      body.action == null &&
+      body.ten === undefined &&
+      body.moTa === undefined &&
+      body.anhId === undefined &&
+      body.phanLoai === undefined &&
+      body.phanLoai2 === undefined &&
+      body.dangBan === undefined &&
+      body.noiBat === undefined
+    ) {
+      await updateSanPhamAnhThumbFit(
+        session.profile.id,
+        id,
+        parseShopThumbFit(body.anhThumbFit),
+      );
+      return NextResponse.json({ ok: true });
+    }
+
     if (body.action === "upsertBienThe") {
       const bt = await upsertBienThe(session.profile.id, id, {
         id: typeof body.bienTheId === "string" ? body.bienTheId : undefined,

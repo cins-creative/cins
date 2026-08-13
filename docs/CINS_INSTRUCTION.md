@@ -68,6 +68,10 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 
 ## Thay đổi lớn gần đây (tóm tắt — chi tiết ở DECISIONS)
 
+**Analytics scale P0–P3 (2026-08-13):** DEFAULT partition + cron lease; insight/rollup prune `tao_luc`; unique `social_da_xem`; feed đọc da_xem + `social_dem_doi_tuong`. Plan: `PLAN_analytics_scale.md`. Xem DECISIONS LOG.
+
+**Đo lường tiếp cận (2026-08-09 · code 2026-08-13):** Insight riêng tư (k-anon 5, không vanity, không đo chat); `phien_id` hash trên đơn; báo cáo gắn phiên + tiếp cận loại trục 1. Cron `POST /api/noi-bo/social/cron`. Xem DECISIONS A23 + LOG.
+
 **Tag — gỡ verify CINs + Phân loại UX (2026-08-12):** Admin không verify tag; badge Verified tag gỡ; `fandom` hiện «Phân loại»; `so_gan` = bài đăng public; Kho sheet `FandomTaxSelect`. Xem DECISIONS LOG.
 
 **Shop — Combo & Voucher (2026-08-07):** Tab `/ban-hang/uu-dai`; engine `uu-dai.ts`; ví + săn trên `/cua-hang`; ALTER `shop_don_hang` cột giảm giá. Plan: `PLAN_shop_combo_voucher.md`. Xem DECISIONS LOG + IMPLEMENTATION API/SQL.

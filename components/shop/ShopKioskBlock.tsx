@@ -27,11 +27,21 @@ import {
   GIO_CHUNG_CHANGED_EVENT,
   notifyGioChungAdded,
 } from "@/components/shop/ShopGioChungButton";
+import { parseShopThumbFit } from "@/lib/shop/anh-thumb-fit";
+import {
+  resolveLiveThumbFit,
+  useShopThumbFitLive,
+} from "@/lib/shop/use-shop-thumb-fit-live";
 import {
   shopPublicHref,
   shopSlugFromTen,
 } from "@/lib/shop/cua-hang-href";
 import type { ShopGioChung, ShopPostHangItem } from "@/lib/shop/types";
+import {
+  trackLotManHinh,
+  trackShopThemGio,
+  trackTuongTac,
+} from "@/lib/social/track-su-kien";
 
 import "./shop-kiosk-block.css";
 
@@ -109,6 +119,7 @@ export function ShopKioskBlock({
   const [err, setErr] = useState<string | null>(null);
   /** idBienThe → số lượng trong giỏ chung (chỉ hàng của seller này). */
   const [qtyByBt, setQtyByBt] = useState<Map<string, number>>(new Map());
+  const thumbFitLive = useShopThumbFitLive();
 
   const itemsRef = useRef(items);
   itemsRef.current = items;
@@ -122,9 +133,11 @@ export function ShopKioskBlock({
 
   const tickerScrollRef = useRef<HTMLDivElement>(null);
   const tickerTrackRef = useRef<HTMLDivElement>(null);
+  const catalogBodyRef = useRef<HTMLDivElement>(null);
   const tickerDragRef = useRef<{
     pointerId: number;
     startX: number;
+    startY: number;
     startScroll: number;
     active: boolean;
   } | null>(null);
@@ -145,10 +158,8 @@ export function ShopKioskBlock({
   /** Bề rộng 1 bản danh sách (khoảng cách tới đầu bản kế). */
   const tickerSetWidthRef = useRef(0);
 
-  /** Vị trí cuộn số thực — scrollLeft có thể bị làm tròn. */
+  /** Vị trí dải hàng (px) — transform subpixel, không dùng scrollLeft. */
   const tickerPosRef = useRef(0);
-  /** Giá trị vừa ghi xuống scrollLeft — phân biệt cuộn do mình vs user. */
-  const tickerExpectRef = useRef(0);
   /** Lý do tạm giữ ticker; rỗng → chạy. */
   const tickerHoldReasonsRef = useRef(new Set<string>());
   const tickerRafRef = useRef<number | null>(null);
@@ -162,11 +173,13 @@ export function ShopKioskBlock({
     new Map<string, ReturnType<typeof setTimeout>>(),
   );
 
-  /** Ghi scrollLeft + đồng bộ ref số thực / expect (cùng hệ toạ độ với drag). */
-  const writeTickerScroll = useCallback((el: HTMLDivElement, pos: number) => {
+  /** Ghi vị trí lên transform (compositor) — cùng hệ với drag / rAF. */
+  const writeTickerPos = useCallback((pos: number) => {
     tickerPosRef.current = pos;
-    el.scrollLeft = pos;
-    tickerExpectRef.current = pos;
+    const track = tickerTrackRef.current;
+    if (track) {
+      track.style.transform = `translate3d(${-pos}px, 0, 0)`;
+    }
   }, []);
 
   const scheduleTickerHoldClear = useCallback((reason: string) => {
@@ -198,6 +211,7 @@ export function ShopKioskBlock({
         setTickerCopies(TICKER_COPIES_MIN);
       }
       tickerSetWidthRef.current = 0;
+      writeTickerPos(0);
       return;
     }
 
@@ -233,39 +247,43 @@ export function ShopKioskBlock({
     }
 
     tickerSetWidthRef.current = oneSet;
-    if (el.scrollLeft < oneSet || el.scrollLeft >= oneSet * 2) {
-      writeTickerScroll(el, oneSet);
-    } else {
-      tickerPosRef.current = el.scrollLeft;
-      tickerExpectRef.current = el.scrollLeft;
+    if (
+      tickerPosRef.current < oneSet ||
+      tickerPosRef.current >= oneSet * 2
+    ) {
+      writeTickerPos(oneSet);
     }
-  }, [writeTickerScroll]);
+  }, [writeTickerPos]);
 
-  /** Cuộn qua mép bản giữa → dời scrollLeft đúng 1 bản (liền mạch vì trùng nội dung). */
+  /** Qua mép bản giữa → dời transform đúng 1 bản (liền mạch vì trùng nội dung). */
   const normalizeTickerLoop = useCallback(() => {
-    const el = tickerScrollRef.current;
     const oneSet = tickerSetWidthRef.current;
-    if (!el || !tickerLoopRef.current || oneSet <= 0) return;
-    if (el.scrollLeft >= oneSet * 2) {
-      const next = el.scrollLeft - oneSet;
-      writeTickerScroll(el, next);
+    if (!tickerLoopRef.current || oneSet <= 0) return;
+    const pos = tickerPosRef.current;
+    if (pos >= oneSet * 2) {
+      writeTickerPos(pos - oneSet);
       const drag = tickerDragRef.current;
       if (drag) drag.startScroll -= oneSet;
-    } else if (el.scrollLeft < oneSet) {
-      const next = el.scrollLeft + oneSet;
-      writeTickerScroll(el, next);
+    } else if (pos < oneSet) {
+      writeTickerPos(pos + oneSet);
       const drag = tickerDragRef.current;
       if (drag) drag.startScroll += oneSet;
     }
-  }, [writeTickerScroll]);
+  }, [writeTickerPos]);
+
+  const abortTickerDragHold = useCallback(() => {
+    const resumeTimer = tickerResumeTimersRef.current.get("drag");
+    if (resumeTimer) {
+      clearTimeout(resumeTimer);
+      tickerResumeTimersRef.current.delete("drag");
+    }
+    tickerHoldReasonsRef.current.delete("drag");
+    tickerEaseStartRef.current = 0;
+  }, []);
 
   const onTickerPointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
-      /* Touch: cuộn ngang tự nhiên của trình duyệt. Chuột: kéo bằng JS. */
-      if (e.pointerType !== "mouse") return;
-      if (e.button !== 0) return;
-      const el = tickerScrollRef.current;
-      if (!el) return;
+      if (e.pointerType === "mouse" && e.button !== 0) return;
       /* Dừng ticker ngay từ lúc nhấn — không đợi ngưỡng 3px. */
       const resumeTimer = tickerResumeTimersRef.current.get("drag");
       if (resumeTimer) {
@@ -277,7 +295,8 @@ export function ShopKioskBlock({
       tickerDragRef.current = {
         pointerId: e.pointerId,
         startX: e.clientX,
-        startScroll: el.scrollLeft,
+        startY: e.clientY,
+        startScroll: tickerPosRef.current,
         active: false,
       };
     },
@@ -287,11 +306,18 @@ export function ShopKioskBlock({
   const onTickerPointerMove = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       const drag = tickerDragRef.current;
-      const el = tickerScrollRef.current;
-      if (!drag || drag.pointerId !== e.pointerId || !el) return;
+      if (!drag || drag.pointerId !== e.pointerId) return;
       const dx = e.clientX - drag.startX;
+      const dy = e.clientY - drag.startY;
 
       if (!drag.active) {
+        if (Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
+        /* Touch/pen vuốt dọc → trả lại trang, đừng khóa ticker. */
+        if (e.pointerType !== "mouse" && Math.abs(dy) >= Math.abs(dx)) {
+          tickerDragRef.current = null;
+          abortTickerDragHold();
+          return;
+        }
         if (Math.abs(dx) < 3) return;
         drag.active = true;
         setTickerDragging(true);
@@ -302,11 +328,11 @@ export function ShopKioskBlock({
         }
       }
 
-      writeTickerScroll(el, drag.startScroll - dx);
+      writeTickerPos(drag.startScroll - dx);
       normalizeTickerLoop();
       e.preventDefault();
     },
-    [normalizeTickerLoop, writeTickerScroll],
+    [abortTickerDragHold, normalizeTickerLoop, writeTickerPos],
   );
 
   const finishTickerDrag = useCallback(
@@ -335,19 +361,6 @@ export function ShopKioskBlock({
     [],
   );
 
-  /** onScroll: neo loop + phát hiện cuộn user (touch/wheel). */
-  const onTickerScroll = useCallback(() => {
-    const el = tickerScrollRef.current;
-    if (!el) return;
-    if (Math.abs(el.scrollLeft - tickerExpectRef.current) > 1.5) {
-      tickerPosRef.current = el.scrollLeft;
-      tickerExpectRef.current = el.scrollLeft;
-      tickerHoldReasonsRef.current.add("user-scroll");
-      scheduleTickerHoldClear("user-scroll");
-    }
-    normalizeTickerLoop();
-  }, [normalizeTickerLoop, scheduleTickerHoldClear]);
-
   const onTickerLostPointerCapture = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       const drag = tickerDragRef.current;
@@ -372,6 +385,70 @@ export function ShopKioskBlock({
     Boolean(sellerUserId) &&
     viewerProfileId === sellerUserId;
   const cartLocked = previewOnly || isOwner;
+
+  useEffect(() => {
+    if (!catalogOpen || isOwner || previewOnly) return;
+    for (const it of itemsRef.current) {
+      if (!it.idSanPham) continue;
+      trackTuongTac({
+        loaiDoiTuong: "shop_san_pham",
+        idDoiTuong: it.idSanPham,
+        hanhVi: "mo_catalog",
+        nguon: "shop",
+      });
+    }
+  }, [catalogOpen, isOwner, previewOnly]);
+
+  useEffect(() => {
+    if (!preview || isOwner || previewOnly) return;
+    const it = itemsRef.current.find((x) => x.anhUrl === preview.src);
+    if (!it?.idSanPham) return;
+    trackTuongTac({
+      loaiDoiTuong: "shop_san_pham",
+      idDoiTuong: it.idSanPham,
+      hanhVi: "phong_to_anh",
+      nguon: "shop",
+    });
+  }, [preview, isOwner, previewOnly]);
+
+  useEffect(() => {
+    if (isOwner || previewOnly) return;
+    const root = tickerTrackRef.current;
+    const ioRoot = tickerScrollRef.current;
+    if (!root || typeof window === "undefined") return;
+    if (!("IntersectionObserver" in window)) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const id = (entry.target as HTMLElement).dataset.shopTrackSp;
+          if (id) trackLotManHinh(id, "shop");
+        }
+      },
+      { root: ioRoot, threshold: 0.15 },
+    );
+    root.querySelectorAll("[data-shop-track-sp]").forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [items, tickerCopies, isOwner, previewOnly]);
+
+  useEffect(() => {
+    if (!catalogOpen || isOwner || previewOnly) return;
+    const root = catalogBodyRef.current;
+    if (!root || typeof window === "undefined") return;
+    if (!("IntersectionObserver" in window)) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const id = (entry.target as HTMLElement).dataset.shopTrackSp;
+          if (id) trackLotManHinh(id, "shop");
+        }
+      },
+      { threshold: 0.2 },
+    );
+    root.querySelectorAll("[data-shop-track-sp]").forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [catalogOpen, items, isOwner, previewOnly]);
 
   useEffect(() => {
     setPortalReady(true);
@@ -425,6 +502,7 @@ export function ShopKioskBlock({
             phanLoai: string | null;
             phanLoai2: string | null;
             anhUrl: string | null;
+            anhThumbFit?: string | null;
             soLuongTon: number;
             soLuongBan: number;
             giaHienThi: number | null;
@@ -444,6 +522,8 @@ export function ShopKioskBlock({
             phanLoai: it.phanLoai,
             phanLoai2: it.phanLoai2,
             anhUrl: it.anhUrl,
+            anhThumbFit: parseShopThumbFit(it.anhThumbFit),
+            anhThumbFit: it.anhThumbFit,
             soLuongTon: it.soLuongTon,
             soLuongBan: it.soLuongBan,
             giaHienThi: it.giaHienThi,
@@ -547,14 +627,16 @@ export function ShopKioskBlock({
     measureTicker();
   }, [items, tickerLoop, tickerCopies, measureTicker]);
 
-  /* Khung đổi kích thước (resize / layout) → đo lại số bản nhân. */
+  /* Khung / dải hàng đổi size (resize, ảnh load) → đo lại số bản nhân. */
   useEffect(() => {
     const el = tickerScrollRef.current;
+    const track = tickerTrackRef.current;
     if (!el || typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver(() => measureTicker());
     ro.observe(el);
+    if (track) ro.observe(track);
     return () => ro.disconnect();
-  }, [measureTicker]);
+  }, [items, measureTicker, tickerCopies, tickerLoop]);
 
   /* Modal mở → tạm giữ ticker; đóng → gỡ. */
   useEffect(() => {
@@ -566,8 +648,8 @@ export function ShopKioskBlock({
   }, [preview, catalogOpen]);
 
   /*
-   * Tự trôi bằng rAF tăng scrollLeft (cùng hệ với drag) — chỉ khi loop.
-   * Không dùng CSS translateX: hai hệ toạ độ sẽ lệch ở mép wrap.
+   * Tự trôi bằng rAF + translate3d (cùng hệ với drag) — chỉ khi loop.
+   * Không dùng scrollLeft: integer ~28px/s ≈ 24fps, và bắn scroll event tắt tooltip.
    */
   useEffect(() => {
     if (!tickerLoop) {
@@ -580,6 +662,7 @@ export function ShopKioskBlock({
     }
 
     const el = tickerScrollRef.current;
+    const track = tickerTrackRef.current;
     if (!el) return;
 
     const root =
@@ -593,8 +676,7 @@ export function ShopKioskBlock({
         Number.isFinite(parsed) && parsed > 0 ? parsed : TICKER_SPEED_DEFAULT;
     }
 
-    tickerPosRef.current = el.scrollLeft;
-    tickerExpectRef.current = el.scrollLeft;
+    writeTickerPos(tickerPosRef.current);
 
     const resumeTimers = tickerResumeTimersRef.current;
     const holdReasons = tickerHoldReasonsRef.current;
@@ -605,6 +687,7 @@ export function ShopKioskBlock({
         tickerRafRef.current = null;
       }
       tickerLastTsRef.current = null;
+      if (track) track.style.willChange = "";
     };
 
     const tick = (ts: number) => {
@@ -636,11 +719,10 @@ export function ShopKioskBlock({
 
       let pos = tickerPosRef.current + speed * (dt / 1000);
       const oneSet = tickerSetWidthRef.current;
-      /* Wrap trên ref — không đọc lại scrollLeft (tránh forced reflow). */
       if (oneSet > 0 && pos >= oneSet * 2) {
         pos -= oneSet;
       }
-      writeTickerScroll(el, pos);
+      writeTickerPos(pos);
     };
 
     const startRaf = () => {
@@ -648,6 +730,7 @@ export function ShopKioskBlock({
       if (holdReasons.has("offscreen")) return;
       if (tickerRafRef.current != null) return;
       tickerLastTsRef.current = null;
+      if (track) track.style.willChange = "transform";
       tickerRafRef.current = requestAnimationFrame(tick);
     };
 
@@ -673,6 +756,22 @@ export function ShopKioskBlock({
     onVisibility();
     document.addEventListener("visibilitychange", onVisibility);
 
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) < Math.abs(e.deltaY) || e.deltaX === 0) return;
+      e.preventDefault();
+      holdReasons.add("user-scroll");
+      scheduleTickerHoldClear("user-scroll");
+      tickerEaseStartRef.current = null;
+      let pos = tickerPosRef.current + e.deltaX;
+      const oneSet = tickerSetWidthRef.current;
+      if (oneSet > 0) {
+        while (pos >= oneSet * 2) pos -= oneSet;
+        while (pos < oneSet) pos += oneSet;
+      }
+      writeTickerPos(pos);
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+
     let io: IntersectionObserver | null = null;
     if (typeof IntersectionObserver !== "undefined") {
       io = new IntersectionObserver(
@@ -688,7 +787,7 @@ export function ShopKioskBlock({
             stopRaf();
           }
         },
-        { threshold: 0 },
+        { threshold: 0, rootMargin: "80px 0px" },
       );
       io.observe(el);
     } else {
@@ -699,6 +798,7 @@ export function ShopKioskBlock({
       stopRaf();
       mq.removeEventListener("change", syncReducedMotion);
       document.removeEventListener("visibilitychange", onVisibility);
+      el.removeEventListener("wheel", onWheel);
       io?.disconnect();
       for (const t of resumeTimers.values()) clearTimeout(t);
       resumeTimers.clear();
@@ -708,7 +808,7 @@ export function ShopKioskBlock({
       holdReasons.delete("drag");
       holdReasons.delete("user-scroll");
     };
-  }, [tickerLoop, writeTickerScroll]);
+  }, [scheduleTickerHoldClear, tickerLoop, writeTickerPos]);
 
   /* Dọn timer debounce khi unmount. */
   useEffect(() => {
@@ -799,7 +899,10 @@ export function ShopKioskBlock({
         else next.set(idBienThe, qty);
         return next;
       });
-      if (shouldNotify) notifyGioChungAdded();
+      if (shouldNotify) {
+        notifyGioChungAdded();
+        if (item?.idSanPham) trackShopThemGio(item.idSanPham);
+      }
       pendingQtyRef.current.set(idBienThe, qty);
       const prevTimer = syncTimersRef.current.get(idBienThe);
       if (prevTimer) clearTimeout(prevTimer);
@@ -967,7 +1070,7 @@ export function ShopKioskBlock({
 
               {err ? <p className="shop-kiosk-catalog-err">{err}</p> : null}
 
-              <div className="shop-kiosk-catalog-body">
+              <div ref={catalogBodyRef} className="shop-kiosk-catalog-body">
                 {itemsByGroup.length === 0 ? (
                   <p className="shop-kiosk-empty">Chưa có hàng bán.</p>
                 ) : (
@@ -1003,15 +1106,22 @@ export function ShopKioskBlock({
                               SL:{it.soLuongTon}
                             </span>
                           ) : null;
+                          const fit = resolveLiveThumbFit(
+                            thumbFitLive,
+                            it.idSanPham,
+                            it.anhThumbFit,
+                          );
                           return (
                             <li
                               key={it.id}
                               className="shop-kiosk-catalog-card"
+                              data-shop-track-sp={it.idSanPham}
                             >
                               {it.anhUrl ? (
                                 <button
                                   type="button"
                                   className="shop-kiosk-catalog-thumb-btn"
+                                  data-shop-thumb-fit={fit}
                                   onClick={() =>
                                     setPreview({
                                       src: it.anhUrl!,
@@ -1150,13 +1260,13 @@ export function ShopKioskBlock({
           <div
             ref={tickerScrollRef}
             className={`shop-kiosk-ticker${tickerDragging ? " is-dragging" : ""}`}
+            data-cins-auto-scroll=""
             onPointerDown={onTickerPointerDown}
             onPointerMove={onTickerPointerMove}
             onPointerUp={finishTickerDrag}
             onPointerCancel={finishTickerDrag}
             onLostPointerCapture={onTickerLostPointerCapture}
             onClickCapture={onTickerClickCapture}
-            onScroll={onTickerScroll}
           >
             <div ref={tickerTrackRef} className="shop-kiosk-ticker-track">
               {Array.from({
@@ -1166,11 +1276,17 @@ export function ShopKioskBlock({
                   /* Bản nhân đôi (copy > 0) ẩn với trợ năng, khỏi lặp tab/đọc. */
                   const dup = copy > 0;
                   const key = `${it.id}-${copy}-${i}`;
+                  const fit = resolveLiveThumbFit(
+                    thumbFitLive,
+                    it.idSanPham,
+                    it.anhThumbFit,
+                  );
                   return it.anhUrl ? (
                     <button
                       key={key}
                       type="button"
                       className="shop-kiosk-ticker-thumb-btn"
+                      data-shop-track-sp={dup ? undefined : it.idSanPham}
                       tabIndex={dup ? -1 : undefined}
                       aria-hidden={dup || undefined}
                       onClick={(e) => {
@@ -1185,6 +1301,7 @@ export function ShopKioskBlock({
                         src={it.anhUrl}
                         alt=""
                         className="shop-kiosk-ticker-thumb"
+                        data-shop-thumb-fit={fit}
                         draggable={false}
                       />
                     </button>

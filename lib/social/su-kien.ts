@@ -4,10 +4,13 @@ import { createHash } from "node:crypto";
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
+  INSIGHT_ROLLUP_TOI_DA_THANG,
   MAX_SU_KIEN_BATCH,
+  kAnonCount,
   sanitizeSuKien,
   type SuKienInput,
 } from "@/lib/social/su-kien-constants";
+import { dropOwnerSelfEvents } from "@/lib/social/su-kien-validate";
 
 /** Hash phien_id của khách (không lưu giá trị thô — tránh PII/định danh ngược). */
 export function hashPhienId(phienId: string | null | undefined): string | null {
@@ -40,12 +43,17 @@ export async function recordSuKien(
   }
   const phienHash = hashPhienId(ctx.phienIdRaw);
 
-  const rows: Array<Record<string, unknown>> = [];
+  const sanitized: SuKienInput[] = [];
   for (const raw of rawEvents.slice(0, MAX_SU_KIEN_BATCH)) {
     const ev = sanitizeSuKien(raw);
     if (!ev) continue;
-    rows.push(toRow(ev, ctx.nguoiXemId, phienHash));
+    if ((ev.loai_doi_tuong as string) === "chat_tin_nhan") continue;
+    sanitized.push(ev);
   }
+  const kept = await dropOwnerSelfEvents(sanitized, ctx.nguoiXemId);
+  const deduped = dedupSuKienBatch(kept);
+
+  const rows = deduped.map((ev) => toRow(ev, ctx.nguoiXemId, phienHash));
 
   if (rows.length === 0) return { ok: true, written: 0 };
 
@@ -53,6 +61,131 @@ export async function recordSuKien(
   const { error } = await admin.from("social_luot_xem").insert(rows);
   if (error) return { ok: false, error: error.message };
   return { ok: true, written: rows.length };
+}
+
+const DEDUP_LOAI = new Set(["hien_thi", "lot_man_hinh"]);
+
+/** Gộp impression trùng trong cùng batch (client flush 4s có thể gửi 2 lần). */
+function dedupSuKienBatch(events: SuKienInput[]): SuKienInput[] {
+  const seen = new Set<string>();
+  const out: SuKienInput[] = [];
+  for (const ev of events) {
+    if (!DEDUP_LOAI.has(ev.loai_su_kien)) {
+      out.push(ev);
+      continue;
+    }
+    const key = [
+      ev.loai_su_kien,
+      ev.loai_doi_tuong,
+      ev.id_doi_tuong,
+      ev.nguon ?? "",
+      ev.id_boi_canh ?? "",
+    ].join(":");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(ev);
+  }
+  return out;
+}
+
+export type InsightKhoang = { tu?: string | null; den?: string | null };
+
+export type InsightWindow = {
+  tu: string | null;
+  den: string;
+  toanThoiGian: boolean;
+};
+
+/** Mặc định toàn thời gian (rollup + da_xem). tu/den tùy chọn, trần ~25 tháng. */
+export function clampInsightWindow(raw?: InsightKhoang | null): InsightWindow {
+  const maxMs = INSIGHT_ROLLUP_TOI_DA_THANG * 31 * 86_400_000;
+  const hasTu = Boolean(raw?.tu);
+  const hasDen = Boolean(raw?.den);
+  const denParsed = raw?.den ? Date.parse(raw.den) : Number.NaN;
+  const denMs = Number.isFinite(denParsed) ? denParsed : Date.now();
+  if (!hasTu && !hasDen) {
+    return { tu: null, den: new Date(denMs).toISOString(), toanThoiGian: true };
+  }
+  const tuParsed = raw?.tu ? Date.parse(raw.tu) : Number.NaN;
+  let tuMs = Number.isFinite(tuParsed) ? tuParsed : denMs - maxMs;
+  if (denMs - tuMs > maxMs) tuMs = denMs - maxMs;
+  if (tuMs >= denMs) tuMs = denMs - maxMs;
+  return {
+    tu: new Date(tuMs).toISOString(),
+    den: new Date(denMs).toISOString(),
+    toanThoiGian: false,
+  };
+}
+
+const FEED_ID_CHUNK = 200;
+
+function chunkIds(ids: string[]): string[][] {
+  const out: string[][] = [];
+  for (let i = 0; i < ids.length; i += FEED_ID_CHUNK) {
+    out.push(ids.slice(i, i + FEED_ID_CHUNK));
+  }
+  return out;
+}
+
+/**
+ * Số lần viewer đã tiếp cận từng đối tượng — `social_da_xem.so_lan` (PK viewer_key).
+ * Khách (không viewerId) → map rỗng. Không đọc log thô.
+ */
+export async function demLuotXemCuaViewer(
+  viewerId: string | null | undefined,
+  idDoiTuongs: string[],
+): Promise<Map<string, number>> {
+  const counts = new Map<string, number>();
+  if (!viewerId) return counts;
+
+  const ids = [...new Set(idDoiTuongs.filter(Boolean))];
+  if (ids.length === 0) return counts;
+
+  const admin = createServiceRoleClient();
+  for (const slice of chunkIds(ids)) {
+    const { data, error } = await admin
+      .from("social_da_xem")
+      .select("id_doi_tuong, so_lan")
+      .eq("viewer_key", viewerId)
+      .in("id_doi_tuong", slice)
+      .returns<Array<{ id_doi_tuong: string; so_lan: number | null }>>();
+    if (error) {
+      console.error("[su-kien] da_xem viewer", error.message);
+      break;
+    }
+    for (const row of data ?? []) {
+      counts.set(row.id_doi_tuong, Number(row.so_lan) || 0);
+    }
+  }
+  return counts;
+}
+
+/**
+ * Reach toàn cục (`luot_tiep_can`) từ `social_dem_doi_tuong`. Không đọc log thô.
+ */
+export async function demLuotXemToanCuc(
+  idDoiTuongs: string[],
+): Promise<Map<string, number>> {
+  const counts = new Map<string, number>();
+  const ids = [...new Set(idDoiTuongs.filter(Boolean))];
+  if (ids.length === 0) return counts;
+
+  const admin = createServiceRoleClient();
+  for (const slice of chunkIds(ids)) {
+    const { data, error } = await admin
+      .from("social_dem_doi_tuong")
+      .select("id_doi_tuong, luot_tiep_can")
+      .in("id_doi_tuong", slice)
+      .returns<Array<{ id_doi_tuong: string; luot_tiep_can: number | string | null }>>();
+    if (error) {
+      console.error("[su-kien] dem_doi_tuong", error.message);
+      break;
+    }
+    for (const row of data ?? []) {
+      counts.set(row.id_doi_tuong, Number(row.luot_tiep_can) || 0);
+    }
+  }
+  return counts;
 }
 
 function toRow(
@@ -71,64 +204,6 @@ function toRow(
     id_boi_canh: ev.id_boi_canh ?? null,
     ngu_canh: ev.ngu_canh ?? null,
   };
-}
-
-/**
- * Đếm số lần 1 viewer đã "tiếp cận" (`hien_thi`) từng đối tượng trong danh sách.
- * Dùng để xếp hạng feed: đối tượng CHƯA xem (không có trong map ⇒ 0) hoặc xem
- * ít lên trên. Match theo `id_doi_tuong` (UUID toàn cục duy nhất) nên không cần
- * lọc thêm `loai_doi_tuong`. Trả map rỗng cho khách (không `viewerId`).
- */
-export async function demLuotXemCuaViewer(
-  viewerId: string | null | undefined,
-  idDoiTuongs: string[],
-): Promise<Map<string, number>> {
-  const counts = new Map<string, number>();
-  if (!viewerId) return counts;
-
-  const ids = [...new Set(idDoiTuongs.filter(Boolean))];
-  if (ids.length === 0) return counts;
-
-  const admin = createServiceRoleClient();
-  const { data } = await admin
-    .from("social_luot_xem")
-    .select("id_doi_tuong")
-    .eq("nguoi_xem", viewerId)
-    .eq("loai_su_kien", "hien_thi")
-    .in("id_doi_tuong", ids)
-    .limit(5000)
-    .returns<Array<{ id_doi_tuong: string }>>();
-
-  for (const row of data ?? []) {
-    counts.set(row.id_doi_tuong, (counts.get(row.id_doi_tuong) ?? 0) + 1);
-  }
-  return counts;
-}
-
-/**
- * Đếm impression `hien_thi` toàn cục theo `id_doi_tuong` (mọi viewer).
- * Dùng cold-start rank: bài mới + reach thấp lên trước. Không thay insight chủ bài.
- */
-export async function demLuotXemToanCuc(
-  idDoiTuongs: string[],
-): Promise<Map<string, number>> {
-  const counts = new Map<string, number>();
-  const ids = [...new Set(idDoiTuongs.filter(Boolean))];
-  if (ids.length === 0) return counts;
-
-  const admin = createServiceRoleClient();
-  const { data } = await admin
-    .from("social_luot_xem")
-    .select("id_doi_tuong")
-    .eq("loai_su_kien", "hien_thi")
-    .in("id_doi_tuong", ids)
-    .limit(8000)
-    .returns<Array<{ id_doi_tuong: string }>>();
-
-  for (const row of data ?? []) {
-    counts.set(row.id_doi_tuong, (counts.get(row.id_doi_tuong) ?? 0) + 1);
-  }
-  return counts;
 }
 
 /* ── Insight RIÊNG TƯ cho chủ bài ────────────────────────────────────── */
@@ -234,17 +309,16 @@ export async function canViewCotMocInsight(
 }
 
 /**
- * Đọc số liệu của 1 cột mốc — REAL-TIME từ log thô (qua RPC service role),
- * gồm tổng chỉ số + tách nguồn (trong tổ chức / bên ngoài) + phân loại người
- * xem theo `giai_doan`. CHỈ người có quyền (`canViewCotMocInsight`). Trả null
- * nếu không đủ quyền (phản-vanity).
+ * Đọc số liệu của 1 cột mốc — rollup ngày + unique `social_da_xem` + delta hôm nay.
+ * CHỈ người có quyền (`canViewCotMocInsight`). Trả null nếu không đủ quyền (phản-vanity).
  */
 export async function getCotMocInsight(
   cotMocId: string,
   requesterId: string | null,
+  khoang?: InsightKhoang | null,
 ): Promise<CotMocInsight | null> {
   if (!(await canViewCotMocInsight(cotMocId, requesterId))) return null;
-  return readSubjectInsight("cot_moc", cotMocId);
+  return readSubjectInsight("cot_moc", cotMocId, khoang);
 }
 
 /**
@@ -277,57 +351,179 @@ export async function canViewOrgBaiDangInsight(
 }
 
 /**
- * Đọc số liệu bài đăng tổ chức — REAL-TIME. Chỉ quản trị viên tổ chức.
+ * Đọc số liệu bài đăng tổ chức — rollup + da_xem. Chỉ quản trị viên tổ chức.
  * Trả null nếu không đủ quyền (phản-vanity).
  */
 export async function getOrgBaiDangInsight(
   baiDangId: string,
   requesterId: string | null,
+  khoang?: InsightKhoang | null,
 ): Promise<CotMocInsight | null> {
   if (!(await canViewOrgBaiDangInsight(baiDangId, requesterId))) return null;
-  return readSubjectInsight("org_bai_dang", baiDangId);
+  return readSubjectInsight("org_bai_dang", baiDangId, khoang);
 }
 
-/** Đọc tổng hợp số liệu của 1 đối tượng từ log thô (không kiểm tra quyền). */
+/** Đọc tổng hợp số liệu (không kiểm tra quyền). Cache RAM sau auth, TTL 10 phút. */
 async function readSubjectInsight(
   loai: "cot_moc" | "org_bai_dang",
   id: string,
+  khoang?: InsightKhoang | null,
 ): Promise<CotMocInsight> {
-  const admin = createServiceRoleClient();
+  const win = clampInsightWindow(khoang);
+  const cacheKey = `${loai}:${id}:${win.tu ?? "*"}:${win.den}`;
+  const cached = getCachedInsight(cacheKey);
+  if (cached) return cached;
 
-  const [totalRes, nguonRes, giaiDoanRes] = await Promise.all([
-    admin.rpc("social_insight_doi_tuong", { p_loai: loai, p_id: id }),
-    admin.rpc("social_insight_nguon", { p_loai: loai, p_id: id }),
-    admin.rpc("social_insight_giai_doan", { p_loai: loai, p_id: id }),
+  const admin = createServiceRoleClient();
+  const today = ymdVnFromIso(new Date().toISOString());
+  const todayTuIso = `${today}T00:00:00+07:00`;
+  const denMs = Date.parse(win.den);
+  const includeToday = Number.isFinite(denMs) && denMs > Date.parse(todayTuIso);
+  const tuNgay = win.tu ? ymdVnFromIso(win.tu) : null;
+  const denNgay = ymdVnFromIso(win.den);
+  const rpcTu = win.tu && Date.parse(win.tu) > Date.parse(todayTuIso)
+    ? win.tu
+    : todayTuIso;
+
+  const emptyToday = {
+    luot_tiep_can: 0,
+    tiep_can_unique: 0,
+    luot_xem_noi_dung: 0,
+    luot_mo_comment: 0,
+    luot_click_profile: 0,
+    luot_xem_media: 0,
+    luot_click_lien_ket: 0,
+  };
+
+  const [
+    dailyRows,
+    nguonRows,
+    nhomRows,
+    uniqueCount,
+    todayTotalRes,
+    todayNguonRes,
+    todayGiaiRes,
+  ] = await Promise.all([
+    selectPaged<{
+      luot_tiep_can: number | null;
+      luot_xem_noi_dung: number | null;
+      luot_mo_comment: number | null;
+      luot_click_profile: number | null;
+      luot_xem_media: number | null;
+      luot_click_lien_ket: number | null;
+    }>((from, to) => {
+      let q = admin
+        .from("social_thong_ke_doi_tuong_ngay")
+        .select(
+          "luot_tiep_can, luot_xem_noi_dung, luot_mo_comment, luot_click_profile, luot_xem_media, luot_click_lien_ket",
+        )
+        .eq("loai_doi_tuong", loai)
+        .eq("id_doi_tuong", id)
+        .lt("ngay", today)
+        .lte("ngay", denNgay);
+      if (tuNgay) q = q.gte("ngay", tuNgay);
+      return q.range(from, to);
+    }),
+    selectPaged<{
+      nguon: string;
+      luot_tiep_can: number | null;
+      tiep_can_unique: number | null;
+    }>((from, to) => {
+      let q = admin
+        .from("social_thong_ke_nguon_ngay")
+        .select("nguon, luot_tiep_can, tiep_can_unique")
+        .eq("loai_doi_tuong", loai)
+        .eq("id_doi_tuong", id)
+        .lt("ngay", today)
+        .lte("ngay", denNgay);
+      if (tuNgay) q = q.gte("ngay", tuNgay);
+      return q.range(from, to);
+    }),
+    selectPaged<{ gia_tri: string; so_nguoi: number | null }>((from, to) => {
+      let q = admin
+        .from("social_thong_ke_nhom_ngay")
+        .select("gia_tri, so_nguoi")
+        .eq("loai_doi_tuong", loai)
+        .eq("id_doi_tuong", id)
+        .eq("loai_nhom", "giai_doan")
+        .lt("ngay", today)
+        .lte("ngay", denNgay);
+      if (tuNgay) q = q.gte("ngay", tuNgay);
+      return q.range(from, to);
+    }),
+    countDaXem(admin, loai, id, win),
+    includeToday
+      ? admin.rpc("social_insight_doi_tuong", {
+          p_loai: loai,
+          p_id: id,
+          p_tu: rpcTu,
+          p_den: win.den,
+        })
+      : Promise.resolve({ data: [emptyToday] }),
+    includeToday
+      ? admin.rpc("social_insight_nguon", {
+          p_loai: loai,
+          p_id: id,
+          p_tu: rpcTu,
+          p_den: win.den,
+        })
+      : Promise.resolve({ data: [] }),
+    includeToday
+      ? admin.rpc("social_insight_giai_doan", {
+          p_loai: loai,
+          p_id: id,
+          p_tu: rpcTu,
+          p_den: win.den,
+        })
+      : Promise.resolve({ data: [] }),
   ]);
 
-  const total = (Array.isArray(totalRes.data) ? totalRes.data[0] : null) as
-    | {
-        luot_tiep_can: number;
-        tiep_can_unique: number;
-        luot_xem_noi_dung: number;
-        luot_mo_comment: number;
-        luot_click_profile: number;
-        luot_xem_media: number;
-        luot_click_lien_ket: number;
-      }
-    | null
-    | undefined;
+  const todayTotal = (
+    Array.isArray(todayTotalRes.data) ? todayTotalRes.data[0] : null
+  ) as typeof emptyToday | null | undefined;
 
-  const nguonRows = (Array.isArray(nguonRes.data) ? nguonRes.data : []) as Array<{
-    nguon: string;
-    luot: number | string;
-    nguoi: number | string;
-  }>;
-  const giaiDoanRows = (
-    Array.isArray(giaiDoanRes.data) ? giaiDoanRes.data : []
-  ) as Array<{ giai_doan: string; nguoi: number | string }>;
+  const luotTiepCan =
+    sumCol(dailyRows, "luot_tiep_can") + (Number(todayTotal?.luot_tiep_can) || 0);
+  const luotXemNoiDung =
+    sumCol(dailyRows, "luot_xem_noi_dung") +
+    (Number(todayTotal?.luot_xem_noi_dung) || 0);
+  const luotMoComment =
+    sumCol(dailyRows, "luot_mo_comment") +
+    (Number(todayTotal?.luot_mo_comment) || 0);
+  const luotClickProfile =
+    sumCol(dailyRows, "luot_click_profile") +
+    (Number(todayTotal?.luot_click_profile) || 0);
+  const luotXemMedia =
+    sumCol(dailyRows, "luot_xem_media") +
+    (Number(todayTotal?.luot_xem_media) || 0);
+  const luotClickLienKet =
+    sumCol(dailyRows, "luot_click_lien_ket") +
+    (Number(todayTotal?.luot_click_lien_ket) || 0);
 
-  const nguonBreakdown: NguonBreakdownItem[] = nguonRows
-    .map((r) => ({
-      nguon: r.nguon,
-      luot: Number(r.luot) || 0,
-      nguoi: Number(r.nguoi) || 0,
+  const nguonMap = new Map<string, { luot: number; nguoi: number }>();
+  for (const r of nguonRows) {
+    const key = r.nguon || "khac";
+    const cur = nguonMap.get(key) ?? { luot: 0, nguoi: 0 };
+    cur.luot += Number(r.luot_tiep_can) || 0;
+    cur.nguoi += Number(r.tiep_can_unique) || 0;
+    nguonMap.set(key, cur);
+  }
+  const todayNguonRows = (
+    Array.isArray(todayNguonRes.data) ? todayNguonRes.data : []
+  ) as Array<{ nguon: string; luot: number | string; nguoi: number | string }>;
+  for (const r of todayNguonRows) {
+    const key = r.nguon || "khac";
+    const cur = nguonMap.get(key) ?? { luot: 0, nguoi: 0 };
+    cur.luot += Number(r.luot) || 0;
+    cur.nguoi += Number(r.nguoi) || 0;
+    nguonMap.set(key, cur);
+  }
+
+  const nguonBreakdown: NguonBreakdownItem[] = [...nguonMap.entries()]
+    .map(([nguon, v]) => ({
+      nguon,
+      luot: v.luot,
+      nguoi: kAnonCount(v.nguoi),
     }))
     .sort((a, b) => b.luot - a.luot);
 
@@ -338,21 +534,128 @@ async function readSubjectInsight(
     else tiepCanBenNgoai += r.nguoi;
   }
 
-  const giaiDoanBreakdown: GiaiDoanBreakdownItem[] = giaiDoanRows
-    .map((r) => ({ giaiDoan: r.giai_doan, nguoi: Number(r.nguoi) || 0 }))
+  const giaiMap = new Map<string, number>();
+  for (const r of nhomRows) {
+    const key = r.gia_tri || "chua_khai";
+    giaiMap.set(key, (giaiMap.get(key) ?? 0) + (Number(r.so_nguoi) || 0));
+  }
+  const todayGiaiRows = (
+    Array.isArray(todayGiaiRes.data) ? todayGiaiRes.data : []
+  ) as Array<{ giai_doan: string; nguoi: number | string }>;
+  for (const r of todayGiaiRows) {
+    const key = r.giai_doan || "chua_khai";
+    giaiMap.set(key, (giaiMap.get(key) ?? 0) + (Number(r.nguoi) || 0));
+  }
+
+  const giaiDoanBreakdown: GiaiDoanBreakdownItem[] = [...giaiMap.entries()]
+    .map(([giaiDoan, nguoi]) => ({ giaiDoan, nguoi: kAnonCount(nguoi) }))
     .sort((a, b) => b.nguoi - a.nguoi);
 
-  return {
-    luotTiepCan: Number(total?.luot_tiep_can) || 0,
-    tiepCanUnique: Number(total?.tiep_can_unique) || 0,
-    luotXemNoiDung: Number(total?.luot_xem_noi_dung) || 0,
-    luotMoComment: Number(total?.luot_mo_comment) || 0,
-    luotClickProfile: Number(total?.luot_click_profile) || 0,
-    luotXemMedia: Number(total?.luot_xem_media) || 0,
-    luotClickLienKet: Number(total?.luot_click_lien_ket) || 0,
+  const insight: CotMocInsight = {
+    luotTiepCan,
+    tiepCanUnique: kAnonCount(uniqueCount),
+    luotXemNoiDung,
+    luotMoComment,
+    luotClickProfile,
+    luotXemMedia,
+    luotClickLienKet,
     tiepCanTrongToChuc,
     tiepCanBenNgoai,
     nguonBreakdown,
     giaiDoanBreakdown,
   };
+  setCachedInsight(cacheKey, insight);
+  return insight;
+}
+
+const INSIGHT_CACHE_TTL_MS = 10 * 60 * 1000;
+const INSIGHT_CACHE_MAX = 400;
+const insightCache = new Map<string, { at: number; data: CotMocInsight }>();
+
+function getCachedInsight(key: string): CotMocInsight | null {
+  const hit = insightCache.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.at > INSIGHT_CACHE_TTL_MS) {
+    insightCache.delete(key);
+    return null;
+  }
+  return hit.data;
+}
+
+function setCachedInsight(key: string, data: CotMocInsight): void {
+  if (insightCache.size >= INSIGHT_CACHE_MAX) {
+    const now = Date.now();
+    for (const [k, v] of insightCache) {
+      if (now - v.at > INSIGHT_CACHE_TTL_MS) insightCache.delete(k);
+    }
+    if (insightCache.size >= INSIGHT_CACHE_MAX) {
+      const first = insightCache.keys().next().value;
+      if (first) insightCache.delete(first);
+    }
+  }
+  insightCache.set(key, { at: Date.now(), data });
+}
+
+function ymdVnFromIso(iso: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(iso));
+}
+
+function sumCol<K extends string>(
+  rows: Array<Record<K, number | null>>,
+  key: K,
+): number {
+  let n = 0;
+  for (const r of rows) n += Number(r[key]) || 0;
+  return n;
+}
+
+async function selectPaged<T>(
+  run: (
+    from: number,
+    to: number,
+  ) => PromiseLike<{ data: T[] | null; error?: { message: string } | null }>,
+): Promise<T[]> {
+  const page = 1000;
+  const out: T[] = [];
+  let from = 0;
+  for (;;) {
+    const { data, error } = await run(from, from + page - 1);
+    if (error) {
+      console.error("[su-kien] insight page", error.message);
+      break;
+    }
+    const rows = data ?? [];
+    out.push(...rows);
+    if (rows.length < page) break;
+    from += page;
+    if (from > 20_000) break;
+  }
+  return out;
+}
+
+async function countDaXem(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  loai: string,
+  id: string,
+  win: InsightWindow,
+): Promise<number> {
+  let q = admin
+    .from("social_da_xem")
+    .select("viewer_key", { count: "exact", head: true })
+    .eq("id_doi_tuong", id)
+    .eq("loai_doi_tuong", loai);
+  if (!win.toanThoiGian && win.tu) {
+    q = q.lt("lan_dau", win.den).gte("lan_cuoi", win.tu);
+  }
+  const { count, error } = await q;
+  if (error) {
+    console.error("[su-kien] da_xem count", error.message);
+    return 0;
+  }
+  return count ?? 0;
 }

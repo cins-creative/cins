@@ -4,6 +4,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { ArticlePageView } from "@/components/article/ArticlePageView";
 import { BaiVietArticleView } from "@/components/bai-viet/BaiVietArticleView";
 import { CinsShell } from "@/components/cins/CinsShell";
+import { SubjectPageTracker } from "@/components/social/SubjectPageTracker";
 import { SiteFooter } from "@/components/cins/SiteFooter";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import {
@@ -153,6 +154,11 @@ export default async function BaiVietSlugPage({ params }: Props) {
 
     return (
       <CinsShell data-screen-label={`Bai-viet-${slug}`}>
+        <SubjectPageTracker
+          loai="article_bai_viet"
+          id={article.id}
+          nguon="permalink"
+        />
         <BaiVietArticleView
           article={article}
           nhom={nhom}
@@ -187,6 +193,11 @@ export default async function BaiVietSlugPage({ params }: Props) {
 
   return (
     <CinsShell data-screen-label={`Bai-viet-${slug}`}>
+      <SubjectPageTracker
+        loai="article_bai_viet"
+        id={article.id}
+        nguon="permalink"
+      />
       <ArticlePageView
         article={article}
         lienQuan={lienQuan}

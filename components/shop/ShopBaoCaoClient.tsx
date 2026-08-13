@@ -5,10 +5,12 @@ import {
   ArrowDown,
   ArrowUp,
   BarChart3,
+  Eye,
   Loader2,
   Minus,
   PackageCheck,
   ShoppingBag,
+  Tags,
   TrendingUp,
   XCircle,
 } from "lucide-react";
@@ -378,6 +380,21 @@ export function ShopBaoCaoClient() {
                 icon={<XCircle size={20} strokeWidth={2} />}
                 accent={data.tongDonHuy > 0 ? "red" : "blue"}
               />
+              <KpiCard
+                label="Chuyển đổi gắn phiên"
+                value={
+                  data.tiLeChuyenDoiGanPhienPct != null
+                    ? `${data.tiLeChuyenDoiGanPhienPct}%`
+                    : "—"
+                }
+                sub={
+                  data.soDonCoPhien > 0
+                    ? `${data.soDonSauKhiXem.toLocaleString("vi-VN")} / ${data.soDonCoPhien.toLocaleString("vi-VN")} đơn có phiên`
+                    : "Đơn mới sau khi gắn phiên mới có số liệu"
+                }
+                icon={<Eye size={20} strokeWidth={2} />}
+                accent="blue"
+              />
             </div>
           </section>
 
@@ -429,6 +446,70 @@ export function ShopBaoCaoClient() {
               )}
             </section>
 
+          </div>
+
+          <div className="bao-cao-bottom-row">
+            <section className="bao-cao-section bao-cao-section--half">
+              <h2 className="bao-cao-section-title">
+                <Eye size={16} strokeWidth={2} aria-hidden />
+                Sản phẩm được thấy nhiều
+              </h2>
+              {(data.sanPhamThayNhieu ?? []).length > 0 ? (
+                <ul className="bao-cao-top-list">
+                  {(data.sanPhamThayNhieu ?? []).map((p, idx) => (
+                    <li key={p.idSanPham} className="bao-cao-top-item">
+                      <span className="bao-cao-top-rank">{idx + 1}</span>
+                      <div className="bao-cao-top-info">
+                        <div className="bao-cao-top-name-row">
+                          <span className="bao-cao-top-name" title={p.ten}>
+                            {p.ten}
+                          </span>
+                        </div>
+                        <span className="bao-cao-top-sl">
+                          {p.luotThay.toLocaleString("vi-VN")} lượt thấy
+                          {p.nguoiThay > 0
+                            ? ` · ${p.nguoiThay.toLocaleString("vi-VN")} thiết bị`
+                            : ""}
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="bao-cao-empty">Chưa đủ lượt thấy để hiện.</p>
+              )}
+            </section>
+
+            <section className="bao-cao-section bao-cao-section--half">
+              <h2 className="bao-cao-section-title">
+                <Tags size={16} strokeWidth={2} aria-hidden />
+                Loại hàng được thấy nhiều
+              </h2>
+              {(data.loaiTiepCan ?? []).length > 0 ? (
+                <ul className="bao-cao-top-list">
+                  {(data.loaiTiepCan ?? []).map((p, idx) => (
+                    <li key={p.idNhom} className="bao-cao-top-item">
+                      <span className="bao-cao-top-rank">{idx + 1}</span>
+                      <div className="bao-cao-top-info">
+                        <div className="bao-cao-top-name-row">
+                          <span className="bao-cao-top-name" title={p.nhan}>
+                            {p.nhan}
+                          </span>
+                        </div>
+                        <span className="bao-cao-top-sl">
+                          {p.luotThay.toLocaleString("vi-VN")} lượt thấy
+                          {p.nguoiThay > 0
+                            ? ` · ${p.nguoiThay.toLocaleString("vi-VN")} thiết bị`
+                            : ""}
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="bao-cao-empty">Chưa đủ lượt thấy theo loại.</p>
+              )}
+            </section>
           </div>
         </div>
       )}

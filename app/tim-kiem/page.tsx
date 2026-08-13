@@ -8,6 +8,7 @@ import { TimKiemSectionSkeleton } from "@/app/tim-kiem/_components/TimKiemSectio
 import { TimKiemSectionSlot } from "@/app/tim-kiem/_components/TimKiemSectionSlot";
 import { TimKiemStreamRoot } from "@/app/tim-kiem/_components/TimKiemStreamRoot";
 import { CinsShell } from "@/components/cins/CinsShell";
+import { BeMatPageTracker } from "@/components/social/BeMatPageTracker";
 import { SiteFooter } from "@/components/cins/SiteFooter";
 import { parseSearchKindTab } from "@/lib/search/filter-hits";
 import { SEARCH_ENTITY_KINDS } from "@/lib/search/types";
@@ -52,6 +53,7 @@ export default async function TimKiemPage(props: { searchParams: SearchParams })
 
   return (
     <CinsShell data-screen-label="Tim-kiem">
+      <BeMatPageTracker nguon="tim_kiem" />
       <div className="tk-page">
         <TimKiemHero query={q} kind={activeKind} />
 

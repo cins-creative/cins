@@ -28,6 +28,7 @@ import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { CuaHangListCard } from "@/components/shop/CuaHangListCard";
 import { ShopCatalogThumbPlaceholder } from "@/components/shop/ShopCatalogThumbPlaceholder";
 import { GIO_CHUNG_CHANGED_EVENT, notifyGioChungAdded } from "@/components/shop/ShopGioChungButton";
+import { trackLotManHinh, trackShopThemGio, trackTuongTac } from "@/lib/social/track-su-kien";
 import { avatarHueFromSeed, avatarInitialFromName } from "@/lib/chat/avatar";
 import { getNameInitials } from "@/lib/journey/profile";
 import { normalizeSearchText } from "@/lib/search/normalize";
@@ -690,6 +691,7 @@ function QuayHangCatalogView({
     () => sortQuayCatalogCards(cards, shuffleSeed),
     [cards, shuffleSeed],
   );
+  const catalogRef = useRef<HTMLDivElement>(null);
   const [qtyByBt, setQtyByBt] = useState<Map<string, number>>(new Map());
   const [cartErr, setCartErr] = useState<string | null>(null);
 
@@ -808,7 +810,10 @@ function QuayHangCatalogView({
         else next.set(idBienThe, qty);
         return next;
       });
-      if (shouldNotify) notifyGioChungAdded();
+      if (shouldNotify) {
+        notifyGioChungAdded();
+        if (card?.idSanPham) trackShopThemGio(card.idSanPham);
+      }
       pendingQtyRef.current.set(idBienThe, qty);
       const prevTimer = syncTimersRef.current.get(idBienThe);
       if (prevTimer) clearTimeout(prevTimer);
@@ -823,6 +828,24 @@ function QuayHangCatalogView({
     [flushQtySync],
   );
 
+  useEffect(() => {
+    const root = catalogRef.current;
+    if (!root || typeof window === "undefined") return;
+    if (!("IntersectionObserver" in window)) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const id = (entry.target as HTMLElement).dataset.shopTrackSp;
+          if (id) trackLotManHinh(id, "shop");
+        }
+      },
+      { threshold: 0.2 },
+    );
+    root.querySelectorAll("[data-shop-track-sp]").forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [shuffledCards]);
+
   if (cards.length === 0) {
     return (
       <p className="shop-dash-hint">Không có hàng khớp tìm kiếm.</p>
@@ -831,6 +854,7 @@ function QuayHangCatalogView({
 
   return (
     <div
+      ref={catalogRef}
       className="shop-kiosk-catalog-body shop-quay-hang-catalog"
       aria-label="Kết quả tìm hàng sự kiện"
     >
@@ -853,6 +877,14 @@ function QuayHangCatalogView({
               const isOwnItem =
                 Boolean(viewerProfileId) && it.idNguoiBan === viewerProfileId;
               const openShop = () => {
+                if (it.idSanPham) {
+                  trackTuongTac({
+                    loaiDoiTuong: "shop_san_pham",
+                    idDoiTuong: it.idSanPham,
+                    hanhVi: "click_sidebar_hang",
+                    nguon: "shop",
+                  });
+                }
                 if (it.shopHref) onOpen(it.shopHref);
               };
               const thumbBadge = outOfStock ? (
@@ -866,6 +898,7 @@ function QuayHangCatalogView({
                 <li
                   key={`${it.idBienThe}:${it.quayId}`}
                   className={`shop-kiosk-catalog-card${outOfStock ? " is-soldout" : ""}`}
+                  data-shop-track-sp={it.idSanPham}
                 >
                   {it.anhUrl ? (
                     <button

@@ -7,12 +7,14 @@ import {
   recordSuKien,
 } from "@/lib/social/su-kien";
 import { isUuid } from "@/lib/social/su-kien-constants";
+import { suKienRateLimited } from "@/lib/social/su-kien-rate-limit";
+import { isBotUserAgent } from "@/lib/social/su-kien-validate";
 
 /**
  * GET /api/social/su-kien — số liệu tiếp cận RIÊNG TƯ của 1 đối tượng.
  *   - `?cotMocId=...`  → cột mốc (chủ bài / người được gắn / quản trị org)
  *   - `?baiDangId=...` → bài đăng tổ chức (chỉ quản trị viên tổ chức)
- * Server enforce quyền; 403 nếu không đủ quyền.
+ *   - `?tu=` / `?den=` ISO tuỳ chọn — mặc định toàn thời gian (rollup + da_xem), trần ~25 tháng.
  */
 export async function GET(req: Request) {
   const params = new URL(req.url).searchParams;
@@ -37,10 +39,11 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Cần đăng nhập." }, { status: 401 });
   }
 
+  const khoang = { tu: params.get("tu"), den: params.get("den") };
   const insight =
     target.loai === "cot_moc"
-      ? await getCotMocInsight(target.id, requesterId)
-      : await getOrgBaiDangInsight(target.id, requesterId);
+      ? await getCotMocInsight(target.id, requesterId, khoang)
+      : await getOrgBaiDangInsight(target.id, requesterId, khoang);
   if (!insight) {
     return NextResponse.json(
       { error: "Bạn không có quyền xem số liệu nội dung này." },
@@ -67,9 +70,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Thiếu events." }, { status: 400 });
   }
 
-  /* Người xem (nếu đăng nhập) — không bắt buộc; khách vẫn đo qua phien_id. */
+  if (isBotUserAgent(req.headers.get("user-agent"))) {
+    return NextResponse.json({ ok: true, written: 0 });
+  }
+
   const session = await getCurrentSessionAndProfile().catch(() => null);
   const nguoiXemId = session?.profile?.id ?? null;
+  if (suKienRateLimited(req, nguoiXemId)) {
+    return NextResponse.json({ error: "Quá nhiều sự kiện." }, { status: 429 });
+  }
+
   const phienIdRaw =
     typeof body.phien_id === "string" ? body.phien_id : null;
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { BeMatPageTracker } from "@/components/social/BeMatPageTracker";
 import { GuestHomePage } from "@/components/cins/guest-home/GuestHomePage";
 import { GuestHomeThemeLight } from "@/components/cins/guest-home/GuestHomeThemeLight";
 import { CinsShell } from "@/components/cins/CinsShell";
@@ -36,6 +37,9 @@ export default async function Home({
     return (
       <CinsShell data-screen-label="Trang-chu">
         <AuthGateRoot initialAuthenticated>
+          <BeMatPageTracker
+            nguon={includeGallery ? "gallery" : "journey_home"}
+          />
           <Suspense fallback={<HomeWorldJourneySkeleton />}>
             <HomeWorldJourneyMain
               includeGallery={includeGallery}
@@ -51,6 +55,7 @@ export default async function Home({
 
   return (
     <CinsShell data-screen-label="Trang-chu" className="cins-shell--guest-home">
+      <BeMatPageTracker nguon="journey_home" />
       <GuestHomeThemeLight />
       <GuestHomePage />
     </CinsShell>

@@ -23,6 +23,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { useCinsChatContext } from "@/components/cins/CinsChatProvider";
+import {
+  resolveLiveThumbFit,
+  useShopThumbFitLive,
+} from "@/lib/shop/use-shop-thumb-fit-live";
 import { ShopMuaHistory } from "@/components/shop/ShopMuaHistory";
 
 import {
@@ -47,6 +51,7 @@ import {
   TINH_THANH_SELECT_OPTIONS,
 } from "@/lib/truong/contact";
 import { SHOP_BUYER_TRANSFER_DISCLAIMER } from "@/lib/shop/terms";
+import { getClientPhienId } from "@/lib/social/track-su-kien";
 import type {
   ShopCombo,
   ShopDonHang,
@@ -144,6 +149,7 @@ const SDT_RE = /^[0-9+()\-.\s]{6,20}$/;
 export function ShopGioChungButton() {
   /* Topbar nằm trong CinsChatShellBridge — vẫn dùng bản nullable cho chắc. */
   const chat = useCinsChatContext();
+  const thumbFitLive = useShopThumbFitLive();
   const [open, setOpen] = useState(false);
   const [gio, setGio] = useState<ShopGioChung | null>(null);
   const [loading, setLoading] = useState(false);
@@ -1312,6 +1318,7 @@ function ShopGioChungGroup({
           bienLaiAnhId: billId,
           diaChiNhanId: dcSelectedId,
           hinhThucGiao,
+          phienId: getClientPhienId(),
         }),
       });
       const json = (await res.json().catch(() => null)) as {
@@ -1964,7 +1971,16 @@ function ShopGioChungGroup({
                 <span className="gio-chung-thumb" aria-hidden>
                   {d.anhUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={d.anhUrl} alt="" loading="lazy" />
+                    <img
+                      src={d.anhUrl}
+                      alt=""
+                      loading="lazy"
+                      data-shop-thumb-fit={resolveLiveThumbFit(
+                        thumbFitLive,
+                        d.idSanPham,
+                        d.anhThumbFit,
+                      )}
+                    />
                   ) : (
                     <Package size={16} strokeWidth={1.7} />
                   )}

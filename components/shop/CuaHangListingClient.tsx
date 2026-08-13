@@ -598,6 +598,7 @@ function ListingFiltersPopover({
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={panelId}
+        aria-label={activeCount > 0 ? `Bộ lọc (${activeCount})` : "Bộ lọc"}
         onClick={() => setOpen((v) => !v)}
       >
         <SlidersHorizontal size={14} strokeWidth={2.2} aria-hidden />
@@ -1109,8 +1110,6 @@ export function CuaHangListingClient({
         {browseMode === "shop" ? "Danh sách cửa hàng" : "Danh sách sản phẩm"}
       </h1>
 
-      <CuaHangSanVoucher />
-
       <div className="ch-list-toolbar">
         <div className="cins-frost-glass" aria-hidden />
         <span className="j-tlb-streak-slow" aria-hidden />
@@ -1193,30 +1192,33 @@ export function CuaHangListingClient({
                 scroll={false}
                 role="tab"
                 aria-selected={browseMode === "shop"}
+                aria-label="Shop"
                 className={`ch-list-toolbar-tab${browseMode === "shop" ? " is-active" : ""}`}
               >
                 <Store size={16} strokeWidth={2} aria-hidden />
-                Shop
+                <span className="ch-list-toolbar-tab-label">Shop</span>
               </Link>
               <Link
                 href={listingTabHref("mat-hang", searchParams)}
                 scroll={false}
                 role="tab"
                 aria-selected={browseMode === "mat-hang"}
+                aria-label="Mặt hàng"
                 className={`ch-list-toolbar-tab${browseMode === "mat-hang" ? " is-active" : ""}`}
               >
                 <LayoutGrid size={16} strokeWidth={2} aria-hidden />
-                Mặt hàng
+                <span className="ch-list-toolbar-tab-label">Mặt hàng</span>
               </Link>
               <Link
                 href={listingTabHref("hang", searchParams)}
                 scroll={false}
                 role="tab"
                 aria-selected={browseMode === "hang"}
+                aria-label="Hàng"
                 className={`ch-list-toolbar-tab${browseMode === "hang" ? " is-active" : ""}`}
               >
                 <Package size={16} strokeWidth={2} aria-hidden />
-                Hàng
+                <span className="ch-list-toolbar-tab-label">Hàng</span>
               </Link>
             </div>
 
@@ -1260,6 +1262,7 @@ export function CuaHangListingClient({
       </div>
 
       <div className="ch-list-body">
+        <CuaHangSanVoucher />
         {shops.length === 0 ? (
           <div className="ch-list-empty">
             <p>Chưa có cửa hàng nào đang hiển thị.</p>

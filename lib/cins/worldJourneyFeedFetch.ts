@@ -25,7 +25,8 @@ import {
   promoteWorldJourneyFreshCandidates,
   rankWorldJourneyFeedByScore,
 } from "@/lib/cins/worldJourneyFeedSort";
-import { listFriends } from "@/lib/social/ket-ban";
+import { worldJourneyAnalyticsId } from "@/lib/cins/worldJourneyAnalytics";
+import { demLuotXemCuaViewer } from "@/lib/social/su-kien";
 import { loadUserSuKienPhanHoiMap } from "@/lib/to-chuc/su-kien-dang-ky";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
@@ -361,7 +362,23 @@ async function rankFeedByScore(
     ranked,
     WORLD_JOURNEY_FIRST_IMPRESSION_CAP,
   );
-  return withFresh.slice(0, poolLimit);
+  const sliced = withFresh.slice(0, poolLimit);
+  return attachViewerSeenCounts(viewerId, sliced);
+}
+
+async function attachViewerSeenCounts(
+  viewerId: string,
+  items: MilestoneItem[],
+): Promise<MilestoneItem[]> {
+  const ids = [
+    ...new Set(items.map(worldJourneyAnalyticsId).filter(Boolean)),
+  ];
+  const seen = await demLuotXemCuaViewer(viewerId, ids);
+  if (seen.size === 0) return items;
+  return items.map((m) => {
+    const n = seen.get(worldJourneyAnalyticsId(m));
+    return n ? { ...m, viewerSeenCount: n } : m;
+  });
 }
 
 export type WorldJourneyFeedPage = {

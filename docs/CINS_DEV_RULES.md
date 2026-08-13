@@ -225,6 +225,14 @@ border mặc định: 1px solid var(--border)
 - Không trả data thừa trong API response (không lộ email/SĐT chưa public).
 - Open question (`CINS_DECISIONS.md`): phone/email có cần verify trước khi public không → quyết trước launch.
 
+### Đo lường tiếp cận (riêng tư)
+- **Không vanity công khai** (L18): insight bài / funnel shop không có API đọc công khai.
+- Ai xem insight bài: chủ `content_cot_moc` hoặc org `owner`/`admin`. Funnel shop / loại hàng: chỉ session = seller; API không nhận `sellerId` query.
+- Client gửi UUID phiên thô (`cins-phien-id`); server chỉ lưu hash (`hashPhienId` + `SU_KIEN_SALT`). `phien_id` trên đơn **không** trả về list đơn client.
+- k-anonymity ngưỡng **5** lúc **đọc/hiển thị**, không lúc ghi. Scrub danh tính người xem ~**90 ngày** (cron `social_xoa_danh_tinh_cu` — NULL `nguoi_xem` trên log thô và `social_da_xem`; giữ `phien_id` / `viewer_key`). Unique insight đọc `social_da_xem`, không `count(DISTINCT)` trên log đã scrub.
+- **Không đo chat** — chặn `chat_tin_nhan` ở ingest.
+- Cron: `POST /api/noi-bo/social/cron` (Bearer) — **Workers `scheduled` là nguồn chính** (`0 */6 * * *` social; `0 1 * * *` billing+social). GitHub Actions `social-cron.yml` là fallback. Lease `cins_cron_giu_lease` chống chạy chồng. Partition fail = mất tracking (log `cins_cron_log`). Feed không aggregate `social_luot_xem` (đọc `social_da_xem` / `social_dem_doi_tuong`).
+
 ### Dependency
 - `npm audit` định kỳ. Cấm package có lỗ hổng chưa fix. Check star/last update/license trước khi thêm.
 

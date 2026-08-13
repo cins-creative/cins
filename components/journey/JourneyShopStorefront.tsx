@@ -10,7 +10,6 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import type { ReactNode } from "react";
 import {
   useCallback,
   useDeferredValue,
@@ -18,6 +17,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ReactNode,
 } from "react";
 
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
@@ -46,6 +46,10 @@ import {
   type ShopStorefrontNhomCard,
 } from "@/lib/shop/types";
 import { isShopTamDongActive } from "@/lib/shop/tam-dong";
+import {
+  trackShopThemGio,
+  useImpressionTracker,
+} from "@/lib/social/track-su-kien";
 import { formatTimelineDate } from "@/lib/truong/timeline";
 
 /** Debounce sync giỏ — gộp nhiều lần bấm ± thành 1 PATCH. */
@@ -217,9 +221,20 @@ function ItemCard({
   const maxQty = Math.max(0, item.soLuongTon);
   /** Badge ngôi sao — không dùng stroke chạy (`.is-feature`). */
   const showBadge = featured || item.noiBat;
+  const mediaRef = useRef<HTMLElement>(null);
+  useImpressionTracker(
+    mediaRef,
+    {
+      loaiDoiTuong: "shop_san_pham",
+      idDoiTuong: item.sanPhamId,
+      nguon: "shop",
+    },
+    canShop,
+  );
 
   return (
     <article
+      ref={mediaRef}
       className={`j-shop-sf-card j-shop-sf-item-card${item.hetHang ? " is-soldout" : ""}`}
     >
       <Link href={href} className="j-shop-sf-card-media-link">
@@ -662,7 +677,10 @@ export function JourneyShopStorefront({
         else next.set(idBienThe, qty);
         return next;
       });
-      if (shouldNotify) notifyGioChungAdded();
+      if (shouldNotify) {
+        notifyGioChungAdded();
+        trackShopThemGio(item.sanPhamId);
+      }
 
       pendingQtyRef.current.set(idBienThe, qty);
       const prevTimer = syncTimersRef.current.get(idBienThe);

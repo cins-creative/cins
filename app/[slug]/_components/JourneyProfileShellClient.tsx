@@ -6,6 +6,7 @@ import type { KetBanStatusSummary } from "@/lib/social/types";
 import { JourneySidebarNavCountsSkeleton } from "@/app/[slug]/_components/JourneySidebarNavCounts.skeleton";
 import type { EditProfileInitial } from "@/components/journey/JourneyEditProfileModal";
 import { VideoProcessingPoller } from "@/components/journey/VideoProcessingPoller";
+import { SubjectPageTracker } from "@/components/social/SubjectPageTracker";
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
 import { JourneyFeaturedAsideFilterProvider } from "@/components/journey/JourneyFeaturedAsideFilterContext";
 import {
@@ -119,6 +120,12 @@ export function JourneyProfileShellClient({
           {canComposePosts ? (
             <VideoProcessingPoller ownerSlug={profile.slug} />
           ) : null}
+          <SubjectPageTracker
+            loai="nguoi_dung"
+            id={ownerId}
+            nguon="permalink"
+            enabled={!isOwner}
+          />
           {shell}
         </JourneyComposeProvider>
       </JourneyFeaturedAsideFilterProvider>

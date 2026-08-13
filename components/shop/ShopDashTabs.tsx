@@ -678,10 +678,10 @@ export function ShopDashTabs({
       {topbarSlot && !useMobileDashChrome
         ? createPortal(topbarControls, topbarSlot)
         : null}
-      {useMobileDashChrome ? (
-        <div className="shop-dash-mobile-ops">{topbarControls}</div>
-      ) : null}
       <header className="shop-dash-head">
+        {useMobileDashChrome ? (
+          <div className="shop-dash-mobile-ops">{topbarControls}</div>
+        ) : null}
         <div className="shop-dash-head-row">
           <nav className="shop-dash-tabs" aria-label="Quản lý bán hàng">
             <div

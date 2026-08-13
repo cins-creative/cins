@@ -1,5 +1,6 @@
 import "server-only";
 
+import { parseShopThumbFit } from "@/lib/shop/anh-thumb-fit";
 import {
   buildStreamIframeUrl,
   buildStreamThumbnailUrl,
@@ -27,6 +28,7 @@ type SpRow = {
   id_nhom: string | null;
   dang_ban: boolean;
   noi_bat: boolean;
+  anh_thumb_fit?: string | null;
   tao_luc: string;
 };
 
@@ -104,7 +106,7 @@ export async function listShopStorefrontItems(opts: {
     let q = admin
       .from("shop_san_pham")
       .select(
-        "id, ten, anh_id, phan_loai, phan_loai_2, id_nhom, dang_ban, noi_bat, tao_luc",
+        "id, ten, anh_id, phan_loai, phan_loai_2, id_nhom, dang_ban, noi_bat, anh_thumb_fit, tao_luc",
       )
       .eq("id_nguoi_dung", opts.sellerId)
       .eq("da_xoa", false)
@@ -376,6 +378,7 @@ export async function listShopStorefrontItems(opts: {
       tenSanPham: sp.ten,
       nhanBienThe: nhan,
       anhUrl: shopImageUrl(displayBt?.anh_id ?? sp.anh_id),
+      anhThumbFit: parseShopThumbFit(sp.anh_thumb_fit),
       giaHienThi,
       giaGoc,
       tienTe,

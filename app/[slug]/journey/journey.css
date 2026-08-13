@@ -4609,7 +4609,19 @@ a.j-main-gallery-item:focus-visible,
   position: relative;
 }
 .j-m-card.jcard--article.has-unfold.is-collapsed .jcard-content.is-article-depth {
+  /* Teaser chữ thuần: tối thiểu 16:9; dài hơn thì cao tới --j-article-peek-h. */
+  min-aspect-ratio: 16 / 9;
+  max-height: var(--j-article-peek-h, 480px);
+  overflow: hidden;
   padding-bottom: 2px;
+}
+.j-m-card.jcard--article.has-unfold.is-collapsed
+  .jcard-content.is-article-depth
+  .jcard-desc {
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  overflow: visible;
 }
 .j-m-card.jcard--article.has-unfold.is-collapsed {
   /* Trần peek khi chưa «Xem đầy đủ» — không force chiều cao cố định. */

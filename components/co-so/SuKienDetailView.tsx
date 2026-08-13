@@ -729,9 +729,9 @@ function SuKienDetailViewInner({
     const bar = topbarRef.current;
     if (!root || !bar || typeof ResizeObserver === "undefined") return;
     const sync = () => {
-      const h = bar.getBoundingClientRect().height;
+      const h = bar.offsetHeight;
       if (h > 0) {
-        root.style.setProperty("--sk-detail-topbar-h", `${Math.ceil(h)}px`);
+        root.style.setProperty("--sk-detail-topbar-h", `${h}px`);
       }
     };
     sync();

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { parseShopThumbFit, type ShopThumbFit } from "@/lib/shop/anh-thumb-fit";
 import { assertShopReady } from "@/lib/shop/cua-hang";
 import { resolvePhanLoaiPatch } from "@/lib/shop/nhom";
 import { shopImageUrl } from "@/lib/shop/settings";
@@ -18,11 +19,12 @@ type SpRow = {
   id_nhom_2: string | null;
   dang_ban: boolean;
   noi_bat: boolean;
+  anh_thumb_fit?: string | null;
   tao_luc: string;
 };
 
 const SP_SELECT =
-  "id, ten, mo_ta, anh_id, phan_loai, phan_loai_2, id_nhom, id_nhom_2, dang_ban, noi_bat, tao_luc";
+  "id, ten, mo_ta, anh_id, phan_loai, phan_loai_2, id_nhom, id_nhom_2, dang_ban, noi_bat, anh_thumb_fit, tao_luc";
 
 type BtRow = {
   id: string;
@@ -47,6 +49,25 @@ function mapBienThe(row: BtRow): ShopBienThe {
         : null,
     anhId: row.anh_id,
     anhUrl: shopImageUrl(row.anh_id),
+  };
+}
+
+function mapSanPham(row: SpRow, bienThe: ShopBienThe[]): ShopSanPham {
+  return {
+    id: row.id,
+    ten: row.ten,
+    moTa: row.mo_ta,
+    anhId: row.anh_id,
+    anhUrl: shopImageUrl(row.anh_id),
+    anhThumbFit: parseShopThumbFit(row.anh_thumb_fit),
+    phanLoai: row.phan_loai,
+    phanLoai2: row.phan_loai_2,
+    idNhom: row.id_nhom,
+    idNhom2: row.id_nhom_2,
+    dangBan: row.dang_ban,
+    noiBat: row.noi_bat === true,
+    bienThe,
+    taoLuc: row.tao_luc,
   };
 }
 
@@ -84,21 +105,7 @@ export async function listSanPham(
     list.push(mapBienThe(bt));
     bySp.set(bt.id_san_pham, list);
   }
-  return rows.map((r) => ({
-    id: r.id,
-    ten: r.ten,
-    moTa: r.mo_ta,
-    anhId: r.anh_id,
-    anhUrl: shopImageUrl(r.anh_id),
-    phanLoai: r.phan_loai,
-    phanLoai2: r.phan_loai_2,
-    idNhom: r.id_nhom,
-    idNhom2: r.id_nhom_2,
-    dangBan: r.dang_ban,
-    noiBat: r.noi_bat === true,
-    bienThe: bySp.get(r.id) ?? [],
-    taoLuc: r.tao_luc,
-  }));
+  return rows.map((r) => mapSanPham(r, bySp.get(r.id) ?? []));
 }
 
 /** Đếm mẫu (da_xoa=false) đang gắn `id_nhom` — dùng gate xóa loại hàng. */
@@ -208,21 +215,7 @@ export async function createSanPham(
     console.error("[shop] createBienThe", btErr);
   }
 
-  return {
-    id: sp.id,
-    ten: sp.ten,
-    moTa: sp.mo_ta,
-    anhId: sp.anh_id,
-    anhUrl: shopImageUrl(sp.anh_id),
-    phanLoai: sp.phan_loai,
-    phanLoai2: sp.phan_loai_2,
-    idNhom: sp.id_nhom,
-    idNhom2: sp.id_nhom_2,
-    dangBan: sp.dang_ban,
-    noiBat: sp.noi_bat === true,
-    bienThe: ((bts ?? []) as BtRow[]).map(mapBienThe),
-    taoLuc: sp.tao_luc,
-  };
+  return mapSanPham(sp, ((bts ?? []) as BtRow[]).map(mapBienThe));
 }
 
 export async function updateSanPham(
@@ -288,6 +281,25 @@ export async function updateSanPham(
     .eq("da_xoa", false);
   if (error || !count) {
     if (error) console.error("[shop] updateSanPham", error);
+    throw new Error("UPDATE_FAILED");
+  }
+}
+
+/** Chỉ cột hiển thị ảnh — không gate shop-ready, 1 round-trip. */
+export async function updateSanPhamAnhThumbFit(
+  ownerId: string,
+  sanPhamId: string,
+  fit: ShopThumbFit,
+): Promise<void> {
+  const admin = createServiceRoleClient();
+  const { error, count } = await admin
+    .from("shop_san_pham")
+    .update({ anh_thumb_fit: fit }, { count: "exact" })
+    .eq("id", sanPhamId)
+    .eq("id_nguoi_dung", ownerId)
+    .eq("da_xoa", false);
+  if (error || !count) {
+    if (error) console.error("[shop] updateSanPhamAnhThumbFit", error);
     throw new Error("UPDATE_FAILED");
   }
 }

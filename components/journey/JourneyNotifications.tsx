@@ -645,7 +645,9 @@ export function JourneyNotifications({
   const [loadingUnread, setLoadingUnread] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [loadingMoreHistory, setLoadingMoreHistory] = useState(false);
-  const [historyEntries, setHistoryEntries] = useState<HistoryTimelineEntry[]>([]);
+  const [historyEntries, setHistoryEntries] = useState<HistoryTimelineEntry[]>(
+    () => (cachedHistory ? buildHistoryTimeline(cachedHistory) : []),
+  );
   const [historyHasMore, setHistoryHasMore] = useState(false);
   const [historyNextOffset, setHistoryNextOffset] = useState(0);
   const [visibleInfoCount, setVisibleInfoCount] = useState(NOTIFICATION_LIST_PAGE_SIZE);
@@ -657,6 +659,7 @@ export function JourneyNotifications({
   );
   const [pending, startTransition] = useTransition();
   const [portalReady, setPortalReady] = useState(false);
+  const [isMobileOverlay, setIsMobileOverlay] = useState(false);
   const [menuStyle, setMenuStyle] = useState<{ top: number; right: number } | null>(
     null,
   );
@@ -673,8 +676,20 @@ export function JourneyNotifications({
   }, []);
 
   useLayoutEffect(() => {
+    const mq = window.matchMedia("(max-width: 960px)");
+    const sync = () => setIsMobileOverlay(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useLayoutEffect(() => {
     if (!open) {
       setMenuStyle(null);
+      return;
+    }
+    if (isMobileOverlay) {
+      setMenuStyle({ top: 0, right: 0 });
       return;
     }
     const updatePosition = () => {
@@ -693,7 +708,16 @@ export function JourneyNotifications({
       window.removeEventListener("resize", updatePosition);
       window.removeEventListener("scroll", updatePosition, true);
     };
-  }, [open]);
+  }, [open, isMobileOverlay]);
+
+  useEffect(() => {
+    if (!open || !isMobileOverlay) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open, isMobileOverlay]);
 
   useEffect(() => {
     if (!open) return;
@@ -779,6 +803,8 @@ export function JourneyNotifications({
     const parsed = parseNotificationFeedPage(json);
     if (!parsed) return null;
     writeHistoryNotificationsCache(viewerProfileId, parsed.feed);
+    setHistoryFeed(parsed.feed);
+    setHistoryEntries(buildHistoryTimeline(parsed.feed));
     return parsed.feed;
   }, [viewerProfileId]);
 
@@ -862,8 +888,8 @@ export function JourneyNotifications({
   );
 
   const loadHistory = useCallback(
-    async (reset = true) => {
-      if (reset) {
+    async (reset = true, silent = false) => {
+      if (reset && !silent) {
         setHistoryEntries([]);
         setHistoryNextOffset(0);
         setHistoryHasMore(false);
@@ -879,7 +905,7 @@ export function JourneyNotifications({
         );
         const json = await res.json().catch(() => null);
         if (!res.ok) {
-          if (reset) {
+          if (reset && !silent) {
             setHistoryFeed(EMPTY_HISTORY_FEED);
             setHistoryEntries([]);
           }
@@ -905,7 +931,7 @@ export function JourneyNotifications({
         historyHasMoreRef.current = parsed.hasMore;
         historyNextOffsetRef.current = parsed.nextOffset;
       } finally {
-        if (reset) setLoadingHistory(false);
+        if (reset && !silent) setLoadingHistory(false);
       }
     },
     [viewerProfileId],
@@ -953,7 +979,8 @@ export function JourneyNotifications({
     }
 
     let cancelled = false;
-    setLoadingUnread(true);
+    setInfoSnapshot(extractInfoSnapshot(feed));
+    if (!unreadLoaded) setLoadingUnread(true);
 
     void (async () => {
       try {
@@ -969,21 +996,19 @@ export function JourneyNotifications({
     return () => {
       cancelled = true;
     };
+    // Chỉ khi mở/đóng — không lặp khi feed đổi sau PATCH.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- feed snapshot lúc mở
   }, [open, fetchUnreadFeed, dismissInfoNotifications]);
 
   useEffect(() => {
     if (!open) return;
     if (historyEntries.length > 0 || loadingHistory) return;
     void loadHistory(true);
-  }, [open, historyEntries.length, loadingHistory, loadHistory]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ fetch khi mở mà chưa có cache
+  }, [open, loadHistory]);
 
   useEffect(() => {
     if (open) return;
-    setHistoryEntries([]);
-    setHistoryHasMore(false);
-    setHistoryNextOffset(0);
-    historyHasMoreRef.current = false;
-    historyNextOffsetRef.current = 0;
     setVisibleInfoCount(NOTIFICATION_LIST_PAGE_SIZE);
   }, [open]);
 
@@ -1275,20 +1300,32 @@ export function JourneyNotifications({
     unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : "Không có thông báo mới";
 
   const menuPanel = open && menuStyle ? (
-        <div
-          ref={menuRef}
-          className="j-notify-menu is-portal"
-          style={{ top: menuStyle.top, right: menuStyle.right, left: "auto" }}
-        >
+    <>
+      {isMobileOverlay ? (
+        <div className="j-notify-overlay-scrim" aria-hidden />
+      ) : null}
+      <div
+        ref={menuRef}
+        className={`j-notify-menu is-portal${isMobileOverlay ? " is-overlay" : ""}`}
+        style={
+          isMobileOverlay
+            ? undefined
+            : { top: menuStyle.top, right: menuStyle.right, left: "auto" }
+        }
+        role="dialog"
+        aria-modal={isMobileOverlay}
+        aria-labelledby="j-notify-title"
+      >
           <div className="j-notify-head">
-            <strong>Thông báo</strong>
-            <span>
-              {pendingActionCount > 0
-                ? `${pendingActionCount} chưa xử lý`
-                : listCount > 0
-                  ? `${listCount} thông báo`
-                  : "Không có thông báo"}
-            </span>
+            <strong id="j-notify-title">Thông báo</strong>
+            <button
+              type="button"
+              className="j-notify-panel-close"
+              aria-label="Đóng thông báo"
+              onClick={() => setOpen(false)}
+            >
+              <X size={18} strokeWidth={2} aria-hidden />
+            </button>
           </div>
 
           {(loadingUnread && listCount === 0) ||
@@ -1493,6 +1530,7 @@ export function JourneyNotifications({
             </p>
           ) : null}
         </div>
+    </>
   ) : null;
 
   return (

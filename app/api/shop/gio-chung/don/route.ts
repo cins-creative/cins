@@ -22,6 +22,7 @@ export async function POST(request: Request) {
     bienLaiAnhId?: unknown;
     diaChiNhanId?: unknown;
     hinhThucGiao?: unknown;
+    phienId?: unknown;
   };
   try {
     body = (await request.json()) as typeof body;
@@ -50,6 +51,7 @@ export async function POST(request: Request) {
             ? "tai_su_kien"
             : "truc_tiep",
       maVoucher: typeof body.maVoucher === "string" ? body.maVoucher : null,
+      phienIdRaw: typeof body.phienId === "string" ? body.phienId : null,
     });
     return NextResponse.json({ don }, { status: 201 });
   } catch (e) {

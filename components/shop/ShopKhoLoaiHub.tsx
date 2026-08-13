@@ -87,6 +87,8 @@ type Props = {
   onOpenOrphans: () => void;
   onNhomsChanged: (next: ShopNhom[]) => void;
   onError: (msg: string | null) => void;
+  /** Tiếp cận theo loại trục 1 — chỉ hiện khi luotThay > 0. */
+  tiepCanByNhomId?: Record<string, { luotThay: number; nguoiThay: number }>;
 };
 
 export function ShopKhoLoaiHub({
@@ -98,6 +100,7 @@ export function ShopKhoLoaiHub({
   onOpenOrphans,
   onNhomsChanged,
   onError,
+  tiepCanByNhomId = {},
 }: Props) {
   const loaiList = nhoms.filter((n) => n.truc === 1);
   const featureCount = loaiList.filter((n) => n.noiBat).length;
@@ -464,6 +467,15 @@ export function ShopKhoLoaiHub({
                   <span className="shop-kho-loai-card-body">
                     <strong>{n.nhan}</strong>
                     <span>{mauCountByNhomId[n.id] ?? 0} mẫu</span>
+                    {(tiepCanByNhomId[n.id]?.luotThay ?? 0) > 0 ? (
+                      <span className="shop-kho-loai-reach">
+                        {tiepCanByNhomId[n.id]!.luotThay.toLocaleString("vi-VN")}{" "}
+                        lượt thấy
+                        {tiepCanByNhomId[n.id]!.nguoiThay > 0
+                          ? ` · ${tiepCanByNhomId[n.id]!.nguoiThay.toLocaleString("vi-VN")} thiết bị`
+                          : ""}
+                      </span>
+                    ) : null}
                     {warnTitle ? (
                       <span className="shop-kho-loai-tax-badge is-warn">
                         {labelNhomGioiThieuCanhBao(canhBao[0]!)}
@@ -1153,7 +1165,7 @@ export function ShopKhoLoaiMeta({
       <div className="shop-kho-loai-meta-head">
         <button type="button" className="shop-kho-loai-back" onClick={onBack}>
           <ArrowLeft size={15} aria-hidden />
-          Tất cả loại hàng
+          <span className="shop-kho-loai-back-label">Tất cả loại hàng</span>
         </button>
         <div className="shop-kho-loai-meta-head-actions">
           {storefrontLoaiHref ? (
@@ -1165,7 +1177,7 @@ export function ShopKhoLoaiMeta({
               title="Xem mặt hàng trên shop"
               aria-label="Xem mặt hàng trên shop"
             >
-              <ExternalLink size={15} strokeWidth={2} aria-hidden />
+              <ExternalLink size={16} strokeWidth={2} aria-hidden />
             </a>
           ) : null}
           {onGioiThieu ? (
@@ -1187,13 +1199,15 @@ export function ShopKhoLoaiMeta({
               onClick={() => void flushMoTaThenGioiThieu()}
             >
               {gioiThieuBusy ? (
-                <Loader2 size={14} className="shop-spin" aria-hidden />
+                <Loader2 size={16} className="shop-spin" aria-hidden />
               ) : gioiThieuKioskWarn ? (
-                <AlertTriangle size={14} strokeWidth={2} aria-hidden />
+                <AlertTriangle size={16} strokeWidth={2} aria-hidden />
               ) : (
-                <Megaphone size={14} strokeWidth={2} aria-hidden />
+                <Megaphone size={16} strokeWidth={2} aria-hidden />
               )}
-              Giới thiệu sản phẩm
+              <span className="shop-kho-loai-action-label">
+                Giới thiệu sản phẩm
+              </span>
             </button>
           ) : null}
           <div className="shop-kho-loai-delete-wrap">
@@ -1206,8 +1220,8 @@ export function ShopKhoLoaiMeta({
             aria-describedby={deleteHint ? "shop-kho-loai-delete-hint" : undefined}
             onClick={() => void onDeleteClick()}
           >
-            <Trash2 size={14} strokeWidth={2} aria-hidden />
-            Xóa mặt hàng này
+            <Trash2 size={16} strokeWidth={2} aria-hidden />
+            <span className="shop-kho-loai-action-label">Xóa mặt hàng này</span>
           </button>
           {deleteHint ? (
             <p

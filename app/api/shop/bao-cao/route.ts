@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { shopImageUrl } from "@/lib/shop/settings";
+import {
+  getTiepCanTheoLoai,
+  getTiepCanTheoSanPham,
+  type ShopTiepCanLoai,
+  type ShopTiepCanSanPham,
+} from "@/lib/shop/tiep-can-loai";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export type BaoCaoSanPhamBanChay = {
@@ -40,6 +46,11 @@ export type BaoCaoDoanhThu = {
   doanhThuNgay: BaoCaoNgay[];
   trangThaiDon: BaoCaoTrangThaiDon[];
   tienTe: string;
+  soDonCoPhien: number;
+  soDonSauKhiXem: number;
+  tiLeChuyenDoiGanPhienPct: number | null;
+  loaiTiepCan: ShopTiepCanLoai[];
+  sanPhamThayNhieu: ShopTiepCanSanPham[];
 };
 
 const TRANG_THAI_LABEL: Record<string, string> = {
@@ -58,6 +69,88 @@ const COMPLETED = new Set([
   "hoan_thanh",
 ]);
 
+type DonBaoCaoRow = {
+  id: string;
+  trang_thai: string;
+  tong_tien: number | string | null;
+  tao_luc: string;
+  tien_te: string | null;
+  phien_id: string | null;
+};
+
+async function loadAllDons(sellerId: string): Promise<DonBaoCaoRow[] | null> {
+  const admin = createServiceRoleClient();
+  const out: DonBaoCaoRow[] = [];
+  const page = 1000;
+  let from = 0;
+  for (;;) {
+    const { data, error } = await admin
+      .from("shop_don_hang")
+      .select("id, trang_thai, tong_tien, tao_luc, tien_te, phien_id")
+      .eq("id_nguoi_ban", sellerId)
+      .neq("trang_thai", "nhap")
+      .order("tao_luc", { ascending: false })
+      .range(from, from + page - 1)
+      .returns<DonBaoCaoRow[]>();
+    if (error) {
+      console.error("[shop] bao-cao dons", error);
+      return null;
+    }
+    const rows = data ?? [];
+    out.push(...rows);
+    if (rows.length < page) break;
+    from += page;
+  }
+  return out;
+}
+
+async function demDonSauKhiXem(phienHashes: string[]): Promise<Set<string>> {
+  const seen = new Set<string>();
+  const unique = [...new Set(phienHashes.filter(Boolean))];
+  if (unique.length === 0) return seen;
+  const admin = createServiceRoleClient();
+  const chunk = 100;
+  for (let i = 0; i < unique.length; i += chunk) {
+    const slice = unique.slice(i, i + chunk);
+    const { data, error } = await admin
+      .from("social_luot_xem")
+      .select("phien_id")
+      .eq("loai_doi_tuong", "shop_san_pham")
+      .in("phien_id", slice)
+      .not("phien_id", "is", null)
+      .limit(5000)
+      .returns<Array<{ phien_id: string | null }>>();
+    if (error) {
+      console.error("[shop] bao-cao attribution", error);
+      break;
+    }
+    for (const r of data ?? []) {
+      if (r.phien_id) seen.add(r.phien_id);
+    }
+  }
+  return seen;
+}
+
+function emptyBaoCao(): BaoCaoDoanhThu {
+  return {
+    tongDoanhThu: 0,
+    thangNay: 0,
+    thangTruoc: 0,
+    tongDonHoanThanh: 0,
+    tongDonChoXacNhan: 0,
+    tongDonHuy: 0,
+    sanPhamBanChay: [],
+    doanhThuNgay: [],
+    trangThaiDon: [],
+    tienTe: "VND",
+    soDonCoPhien: 0,
+    soDonSauKhiXem: 0,
+    tiLeChuyenDoiGanPhienPct: null,
+    loaiTiepCan: [],
+    sanPhamThayNhieu: [],
+  };
+}
+
 export async function GET() {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile) {
@@ -67,45 +160,46 @@ export async function GET() {
   const admin = createServiceRoleClient();
   const sellerId = session.profile.id;
 
-  // Fetch all orders for this seller (excluding draft)
-  const { data: dons, error: donsErr } = await admin
-    .from("shop_don_hang")
-    .select("id, trang_thai, tong_tien, tao_luc, tien_te")
-    .eq("id_nguoi_ban", sellerId)
-    .neq("trang_thai", "nhap")
-    .order("tao_luc", { ascending: false })
-    .limit(500);
-
-  if (donsErr || !dons) {
+  const dons = await loadAllDons(sellerId);
+  if (!dons) {
     return NextResponse.json({ error: "Không tải được dữ liệu." }, { status: 500 });
   }
 
+  const [loaiTiepCan, sanPhamThayNhieu] = await Promise.all([
+    getTiepCanTheoLoai(sellerId),
+    getTiepCanTheoSanPham(sellerId, 8),
+  ]);
+
   if (dons.length === 0) {
-    const empty: BaoCaoDoanhThu = {
-      tongDoanhThu: 0, thangNay: 0, thangTruoc: 0,
-      tongDonHoanThanh: 0, tongDonChoXacNhan: 0, tongDonHuy: 0,
-      sanPhamBanChay: [], doanhThuNgay: [], trangThaiDon: [], tienTe: "VND",
-    };
-    return NextResponse.json(empty);
+    return NextResponse.json({
+      ...emptyBaoCao(),
+      loaiTiepCan: loaiTiepCan.slice(0, 8),
+      sanPhamThayNhieu,
+    });
   }
 
   const donIds = dons.map((d) => d.id);
   const tienTe = (dons.find((d) => d.tien_te)?.tien_te as string | undefined) ?? "VND";
 
-  // Fetch all order lines (include variant id + label for product grouping)
-  const { data: dongs } = await admin
-    .from("shop_don_hang_dong")
-    .select("id_don_hang, id_bien_the, ten_snapshot, nhan_snapshot, so_luong, gia_don_vi")
-    .in("id_don_hang", donIds);
-
-  const dongRows = (dongs ?? []) as {
+  const dongRows: {
     id_don_hang: string;
     id_bien_the: string | null;
     ten_snapshot: string;
     nhan_snapshot: string | null;
     so_luong: number;
     gia_don_vi: number | string;
-  }[];
+  }[] = [];
+  const dongChunk = 200;
+  for (let i = 0; i < donIds.length; i += dongChunk) {
+    const slice = donIds.slice(i, i + dongChunk);
+    const { data: dongs } = await admin
+      .from("shop_don_hang_dong")
+      .select("id_don_hang, id_bien_the, ten_snapshot, nhan_snapshot, so_luong, gia_don_vi")
+      .in("id_don_hang", slice);
+    dongRows.push(
+      ...((dongs ?? []) as typeof dongRows),
+    );
+  }
 
   // 1. Tổng quan doanh thu
   const now = new Date();
@@ -267,6 +361,19 @@ export async function GET() {
     }))
     .sort((a, b) => b.count - a.count);
 
+  const phienHashes = dons
+    .map((d) => d.phien_id)
+    .filter((h): h is string => Boolean(h));
+  const soDonCoPhien = phienHashes.length;
+  const xemSet = await demDonSauKhiXem(phienHashes);
+  const soDonSauKhiXem = dons.filter(
+    (d) => d.phien_id && xemSet.has(d.phien_id),
+  ).length;
+  const tiLeChuyenDoiGanPhienPct =
+    soDonCoPhien > 0
+      ? Math.round((soDonSauKhiXem / soDonCoPhien) * 1000) / 10
+      : null;
+
   const result: BaoCaoDoanhThu = {
     tongDoanhThu,
     thangNay,
@@ -278,6 +385,11 @@ export async function GET() {
     doanhThuNgay,
     trangThaiDon,
     tienTe,
+    soDonCoPhien,
+    soDonSauKhiXem,
+    tiLeChuyenDoiGanPhienPct,
+    loaiTiepCan: loaiTiepCan.slice(0, 8),
+    sanPhamThayNhieu,
   };
 
   return NextResponse.json(result);

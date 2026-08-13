@@ -10,6 +10,8 @@ import {
   ClipboardPaste,
   ImagePlus,
   Loader2,
+  Maximize,
+  Minimize,
   Pencil,
   Plus,
   Save,
@@ -38,6 +40,13 @@ import {
   COMPOSE_PUBLISHED_EVENT,
   type ComposePublishedDetail,
 } from "@/lib/journey/compose-published-sync";
+import {
+  SHOP_THUMB_FIT_DEFAULT,
+  broadcastShopThumbFit,
+  parseShopThumbFit,
+  toggleShopThumbFit,
+  type ShopThumbFit,
+} from "@/lib/shop/anh-thumb-fit";
 import {
   resolveShopKhoLoaiSlug,
   SHOP_KHO_ORPHAN_SLUG,
@@ -92,6 +101,42 @@ type ThumbUpload = {
   progress: number;
   blobUrl: string;
 };
+
+function ShopThumbFitBtn({
+  fit,
+  disabled,
+  onToggle,
+}: {
+  fit: ShopThumbFit;
+  disabled?: boolean;
+  onToggle: () => void;
+}) {
+  const contain = fit === "contain";
+  return (
+    <button
+      type="button"
+      className="shop-thumb-fit-chip"
+      disabled={disabled}
+      aria-label={
+        contain
+          ? "Ảnh vừa khung — bấm để lấp đầy ô"
+          : "Ảnh lấp đầy ô — bấm để vừa khung"
+      }
+      title={contain ? "Thu nhỏ — vừa khung" : "Phóng to — lấp đầy"}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onToggle();
+      }}
+    >
+      {contain ? (
+        <Minimize size={15} strokeWidth={2.25} aria-hidden />
+      ) : (
+        <Maximize size={15} strokeWidth={2.25} aria-hidden />
+      )}
+    </button>
+  );
+}
 
 type RowDraft = {
   ten: string;
@@ -173,6 +218,8 @@ export function ShopKhoClient({
   const lastSelectIndexRef = useRef<number | null>(null);
   /** Modifiers lúc mousedown trên checkbox (onChange không có shift/ctrl). */
   const selectModsRef = useRef({ shift: false, ctrl: false });
+  /** Latest-wins khi bấm fit liên tục — bỏ PATCH cũ. */
+  const thumbFitGenRef = useRef<Record<string, number>>({});
   /** Clipboard.read() bắt đầu ở pointerdown để còn user gesture. */
   const pendingClipboardReadRef = useRef<ReturnType<
     typeof beginClipboardImageRead
@@ -185,6 +232,9 @@ export function ShopKhoClient({
   const [nhoms, setNhoms] = useState<ShopNhom[]>([]);
   /** Cache số mẫu chưa gán loại (id_nhom NULL) — thẻ «Chưa gán loại». */
   const [orphanCount, setOrphanCount] = useState(0);
+  const [tiepCanByNhomId, setTiepCanByNhomId] = useState<
+    Record<string, { luotThay: number; nguoiThay: number }>
+  >({});
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
   const [exitingSave, setExitingSave] = useState(false);
   /** null = danh sách loại; uuid / KHO_ORPHAN_KEY = chi tiết. */
@@ -278,6 +328,34 @@ export function ShopKhoClient({
     orphanCount,
     router,
   ]);
+
+  useEffect(() => {
+    if (enabled === false || activeNhomId != null) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/shop/tiep-can-loai", { cache: "no-store" });
+        const json = (await res.json().catch(() => null)) as {
+          items?: Array<{
+            idNhom: string;
+            luotThay: number;
+            nguoiThay: number;
+          }>;
+        } | null;
+        if (!res.ok || cancelled || !json?.items) return;
+        const map: Record<string, { luotThay: number; nguoiThay: number }> = {};
+        for (const it of json.items) {
+          map[it.idNhom] = { luotThay: it.luotThay, nguoiThay: it.nguoiThay };
+        }
+        setTiepCanByNhomId(map);
+      } catch {
+        /* badge tùy chọn */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, activeNhomId]);
 
   const uploading = Object.keys(thumbUploads).length > 0;
   const uploadProgressAvg = useMemo(() => {
@@ -1000,6 +1078,7 @@ export function ShopKhoClient({
       moTa: null,
       anhId: null,
       anhUrl: blobUrl,
+      anhThumbFit: SHOP_THUMB_FIT_DEFAULT,
       phanLoai: activeNhom?.nhan ?? null,
       phanLoai2: null,
       idNhom: nhomId,
@@ -1036,6 +1115,38 @@ export function ShopKhoClient({
     const d = drafts[p.id];
     if (d?.anhId !== undefined) return d.anhUrl ?? null;
     return p.anhUrl ?? null;
+  }
+
+  function applyThumbFitLocal(id: string, fit: ReturnType<typeof parseShopThumbFit>) {
+    setProducts((prev) => {
+      const next = prev.map((x) =>
+        x.id === id ? { ...x, anhThumbFit: fit } : x,
+      );
+      writeSanPhamCache(next.filter((x) => !isPendingKhoRow(x.id)));
+      return next;
+    });
+    broadcastShopThumbFit(id, fit);
+  }
+
+  function toggleRowThumbFit(p: ShopSanPham) {
+    if (!rowDisplayAnh(p)) return;
+    const next = toggleShopThumbFit(p.anhThumbFit);
+    applyThumbFitLocal(p.id, next);
+    if (isPendingKhoRow(p.id)) return;
+    const gen = (thumbFitGenRef.current[p.id] ?? 0) + 1;
+    thumbFitGenRef.current[p.id] = gen;
+    void fetch(`/api/shop/san-pham/${p.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ anhThumbFit: next }),
+    }).then(async (res) => {
+      if (thumbFitGenRef.current[p.id] !== gen) return;
+      if (res.ok) return;
+      applyThumbFitLocal(p.id, parseShopThumbFit(p.anhThumbFit));
+    }).catch(() => {
+      if (thumbFitGenRef.current[p.id] !== gen) return;
+      applyThumbFitLocal(p.id, parseShopThumbFit(p.anhThumbFit));
+    });
   }
 
   function rowHasAnh(p: ShopSanPham): boolean {
@@ -2410,6 +2521,7 @@ export function ShopKhoClient({
             onOpenOrphans={openKhoOrphans}
             onNhomsChanged={setNhoms}
             onError={setErr}
+            tiepCanByNhomId={tiepCanByNhomId}
           />
         </section>
       </>
@@ -2617,7 +2729,7 @@ export function ShopKhoClient({
         </div>
 
         <div className="shop-grid-wrap">
-          <table className={`shop-grid${khoEditing ? "" : " shop-grid--readonly"}`}>
+          <table className={`shop-grid shop-grid--kho${khoEditing ? "" : " shop-grid--readonly"}`}>
             <thead>
               <tr>
                 {khoEditing ? (
@@ -2709,6 +2821,7 @@ export function ShopKhoClient({
                   const draft = getDraft(p);
                   const dirty = isRowDirty(p);
                   const displayAnh = rowDisplayAnh(p);
+                  const rowFit = parseShopThumbFit(p.anhThumbFit);
                   const thumbUpload = thumbUploads[p.id];
                   const rowUploading = Boolean(thumbUpload);
                   const rowPending = isPendingKhoRow(p.id);
@@ -2784,6 +2897,7 @@ export function ShopKhoClient({
                       {khoEditing ? (
                         <td
                           className="shop-grid-col-check"
+                          data-label="Chọn"
                           onClick={(e) => {
                             if (rowSaving || bulkApplying || deleting) return;
                             /* Click padding ô — input tự xử lý qua onChange. */
@@ -2827,6 +2941,7 @@ export function ShopKhoClient({
                       ) : null}
                       <td
                         className={`shop-grid-col-thumb${cellChanged("anhId")}`}
+                        data-label="Ảnh"
                         title={
                           cellChanged("anhId")
                             ? "Ô đã sửa — sẽ áp dụng khi bấm Áp dụng"
@@ -2835,16 +2950,25 @@ export function ShopKhoClient({
                       >
                         {cellApplyBtn("anhId")}
                         {!khoEditing ? (
-                          <div
-                            className={`shop-grid-readonly-thumb${displayAnh ? "" : " is-empty"}`}
-                          >
-                            {displayAnh ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={displayAnh} alt="" />
-                            ) : (
-                              "—"
-                            )}
-                          </div>
+                          displayAnh ? (
+                            <div className="shop-thumb-pick">
+                              <div
+                                className="shop-grid-readonly-thumb"
+                                data-shop-thumb-fit={rowFit}
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={displayAnh} alt="" width={48} height={48} />
+                              </div>
+                              <ShopThumbFitBtn
+                                fit={rowFit}
+                                onToggle={() => toggleRowThumbFit(p)}
+                              />
+                            </div>
+                          ) : (
+                            <div className="shop-grid-readonly-thumb is-empty">
+                              —
+                            </div>
+                          )
                         ) : (
                         <div
                           className="shop-thumb-pick"
@@ -2875,6 +2999,7 @@ export function ShopKhoClient({
                           />
                           <div
                             className={`shop-thumb-frame${displayAnh ? " has-img" : ""}${rowUploading ? " is-uploading" : ""}`}
+                            data-shop-thumb-fit={rowFit}
                           >
                             {displayAnh ? (
                               <button
@@ -2888,7 +3013,7 @@ export function ShopKhoClient({
                                 }
                               >
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={displayAnh} alt="" />
+                                <img src={displayAnh} alt="" width={48} height={48} />
                               </button>
                             ) : rowSaving ? (
                               <Loader2 className="shop-spin" size={18} />
@@ -2976,11 +3101,19 @@ export function ShopKhoClient({
                               </button>
                             ) : null}
                           </div>
+                          {displayAnh ? (
+                            <ShopThumbFitBtn
+                              fit={rowFit}
+                              disabled={rowUploading || rowPending || rowSaving}
+                              onToggle={() => toggleRowThumbFit(p)}
+                            />
+                          ) : null}
                         </div>
                         )}
                       </td>
                       <td
                         className={`shop-grid-col-name${cellChanged("ten")}`}
+                        data-label="Tên sản phẩm"
                         title={
                           cellChanged("ten")
                             ? "Ô đã sửa — sẽ áp dụng khi bấm Áp dụng"
@@ -3014,6 +3147,7 @@ export function ShopKhoClient({
                       </td>
                       <td
                         className={`shop-grid-col-loai${cellChanged("phanLoai")}`}
+                        data-label={nhanPhanLoai}
                         title={
                           cellChanged("phanLoai")
                             ? "Ô đã sửa — sẽ áp dụng khi bấm Áp dụng"
@@ -3045,6 +3179,7 @@ export function ShopKhoClient({
                       </td>
                       <td
                         className={`shop-grid-col-ton${cellChanged("ton")}`}
+                        data-label="Tồn kho"
                         title={
                           cellChanged("ton")
                             ? "Ô đã sửa — sẽ áp dụng khi bấm Áp dụng"
@@ -3077,6 +3212,7 @@ export function ShopKhoClient({
                       </td>
                       <td
                         className={`shop-grid-col-gia${cellChanged("gia")}`}
+                        data-label="Giá gốc"
                         title={
                           cellChanged("gia")
                             ? "Ô đã sửa — sẽ áp dụng khi bấm Áp dụng"
@@ -3119,6 +3255,7 @@ export function ShopKhoClient({
                       </td>
                       <td
                         className={`shop-grid-col-gia-giam${cellChanged("giaGiam")}`}
+                        data-label="Giá giảm"
                         title={
                           cellChanged("giaGiam")
                             ? "Ô đã sửa — sẽ áp dụng khi bấm Áp dụng"
@@ -3161,6 +3298,7 @@ export function ShopKhoClient({
                       </td>
                       <td
                         className={`shop-grid-col-status${cellChanged("dangBan")}`}
+                        data-label="Tình trạng"
                         title={
                           cellChanged("dangBan")
                             ? "Ô đã sửa — sẽ áp dụng khi bấm Áp dụng"
@@ -3195,7 +3333,7 @@ export function ShopKhoClient({
                         )}
                       </td>
                       {khoEditing ? (
-                      <td className="shop-grid-col-actions">
+                      <td className="shop-grid-col-actions" data-label="Thao tác">
                         <div className="shop-grid-actions">
                           {dirty ? (
                             <button

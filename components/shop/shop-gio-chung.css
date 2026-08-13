@@ -578,6 +578,10 @@
   object-fit: cover;
 }
 
+.gio-chung-thumb img[data-shop-thumb-fit="contain"] {
+  object-fit: contain;
+}
+
 .gio-chung-line-body {
   display: flex;
   flex-direction: column;

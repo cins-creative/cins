@@ -1,5 +1,6 @@
 import "server-only";
 
+import { parseShopThumbFit, type ShopThumbFit } from "@/lib/shop/anh-thumb-fit";
 import { listComboKichHoat } from "@/lib/shop/combo";
 import {
   assertShopNotTamDong,
@@ -29,6 +30,7 @@ type BienTheInfo = {
   tenSanPham: string;
   nhanBienThe: string;
   anhUrl: string | null;
+  anhThumbFit: ShopThumbFit;
   soLuongTon: number;
   /** Giá khách trả (ưu tiên giảm). Null = chưa có dòng giá. */
   giaHienThi: number | null;
@@ -63,7 +65,7 @@ async function resolveBienThe(
   const spIds = [...new Set(bts.map((b) => b.id_san_pham))];
   const { data: spRows } = await admin
     .from("shop_san_pham")
-    .select("id, id_nguoi_dung, ten, anh_id, id_nhom, dang_ban, da_xoa")
+    .select("id, id_nguoi_dung, ten, anh_id, id_nhom, dang_ban, da_xoa, anh_thumb_fit")
     .in("id", spIds);
   const spById = new Map(
     ((spRows ?? []) as Array<{
@@ -74,6 +76,7 @@ async function resolveBienThe(
       id_nhom: string | null;
       dang_ban: boolean;
       da_xoa: boolean;
+      anh_thumb_fit?: string | null;
     }>).map((s) => [s.id, s]),
   );
 
@@ -195,6 +198,7 @@ async function resolveBienThe(
       tenSanPham: sp.ten,
       nhanBienThe: bt.nhan?.trim() || "Mặc định",
       anhUrl: shopImageUrl(bt.anh_id ?? sp.anh_id),
+      anhThumbFit: parseShopThumbFit(sp.anh_thumb_fit),
       soLuongTon: bt.so_luong_ton,
       giaHienThi,
       tienTe: gia?.tienTe ?? "VND",
@@ -372,6 +376,7 @@ export async function getGioChung(buyerId: string): Promise<ShopGioChung> {
       giaHienThi: gia,
       tienTe: info.tienTe,
       anhUrl: info.anhUrl,
+      anhThumbFit: info.anhThumbFit,
       soLuongTon: info.soLuongTon,
       ngungBan: info.ngungBan,
     };
