@@ -17,7 +17,6 @@ import {
   Send,
   Settings2,
   Building2,
-  Store,
   Users,
   X,
   Minimize2,
@@ -505,7 +504,6 @@ function ChatAvatar({
   size = 40,
   kind = "user",
   verified = false,
-  shop = false,
   avatarUrl = null,
   userId = null,
 }: {
@@ -514,18 +512,14 @@ function ChatAvatar({
   size?: number;
   kind?: ChatParticipantKind;
   verified?: boolean;
-  /** Hội thoại shop (khách hàng / đã mua) — badge Store góc avatar. */
-  shop?: boolean;
   avatarUrl?: string | null;
   /** id_nguoi_dung — hiện chấm online toàn CINs nếu đang hoạt động. */
   userId?: string | null;
 }) {
-  const badgeSize = Math.max(14, Math.round(size * 0.34));
-  const iconSize = Math.max(8, Math.round(badgeSize * 0.58));
   const online = useIsUserOnline(userId);
 
   return (
-    <span className={`cins-chat-avatar-wrap${shop ? " is-shop" : ""}`}>
+    <span className="cins-chat-avatar-wrap">
       <span
         className={`cins-chat-avatar${kind === "org" ? " is-org" : ""}${avatarUrl ? " has-image" : ""}`}
         style={{
@@ -543,7 +537,7 @@ function ChatAvatar({
           initial
         )}
       </span>
-      {online && !shop ? (
+      {online ? (
         <span
           className="cins-chat-avatar-online"
           aria-label="Đang hoạt động"
@@ -554,16 +548,7 @@ function ChatAvatar({
           }}
         />
       ) : null}
-      {shop ? (
-        <span
-          className="cins-chat-avatar-shop"
-          aria-label="Shop"
-          title="Shop"
-          style={{ width: badgeSize, height: badgeSize }}
-        >
-          <Store size={iconSize} strokeWidth={2.4} aria-hidden />
-        </span>
-      ) : kind === "org" && verified ? (
+      {kind === "org" && verified ? (
         <span className="cins-chat-avatar-verified" aria-label="Verified">
           ✓
         </span>
@@ -690,15 +675,6 @@ function ChatThreadRow({
     );
   })();
 
-  const khachHangKindLabel =
-    thread.isKhachHang && !khachHangListMode ? (
-      <span
-        className={`cins-chat-kind-pill is-khach${thread.khachHangChiDonHuy ? " is-cancelled-only" : ""}`}
-      >
-        Khách hàng
-      </span>
-    ) : null;
-
   const muaHangKindLabel =
     thread.isMuaHang && !muaHangListMode && !thread.isKhachHang ? (
       <span
@@ -708,8 +684,7 @@ function ChatThreadRow({
       </span>
     ) : null;
 
-  const khachTrailingExtra =
-    khachHangTagChip ?? khachHangKindLabel ?? muaHangKindLabel;
+  const khachTrailingExtra = khachHangTagChip ?? muaHangKindLabel;
 
   const menuActions = buildThreadMenuActions({
     isListPinned,
@@ -899,13 +874,12 @@ function ChatThreadRow({
                   size={peerAvatarSize}
                   kind={thread.kind}
                   verified={thread.verified}
-                  shop={Boolean(thread.isKhachHang || thread.isMuaHang)}
                   avatarUrl={thread.avatarUrl}
                   userId={thread.kind === "user" ? thread.peerUserId : null}
                 />
               )}
               <span
-                className={`cins-chat-thread-main${thread.kind === "org" ? " is-org-card" : ""}${thread.isKhachHang ? " is-khach-card" : ""}${thread.isMuaHang && !thread.isKhachHang ? " is-mua-card" : ""}`}
+                className={`cins-chat-thread-main${thread.kind === "org" ? " is-org-card" : ""}${thread.isKhachHang && khachHangListMode ? " is-khach-card" : ""}${thread.isMuaHang && !thread.isKhachHang ? " is-mua-card" : ""}`}
               >
                 <span className="cins-chat-thread-top">
                   <span className="cins-chat-thread-name">
@@ -4975,7 +4949,6 @@ export function CinsChatOverlay({
                 size={36}
                 kind={active.kind}
                 verified={active.verified}
-                shop={Boolean(active.isKhachHang || active.isMuaHang)}
                 avatarUrl={active.avatarUrl}
                 userId={active.kind === "user" ? active.peerUserId : null}
               />

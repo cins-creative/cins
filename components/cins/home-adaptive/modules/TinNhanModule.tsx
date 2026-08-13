@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, Check, ChevronDown, MessageCircle, ShoppingBag, Store } from "lucide-react";
+import { Building2, Check, ChevronDown, MessageCircle, ShoppingBag } from "lucide-react";
 import {
   useEffect,
   useId,
@@ -64,21 +64,13 @@ const META: Record<
 
 const AVATAR_SIZE = 40;
 
-function ModuleChatAvatar({
-  thread,
-  shop,
-}: {
-  thread: ChatThread;
-  shop?: boolean;
-}) {
+function ModuleChatAvatar({ thread }: { thread: ChatThread }) {
   const initial =
     thread.avatarInitial || thread.name.trim().slice(0, 1).toUpperCase() || "?";
   const hue = thread.avatarHue ?? 210;
-  const badgeSize = Math.max(14, Math.round(AVATAR_SIZE * 0.34));
-  const iconSize = Math.max(8, Math.round(badgeSize * 0.58));
 
   return (
-    <span className={`cins-chat-avatar-wrap${shop ? " is-shop" : ""}`}>
+    <span className="cins-chat-avatar-wrap">
       <span
         className={`cins-chat-avatar${thread.kind === "org" ? " is-org" : ""}${thread.avatarUrl ? " has-image" : ""}`}
         style={{
@@ -96,16 +88,6 @@ function ModuleChatAvatar({
           initial
         )}
       </span>
-      {shop ? (
-        <span
-          className="cins-chat-avatar-shop"
-          aria-label="Shop"
-          title="Shop"
-          style={{ width: badgeSize, height: badgeSize }}
-        >
-          <Store size={iconSize} strokeWidth={2.4} aria-hidden />
-        </span>
-      ) : null}
     </span>
   );
 }
@@ -146,7 +128,7 @@ function ModuleChatThreadRow({
       onClick={onOpen}
       aria-label={`Mở chat với ${thread.name}`}
     >
-      <ModuleChatAvatar thread={thread} shop={shop} />
+      <ModuleChatAvatar thread={thread} />
       <span className={mainClass}>
         <span className="cins-chat-thread-top">
           <span className="cins-chat-thread-name">

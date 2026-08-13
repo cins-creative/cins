@@ -1383,28 +1383,6 @@ html.is-cins-share-dropping {
   border-color: var(--neutral-100, #151a24);
 }
 
-.cins-chat-avatar-shop {
-  position: absolute;
-  right: -3px;
-  bottom: -3px;
-  z-index: 1;
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  border: 1.5px solid var(--bg-surface, #fff);
-  background: var(--cins-orange, #fdad4c);
-  color: rgba(0, 0, 0, 0.78);
-  pointer-events: none;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
-}
-
-:root[data-theme="dark"] .cins-chat-avatar-shop {
-  border-color: var(--neutral-100, #151a24);
-  color: rgba(15, 23, 42, 0.88);
-}
-
 .cins-chat-thread-name,
 .cins-chat-convo-title {
   display: inline-flex;
@@ -10024,6 +10002,8 @@ button.cins-chat-don-card-cta.is-action:disabled {
   border-radius: 14px;
   background: #fff;
   box-shadow: var(--shadow-md, 0 8px 24px rgba(15, 23, 42, 0.12));
+  container-type: inline-size;
+  container-name: cins-sticker-picker;
 }
 
 .cins-chat-sticker-picker-head {
@@ -10395,8 +10375,66 @@ button.cins-chat-don-card-cta.is-action:disabled {
   outline-offset: 1px;
 }
 
-.cins-chat-gif-grid {
+/* Scroll ở wrapper — CSS columns + max-height trên cùng box sẽ tràn cột ngang. */
+.cins-chat-gif-scroll {
+  flex: 1;
+  min-height: 80px;
   max-height: 180px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.cins-chat-gif-grid {
+  display: block;
+  grid-template-columns: none;
+  gap: 0;
+  flex: none;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+  column-count: 3;
+  column-gap: 6px;
+  column-fill: balance;
+}
+
+@container cins-sticker-picker (min-width: 380px) {
+  .cins-chat-gif-grid {
+    column-count: 4;
+  }
+}
+
+@container cins-sticker-picker (min-width: 520px) {
+  .cins-chat-gif-grid {
+    column-count: 5;
+  }
+}
+
+@container cins-sticker-picker (min-width: 700px) {
+  .cins-chat-gif-grid {
+    column-count: 6;
+  }
+}
+
+.cins-chat-gif-grid .cins-chat-sticker-picker-cell {
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  page-break-inside: avoid;
+  width: 100%;
+  margin: 0 0 6px;
+}
+
+.cins-chat-gif-grid .cins-chat-sticker-picker-sticker {
+  width: 100%;
+  height: auto;
+  padding: 0;
+}
+
+.cins-chat-gif-grid .cins-chat-sticker-picker-sticker img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .cins-chat-gif-cell {

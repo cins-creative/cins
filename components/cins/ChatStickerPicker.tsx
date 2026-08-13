@@ -451,20 +451,28 @@ export function ChatStickerPicker({
             </p>
           ) : (
             <>
-              <div className="cins-chat-sticker-picker-grid cins-chat-gif-grid">
-                {gifItems.map((item) => (
-                  <div key={item.id} className="cins-chat-sticker-picker-cell">
-                    <button
-                      type="button"
-                      className="cins-chat-sticker-picker-sticker cins-chat-gif-cell"
-                      disabled={disabled}
-                      aria-label={item.title?.trim() || "Gửi GIF"}
-                      onClick={() => handlePickGif(item)}
-                    >
-                      <StickerImg src={item.previewUrl} eager />
-                    </button>
-                  </div>
-                ))}
+              <div className="cins-chat-gif-scroll">
+                <div className="cins-chat-sticker-picker-grid cins-chat-gif-grid">
+                  {gifItems.map((item) => (
+                    <div key={item.id} className="cins-chat-sticker-picker-cell">
+                      <button
+                        type="button"
+                        className="cins-chat-sticker-picker-sticker cins-chat-gif-cell"
+                        disabled={disabled}
+                        aria-label={item.title?.trim() || "Gửi GIF"}
+                        style={{
+                          aspectRatio:
+                            item.width > 0 && item.height > 0
+                              ? `${item.width} / ${item.height}`
+                              : "1",
+                        }}
+                        onClick={() => handlePickGif(item)}
+                      >
+                        <StickerImg src={item.previewUrl} eager />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
               {gifError ? (
                 <p className="cins-chat-sticker-picker-error" role="alert">

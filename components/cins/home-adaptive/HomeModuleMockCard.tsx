@@ -339,14 +339,7 @@ function MockDonRows({ rows }: { rows: MockRow[] }) {
   );
 }
 
-function MockChatRows({
-  rows,
-  shop,
-}: {
-  rows: MockRow[];
-  /** Tin nhắn mua bán — badge shop trên avatar. */
-  shop?: boolean;
-}) {
+function MockChatRows({ rows }: { rows: MockRow[] }) {
   return (
     <div className="ha-chat-list" role="list">
       {rows.map((r) => {
@@ -358,9 +351,7 @@ function MockChatRows({
         return (
           <div key={r.title} role="listitem">
             <div className="cins-chat-thread">
-              <span
-                className={`cins-chat-avatar-wrap${shop ? " is-shop" : ""}`}
-              >
+              <span className="cins-chat-avatar-wrap">
                 <span
                   className="cins-chat-avatar"
                   style={{
@@ -373,15 +364,6 @@ function MockChatRows({
                 >
                   {initial}
                 </span>
-                {shop ? (
-                  <span
-                    className="cins-chat-avatar-shop"
-                    aria-hidden
-                    style={{ width: 14, height: 14 }}
-                  >
-                    <Store size={8} strokeWidth={2.4} aria-hidden />
-                  </span>
-                ) : null}
               </span>
               <div className="cins-chat-thread-main">
                 <div className="cins-chat-thread-top">
@@ -535,7 +517,7 @@ export function HomeModuleMockCard({ id }: { id: ModuleId }) {
     ) {
       return (
         <MockShell id={id}>
-          <MockChatRows rows={rows} shop={id === "tin_nhan_mua_ban"} />
+          <MockChatRows rows={rows} />
         </MockShell>
       );
     }
