@@ -370,12 +370,14 @@ async function readSubjectInsight(
   khoang?: InsightKhoang | null,
 ): Promise<CotMocInsight> {
   const win = clampInsightWindow(khoang);
-  const cacheKey = `${loai}:${id}:${win.tu ?? "*"}:${win.den}`;
+  const today = ymdVnFromIso(new Date().toISOString());
+  const cacheKey = win.toanThoiGian
+    ? `${loai}:${id}:all:${today}`
+    : `${loai}:${id}:${win.tu}:${win.den}`;
   const cached = getCachedInsight(cacheKey);
   if (cached) return cached;
 
   const admin = createServiceRoleClient();
-  const today = ymdVnFromIso(new Date().toISOString());
   const todayTuIso = `${today}T00:00:00+07:00`;
   const denMs = Date.parse(win.den);
   const includeToday = Number.isFinite(denMs) && denMs > Date.parse(todayTuIso);
@@ -552,6 +554,7 @@ async function readSubjectInsight(
     .sort((a, b) => b.nguoi - a.nguoi);
 
   const insight: CotMocInsight = {
+    ...EMPTY_INSIGHT,
     luotTiepCan,
     tiepCanUnique: kAnonCount(uniqueCount),
     luotXemNoiDung,

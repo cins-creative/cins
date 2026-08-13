@@ -118,10 +118,13 @@ export const SCHEMA_TABLE_DOCS: Record<string, string> = {
   social_bao_cao: "Báo cáo nội dung / người dùng.",
   social_binh_luan: "Bình luận gắn đối tượng social (cột mốc…).",
   social_luot_xem: "Lượt xem (partitioned theo thời gian).",
+  social_da_xem: "Cặp viewer×đối tượng (unique vĩnh viễn, P2).",
+  social_dem_doi_tuong: "Counter feed reach (P3).",
   social_luu: "Lưu / bookmark đối tượng.",
   social_reaction: "Reaction (like…) trên đối tượng — đếm realtime.",
   social_thong_bao: "Thông báo in-app cho user.",
   social_thong_ke_doi_tuong_ngay: "Thống kê engagement theo đối tượng / ngày.",
+  social_thong_ke_doi_tuong_thang: "Rollup tháng từ bảng ngày (P2).",
 
   user_emoji_bo: "Bộ emoji tùy chỉnh của user.",
   user_emoji_muc: "Mục emoji trong bộ.",

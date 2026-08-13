@@ -1986,9 +1986,10 @@
   }
 }
 
-.ch-san-voucher-modal {
-  width: min(100%, 960px);
-  max-height: min(90vh, 820px);
+.shop-kho-nhom-dialog.ch-san-voucher-modal {
+  width: min(calc(100vw - 32px), 960px);
+  max-height: min(92vh, 860px);
+  min-height: min(72vh, 640px);
 }
 
 .ch-san-voucher-modal-head {

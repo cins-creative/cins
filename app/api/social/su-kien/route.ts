@@ -10,6 +10,8 @@ import { isUuid } from "@/lib/social/su-kien-constants";
 import { suKienRateLimited } from "@/lib/social/su-kien-rate-limit";
 import { isBotUserAgent } from "@/lib/social/su-kien-validate";
 
+const NO_STORE = { headers: { "Cache-Control": "private, no-store" } };
+
 /**
  * GET /api/social/su-kien — số liệu tiếp cận RIÊNG TƯ của 1 đối tượng.
  *   - `?cotMocId=...`  → cột mốc (chủ bài / người được gắn / quản trị org)
@@ -29,14 +31,14 @@ export async function GET(req: Request) {
   if (!target || !isUuid(target.id)) {
     return NextResponse.json(
       { error: "Thiếu cotMocId hoặc baiDangId hợp lệ." },
-      { status: 400 },
+      { status: 400, ...NO_STORE },
     );
   }
 
   const session = await getCurrentSessionAndProfile().catch(() => null);
   const requesterId = session?.profile?.id ?? null;
   if (!requesterId) {
-    return NextResponse.json({ error: "Cần đăng nhập." }, { status: 401 });
+    return NextResponse.json({ error: "Cần đăng nhập." }, { status: 401, ...NO_STORE });
   }
 
   const khoang = { tu: params.get("tu"), den: params.get("den") };
@@ -47,10 +49,10 @@ export async function GET(req: Request) {
   if (!insight) {
     return NextResponse.json(
       { error: "Bạn không có quyền xem số liệu nội dung này." },
-      { status: 403 },
+      { status: 403, ...NO_STORE },
     );
   }
-  return NextResponse.json({ insight });
+  return NextResponse.json({ insight }, NO_STORE);
 }
 
 /**

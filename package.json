@@ -96,7 +96,8 @@
     "migrate:analytics-p0": "node scripts/run-analytics-p0-migration.mjs",
     "migrate:analytics-p1": "node scripts/run-analytics-p1-migration.mjs",
     "migrate:analytics-p2": "node scripts/run-analytics-p2-migration.mjs",
-    "migrate:analytics-p3": "node scripts/run-analytics-p3-migration.mjs"
+    "migrate:analytics-p3": "node scripts/run-analytics-p3-migration.mjs",
+    "verify:analytics": "node scripts/verify-analytics-scale.mjs"
   },
   "dependencies": {
     "@cloudflare/realtimekit-react": "^2.0.1",

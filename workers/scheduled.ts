@@ -2,7 +2,7 @@
  * Cloudflare Workers scheduled — billing cron (P2) + social đo lường.
  *
  * Entry: `worker.ts` (custom OpenNext worker) gọi `runBillingScheduled`.
- * Cron `0 1 * * *` = billing + social. Cron `0 */6 * * *` = chỉ social.
+ * Cron 01:00 UTC = billing + social. Cron mỗi 6 giờ = chỉ social.
  * Fallback: GitHub Actions `billing-cron.yml` + `social-cron.yml`.
  */
 

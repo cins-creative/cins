@@ -106,8 +106,8 @@ export function CuaHangSanVoucher() {
   } | null>(null);
   const tickerSuppressClickRef = useRef(false);
   const [tickerDragging, setTickerDragging] = useState(false);
-  const [tickerLoop, setTickerLoop] = useState(false);
-  const tickerLoopRef = useRef(false);
+  const [tickerLoop, setTickerLoop] = useState(true);
+  const tickerLoopRef = useRef(true);
   tickerLoopRef.current = tickerLoop;
   const [tickerCopies, setTickerCopies] = useState(TICKER_COPIES_MIN);
   const tickerCopiesRef = useRef(TICKER_COPIES_MIN);
@@ -407,10 +407,12 @@ export function CuaHangSanVoucher() {
   }
 
   useLayoutEffect(() => {
+    if (loading) return;
     measureTicker();
-  }, [san, tickerLoop, tickerCopies, measureTicker]);
+  }, [loading, san, tickerLoop, tickerCopies, measureTicker]);
 
   useEffect(() => {
+    if (loading) return;
     const el = tickerScrollRef.current;
     const track = tickerTrackRef.current;
     if (!el || typeof ResizeObserver === "undefined") return;
@@ -418,7 +420,7 @@ export function CuaHangSanVoucher() {
     ro.observe(el);
     if (track) ro.observe(track);
     return () => ro.disconnect();
-  }, [san, measureTicker, tickerCopies, tickerLoop]);
+  }, [loading, san, measureTicker, tickerCopies, tickerLoop]);
 
   useEffect(() => {
     if (open) tickerHoldReasonsRef.current.add("modal");
@@ -426,7 +428,7 @@ export function CuaHangSanVoucher() {
   }, [open]);
 
   useEffect(() => {
-    if (!tickerLoop) {
+    if (loading || !tickerLoop || san.length === 0) {
       if (tickerRafRef.current != null) {
         cancelAnimationFrame(tickerRafRef.current);
         tickerRafRef.current = null;
@@ -563,7 +565,7 @@ export function CuaHangSanVoucher() {
       holdReasons.delete("drag");
       holdReasons.delete("user-scroll");
     };
-  }, [scheduleTickerHoldClear, tickerLoop, writeTickerPos]);
+  }, [loading, san.length, scheduleTickerHoldClear, tickerLoop, writeTickerPos]);
 
   useEffect(() => {
     const resumeTimers = tickerResumeTimersRef.current;
@@ -747,9 +749,7 @@ export function CuaHangSanVoucher() {
               ))
             ) : (
               <div ref={tickerTrackRef} className="ch-san-voucher-rail-track">
-                {Array.from({
-                  length: tickerLoop ? tickerCopies : 1,
-                }).flatMap((_, copy) =>
+                {Array.from({ length: tickerCopies }).flatMap((_, copy) =>
                   san.map((v, i) => (
                     <SanVoucherChip
                       key={`${v.id}-${copy}-${i}`}
