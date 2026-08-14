@@ -1,20 +1,26 @@
 "use client";
 
 import { Loader2, MessageSquarePlus, Search, Users, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { avatarBg, avatarInitialFromName } from "@/lib/chat/avatar";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import type { ChatThread } from "@/lib/chat/types";
-
-type UserQuanHe = "ban_be" | "theo_doi" | "nguoi_la";
 
 type UserRow = {
   id: string;
   slug: string;
   ten_hien_thi: string;
   avatar_id: string | null;
-  quan_he?: UserQuanHe;
+  avatarUrl?: string | null;
+};
+
+export type ChatCreateGroupPresetMember = {
+  id: string;
+  slug: string;
+  ten_hien_thi: string;
+  avatar_id?: string | null;
+  avatarUrl?: string | null;
 };
 
 type ModalTab = "chat" | "nhom";
@@ -23,16 +29,32 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onCreated: (thread: ChatThread) => void;
+  /** Mở thẳng tab tạo nhóm (vd. từ menu hội thoại). */
+  initialTab?: ModalTab;
+  /** Gắn sẵn thành viên khi mở tab nhóm. */
+  presetMembers?: ChatCreateGroupPresetMember[];
 };
 
-const QUAN_HE_LABEL: Record<UserQuanHe, string> = {
-  ban_be: "Bạn bè",
-  theo_doi: "Đang theo dõi",
-  nguoi_la: "Người lạ",
-};
+function toUserRow(member: ChatCreateGroupPresetMember): UserRow {
+  return {
+    id: member.id,
+    slug: member.slug,
+    ten_hien_thi: member.ten_hien_thi,
+    avatar_id: member.avatar_id ?? null,
+    avatarUrl: member.avatarUrl ?? null,
+  };
+}
 
-function FriendAvatar({ name, avatarId }: { name: string; avatarId: string | null }) {
-  const url = getAvatarUrl(avatarId);
+function FriendAvatar({
+  name,
+  avatarId,
+  avatarUrl,
+}: {
+  name: string;
+  avatarId: string | null;
+  avatarUrl?: string | null;
+}) {
+  const url = avatarUrl?.trim() || getAvatarUrl(avatarId);
   const initial = avatarInitialFromName(name);
 
   return (
@@ -70,33 +92,42 @@ async function searchUsers(params: {
   return json.users ?? [];
 }
 
-export function ChatCreateGroupModal({ open, onClose, onCreated }: Props) {
+export function ChatCreateGroupModal({
+  open,
+  onClose,
+  onCreated,
+  initialTab = "chat",
+  presetMembers,
+}: Props) {
   const [tab, setTab] = useState<ModalTab>("chat");
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [name, setName] = useState("");
   const [chatUsers, setChatUsers] = useState<UserRow[]>([]);
   const [friends, setFriends] = useState<UserRow[]>([]);
+  const [userCache, setUserCache] = useState<Map<string, UserRow>>(
+    () => new Map(),
+  );
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [openingUserId, setOpeningUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const friendsLoadedRef = useRef(false);
 
   useEffect(() => {
     if (!open) return;
-    setTab("chat");
+    const seeds = (presetMembers ?? []).map(toUserRow);
+    setTab(initialTab);
     setQuery("");
     setDebouncedQuery("");
     setName("");
-    setSelected([]);
+    setSelected(seeds.map((u) => u.id));
     setError(null);
     setChatUsers([]);
     setFriends([]);
+    setUserCache(new Map(seeds.map((u) => [u.id, u])));
     setOpeningUserId(null);
-    friendsLoadedRef.current = false;
-  }, [open]);
+  }, [open, initialTab, presetMembers]);
 
   useEffect(() => {
     if (!open) return;
@@ -136,14 +167,9 @@ export function ChatCreateGroupModal({ open, onClose, onCreated }: Props) {
     };
   }, [open, tab, debouncedQuery]);
 
-  // Tab nhóm: tải bạn bè một lần, lọc client.
+  // Tab nhóm: tìm trên server (không lọc 20 bạn đã tải).
   useEffect(() => {
     if (!open || tab !== "nhom") return;
-
-    if (friendsLoadedRef.current) {
-      setLoading(false);
-      return;
-    }
 
     let cancelled = false;
     setLoading(true);
@@ -152,13 +178,11 @@ export function ChatCreateGroupModal({ open, onClose, onCreated }: Props) {
     void (async () => {
       try {
         const next = await searchUsers({
+          q: debouncedQuery || undefined,
           friendsOnly: true,
           rankRelation: true,
         });
-        if (!cancelled) {
-          setFriends(next);
-          friendsLoadedRef.current = true;
-        }
+        if (!cancelled) setFriends(next);
       } catch (e) {
         if (!cancelled) {
           setError(
@@ -174,26 +198,38 @@ export function ChatCreateGroupModal({ open, onClose, onCreated }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [open, tab]);
+  }, [open, tab, debouncedQuery]);
 
-  const groupFiltered = useMemo(() => {
-    const q = debouncedQuery.toLowerCase();
-    if (!q) return friends;
-    return friends.filter(
-      (f) =>
-        f.ten_hien_thi.toLowerCase().includes(q) ||
-        f.slug.toLowerCase().includes(q),
-    );
-  }, [friends, debouncedQuery]);
+  useEffect(() => {
+    if (chatUsers.length === 0 && friends.length === 0) return;
+    setUserCache((prev) => {
+      const next = new Map(prev);
+      for (const u of chatUsers) next.set(u.id, u);
+      for (const u of friends) next.set(u.id, u);
+      return next;
+    });
+  }, [chatUsers, friends]);
 
-  const listUsers = tab === "chat" ? chatUsers : groupFiltered;
+  const presetRows = useMemo(
+    () => (presetMembers ?? []).map(toUserRow),
+    [presetMembers],
+  );
+
+  const listUsers = useMemo(() => {
+    const base = tab === "chat" ? chatUsers : friends;
+    if (tab !== "nhom" || presetRows.length === 0 || debouncedQuery) {
+      return base;
+    }
+    const seen = new Set(base.map((u) => u.id));
+    const extra = presetRows.filter((u) => !seen.has(u.id));
+    return extra.length > 0 ? [...extra, ...base] : base;
+  }, [tab, chatUsers, friends, presetRows, debouncedQuery]);
 
   const selectedUsers = useMemo(() => {
-    const map = new Map(friends.map((u) => [u.id, u]));
     return selected
-      .map((id) => map.get(id))
+      .map((id) => userCache.get(id))
       .filter((u): u is UserRow => Boolean(u));
-  }, [friends, selected]);
+  }, [selected, userCache]);
 
   const toggleMember = useCallback((id: string) => {
     setSelected((prev) =>
@@ -303,7 +339,7 @@ export function ChatCreateGroupModal({ open, onClose, onCreated }: Props) {
               <Users size={18} strokeWidth={1.8} />
             )}
           </span>
-          <div>
+          <div className="cins-chat-group-modal-head-text">
             <h3 id="cins-chat-group-modal-title">{title}</h3>
             <p>{subtitle}</p>
           </div>
@@ -368,7 +404,9 @@ export function ChatCreateGroupModal({ open, onClose, onCreated }: Props) {
         <label className="cins-chat-search cins-chat-group-search">
           <Search size={16} strokeWidth={1.8} aria-hidden />
           <input
-            type="search"
+            type="text"
+            inputMode="search"
+            autoComplete="off"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={searchPlaceholder}
@@ -407,7 +445,6 @@ export function ChatCreateGroupModal({ open, onClose, onCreated }: Props) {
             <ul role="list">
               {listUsers.map((user) => {
                 const label = user.ten_hien_thi?.trim() || user.slug;
-                const quanHe = user.quan_he ?? "nguoi_la";
                 if (isChat) {
                   const busy = openingUserId === user.id;
                   return (
@@ -418,16 +455,13 @@ export function ChatCreateGroupModal({ open, onClose, onCreated }: Props) {
                         disabled={Boolean(openingUserId)}
                         onClick={() => void handleOpenDm(user.id)}
                       >
-                        <FriendAvatar name={label} avatarId={user.avatar_id} />
-                        <span className="cins-chat-group-pick-meta">
-                          <span className="cins-chat-group-pick-label">
-                            {label}
-                          </span>
-                          <span
-                            className={`cins-chat-group-pick-rel is-${quanHe}`}
-                          >
-                            {QUAN_HE_LABEL[quanHe]}
-                          </span>
+                        <FriendAvatar
+                          name={label}
+                          avatarId={user.avatar_id}
+                          avatarUrl={user.avatarUrl}
+                        />
+                        <span className="cins-chat-group-pick-label">
+                          {label}
                         </span>
                         {busy ? (
                           <Loader2
@@ -450,7 +484,11 @@ export function ChatCreateGroupModal({ open, onClose, onCreated }: Props) {
                       aria-pressed={isSelected}
                       onClick={() => toggleMember(user.id)}
                     >
-                      <FriendAvatar name={label} avatarId={user.avatar_id} />
+                      <FriendAvatar
+                        name={label}
+                        avatarId={user.avatar_id}
+                        avatarUrl={user.avatarUrl}
+                      />
                       <span className="cins-chat-group-pick-label">{label}</span>
                       <span className="cins-chat-group-pick-check" aria-hidden>
                         {isSelected ? "✓" : ""}

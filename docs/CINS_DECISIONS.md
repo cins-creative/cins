@@ -41,6 +41,14 @@
 
 ## LOG — quyết định đã chốt
 
+### Admin — tab Quản trị viên + thấy/ẩn tab sidebar (2026-08-14)
+
+- **Chốt:** `/admin/quan-tri-vien` (Users) lọc user có vai trò hệ thống. Phân quyền **chỉ thấy / không thấy** tab sidebar — không chia thao tác chi tiết.
+- **DB:** bảng mới `user_admin_tab_an` (deny-list `tab_an text[]`). Không ALTER `user_quyen_he_thong`. Không có dòng = thấy hết tab mà role đã cho phép.
+- **Gate:** xem trang = `canManageUsers`. Sửa tab: super_admin → admin/curator; admin → curator. Super_admin luôn thấy hết (bỏ qua bảng). Không tự ẩn tab Quản trị viên của chính mình.
+- **Enforcement:** ẩn `AdminSidebar` + chặn URL trong `renderAdminPage` (`x-pathname`). Curator không thấy `/admin/nguoi-dung` và `/admin/quan-tri-vien`.
+- *Hệ quả:* `migration_user_admin_tab_an.sql` · `npm run migrate:admin-tab-an` (đã chạy). API `GET /api/admin/quan-tri-vien` · `PATCH …/[id]/tabs`. Lib `admin-nav.ts` · `admin-tab-visibility.ts` · `quan-tri-vien.ts`. UI `AdminQuanTriVienScreen`. Bổ sung L19.
+
 ### Shop — người mua hủy đơn + shop nhờ khách hủy (2026-08-13)
 
 - **Chốt:** Buyer tự hủy đơn `cho_xac_nhan` (không cần shop đồng ý). Đơn `da_nhan_tien`: shop **không** tự hủy — gửi yêu cầu (`yeu_cau_huy_*`) rồi buyer bấm Đồng ý hủy (buyer xác nhận đã dàn xếp tiền). `dang_giao` / `cho_lay_hang` vẫn `hoan_tra` (seller).
@@ -887,7 +895,7 @@
 
 ### v6 (engagement + social graph + org)
 
-- **L19 — Phân quyền hệ thống CINs (2026-06-30):** 4 vai trò: `super_admin` (chỉ email `info.cins.vn@gmail.com`, bất biến, không lưu DB), `admin`, `curator`, `thanh_vien`. Bảng `user_quyen_he_thong` lưu admin/curator + audit `cap_boi`. Chỉ super_admin cấp/thu quyền admin; admin cấp curator/thành viên. Vào `/admin`: super_admin + admin + curator; tab quản lý user: super_admin + admin. Migration: `migration_user_quyen_he_thong.sql`.
+- **L19 — Phân quyền hệ thống CINs (2026-06-30):** 4 vai trò: `super_admin` (chỉ email `info.cins.vn@gmail.com`, bất biến, không lưu DB), `admin`, `curator`, `thanh_vien`. Bảng `user_quyen_he_thong` lưu admin/curator + audit `cap_boi`. Chỉ super_admin cấp/thu quyền admin; admin cấp curator/thành viên. Vào `/admin`: super_admin + admin + curator; tab quản lý user + **Quản trị viên**: super_admin + admin. **2026-08-14:** thấy/ẩn tab sidebar qua `user_admin_tab_an` (deny-list, không phân quyền thao tác). Migration: `migration_user_quyen_he_thong.sql` · `migration_user_admin_tab_an.sql`.
 - **L5 — "Anti-engagement" → "Engagement có context".** Like/reaction công khai mặc định (social proof thẩm mỹ). Viral triệt tiêu bằng *kiến trúc* (không feed toàn cục) chứ không bằng cấm like.
 - **L6 — Bỏ follow-user → kết bạn 2 chiều (`user_ket_ban`).** Follow-user vô nghĩa khi không feed. Kết bạn phục vụ: danh bạ nghề + bạn chung + điều kiện tag co-author. `user_theo_doi` thu hẹp còn follow tag/org (xem O1).
 - **L7 — Gộp `studio` + `doanh_nghiep`.** Giữ enum value, ẩn `doanh_nghiep` khỏi UI. Org user tạo ngay còn 3 loại. *Vì sao*: hai loại gần như giống hệt (cùng `project_du_an`, cùng tab) — không đáng 2 nhãn riêng.

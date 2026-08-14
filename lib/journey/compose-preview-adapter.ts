@@ -3,6 +3,7 @@ import { classifyEmbedUrl } from "@/lib/editor/embed-providers";
 import { resolveEmbedGalleryThumbnailSrc } from "@/lib/editor/embed-thumbnail";
 import { resolveImageSeedUrl } from "@/lib/editor/resolve-image-seed-url";
 import type { Block as ServerBlock } from "@/lib/editor/types";
+import { sanitizeTableBlockConfig } from "@/lib/editor/table-block";
 import { classifyStreamVideoUrl } from "@/lib/cloudflare/stream-embed";
 import {
   inferComposePreviewKind,
@@ -489,6 +490,12 @@ export function toPreviewServerBlocks(
     size?: string;
     dividerLen?: number;
     dividerThick?: string;
+    tableRows?: string[][];
+    tableHeader?: boolean;
+    tableColWidths?: number[];
+    tableMerges?: import("@/lib/editor/table-block").TableMerge[];
+    tableTheme?: string;
+    tableBorder?: string;
   }>,
 ): ServerBlock[] {
   return blocks.map((b, i) => {
@@ -557,6 +564,17 @@ export function toPreviewServerBlocks(
           len: b.dividerLen ?? 8,
           thick: b.dividerThick || "med",
         };
+        break;
+      case "table":
+        loai = "table";
+        config = sanitizeTableBlockConfig({
+          rows: b.tableRows ?? [],
+          header: b.tableHeader !== false,
+          colWidths: b.tableColWidths ?? [],
+          merges: b.tableMerges ?? [],
+          theme: b.tableTheme,
+          border: b.tableBorder,
+        });
         break;
       default:
         loai = "body";

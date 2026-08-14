@@ -270,6 +270,53 @@
   border: 0;
 }
 
+.article-rich-content .b-table,
+.article-rich-content table {
+  width: 100%;
+  overflow-x: auto;
+  margin: var(--space-5, 20px) 0;
+  --b-table-bw: 2px;
+}
+.article-rich-content .b-table--border-thin { --b-table-bw: 1px; }
+.article-rich-content .b-table--border-med { --b-table-bw: 2px; }
+.article-rich-content .b-table--border-thick { --b-table-bw: 3px; }
+.article-rich-content table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.article-rich-content th,
+.article-rich-content td {
+  border: var(--b-table-bw) solid var(--border, #e5e7eb);
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+.article-rich-content th,
+.article-rich-content .is-header-row th,
+.article-rich-content .is-header-row td {
+  font-weight: 600;
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 6%, transparent);
+}
+.article-rich-content .b-table--lined th,
+.article-rich-content .b-table--lined td {
+  border: 0;
+  border-bottom: var(--b-table-bw) solid var(--border, #e5e7eb);
+}
+.article-rich-content .b-table--striped .is-body-row:nth-child(even) td {
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 5%, transparent);
+}
+.article-rich-content .b-table--minimal th,
+.article-rich-content .b-table--minimal td {
+  border: 0;
+}
+.article-rich-content .b-table--minimal .is-header-row th,
+.article-rich-content .b-table--minimal .is-header-row td {
+  border-bottom: var(--b-table-bw) solid var(--border-strong, #c9ccd3);
+  background: transparent;
+}
+
 /* Fix Tailwind preflight: strong/em/b bị reset thành display:block */
 .article-rich-content strong,
 .article-rich-content b {

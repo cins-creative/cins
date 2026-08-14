@@ -75,6 +75,15 @@ Người dùng
       · UI: `AdminNguoiDungScreen` · `AdminNguoiDungDeleteDialog` (gõ đúng slug)
       · API: `GET list` · `PATCH [id]/vai-tro` · `PATCH [id]/xac-minh` · `DELETE [id]`
       · Lib: `lib/admin/nguoi-dung-roles.ts` · `lib/auth/system-role.ts`
+  /admin/quan-tri-vien       → staff hệ thống + bảng thấy/ẩn tab sidebar
+      · List: super_admin (email cố định) + dòng `user_quyen_he_thong` (admin/curator)
+      · Phân quyền: chỉ thấy / không thấy tab (`user_admin_tab_an.tab_an` deny-list)
+      · Super_admin luôn thấy hết; admin chỉ sửa tab của curator
+      · Ẩn sidebar + chặn URL (`renderAdminPage` đọc `x-pathname`)
+      · Gate: `canManageUsers` · UI `AdminQuanTriVienScreen`
+      · API: `GET /api/admin/quan-tri-vien` · `PATCH …/[id]/tabs`
+      · Lib: `admin-nav.ts` · `admin-tab-visibility.ts` · `quan-tri-vien.ts`
+      · SQL: `supabase/sql/migration_user_admin_tab_an.sql`
   /admin/tai-khoan-ai        → **Autopilot seeding** (10 nick AI curator)
       · Tabs: Tổng quan · Pipeline (Hàng đợi → Chờ duyệt → Đã duyệt → Đã đăng) · Nick
       · Gate: `canManageUsers` (super_admin | admin) — curator không

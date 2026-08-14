@@ -117,6 +117,7 @@ export function inferComposePreviewKindFromEditor(
       b.t === "quote" ||
       b.t === "divider" ||
       b.t === "palette" ||
+      b.t === "table" ||
       editorBlockHasImageSeed(b),
   );
 

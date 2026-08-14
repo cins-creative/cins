@@ -10994,10 +10994,10 @@ button.cins-chat-don-card-cta.is-action:disabled {
   max-height: min(560px, calc(100vh - 32px));
   display: flex;
   flex-direction: column;
-  border-radius: 16px;
-  background: var(--bg-surface, #fff);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
   border: 1px solid var(--border);
-  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
 
@@ -11007,12 +11007,19 @@ button.cins-chat-don-card-cta.is-action:disabled {
   gap: 12px;
   padding: 18px 18px 12px;
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.cins-chat-group-modal-head-text,
+.cins-chat-group-modal-head > div {
+  flex: 1;
+  min-width: 0;
 }
 
 .cins-chat-group-modal-head h3 {
   margin: 0;
   font-size: 17px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--ink-display);
 }
 
@@ -11041,10 +11048,10 @@ button.cins-chat-don-card-cta.is-action:disabled {
 .cins-chat-create-tabs {
   display: flex;
   gap: 4px;
-  margin: 0 14px;
+  margin: 12px 14px 0;
   padding: 4px;
   border-radius: var(--radius-pill);
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--neutral-100, rgba(0, 0, 0, 0.05));
   flex-shrink: 0;
 }
 
@@ -11059,7 +11066,7 @@ button.cins-chat-don-card-cta.is-action:disabled {
   color: var(--ink-muted);
   font: inherit;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -11068,36 +11075,9 @@ button.cins-chat-don-card-cta.is-action:disabled {
 }
 
 .cins-chat-create-tab.is-active {
-  background: var(--bg-surface, #fff);
+  background: var(--bg-surface);
   color: var(--ink-display);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
-}
-
-.cins-chat-group-pick-meta {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  text-align: left;
-}
-
-.cins-chat-group-pick-meta .cins-chat-group-pick-label {
-  flex: none;
-}
-
-.cins-chat-group-pick-rel {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--ink-muted);
-}
-
-.cins-chat-group-pick-rel.is-ban_be {
-  color: var(--cins-blue);
-}
-
-.cins-chat-group-pick-rel.is-theo_doi {
-  color: rgba(15, 23, 42, 0.55);
+  box-shadow: var(--shadow-xs);
 }
 
 .cins-chat-group-name {
@@ -11108,6 +11088,7 @@ button.cins-chat-don-card-cta.is-action:disabled {
   font-size: 12px;
   font-weight: 600;
   color: var(--ink-muted);
+  flex-shrink: 0;
 }
 
 .cins-chat-group-name-row {
@@ -11149,7 +11130,21 @@ button.cins-chat-don-card-cta.is-action:disabled {
 }
 
 .cins-chat-group-search {
-  margin-top: 10px;
+  flex: 0 0 auto;
+  align-self: stretch;
+  box-sizing: border-box;
+  min-height: 40px;
+  height: 40px;
+  margin: 10px 14px 0;
+}
+
+.cins-chat-group-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  min-height: 24px;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .cins-chat-group-selected {
@@ -11157,6 +11152,7 @@ button.cins-chat-don-card-cta.is-action:disabled {
   flex-wrap: wrap;
   gap: 6px;
   padding: 10px 18px 0;
+  flex-shrink: 0;
 }
 
 .cins-chat-group-chip {
@@ -11177,7 +11173,7 @@ button.cins-chat-don-card-cta.is-action:disabled {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 10px 10px 0;
+  padding: 10px 10px 14px;
 }
 
 .cins-chat-group-list ul {
@@ -12383,6 +12379,19 @@ button.cins-chat-project-card-mark:hover {
 :root[data-theme="dark"] .cins-chat-side-tab:hover,
 :root[data-theme="dark"] .cins-chat-group-pick:hover {
   background: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="dark"] .cins-chat-create-tabs {
+  background: var(--neutral-0, #12151d);
+}
+
+:root[data-theme="dark"] .cins-chat-create-tab.is-active {
+  background: var(--neutral-200);
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .cins-chat-group-pick.is-selected {
+  background: rgba(79, 155, 232, 0.16);
 }
 
 :root[data-theme="dark"] .cins-chat-album-cell,

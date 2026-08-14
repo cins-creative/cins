@@ -36,8 +36,6 @@ import { JOURNEY_SHARE_OPEN_EVENT } from "@/lib/journey/gallery-filter-share";
 import { computeFixedMenuPosition } from "@/lib/ui/clamp-fixed-menu-position";
 
 type Props = {
-  year: number | null;
-  monthLabel: string | null;
   filterKey: OrgBaiDangTimelineFilterKey;
   onFilterKeyChange: (key: OrgBaiDangTimelineFilterKey) => void;
   loaiCounts: Record<string, number>;
@@ -45,8 +43,6 @@ type Props = {
   enabled?: boolean;
   view?: OrgBaiDangView;
   onViewChange?: (view: OrgBaiDangView) => void;
-  /** Ẩn năm/tháng (vd. tab Showcase studio). */
-  hideDate?: boolean;
 };
 
 const MENU_MIN_WIDTH = 240;
@@ -67,8 +63,6 @@ function loaiIcon(value: string): LucideIcon {
 }
 
 export function OrgBaiDangTimelineBar({
-  year,
-  monthLabel,
   filterKey,
   onFilterKeyChange,
   loaiCounts,
@@ -76,7 +70,6 @@ export function OrgBaiDangTimelineBar({
   enabled = true,
   view = "timeline",
   onViewChange,
-  hideDate = false,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
@@ -282,21 +275,8 @@ export function OrgBaiDangTimelineBar({
   );
 
   return (
-    <div
-      className={`j-tlb org-baidang-tlb${hideDate ? " org-baidang-tlb--no-date" : ""}`}
-    >
+    <div className="j-tlb org-baidang-tlb org-baidang-tlb--no-date">
       <span className="j-tlb-streak-slow" aria-hidden="true" />
-      {!hideDate ? (
-        <>
-          <div className="j-tlb-year">{year ?? "—"}</div>
-          <div
-            className="j-tlb-month"
-            style={{ visibility: monthLabel ? "visible" : "hidden" }}
-          >
-            {monthLabel || "—"}
-          </div>
-        </>
-      ) : null}
       {filterCluster}
       {portalReady && menu ? createPortal(menu, document.body) : null}
     </div>

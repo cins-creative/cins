@@ -59,6 +59,7 @@ export function hasArticleLayoutBlocks(
     (b) =>
       b.loai === "palette" ||
       b.loai === "divider" ||
+      b.loai === "table" ||
       (b.loai === "imgs" && b.config?.layout === "mosaic"),
   );
 }

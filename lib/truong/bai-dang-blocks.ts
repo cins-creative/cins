@@ -1,4 +1,5 @@
 import type { Block } from "@/lib/editor/types";
+import { sanitizeTableBlockConfig } from "@/lib/editor/table-block";
 import { milestoneCardContentKind } from "@/lib/journey/milestone-card-kind";
 import {
   validatePostContentForPublish,
@@ -23,14 +24,16 @@ export function sanitizeBaiDangBlocksInput(raw: unknown): Block[] {
     if (!item || typeof item !== "object") continue;
     const obj = item as Record<string, unknown>;
     if (typeof obj.loai !== "string") continue;
+    const config =
+      obj.config && typeof obj.config === "object"
+        ? (obj.config as Record<string, unknown>)
+        : {};
+    const loai = obj.loai as Block["loai"];
     out.push({
       id: typeof obj.id === "string" ? obj.id : `b-${out.length}`,
-      loai: obj.loai as Block["loai"],
+      loai,
       thu_tu: typeof obj.thu_tu === "number" ? obj.thu_tu : out.length,
-      config:
-        obj.config && typeof obj.config === "object"
-          ? (obj.config as Record<string, unknown>)
-          : {},
+      config: loai === "table" ? sanitizeTableBlockConfig(config) : config,
     });
   }
   return out;

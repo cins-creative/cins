@@ -5459,11 +5459,11 @@ a.j-main-gallery-item:focus-visible,
 .j-m-unfold-post:not(.j-m-unfold-post--media) .title-in.title-ro {
   font-family: var(--font-sans);
   font-weight: 800;
-  font-size: clamp(22px, 4.5vw, 30px);
-  letter-spacing: -0.5px;
+  font-size: clamp(22px, 4.5vw, 32px);
+  letter-spacing: -0.6px;
   line-height: 1.28;
   color: var(--ink-display);
-  margin: 0 16px 6px;
+  margin: 0 16px 8px;
   padding: 0.08em 0 0.04em;
   /* Gỡ width:100% + margin ngang từ editor.css — tránh overflow-x clip chữ. */
   width: auto;
@@ -5473,15 +5473,15 @@ a.j-main-gallery-item:focus-visible,
   word-break: break-word;
 }
 .j-m-unfold-post:not(.j-m-unfold-post--media) .sub-in.sub-ro {
-  /* Khớp `.jcard--article .jcard-desc` trên card timeline (org bài đăng). */
+  /* Khớp EditorView body / `.jcard-editor-text .sub-in`. */
   font-family: var(--font-sans);
   font-style: normal;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.58;
-  color: var(--jcard-ink2, var(--ink-body));
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--ink-display, var(--ink-body));
   letter-spacing: normal;
-  margin: 0 16px 12px;
+  margin: 0 16px 14px;
   padding: 0;
   width: auto;
   max-width: calc(100% - 32px);
@@ -16786,6 +16786,39 @@ button.j-user-pop-close svg {
   line-height: 1.35;
   letter-spacing: -0.025em;
 }
+/* Card text — cùng cấu trúc/token với EditorView (title-in / sub-in). */
+.j-m-card .jcard-editor-text .title-in.title-ro {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: clamp(22px, 4.2vw, 32px);
+  letter-spacing: -0.6px;
+  line-height: 1.28;
+  color: var(--ink-display, var(--jcard-ink));
+  margin: 0 0 8px;
+  padding: 0.08em 0 0.04em;
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.j-m-card .jcard-editor-text .sub-in.sub-ro {
+  font-family: var(--font-sans, "Be Vietnam Pro", system-ui, sans-serif);
+  font-style: normal;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: normal;
+  color: var(--ink-display, var(--jcard-ink));
+  margin: 0 0 14px;
+  padding: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}
 .jcard-desc {
   margin: 0 0 14px;
   color: var(--jcard-ink);
@@ -16855,6 +16888,36 @@ button.j-user-pop-close svg {
   line-height: 1.55;
   color: var(--jcard-ink);
   letter-spacing: -0.01em;
+}
+.jcard--photo .jcard-editor-text .jcard-lead .jcard-desc.sub-in,
+.jcard--video .jcard-editor-text .jcard-lead .jcard-desc.sub-in,
+.jcard--article .jcard-editor-text .jcard-lead .jcard-desc.sub-in {
+  font-family: var(--font-sans, "Be Vietnam Pro", system-ui, sans-serif);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: normal;
+  color: var(--ink-display, var(--jcard-ink));
+}
+.jcard--article .jcard-editor-text .jcard-lead:not(.is-caption-collapsed) .jcard-desc.sub-in {
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  overflow: visible;
+  max-height: none;
+}
+.jcard--photo .jcard-editor-text .jcard-lead.is-caption-collapsed .jcard-desc.sub-in,
+.jcard--video .jcard-editor-text .jcard-lead.is-caption-collapsed .jcard-desc.sub-in,
+.jcard--article .jcard-editor-text .jcard-lead.is-caption-collapsed .jcard-desc.sub-in {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.jcard--photo .jcard-editor-text .jcard-lead.is-caption-expand-inline.is-caption-collapsed .jcard-desc.sub-in,
+.jcard--video .jcard-editor-text .jcard-lead.is-caption-expand-inline.is-caption-collapsed .jcard-desc.sub-in,
+.jcard--article .jcard-editor-text .jcard-lead.is-caption-expand-inline.is-caption-collapsed .jcard-desc.sub-in {
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
 }
 .jcard--photo .jcard-lead.is-caption-collapsed,
 .jcard--video .jcard-lead.is-caption-collapsed {

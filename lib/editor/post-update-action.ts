@@ -12,6 +12,7 @@ import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { getCurrentUserSystemRole } from "@/lib/auth/system-role";
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import { blocksToHtml } from "@/lib/editor/sanitize";
+import { sanitizeTableBlockConfig } from "@/lib/editor/table-block";
 import {
   VALID_LOAI_MOC,
   VALID_VIS,
@@ -515,6 +516,7 @@ const VALID_BLOCK_TYPES: ReadonlyArray<BlockType> = [
   "palette",
   "divider",
   "spacer",
+  "table",
 ];
 
 function normalizeBlocks(raw: unknown): Block[] | null {
@@ -534,7 +536,7 @@ function normalizeBlocks(raw: unknown): Block[] | null {
       id: String(item.id || `b-${i}`),
       loai,
       thu_tu: i,
-      config,
+      config: loai === "table" ? sanitizeTableBlockConfig(config) : config,
     });
     i += 1;
   }

@@ -14,7 +14,8 @@ export type BlockType =
   | "embed"
   | "palette"
   | "divider"
-  | "spacer";
+  | "spacer"
+  | "table";
 
 export type Block = {
   id: string;
@@ -41,6 +42,7 @@ export type Block = {
    *   - palette: { colors: string[] }
    *   - divider: {}
    *   - spacer: { size: "s" | "m" | "l" }
+   *   - table: { rows: string[][], header?: boolean, colWidths?: number[], merges?: {r,c,rowspan,colspan}[], theme?: "grid"|"lined"|"striped"|"minimal", border?: "thin"|"med"|"thick" }
    */
   config?: Record<string, unknown>;
 };

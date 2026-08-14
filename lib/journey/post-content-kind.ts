@@ -1,4 +1,5 @@
 import type { Block } from "@/lib/editor/types";
+import { parseTableConfig, tablePlainText } from "@/lib/editor/table-block";
 import {
   buildEmbedIframeSrc,
   classifyEmbedUrl,
@@ -118,6 +119,10 @@ function firstMeaningfulBlock(
 
 function hasTextContentInBlocks(blocks: ReadonlyArray<Block>): boolean {
   for (const block of blocks) {
+    if (block.loai === "table") {
+      if (tablePlainText(parseTableConfig(block.config).rows)) return true;
+      continue;
+    }
     if (!TEXT_LOAI.has(block.loai)) continue;
     if (blockPlainText(block)) return true;
   }
@@ -466,6 +471,11 @@ function deriveMoTaFromBlocks(blocks: ReadonlyArray<Block>): string {
       continue;
     }
     const plain = blockPlainText(block);
+    if (plain) return plain;
+  }
+  for (const block of blocks) {
+    if (block.loai !== "table") continue;
+    const plain = tablePlainText(parseTableConfig(block.config).rows);
     if (plain) return plain;
   }
   return "";

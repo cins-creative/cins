@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { OrgBaiDangCreateComposer } from "@/components/truong/OrgBaiDangCreateComposer";
 import { OrgBaiDangFilteredFeed } from "@/components/truong/OrgBaiDangFilteredFeed";
@@ -10,8 +10,6 @@ import { useOrgBaiDangPostOverlay } from "@/components/truong/useOrgBaiDangPostO
 import { useOrgBaiDangView } from "@/components/truong/useOrgBaiDangView";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import {
-  baiDangMonthLabel,
-  baiDangYear,
   countBaiDangByFilter,
   countBaiDangNhanFilters,
   filterBaiDangByTimelineKey,
@@ -56,9 +54,6 @@ export function OrgBaiDangJourneyTimeline({ posts: postsProp }: Props) {
     () => countBaiDangNhanFilters(posts, customSlugs),
     [posts, customSlugs],
   );
-
-  const topYear = yearGroups[0]?.year ?? baiDangYear(filtered[0]?.tao_luc);
-  const topMonth = baiDangMonthLabel(filtered[0]?.tao_luc);
 
   if (posts.length === 0 && scheduledPosts.length === 0) {
     return (
@@ -111,8 +106,6 @@ export function OrgBaiDangJourneyTimeline({ posts: postsProp }: Props) {
         <OrgBaiDangScheduledQueue posts={scheduledPosts} />
       ) : null}
       <OrgBaiDangTimelineBar
-        year={topYear}
-        monthLabel={topMonth}
         filterKey={filterKey}
         onFilterKeyChange={setFilterKey}
         loaiCounts={loaiCounts}

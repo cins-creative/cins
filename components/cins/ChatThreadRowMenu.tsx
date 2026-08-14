@@ -13,6 +13,7 @@ import {
   Settings2,
   Trash2,
   User,
+  Users,
 } from "lucide-react";
 import {
   useCallback,
@@ -257,6 +258,9 @@ export function buildThreadMenuActions(options: {
   /** DM cá nhân có slug Journey — hiện «Xem người dùng». */
   canViewProfile?: boolean;
   onViewProfile?: () => void;
+  /** DM cá nhân — mở modal tạo nhóm, gắn sẵn người này. */
+  canCreateGroup?: boolean;
+  onCreateGroup?: () => void;
   /** DM cá nhân đã biết id người dùng — hiện «Chặn người dùng này». */
   canBlock?: boolean;
   onBlockUser?: () => void;
@@ -283,6 +287,15 @@ export function buildThreadMenuActions(options: {
       label: "Xem người dùng",
       icon: <User size={15} strokeWidth={2.1} />,
       onSelect: options.onViewProfile,
+    });
+  }
+
+  if (options.canCreateGroup && options.onCreateGroup) {
+    actions.push({
+      id: "create-group",
+      label: "Tạo nhóm chat",
+      icon: <Users size={15} strokeWidth={2.1} />,
+      onSelect: options.onCreateGroup,
     });
   }
 

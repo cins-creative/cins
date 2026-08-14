@@ -11,6 +11,7 @@ import { revalidatePath } from "next/cache";
 
 import { uniquePostSlugForUser, slugifyPostTitle } from "@/lib/editor/post-slug";
 import { blocksToHtml } from "@/lib/editor/sanitize";
+import { sanitizeTableBlockConfig } from "@/lib/editor/table-block";
 import {
   VALID_LOAI_MOC,
   VALID_VIS,
@@ -41,6 +42,7 @@ const VALID_BLOCK_TYPES: ReadonlyArray<BlockType> = [
   "palette",
   "divider",
   "spacer",
+  "table",
 ];
 
 export type DangBaiJourneyInput = {
@@ -89,7 +91,7 @@ export function chuanHoaBlocks(raw: unknown): Block[] | null {
       id: String(item.id || `b-${i}`),
       loai,
       thu_tu: i,
-      config,
+      config: loai === "table" ? sanitizeTableBlockConfig(config) : config,
     });
     i += 1;
   }

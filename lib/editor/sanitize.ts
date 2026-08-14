@@ -18,6 +18,11 @@ import { resolveImageSeedUrl } from "@/lib/editor/resolve-image-seed-url";
 
 import type { Block, BlockType } from "@/lib/editor/types";
 import {
+  parseTableConfig,
+  tableBlockClassName,
+  visibleCellsInRow,
+} from "@/lib/editor/table-block";
+import {
   flattenMosaicCells,
   normalizeImgSlotGap,
   normalizeLegacyLayout,
@@ -148,6 +153,32 @@ export function blocksToHtml(blocks: ReadonlyArray<Block>): string {
       case "quote":
         parts.push(plainToParagraphs(getText(b), "blockquote"));
         break;
+      case "table": {
+        const table = parseTableConfig(b.config);
+        const colgroup = `<colgroup>${table.colWidths
+          .map((w) => `<col style="width:${w}%">`)
+          .join("")}</colgroup>`;
+        const rowsHtml = table.rows
+          .map((row, ri) => {
+            const cells = visibleCellsInRow(table.rows, table.merges, ri)
+              .map((cell) => {
+                const tag = table.header && ri === 0 ? "th" : "td";
+                const span =
+                  (cell.colspan > 1 ? ` colspan="${cell.colspan}"` : "") +
+                  (cell.rowspan > 1 ? ` rowspan="${cell.rowspan}"` : "");
+                return `<${tag}${span}>${escapeHtml(cell.text).replace(/\n/g, "<br>")}</${tag}>`;
+              })
+              .join("");
+            const rowClass =
+              table.header && ri === 0 ? "is-header-row" : "is-body-row";
+            return `<tr class="${rowClass}">${cells}</tr>`;
+          })
+          .join("");
+        parts.push(
+          `<div class="${tableBlockClassName(table, "b-table-ro")}"><table>${colgroup}<tbody>${rowsHtml}</tbody></table></div>`,
+        );
+        break;
+      }
       case "divider": {
         const lenRaw = (b.config?.len as number | undefined) ?? 8;
         const len = Math.max(5, Math.min(100, lenRaw));

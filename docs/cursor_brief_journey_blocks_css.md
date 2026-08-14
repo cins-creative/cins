@@ -39,7 +39,7 @@
 type BlockType =
   | "h2" | "h3" | "body" | "quote"
   | "imgs" | "embed" | "palette"
-  | "divider" | "spacer";
+  | "divider" | "spacer" | "table";
 
 type Block = {
   id: string;       // uuid hoặc "b-0"
@@ -66,6 +66,7 @@ Chỉ các `loai` trong whitelist. `thu_tu` reset theo vị trí khi publish.
 | `palette` | `.b-palette` > `.sw` | `{ "colors": ["#1a1a1a"] }` hex |
 | `divider` | `.b-divider.thick-{thin\|med\|thick}` | `{ "len": 5–100, "thick": "med" }` |
 | `spacer` | `.b-spacer.{s\|m\|l}` | `{ "size": "m" }` |
+| `table` | `.b-table.b-table--{grid\|lined\|striped\|minimal}.b-table--border-{thin\|med\|thick}` | `{ "rows", "header", "colWidths"?: number[], "merges"?: [{r,c,rowspan,colspan}], "theme"?: "grid", "border"?: "med" }` |
 
 ### Typography (token hiện tại)
 

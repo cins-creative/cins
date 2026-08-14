@@ -71,7 +71,10 @@ import {
   baiDangYear,
 } from "@/lib/truong/bai-dang-timeline";
 import { isTruongBaiDangScheduled } from "@/lib/truong/org-bai-dang-schedule";
-import { orgBaiDangPermalinkForSchool } from "@/lib/truong/org-bai-dang-permalink";
+import {
+  orgBaiDangHubFromPathname,
+  orgBaiDangPermalinkForSchool,
+} from "@/lib/truong/org-bai-dang-permalink";
 import type { TruongBaiDang, TruongListItem } from "@/lib/truong/types";
 
 type OrgOwner = Pick<
@@ -104,8 +107,16 @@ function shouldIgnoreExpandTrigger(target: Element | null): boolean {
 
 function orgPopoverKindForSchool(
   orgLoai: OrgOwner["org_loai"],
-): "co_so_dao_tao" | "truong" {
-  return orgLoai === "co_so_dao_tao" ? "co_so_dao_tao" : "truong";
+  pathname?: string | null,
+): "co_so_dao_tao" | "truong" | "studio" {
+  const hub = pathname
+    ? orgBaiDangHubFromPathname(pathname)
+    : orgLoai === "co_so_dao_tao"
+      ? "co-so"
+      : "truong";
+  if (hub === "studio") return "studio";
+  if (hub === "co-so") return "co_so_dao_tao";
+  return "truong";
 }
 
 function orgBaiDangPreviewMedia(post: TruongBaiDang): MilestoneMediaItem | null {
@@ -457,7 +468,7 @@ export function OrgBaiDangJourneyCard({
               {school?.slug ? (
                 <JourneyOrgPopover
                   slug={school.slug}
-                  orgKind={orgPopoverKindForSchool(school.org_loai)}
+                  orgKind={orgPopoverKindForSchool(school.org_loai, pathname)}
                   fallbackName={school.ten}
                   fallbackAvatarUrl={resolveSchoolAvatarSrc(school)}
                 >
@@ -561,10 +572,15 @@ export function OrgBaiDangJourneyCard({
             </>
           ) : (
             <div className="jcard-body org-baidang-body">
-              <h3 className="jcard-title org-baidang-title">{post.tieu_de}</h3>
+              <div className="jcard-text jcard-editor-text">
+              <h3 className="title-in title-ro jcard-title org-baidang-title">
+                {post.tieu_de}
+              </h3>
 
               {!expanded && previewText ? (
-                <p className="jcard-excerpt org-baidang-excerpt">{previewText}</p>
+                <p className="sub-in sub-ro post-view-dek jcard-excerpt org-baidang-excerpt">
+                  {previewText}
+                </p>
               ) : null}
 
               {expanded && hasRichBody ? (
@@ -575,8 +591,11 @@ export function OrgBaiDangJourneyCard({
               ) : null}
 
               {expanded && !hasRichBody && previewText ? (
-                <p className="jcard-content-plain">{previewText}</p>
+                <p className="sub-in sub-ro post-view-dek jcard-content-plain">
+                  {previewText}
+                </p>
               ) : null}
+              </div>
 
               {!expanded && thumbPreview.previews.length > 0 ? (
                 <ul className="org-tl-thumbs" aria-label="Ảnh trong bài">

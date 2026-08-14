@@ -52,7 +52,10 @@ const ChatCanvasBoard = dynamic(
   },
 );
 
-import { ChatCreateGroupModal } from "@/components/cins/ChatCreateGroupModal";
+import {
+  ChatCreateGroupModal,
+  type ChatCreateGroupPresetMember,
+} from "@/components/cins/ChatCreateGroupModal";
 import { ChatForwardPicker } from "@/components/cins/ChatForwardPicker";
 import { ChatGroupMembersPopover } from "@/components/cins/ChatGroupMembersPopover";
 import {
@@ -584,6 +587,7 @@ function ChatThreadRow({
   onDeleteGroup,
   onHideThread,
   onBlockUser,
+  onCreateGroup,
   activeProjectCount = 0,
   projectsExpanded = false,
   onToggleProjects,
@@ -611,6 +615,7 @@ function ChatThreadRow({
   onDeleteGroup: (thread: ChatThread) => void;
   onHideThread: (thread: ChatThread) => void;
   onBlockUser: (thread: ChatThread) => void;
+  onCreateGroup: (thread: ChatThread) => void;
   /** Số project active dưới nhóm gốc. */
   activeProjectCount?: number;
   projectsExpanded?: boolean;
@@ -640,6 +645,8 @@ function ChatThreadRow({
     !thread.isGroup &&
     thread.kind === "user" &&
     Boolean(thread.peerUserId?.trim());
+
+  const canCreateGroup = canBlock && !thread.isSelf;
 
   const canCreateProject =
     Boolean(thread.isGroup) &&
@@ -696,6 +703,8 @@ function ChatThreadRow({
     onViewProfile: () => onViewProfile(thread),
     canBlock,
     onBlockUser: () => onBlockUser(thread),
+    canCreateGroup,
+    onCreateGroup: () => onCreateGroup(thread),
     onToggleListPin: () => onToggleListPin(thread),
     onToggleMute: () => onToggleMute(thread),
     canRenameGroup: Boolean(thread.isGroup && thread.isGroupAdmin),
@@ -1180,6 +1189,9 @@ export function CinsChatOverlay({
     return views.length > 0 ? views : (["ban_be"] as ChatThreadView[]);
   }, [viewsWithContent, showMuaBanTab, activeTab]);
   const [groupModalOpen, setGroupModalOpen] = useState(false);
+  const [groupModalPreset, setGroupModalPreset] = useState<
+    ChatCreateGroupPresetMember[] | null
+  >(null);
   const [manageGroupThread, setManageGroupThread] = useState<ChatThread | null>(
     null,
   );
@@ -2995,8 +3007,24 @@ export function CinsChatOverlay({
     [hideRoom, removeThreadFromSidebar],
   );
 
+  const handleCreateGroupFromThread = useCallback((thread: ChatThread) => {
+    const id = thread.peerUserId?.trim();
+    if (!id || thread.isGroup || thread.isSelf) return;
+    setGroupModalPreset([
+      {
+        id,
+        slug: thread.peerSlug?.trim() || "",
+        ten_hien_thi: thread.name,
+        avatarUrl: thread.avatarUrl ?? null,
+      },
+    ]);
+    setGroupModalOpen(true);
+  }, []);
+
   const handleGroupCreated = useCallback(
     (thread: ChatThread) => {
+      setGroupModalOpen(false);
+      setGroupModalPreset(null);
       setThreads((prev) => mergeLaunchThread(prev, thread));
       selectThread(thread);
     },
@@ -4506,6 +4534,7 @@ export function CinsChatOverlay({
         onDeleteGroup={handleDeleteGroup}
         onHideThread={handleHideThread}
         onBlockUser={handleBlockUser}
+        onCreateGroup={handleCreateGroupFromThread}
         activeProjectCount={projectCount}
         projectsExpanded={expandedProjectParentIds.has(thread.roomId)}
         onToggleProjects={
@@ -4651,7 +4680,10 @@ export function CinsChatOverlay({
                   className="cins-chat-icon-btn is-plain"
                   aria-label="Tin nhắn mới"
                   title="Tin nhắn mới"
-                  onClick={() => setGroupModalOpen(true)}
+                  onClick={() => {
+                    setGroupModalPreset(null);
+                    setGroupModalOpen(true);
+                  }}
                 >
                   <Plus size={22} strokeWidth={2} aria-hidden />
                 </button>
@@ -5989,7 +6021,12 @@ export function CinsChatOverlay({
 
       <ChatCreateGroupModal
         open={groupModalOpen}
-        onClose={() => setGroupModalOpen(false)}
+        initialTab={groupModalPreset?.length ? "nhom" : "chat"}
+        presetMembers={groupModalPreset ?? undefined}
+        onClose={() => {
+          setGroupModalOpen(false);
+          setGroupModalPreset(null);
+        }}
         onCreated={handleGroupCreated}
       />
 

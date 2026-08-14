@@ -17,7 +17,7 @@ import {
 } from "@/lib/ui/clamp-fixed-menu-position";
 
 const PICKER_MAX_W = 420;
-const PICKER_EST_H = 280;
+const PICKER_EST_H = 360;
 
 type Props<T extends string> = {
   idx: number;

@@ -15,9 +15,10 @@ import { getAvatarUrl } from "@/lib/journey/profile";
 
 type Props = {
   children: React.ReactNode;
+  hiddenTabHrefs?: readonly string[];
 };
 
-export async function AdminShell({ children }: Props) {
+export async function AdminShell({ children, hiddenTabHrefs = [] }: Props) {
   const [session, role] = await Promise.all([
     getCurrentSessionAndProfile(),
     getCurrentUserSystemRole(),
@@ -43,6 +44,7 @@ export async function AdminShell({ children }: Props) {
           profile={profile}
           roleLabel={roleLabel}
           initialInboxStats={inboxStats}
+          hiddenTabHrefs={hiddenTabHrefs}
         />
         <div className="main">
           <AdminTopbar profile={profile} roleLabel={roleLabel} />

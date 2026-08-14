@@ -12,6 +12,7 @@ import { isEditorEmptyImageSeed } from "@/lib/editor/editor-stock-image-seeds";
 import { isLottieAssetEmbedUrl } from "@/lib/editor/lottie-asset-url";
 import { isRiveAssetEmbedUrl } from "@/lib/editor/rive-asset-url";
 import { stripMoTaMarkdown } from "@/lib/editor/mo-ta-markdown";
+import { parseTableConfig, tablePlainText } from "@/lib/editor/table-block";
 import type { ComposeIntent } from "@/lib/journey/compose-types";
 import {
   blocksAreMediaCaptionOnly,
@@ -651,6 +652,11 @@ export function galleryItemExcerptLine(
   if (!blocks) return "";
 
   for (const block of blocks) {
+    if (block.loai === "table") {
+      const line = tablePlainText(parseTableConfig(block.config).rows, 200);
+      if (line) return line.split("\n").map((l) => l.trim()).find(Boolean) ?? "";
+      continue;
+    }
     if (
       block.loai !== "body" &&
       block.loai !== "h2" &&
@@ -788,6 +794,11 @@ function plainTextFromBlocks(
   if (!blocks?.length) return null;
   const parts: string[] = [];
   for (const block of blocks) {
+    if (block.loai === "table") {
+      const plain = tablePlainText(parseTableConfig(block.config).rows);
+      if (plain) parts.push(plain);
+      continue;
+    }
     if (
       block.loai !== "body" &&
       block.loai !== "h2" &&
@@ -875,7 +886,7 @@ export function blocksForArticleCardUnfold(
   return result;
 }
 
-/** Caption trên card photo/video — thu gọn khi dài (giống panel chữ). */
+/** Caption trên card photo/video/article — thu gọn khi dài, «Xem thêm» mới xổ. */
 export function milestoneCardCaptionNeedsCollapse(
   caption: string | null | undefined,
 ): boolean {
@@ -930,6 +941,7 @@ const ARTICLE_TEXT_PEEK_LOAI = new Set<Block["loai"]>([
   "quote",
   "divider",
   "spacer",
+  "table",
 ]);
 
 /**

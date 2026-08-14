@@ -59,6 +59,7 @@ import {
   MinimalBodyFormatBar,
 } from "@/components/editor/compose/MinimalBodyFormatBar";
 import { MoTaFormattedField } from "@/components/editor/compose/MoTaFormattedField";
+import { TableBlockEditor } from "@/components/editor/compose/TableBlockEditor";
 import {
   EditorTagMenu,
   type EditorTagMenuPick,
@@ -135,6 +136,14 @@ import {
   type DragSnapTarget,
 } from "@/lib/editor/image-slot-dnd";
 import { resolveImageSeedUrl } from "@/lib/editor/resolve-image-seed-url";
+import {
+  DEFAULT_TABLE_ROWS,
+  parseTableConfig,
+  tableConfigFromData,
+  type TableBorder,
+  type TableMerge,
+  type TableTheme,
+} from "@/lib/editor/table-block";
 import {
   getCfAccountHash,
   rememberCfAccountHashFromDeliveryUrl,
@@ -302,7 +311,8 @@ type BlockType =
   | "embed"
   | "palette"
   | "divider"
-  | "spacer";
+  | "spacer"
+  | "table";
 
 /** Kiểu chữ có thể đổi qua toolbar khi chọn block. */
 type TextBlockKind = "h2" | "h3" | "body" | "quote";
@@ -357,6 +367,13 @@ type Block = {
   dividerLen?: number;
   /* Divider: độ dày line (thin/med/thick → 2/3/6 px). Mặc định "med". */
   dividerThick?: "thin" | "med" | "thick";
+  /* Table */
+  tableRows?: string[][];
+  tableHeader?: boolean;
+  tableColWidths?: number[];
+  tableMerges?: TableMerge[];
+  tableTheme?: TableTheme;
+  tableBorder?: TableBorder;
   /** Ô trong album grid justify/masonry — false = block ảnh độc (LayBar). */
   albumGridCell?: boolean;
   /** Preset bố cục album (justified / masonry / square / stack). */
@@ -601,6 +618,7 @@ const BLOCK_TYPES: Array<{
   { t: "h3", ico: "H₃", name: "Tiêu đề nhỏ", desc: "Sub-heading" },
   { t: "body", ico: "¶", name: "Đoạn văn", desc: "Văn bản thường" },
   { t: "quote", ico: "❝", name: "Trích dẫn", desc: "Pull-quote nổi bật" },
+  { t: "table", ico: "⊞", name: "Bảng", desc: "Bảng nội dung" },
   { t: "imgs", ico: "▥", name: "Ảnh / Album", desc: "Đổi được layout" },
   { t: "embed", ico: "▶", name: "Nhúng", desc: "YouTube · Vimeo · Figma · Sketchfab · Rive" },
   {
@@ -2032,6 +2050,12 @@ export function EditorView({
         b.albumGridCell = false;
       }
       if (type === "spacer") b.size = "m";
+      if (type === "table") {
+        b.tableRows = DEFAULT_TABLE_ROWS.map((row) => [...row]);
+        b.tableHeader = true;
+        b.tableTheme = "grid";
+        b.tableBorder = "med";
+      }
       if (type === "palette") b.colors = DEMO_PALETTE.slice();
       if (["h2", "h3", "body", "quote"].includes(type)) b.text = "";
       if (type === "embed") b.embedUrl = "";
@@ -4278,6 +4302,7 @@ export function EditorView({
                       onChangeDividerThick={(dividerThick) =>
                         updateBlock(b.id, { dividerThick })
                       }
+                      onChangeTable={(patch) => updateBlock(b.id, patch)}
                       onChangeTextAlign={(textAlign) =>
                         updateBlock(b.id, {
                           textAlign: textAlign === "left" ? undefined : textAlign,
@@ -4362,6 +4387,7 @@ export function EditorView({
                     onChangeDividerThick={(dividerThick) =>
                       updateBlock(b.id, { dividerThick })
                     }
+                    onChangeTable={(patch) => updateBlock(b.id, patch)}
                     onChangeTextAlign={(textAlign) =>
                       updateBlock(b.id, {
                         textAlign: textAlign === "left" ? undefined : textAlign,
@@ -4884,7 +4910,7 @@ function CoverArea({
 /* ─── AddZone + Picker ───────────────────────────────────────────── */
 
 const PICKER_MAX_W = 420;
-const PICKER_EST_H = 280;
+const PICKER_EST_H = 360;
 
 /**
  * `true` khi thiết bị dùng con trỏ cảm ứng (điện thoại/tablet) — nơi hộp chọn
@@ -5270,6 +5296,14 @@ type BlockRowProps = {
   onChangeEmbedUrl: (u: string) => void;
   onChangeDividerLen: (len: number) => void;
   onChangeDividerThick: (thick: "thin" | "med" | "thick") => void;
+  onChangeTable: (patch: {
+    tableRows: string[][];
+    tableHeader: boolean;
+    tableColWidths: number[];
+    tableMerges: TableMerge[];
+    tableTheme: TableTheme;
+    tableBorder: TableBorder;
+  }) => void;
   onChangeTextAlign: (align: "left" | "center" | "right") => void;
   onChangeTextKind: (kind: TextBlockKind) => void;
   onUp: () => void;
@@ -5736,6 +5770,32 @@ function BlockInner(p: BlockRowProps) {
           </div>
         ) : null}
       </div>
+    );
+  }
+
+  if (b.t === "table") {
+    return (
+      <TableBlockEditor
+        data={{
+          rows: b.tableRows ?? DEFAULT_TABLE_ROWS,
+          header: b.tableHeader !== false,
+          colWidths: b.tableColWidths ?? [],
+          merges: b.tableMerges ?? [],
+          theme: b.tableTheme ?? "grid",
+          border: b.tableBorder ?? "med",
+        }}
+        selected={p.selected}
+        onChange={(table) =>
+          p.onChangeTable({
+            tableRows: table.rows,
+            tableHeader: table.header,
+            tableColWidths: table.colWidths,
+            tableMerges: table.merges,
+            tableTheme: table.theme,
+            tableBorder: table.border,
+          })
+        }
+      />
     );
   }
 
@@ -6507,6 +6567,7 @@ const LOCAL_TO_SERVER_TYPE: Record<BlockType, ServerBlockType> = {
   palette: "palette",
   divider: "divider",
   spacer: "spacer",
+  table: "table",
 };
 
 /**
@@ -6581,6 +6642,14 @@ function fromServerBlocks(blocks: ServerBlock[]): Block[] {
         cfg.thick === "thin" || cfg.thick === "thick" || cfg.thick === "med"
           ? cfg.thick
           : "med";
+    } else if (t === "table") {
+      const table = parseTableConfig(cfg);
+      local.tableRows = table.rows;
+      local.tableHeader = table.header;
+      local.tableColWidths = table.colWidths;
+      local.tableMerges = table.merges;
+      local.tableTheme = table.theme;
+      local.tableBorder = table.border;
     }
     return local;
   });
@@ -6596,6 +6665,7 @@ const SERVER_TO_LOCAL_TYPE: Record<ServerBlockType, BlockType> = {
   palette: "palette",
   divider: "divider",
   spacer: "spacer",
+  table: "table",
 };
 
 function enrichVideoEmbedBlocksForPublish(
@@ -6705,6 +6775,15 @@ function toServerBlocks(blocks: Block[]): ServerBlock[] {
           len: Math.max(5, Math.min(100, b.dividerLen ?? 8)),
           thick,
         };
+      } else if (b.t === "table") {
+        config = tableConfigFromData({
+          rows: b.tableRows ?? DEFAULT_TABLE_ROWS,
+          header: b.tableHeader !== false,
+          colWidths: b.tableColWidths ?? [],
+          merges: b.tableMerges ?? [],
+          theme: b.tableTheme ?? "grid",
+          border: b.tableBorder ?? "med",
+        });
       }
       return { id: b.id, loai, thu_tu: i, config };
     })

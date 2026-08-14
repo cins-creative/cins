@@ -12,8 +12,6 @@ import { useOrgBaiDangView } from "@/components/truong/useOrgBaiDangView";
 import { orgBaiDangFilterKeyFromSearch } from "@/lib/org/org-bai-dang-filter-share";
 import { normalizeLoaiBaiDang } from "@/lib/truong/bai-dang";
 import {
-  baiDangMonthLabel,
-  baiDangYear,
   countBaiDangNhanFilters,
   filterBaiDangByTimelineKey,
   filterBaiDangPosts,
@@ -46,14 +44,6 @@ type Props = {
   /** Studio — quản lý cộng sự trên card bài đăng. */
   allowCoAuthorManage?: boolean;
 };
-
-function currentYearMonth() {
-  const now = new Date();
-  return {
-    year: now.getFullYear(),
-    month: `Tháng ${now.getMonth() + 1}`,
-  };
-}
 
 function countPostsByLoaiKeys(
   posts: ReadonlyArray<TruongBaiDang>,
@@ -148,19 +138,11 @@ export function CoSoOrgBaiDangTimeline({
   }, [posts, useCustomNhan, filterKey, loaiFilter]);
 
   const yearGroups = useMemo(() => groupBaiDangByYear(filtered), [filtered]);
-  const fallback = currentYearMonth();
-  const topYear =
-    yearGroups[0]?.year ?? baiDangYear(filtered[0]?.tao_luc) ?? fallback.year;
-  const topMonth =
-    baiDangMonthLabel(filtered[0]?.tao_luc) ??
-    (posts.length === 0 ? fallback.month : null);
 
   const barEnabled = composeEnabled || posts.length > 0;
 
   const timelineBar = (
     <OrgBaiDangTimelineBar
-      year={topYear}
-      monthLabel={topMonth}
       filterKey={useCustomNhan ? filterKey : loaiFilter}
       onFilterKeyChange={
         useCustomNhan
@@ -172,7 +154,6 @@ export function CoSoOrgBaiDangTimeline({
       enabled={barEnabled}
       view={view}
       onViewChange={setView}
-      hideDate={isShowcase}
     />
   );
 

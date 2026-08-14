@@ -6,7 +6,10 @@ import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
 import type { AdminTopbarProfile } from "@/components/admin/AdminTopbar";
-import { getNameInitials } from "@/lib/journey/profile";
+import {
+  adminNavActiveLabel,
+  filterAdminNav,
+} from "@/lib/admin/admin-nav";
 import type { AdminInboxStats } from "@/lib/admin/admin-inbox-stats-types";
 import {
   EMPTY_ADMIN_INBOX_STATS,
@@ -14,53 +17,7 @@ import {
   formatAdminInboxBadge,
   parseAdminInboxStats,
 } from "@/lib/admin/admin-inbox-stats-types";
-
-const NAV = [
-  { section: "Nội dung" },
-  { href: "/admin/bai-viet", label: "Bài viết", icon: "doc" },
-  { href: "/admin/noi-dung-dang", label: "Nội dung đăng", icon: "grid" },
-  { href: "/admin/tuyen-dung", label: "Tuyển dụng", icon: "briefcase" },
-  { href: "/admin/tag", label: "Quản lý Tag", icon: "tag" },
-  { href: "/admin/bao-cao", label: "Báo cáo", icon: "flag" },
-  { href: "/admin/giao-dich", label: "Giao dịch", icon: "cart" },
-  { href: "/admin/tranh-chap", label: "Tranh chấp shop", icon: "flag" },
-  { href: "/admin/gop-y", label: "Góp ý", icon: "message" },
-  { href: "/admin/mo-shop", label: "Mở shop", icon: "cart" },
-  { href: "/admin/danh-muc", label: "Danh mục hàng", icon: "tag" },
-  { href: "/admin/huong-dan", label: "Hướng dẫn", icon: "book" },
-  { section: "Tổ chức" },
-  { href: "/admin/to-chuc", label: "Tổ chức", icon: "org" },
-  { href: "/admin/nganh", label: "Ngành đào tạo", icon: "edu" },
-  { href: "/admin/mon-thi", label: "Môn & khối thi", icon: "subject" },
-  { section: "Users" },
-  { href: "/admin/nguoi-dung", label: "Người dùng", icon: "users" },
-  { section: "Seeding" },
-  { href: "/admin/tai-khoan-ai", label: "Nick seeding", icon: "bot" },
-  { href: "/admin/trang-seeding", label: "Trang seeding", icon: "org" },
-  { section: "Hệ thống" },
-  { href: "/admin/tai-chinh", label: "Tài chính", icon: "chart" },
-  { href: "/admin/csdt-phi", label: "Phí CSĐT", icon: "flag" },
-  { href: "/admin/linh-vuc", label: "Lĩnh vực", icon: "grid" },
-  { href: "/admin/schema", label: "Schema DB", icon: "sql" },
-  { href: "/admin/analytics", label: "Analytics", icon: "chart" },
-  { href: "/admin/bang-thong", label: "Băng thông call", icon: "chart" },
-] as const;
-
-function activeLabel(pathname: string): string {
-  let best: { href: string; label: string } | null = null;
-  for (const item of NAV) {
-    if (!("href" in item)) continue;
-    if (
-      pathname === item.href ||
-      pathname.startsWith(`${item.href}/`)
-    ) {
-      if (!best || item.href.length > best.href.length) {
-        best = { href: item.href, label: item.label };
-      }
-    }
-  }
-  return best?.label ?? "Admin";
-}
+import { getNameInitials } from "@/lib/journey/profile";
 
 function NavIcon({ name }: { name: string }) {
   const p = {
@@ -130,6 +87,12 @@ function NavIcon({ name }: { name: string }) {
           <circle cx="9" cy="7" r="4" />
           <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
           <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+      );
+    case "shield":
+      return (
+        <svg {...p}>
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
         </svg>
       );
     case "bot":
@@ -211,10 +174,12 @@ export function AdminSidebar({
   profile = null,
   roleLabel = "Admin",
   initialInboxStats = EMPTY_ADMIN_INBOX_STATS,
+  hiddenTabHrefs = [],
 }: {
   profile?: AdminTopbarProfile | null;
   roleLabel?: string;
   initialInboxStats?: AdminInboxStats;
+  hiddenTabHrefs?: readonly string[];
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -223,7 +188,8 @@ export function AdminSidebar({
   );
   const panelRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
-  const currentLabel = activeLabel(pathname);
+  const currentLabel = adminNavActiveLabel(pathname);
+  const nav = filterAdminNav(new Set(hiddenTabHrefs));
 
   useEffect(() => {
     setInboxStats(initialInboxStats);
@@ -325,7 +291,7 @@ export function AdminSidebar({
         </button>
 
         <nav id={menuId} className="sidebar-nav">
-          {NAV.map((item, i) => {
+          {nav.map((item, i) => {
             if ("section" in item) {
               return (
                 <div key={`sec-${i}`} className="nav-section">

@@ -24,6 +24,11 @@ import {
 } from "@/lib/editor/resolve-image-seed-url";
 import type { Block } from "@/lib/editor/types";
 import {
+  parseTableConfig,
+  tableBlockClassName,
+  visibleCellsInRow,
+} from "@/lib/editor/table-block";
+import {
   buildStreamIframeUrl,
   buildStreamThumbnailUrl,
   classifyStreamVideoUrl,
@@ -211,6 +216,47 @@ function ReadOnlyBlock({
     return (
       <div className="b-quote">
         <MoTaMarkdown text={text} as="div" className="b-quote-ro" />
+      </div>
+    );
+  }
+  if (block.loai === "table") {
+    const table = parseTableConfig(cfg);
+    return (
+      <div className={tableBlockClassName(table, "b-table-ro")}>
+        <table>
+          <colgroup>
+            {table.colWidths.map((w, i) => (
+              <col key={i} style={{ width: `${w}%` }} />
+            ))}
+          </colgroup>
+          <tbody>
+            {table.rows.map((row, ri) => (
+              <tr
+                key={ri}
+                className={
+                  table.header && ri === 0 ? "is-header-row" : "is-body-row"
+                }
+              >
+                {visibleCellsInRow(table.rows, table.merges, ri).map((cell) => {
+                  const Tag = table.header && ri === 0 ? "th" : "td";
+                  return (
+                    <Tag
+                      key={`${ri}-${cell.col}`}
+                      colSpan={cell.colspan > 1 ? cell.colspan : undefined}
+                      rowSpan={cell.rowspan > 1 ? cell.rowspan : undefined}
+                    >
+                      <MoTaMarkdown
+                        text={row[cell.col] ?? ""}
+                        as="span"
+                        className="b-table-cell-md"
+                      />
+                    </Tag>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     );
   }

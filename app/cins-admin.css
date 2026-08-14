@@ -6938,6 +6938,314 @@
   display: inline-flex;
 }
 
+/* ── Quản trị viên / phân quyền tab ── */
+
+.cins-admin .admin-qtv-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.cins-admin .admin-qtv-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: min(100%, 260px);
+  flex: 1 1 220px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--fg-3);
+}
+
+.cins-admin .admin-qtv-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--fg-1);
+  font-size: 13px;
+  outline: none;
+}
+
+.cins-admin .admin-qtv-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cins-admin .admin-qtv-filters button {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-surface);
+  color: var(--fg-2);
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.cins-admin .admin-qtv-filters button.is-active {
+  border-color: color-mix(in srgb, var(--cins-blue) 40%, var(--border));
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue-dark, var(--cins-blue));
+}
+
+.cins-admin .admin-qtv-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--fg-3);
+  font-size: 13px;
+}
+
+.cins-admin .admin-qtv-spin {
+  animation: admin-qtv-spin 0.8s linear infinite;
+}
+
+@keyframes admin-qtv-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.cins-admin .admin-qtv-count {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+.cins-admin .admin-qtv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cins-admin .admin-qtv-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-surface);
+}
+
+.cins-admin .admin-qtv-card-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.cins-admin .admin-qtv-card-toggle {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+  padding: 4px 0 4px 8px;
+}
+
+.cins-admin .admin-qtv-card-toggle:hover {
+  color: var(--fg-1);
+}
+
+.cins-admin .admin-qtv-count-chip {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--fg-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cins-admin .admin-qtv-chevron {
+  flex-shrink: 0;
+  color: var(--fg-4);
+  transition: transform 0.15s ease;
+}
+
+.cins-admin .admin-qtv-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.cins-admin .admin-qtv-matrix {
+  container-type: inline-size;
+  padding: 10px 12px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.cins-admin .admin-qtv-matrix-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 28px;
+  margin-bottom: 10px;
+}
+
+.cins-admin .admin-qtv-locked-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+.cins-admin .admin-qtv-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cins-admin .admin-qtv-bulk button,
+.cins-admin .admin-qtv-panel-all {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--fg-3);
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.cins-admin .admin-qtv-bulk button:hover,
+.cins-admin .admin-qtv-panel-all:hover {
+  color: var(--fg-1);
+  border-color: color-mix(in srgb, var(--cins-blue) 35%, var(--border));
+}
+
+.cins-admin .admin-qtv-bulk button:disabled,
+.cins-admin .admin-qtv-panel-all:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.cins-admin .admin-qtv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 8px;
+}
+
+.cins-admin .admin-qtv-panel {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--fg-1) 2.5%, var(--bg-surface));
+  overflow: hidden;
+}
+
+.cins-admin .admin-qtv-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cins-admin .admin-qtv-panel-head h3 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-4);
+}
+
+.cins-admin .admin-qtv-rows {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+}
+
+.cins-admin .admin-qtv-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 7px;
+  cursor: pointer;
+  color: var(--fg-3);
+}
+
+.cins-admin .admin-qtv-row:hover {
+  background: color-mix(in srgb, var(--fg-1) 5%, transparent);
+}
+
+.cins-admin .admin-qtv-row-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.cins-admin .admin-qtv-row input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.cins-admin .admin-qtv-switch {
+  flex-shrink: 0;
+  width: 32px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--neutral-200, #e5e5e5);
+  position: relative;
+  transition: background 0.15s ease;
+}
+
+.cins-admin .admin-qtv-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
+  transition: transform 0.15s ease;
+}
+
+.cins-admin .admin-qtv-row.is-on {
+  color: var(--fg-1);
+}
+
+.cins-admin .admin-qtv-row.is-on .admin-qtv-switch {
+  background: var(--cins-blue);
+}
+
+.cins-admin .admin-qtv-row.is-on .admin-qtv-switch::after {
+  transform: translateX(14px);
+}
+
+.cins-admin .admin-qtv-row.is-locked {
+  cursor: default;
+}
+
+.cins-admin .admin-qtv-row.is-locked:hover {
+  background: transparent;
+}
+
+.cins-admin .admin-qtv-row:has(input:focus-visible) .admin-qtv-switch {
+  outline: 2px solid color-mix(in srgb, var(--cins-blue) 55%, transparent);
+  outline-offset: 2px;
+}
+
+@container (max-width: 520px) {
+  .cins-admin .admin-qtv-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ── Báo cáo (report) ─────────────────────────────────────────────── */
 .cins-admin .page-subtitle {
   margin: 4px 0 0;
@@ -9971,6 +10279,10 @@
 
 :root[data-theme="dark"] .cins-admin .admin-nguoi-dung-role-select:hover {
   filter: brightness(1.12);
+}
+
+:root[data-theme="dark"] .cins-admin .admin-qtv-switch {
+  background: color-mix(in srgb, var(--fg-1) 18%, var(--bg-surface));
 }
 
 :root[data-theme="dark"] .cins-admin .admin-nguoi-dung-role-select:focus-visible {

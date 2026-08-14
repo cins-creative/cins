@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { buildSupabaseOrIlike } from "@/lib/search/ilike-patterns";
 import { listFollowingUserIds } from "@/lib/social/follow";
 import { listFriends } from "@/lib/social/ket-ban";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -13,8 +14,30 @@ const QUAN_HE_RANK: Record<UserSearchQuanHe, number> = {
   nguoi_la: 2,
 };
 
-function escapeIlike(raw: string): string {
-  return raw.replace(/[%_,]/g, "\\$&");
+const SELECT_COLS = "id, slug, ten_hien_thi, avatar_id";
+
+type UserRow = {
+  id: string;
+  slug: string;
+  ten_hien_thi: string;
+  avatar_id: string | null;
+  quan_he?: UserSearchQuanHe;
+};
+
+function mapRows(
+  data: Array<{
+    id: string;
+    slug: string;
+    ten_hien_thi: string;
+    avatar_id: string | null;
+  }> | null,
+): UserRow[] {
+  return (data ?? []).map((u) => ({
+    id: u.id,
+    slug: u.slug,
+    ten_hien_thi: u.ten_hien_thi,
+    avatar_id: u.avatar_id,
+  }));
 }
 
 export async function GET(req: Request) {
@@ -26,7 +49,7 @@ export async function GET(req: Request) {
   const profileId = session.profile.id;
 
   const { searchParams } = new URL(req.url);
-  const q = (searchParams.get("q") ?? "").trim().toLowerCase();
+  const q = (searchParams.get("q") ?? "").trim();
   const friendsOnly = searchParams.get("friends_only") === "true";
   const mutualOnly = searchParams.get("mutual_only") === "true";
   const rankRelation = searchParams.get("rank_relation") === "true";
@@ -34,11 +57,16 @@ export async function GET(req: Request) {
   const limitRaw = Number.parseInt(searchParams.get("limit") ?? "", 10);
   const limit = Number.isFinite(limitRaw)
     ? Math.min(Math.max(limitRaw, 1), 50)
-    : friendsOnly
-      ? 20
-      : 40;
+    : 50;
 
   const admin = createServiceRoleClient();
+  const ilike =
+    q.length >= 1
+      ? buildSupabaseOrIlike(["slug", "ten_hien_thi"], q, {
+          phraseOnly: true,
+          minTokenLength: 1,
+        })
+      : "";
 
   const needRelationSets = friendsOnly || mutualOnly || rankRelation;
   let friends: string[] = [];
@@ -50,59 +78,73 @@ export async function GET(req: Request) {
     ]);
   }
 
+  const circleIds = [...new Set([...friends, ...following])].filter(
+    (id) => id !== profileId,
+  );
+
   let allowedIds: string[] | null = null;
   if (friendsOnly || mutualOnly) {
-    if (friendsOnly) {
-      allowedIds = friends.filter((id) => id !== profileId);
-    } else {
-      // mutual_only: bạn bè + người mình đang theo dõi.
-      allowedIds = [...new Set([...friends, ...following])].filter(
-        (id) => id !== profileId,
-      );
-    }
+    allowedIds = friendsOnly
+      ? friends.filter((id) => id !== profileId)
+      : circleIds;
     if (allowedIds.length === 0) {
       return NextResponse.json({ users: [] });
     }
   }
 
-  let query = admin
-    .from("user_nguoi_dung")
-    .select("id, slug, ten_hien_thi, avatar_id")
-    .limit(limit);
+  async function fetchUsers(opts: {
+    ids?: string[] | null;
+    excludeIds?: string[];
+    take: number;
+  }): Promise<{ users: UserRow[]; error: string | null }> {
+    if (opts.ids && opts.ids.length === 0) return { users: [], error: null };
+    if (opts.take <= 0) return { users: [], error: null };
 
-  // Org studio picker — cho phép tìm cả chính mình + owner org (ghim đầu danh sách).
-  if (!orgId) {
-    query = query.neq("id", profileId);
+    let query = admin.from("user_nguoi_dung").select(SELECT_COLS);
+    if (!orgId) query = query.neq("id", profileId);
+    if (opts.ids) query = query.in("id", opts.ids.slice(0, 200));
+    if (opts.excludeIds && opts.excludeIds.length > 0) {
+      query = query.not("id", "in", `(${opts.excludeIds.join(",")})`);
+    }
+    if (ilike) query = query.or(ilike);
+    query = query.order("ten_hien_thi", { ascending: true }).limit(opts.take);
+
+    const { data, error } = await query;
+    if (error) return { users: [], error: error.message };
+    return { users: mapRows(data), error: null };
   }
 
-  if (allowedIds) {
-    query = query.in("id", allowedIds);
+  let users: UserRow[] = [];
+
+  /* Gõ tên: ưu tiên bạn bè / đang theo dõi trước — tránh `%mon%` lấy 40
+     user lạ (common, simon, monday…) rồi cắt mất bạn tên Mon. */
+  if (ilike && rankRelation && !allowedIds) {
+    const circle = await fetchUsers({ ids: circleIds, take: limit });
+    if (circle.error) {
+      return NextResponse.json({ error: circle.error }, { status: 500 });
+    }
+    const remain = limit - circle.users.length;
+    const rest =
+      remain > 0
+        ? await fetchUsers({
+            excludeIds: circle.users.map((u) => u.id),
+            take: remain,
+          })
+        : { users: [], error: null };
+    if (rest.error) {
+      return NextResponse.json({ error: rest.error }, { status: 500 });
+    }
+    users = [...circle.users, ...rest.users];
+  } else {
+    const loaded = await fetchUsers({
+      ids: allowedIds,
+      take: limit,
+    });
+    if (loaded.error) {
+      return NextResponse.json({ error: loaded.error }, { status: 500 });
+    }
+    users = loaded.users;
   }
-
-  if (q.length >= 1) {
-    const safe = escapeIlike(q);
-    query = query.or(`slug.ilike.%${safe}%,ten_hien_thi.ilike.%${safe}%`);
-  }
-
-  const { data, error } = await query;
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  type UserRow = {
-    id: string;
-    slug: string;
-    ten_hien_thi: string;
-    avatar_id: string | null;
-    quan_he?: UserSearchQuanHe;
-  };
-
-  let users: UserRow[] = (data ?? []).map((u) => ({
-    id: u.id,
-    slug: u.slug,
-    ten_hien_thi: u.ten_hien_thi,
-    avatar_id: u.avatar_id,
-  }));
 
   if (orgId) {
     const { data: ownerMember } = await admin

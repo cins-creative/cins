@@ -573,9 +573,9 @@ export function JourneyMilestoneCardBodyContent({
         .join(" ")}
       >
         {hasJcardText ? (
-          <div className="jcard-text">
+          <div className="jcard-text jcard-editor-text">
             {showCardTitleInBody ? (
-              <h2 className="jcard-title">{title}</h2>
+              <h2 className="title-in title-ro jcard-title">{title}</h2>
             ) : null}
 
             {showCardCaptionInBody ? (
@@ -619,7 +619,11 @@ export function JourneyMilestoneCardBodyContent({
                     : undefined
                 }
               >
-                <MoTaMarkdown text={cardCaption} className="jcard-desc" as="div" />
+                <MoTaMarkdown
+                  text={cardCaption}
+                  className="sub-in sub-ro post-view-dek jcard-desc"
+                  as="div"
+                />
                 {isCaptionCollapsed && captionExpandInline ? (
                   <button
                     type="button"
