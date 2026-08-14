@@ -22,7 +22,11 @@ import {
   type Persona,
 } from "@/lib/cins/home-adaptive/persona";
 import {
+  parseHomeLayoutTutorial,
+  parseOnboardingIntents,
   parsePresetDaAp,
+  type HomeLayoutTutorial,
+  type OnboardingIntent,
   type PresetId,
 } from "@/lib/cins/home-adaptive/presets";
 
@@ -56,6 +60,10 @@ export type HomeLayoutStored = {
   feed?: HomeLayoutFeedPrefs;
   /** Bộ khối đã áp (breadcrumb). */
   preset?: HomeLayoutPresetMeta;
+  /** Tutorial mua/bán lần đầu — không tham gia resolve cột. */
+  tutorial?: HomeLayoutTutorial;
+  /** Chip onboarding — pre-select dropdown / auto-apply phone. */
+  intent_hint?: OnboardingIntent[];
   at?: string;
 };
 
@@ -72,6 +80,8 @@ export type ResolvedHomeLayout = {
   feed: HomeLayoutFeedPrefs;
   /** Bộ khối đã áp (breadcrumb) — không ảnh hưởng cột. */
   presetDaAp: PresetId[];
+  tutorial?: HomeLayoutTutorial;
+  intentHint: OnboardingIntent[];
 };
 
 const MODULE_ID_SET = new Set<string>(ALL_MODULE_IDS);
@@ -114,11 +124,13 @@ function parseItemLimits(raw: unknown): HomeLayoutItemLimits {
   return out;
 }
 
-/** `{}` / null / invalid → chưa tuỳ chỉnh. */
+/** `{}` / null / invalid → chưa tuỳ chỉnh. Layout tutorial pending (cột rỗng + cờ) không phải mặc định persona. */
 export function isEmptyHomeLayout(raw: unknown): boolean {
   if (raw == null) return true;
   if (typeof raw !== "object" || Array.isArray(raw)) return true;
   const o = raw as Record<string, unknown>;
+  if (parseHomeLayoutTutorial(o.tutorial)) return false;
+  if (parseOnboardingIntents(o.intent_hint).length > 0) return false;
   const hasLists =
     (Array.isArray(o.left) && o.left.length > 0) ||
     (Array.isArray(o.right) && o.right.length > 0) ||
@@ -182,6 +194,8 @@ export function parseHomeLayout(raw: unknown): HomeLayoutStored | null {
       : HOME_LAYOUT_VERSION;
   const at = typeof o.at === "string" ? o.at : undefined;
   const limits = parseItemLimits(o.limits);
+  const tutorial = parseHomeLayoutTutorial(o.tutorial);
+  const intent_hint = parseOnboardingIntents(o.intent_hint);
 
   return {
     v,
@@ -191,6 +205,8 @@ export function parseHomeLayout(raw: unknown): HomeLayoutStored | null {
     ...(Object.keys(limits).length > 0 ? { limits } : {}),
     ...(Object.keys(feed).length > 0 ? { feed } : {}),
     ...(preset ? { preset } : {}),
+    ...(tutorial ? { tutorial } : {}),
+    ...(intent_hint.length > 0 ? { intent_hint } : {}),
     ...(at ? { at } : {}),
   };
 }
@@ -352,17 +368,48 @@ export function resolveHomeLayout(
       isDefault: true,
       feed: {},
       presetDaAp: [],
+      intentHint: [],
     };
   }
 
-  const injected = injectMissingPersonaDefaults(
-    parsed.left,
-    parsed.right,
-    parsed.hidden,
-    persona,
-    capabilities,
-    giaiDoan,
-  );
+  const skipPersonaInject =
+    parsed.tutorial === "pending" ||
+    parsed.tutorial === "done" ||
+    parsed.tutorial === "skipped";
+
+  if (
+    parsed.tutorial === "pending" &&
+    parsed.left.length === 0 &&
+    parsed.right.length === 0
+  ) {
+    return {
+      left: [],
+      right: [],
+      hidden: parsed.hidden,
+      limits: parsed.limits ?? {},
+      newlyInjected: [],
+      isDefault: false,
+      feed: parsed.feed ?? {},
+      presetDaAp: parsed.preset?.da_ap ?? [],
+      tutorial: parsed.tutorial,
+      intentHint: parsed.intent_hint ?? [],
+    };
+  }
+
+  const injected = skipPersonaInject
+    ? {
+        left: parsed.left,
+        right: parsed.right,
+        newlyInjected: [] as ModuleId[],
+      }
+    : injectMissingPersonaDefaults(
+        parsed.left,
+        parsed.right,
+        parsed.hidden,
+        persona,
+        capabilities,
+        giaiDoan,
+      );
   const withCaps = appendCapabilityDefaults(
     injected.left,
     injected.right,
@@ -385,6 +432,8 @@ export function resolveHomeLayout(
     isDefault: false,
     feed: parsed.feed ?? {},
     presetDaAp: parsed.preset?.da_ap ?? [],
+    tutorial: parsed.tutorial,
+    intentHint: parsed.intent_hint ?? [],
   };
 }
 
@@ -434,6 +483,8 @@ export function validateHomeLayoutBody(
     limits: o.limits,
     feed: o.feed,
     preset: o.preset,
+    tutorial: o.tutorial,
+    intent_hint: o.intent_hint,
   });
 
   if (!parsed) {

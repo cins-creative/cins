@@ -14,6 +14,7 @@ import {
   HomeEditableColumn,
   HomeEditToolbar,
   HomeLayoutEditProvider,
+  HomeOpenShopFeedBannerBound,
 } from "@/components/cins/home-adaptive/HomeLayoutBoard";
 import type { HomeLayoutResolvePayload } from "@/components/cins/home-v2/home-layout-resolve";
 import { WorldJourneyFeed } from "@/components/cins/world-journey/WorldJourneyFeed";
@@ -23,7 +24,11 @@ import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { HomeCapability } from "@/lib/cins/home-adaptive/capability-types";
 import type { HomeLayoutItemLimits } from "@/lib/cins/home-adaptive/layout-prefs";
 import type { ModuleId, Persona, GiaiDoan } from "@/lib/cins/home-adaptive/persona";
-import type { PresetId } from "@/lib/cins/home-adaptive/presets";
+import type {
+  HomeLayoutTutorial,
+  OnboardingIntent,
+  PresetId,
+} from "@/lib/cins/home-adaptive/presets";
 import type { WjLinhVucAsideItem } from "@/lib/cins/worldJourneyGuestAside";
 import type { WjFilterChip } from "@/lib/cins/worldJourneyFeedFilters";
 import type { FeedPromoVariant } from "@/lib/cins/worldJourneyFeedPromosTypes";
@@ -69,6 +74,8 @@ type Props = {
   layoutNewlyInjected?: ModuleId[];
   layoutLimits?: HomeLayoutItemLimits;
   layoutPresetDaAp?: PresetId[];
+  layoutTutorial?: HomeLayoutTutorial;
+  layoutIntentHint?: readonly OnboardingIntent[];
   /** Khi có: hydrate layout/capabilities sau critical path (không remount feed). */
   layoutPromise?: Promise<HomeLayoutResolvePayload>;
   moduleNodes: ReactNode;
@@ -142,6 +149,8 @@ export function HomeWorldJourneyClient({
   layoutNewlyInjected = [],
   layoutLimits = {},
   layoutPresetDaAp = [],
+  layoutTutorial,
+  layoutIntentHint = [],
   layoutPromise,
   moduleNodes,
   children = null,
@@ -253,6 +262,8 @@ export function HomeWorldJourneyClient({
         initialHidden={layoutDraft.hidden}
         initialLimits={layoutDraft.limits}
         initialPresetDaAp={layoutDraft.presetDaAp}
+        initialTutorial={layoutTutorial}
+        initialIntentHint={layoutIntentHint}
         newlyInjected={layoutDraft.newlyInjected}
         moduleNodes={mergedModules}
         exitEditing={exitEditing}
@@ -273,7 +284,12 @@ export function HomeWorldJourneyClient({
             galleryNextOffset={galleryNextOffset}
             leftAside={<HomeEditableColumn side="left" />}
             rightAside={<HomeEditableColumn side="right" />}
-            pendingConfirmations={pendingConfirmations}
+            pendingConfirmations={
+              <>
+                <HomeOpenShopFeedBannerBound />
+                {pendingConfirmations}
+              </>
+            }
             feedPromos={feedPromos}
           />
         </div>

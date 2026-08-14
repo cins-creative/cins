@@ -9651,3 +9651,88 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
     /* Edit mode intended desktop-only; keep usable if URL forced. */
   }
 }
+
+.ha-tutorial-cta,
+.ha-open-shop-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 16px;
+  border-radius: var(--r-lg, 16px);
+  background: var(--bg-card, #fff);
+  border: 1px dashed color-mix(in srgb, var(--cins-blue, #1f74c9) 35%, var(--border, #e4e6eb));
+  box-shadow: var(--sh-sm, 0 1px 2px rgba(15, 23, 42, 0.04));
+}
+
+.ha-open-shop-notice {
+  border-style: solid;
+}
+
+.ha-tutorial-cta-title,
+.ha-open-shop-notice-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--ink-display, #0f172a);
+}
+
+.ha-tutorial-cta-hint,
+.ha-open-shop-notice-hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink4, #64748b);
+}
+
+.ha-tutorial-cta-btn {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--cins-blue, #1f74c9);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.ha-tutorial-cta-btn:hover {
+  filter: brightness(1.05);
+}
+
+.ha-open-shop-notice {
+  flex-direction: column;
+}
+
+.ha-open-shop-feed-banner {
+  display: none;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: var(--r-lg, 16px);
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border, #e4e6eb);
+}
+
+.ha-open-shop-feed-banner p {
+  margin: 0;
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-display, #0f172a);
+}
+
+@media (max-width: 991.98px) {
+  .ha-tutorial-cta,
+  .ha-open-shop-notice {
+    display: none;
+  }
+
+  .ha-open-shop-feed-banner {
+    display: flex;
+  }
+}
+

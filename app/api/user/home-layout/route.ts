@@ -9,6 +9,10 @@ import {
   validateHomeLayoutBody,
 } from "@/lib/cins/home-adaptive/layout-prefs";
 import {
+  parseHomeLayoutTutorial,
+  parseOnboardingIntents,
+} from "@/lib/cins/home-adaptive/presets";
+import {
   resolvePersona,
   resolveSeeking,
   type GiaiDoan,
@@ -97,10 +101,31 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: validated.error }, { status: 422 });
   }
 
-  const admin = createServiceRoleClient();
+  const { data: currentRow, error: readErr, admin } = await loadOwnerRow(
+    session.profile.id,
+  );
+  if (readErr) {
+    console.error("[home-layout] read-before-write err:", readErr);
+    return NextResponse.json({ error: "Không đọc được hồ sơ." }, { status: 500 });
+  }
+
+  const stored = parseHomeLayout(currentRow?.home_layout);
+  const incoming = body as Record<string, unknown>;
+  const tutorial =
+    parseHomeLayoutTutorial(incoming.tutorial) ?? stored?.tutorial;
+  const intentHintFromBody = parseOnboardingIntents(incoming.intent_hint);
+  const intent_hint =
+    intentHintFromBody.length > 0
+      ? intentHintFromBody
+      : stored?.intent_hint;
+  const layout = {
+    ...validated.layout,
+    ...(tutorial ? { tutorial } : {}),
+    ...(intent_hint && intent_hint.length > 0 ? { intent_hint } : {}),
+  };
   const { error } = await admin
     .from("user_nguoi_dung")
-    .update({ home_layout: validated.layout })
+    .update({ home_layout: layout })
     .eq("id", session.profile.id);
 
   if (error) {
@@ -116,7 +141,7 @@ export async function PUT(request: Request) {
   const resolved = resolveHomeLayout(
     persona,
     seeking,
-    validated.layout,
+    layout,
     null,
     giaiDoan,
   );

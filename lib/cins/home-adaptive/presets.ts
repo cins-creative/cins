@@ -118,8 +118,8 @@ export const PRESET_GOI: readonly HomePreset[] = [
     kind: "goi",
     label: "Người mua hàng",
     forWhom: "Cho người hay mua",
-    left: ["don_mua_cua_toi"],
-    right: ["tin_nhan_mua_ban", "hang_feature"],
+    left: ["hang_feature"],
+    right: ["tin_nhan_mua_ban", "don_mua_cua_toi"],
     requires: ["da_mua_hang"],
   },
   {
@@ -174,6 +174,12 @@ export const PRESET_GOI: readonly HomePreset[] = [
 export const ALL_PRESETS: readonly HomePreset[] = [
   ...PRESET_NEN,
   ...PRESET_GOI,
+];
+
+/** Bộ dẫn đầu tutorial mua/bán — hiện cả khi chưa có capability. */
+export const TUTORIAL_SHOP_PRESET_IDS: readonly PresetId[] = [
+  "mua_hang_su_kien",
+  "chu_shop",
 ];
 
 const PRESET_BY_ID: ReadonlyMap<PresetId, HomePreset> = new Map(
@@ -256,6 +262,7 @@ export function presetsForUser(
   persona: Persona,
   giaiDoan: GiaiDoan | null | undefined,
   caps: readonly HomeCapability[] | ReadonlySet<HomeCapability>,
+  opts?: { tutorial?: boolean },
 ): HomePreset[] {
   const nen = PRESET_NEN.filter((p) =>
     presetMatchesUser(p, giaiDoan, caps),
@@ -279,7 +286,17 @@ export function presetsForUser(
   };
   goi.sort((a, b) => goiScore(a) - goiScore(b));
 
-  return [...nen, ...goi];
+  const list = [...nen, ...goi];
+  if (!opts?.tutorial) return list;
+
+  /* Tutorial mua/bán: Mua sắm + Chủ shop đứng đầu, kể cả khi chưa có cap. */
+  const forced: HomePreset[] = [];
+  for (const id of TUTORIAL_SHOP_PRESET_IDS) {
+    const p = getPreset(id);
+    if (p) forced.push(p);
+  }
+  const rest = list.filter((p) => !TUTORIAL_SHOP_PRESET_IDS.includes(p.id));
+  return [...forced, ...rest];
 }
 
 export type ApplyPresetMode = "merge" | "replace";
@@ -497,7 +514,7 @@ export const ONBOARDING_INTENT_OPTIONS: readonly {
     label: "Mua đồ",
     hint: "Mình hay đặt hàng / preorder từ shop bạn bè.",
     accent: "mint",
-    presetId: "nguoi_mua",
+    presetId: "mua_hang_su_kien",
   },
   {
     id: "day_hoc",
@@ -626,6 +643,95 @@ export function buildOnboardingHomeLayout(
     right: layout.right,
     hidden: layout.hidden,
     preset: { da_ap, at },
+    at,
+  };
+}
+
+export const MUA_BAN_INTENTS: readonly OnboardingIntent[] = [
+  "mua_do",
+  "ban_hang",
+];
+
+export function hasMuaBanIntent(
+  intents: readonly OnboardingIntent[],
+): boolean {
+  return intents.some((id) => id === "mua_do" || id === "ban_hang");
+}
+
+/** Bán hàng thắng Mua đồ khi chọn cả hai. */
+export function tutorialPresetIdFromIntents(
+  intents: readonly OnboardingIntent[],
+): PresetId {
+  if (intents.includes("ban_hang")) return "chu_shop";
+  return "mua_hang_su_kien";
+}
+
+export type HomeLayoutTutorial = "pending" | "done" | "skipped";
+
+const TUTORIAL_SET = new Set<string>(["pending", "done", "skipped"]);
+
+export function parseHomeLayoutTutorial(
+  raw: unknown,
+): HomeLayoutTutorial | undefined {
+  if (typeof raw !== "string" || !TUTORIAL_SET.has(raw)) return undefined;
+  return raw as HomeLayoutTutorial;
+}
+
+/** Layout rỗng + cờ tutorial — lần đầu cohort mua/bán (desktop CTA). */
+export function buildPendingTutorialHomeLayout(
+  intents: readonly OnboardingIntent[],
+): {
+  v: number;
+  left: ModuleId[];
+  right: ModuleId[];
+  hidden: ModuleId[];
+  tutorial: "pending";
+  intent_hint: OnboardingIntent[];
+  at: string;
+} {
+  const at = new Date().toISOString();
+  return {
+    v: 2,
+    left: [],
+    right: [],
+    hidden: [],
+    tutorial: "pending",
+    intent_hint: [...intents],
+    at,
+  };
+}
+
+/** Áp 1 bộ shop (replace, đủ khối) — phone auto-apply hoặc skip/Dùng bộ này. */
+export function buildAppliedTutorialHomeLayout(
+  presetId: PresetId,
+  tutorial: "done" | "skipped",
+  intents: readonly OnboardingIntent[],
+): {
+  v: number;
+  left: ModuleId[];
+  right: ModuleId[];
+  hidden: ModuleId[];
+  preset: { da_ap: PresetId[]; at: string };
+  tutorial: "done" | "skipped";
+  intent_hint: OnboardingIntent[];
+  at: string;
+} {
+  const preset = getPreset(presetId);
+  const at = new Date().toISOString();
+  let layout: LayoutColumns = { left: [], right: [], hidden: [] };
+  if (preset) {
+    layout = applyPreset(layout, preset, [], "replace", {
+      ignoreCapabilities: true,
+    }).layout;
+  }
+  return {
+    v: 2,
+    left: layout.left,
+    right: layout.right,
+    hidden: layout.hidden,
+    preset: { da_ap: preset ? [presetId] : [], at },
+    tutorial,
+    intent_hint: [...intents],
     at,
   };
 }

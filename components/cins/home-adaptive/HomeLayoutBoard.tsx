@@ -32,6 +32,12 @@ import {
   HomeModuleMockCard,
   HomeModulePreviewSkeleton,
 } from "@/components/cins/home-adaptive/HomeModulePreviewLazy";
+import {
+  HomeTutorialCtaCard,
+  HomeMuaBanTutorialController,
+  HomeOpenShopFeedBanner,
+  HomeOpenShopNotice,
+} from "@/components/cins/home-adaptive/HomeMuaBanTutorial";
 import { DraftModuleLimitProvider } from "@/components/cins/home-adaptive/draft-module-limit";
 import {
   moduleMatchesCapabilities,
@@ -56,14 +62,19 @@ import type { GiaiDoan, ModuleId, Persona } from "@/lib/cins/home-adaptive/perso
 import {
   PRESET_LAYOUT_MAX,
   applyPreset,
+  buildAppliedTutorialHomeLayout,
   filterPresetModules,
   getPreset,
   mergePresetDaAp,
+  presetModuleIds,
   presetsForUser,
   removeModulesFromLayout,
   suggestRemoveForOverflow,
+  tutorialPresetIdFromIntents,
   type ApplyPresetMode,
+  type HomeLayoutTutorial,
   type HomePreset,
+  type OnboardingIntent,
   type PresetId,
 } from "@/lib/cins/home-adaptive/presets";
 import { requestHomeLayoutEdit } from "@/lib/home/home-layout-edit";
@@ -121,6 +132,12 @@ type LayoutEditCtx = {
   setAddAt: (v: { side: Side; index: number } | null) => void;
   /** Vào edit (nếu cần) rồi mở bảng thêm khối tại vị trí. */
   openAddAt: (side: Side, index: number) => void;
+  tutorial: HomeLayoutTutorial | undefined;
+  intentHint: readonly OnboardingIntent[];
+  completeTutorial: (
+    presetId: PresetId,
+    status: "done" | "skipped",
+  ) => Promise<void>;
   menuId: ModuleId | null;
   setMenuId: (id: ModuleId | null) => void;
   /** Có khối chỉ có live preview (chưa SSR) — cần soft-refresh nền sau lưu. */
@@ -212,6 +229,8 @@ type ProviderProps = {
   moduleNodes: ReactNode;
   exitEditing: (opts?: { refresh?: boolean }) => void;
   capabilities?: readonly HomeCapability[];
+  initialTutorial?: HomeLayoutTutorial;
+  initialIntentHint?: readonly OnboardingIntent[];
 };
 
 export function HomeLayoutEditProvider({
@@ -229,6 +248,8 @@ export function HomeLayoutEditProvider({
   moduleNodes,
   exitEditing,
   capabilities = [],
+  initialTutorial,
+  initialIntentHint = [],
 }: ProviderProps) {
   const childMap = useMemo(
     () => collectChildMap(moduleNodes),
@@ -258,6 +279,16 @@ export function HomeLayoutEditProvider({
    */
   const pendingSavedKeyRef = useRef<string | null>(null);
   const [menuId, setMenuId] = useState<ModuleId | null>(null);
+  const [tutorial, setTutorial] = useState<HomeLayoutTutorial | undefined>(
+    initialTutorial,
+  );
+  const intentHint = initialIntentHint;
+  const completingTutorialRef = useRef(false);
+
+  useEffect(() => {
+    if (completingTutorialRef.current) return;
+    setTutorial(initialTutorial);
+  }, [initialTutorial]);
   const [previews, setPreviews] = useState<Map<ModuleId, PreviewEntry>>(
     () => new Map(),
   );
@@ -371,8 +402,11 @@ export function HomeLayoutEditProvider({
   }, [used, persona, capabilities]);
 
   const presets = useMemo(
-    () => presetsForUser(persona, giaiDoan, capabilities),
-    [persona, giaiDoan, capabilities],
+    () =>
+      presetsForUser(persona, giaiDoan, capabilities, {
+        tutorial: tutorial === "pending",
+      }),
+    [persona, giaiDoan, capabilities, tutorial],
   );
 
   const needsServerHydrate = useMemo(() => {
@@ -696,6 +730,57 @@ export function HomeLayoutEditProvider({
     }
   }, [draft, childMap, ensurePreview]);
 
+  const completeTutorial = useCallback(
+    async (presetId: PresetId, status: "done" | "skipped") => {
+      if (completingTutorialRef.current) return;
+      completingTutorialRef.current = true;
+      const layout = buildAppliedTutorialHomeLayout(
+        presetId,
+        status,
+        intentHint,
+      );
+      try {
+        const res = await fetch("/api/user/home-layout", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(layout),
+        });
+        if (!res.ok) {
+          completingTutorialRef.current = false;
+          return;
+        }
+        /* DB giữ đủ khối; UI chỉ hiện khối đủ capability — khớp resolve SSR. */
+        const visible = (ids: ModuleId[]) =>
+          ids.filter((id) => {
+            const meta = MODULE_META[id];
+            return moduleMatchesCapabilities(capabilities, {
+              requires: meta.requires,
+              requiresAny: meta.requiresAny,
+            });
+          });
+        const nextDraft: Draft = {
+          left: visible(layout.left),
+          right: visible(layout.right),
+          hidden: layout.hidden,
+          limits: {},
+          presetDaAp: layout.preset.da_ap,
+        };
+        setDraft(nextDraft);
+        setBaseline(nextDraft);
+        setTutorial(status);
+        setAddAt(null);
+        pendingSavedKeyRef.current = `${nextDraft.left.join(",")}|${nextDraft.right.join(",")}|${nextDraft.hidden.join(",")}|{}|${nextDraft.presetDaAp.join(",")}`;
+        for (const id of [...nextDraft.left, ...nextDraft.right]) {
+          ensurePreview(id);
+        }
+        exitEditing({ refresh: true });
+      } catch {
+        completingTutorialRef.current = false;
+      }
+    },
+    [intentHint, capabilities, ensurePreview, exitEditing],
+  );
+
   const value = useMemo<LayoutEditCtx>(
     () => ({
       editing,
@@ -727,6 +812,9 @@ export function HomeLayoutEditProvider({
       addAt,
       setAddAt,
       openAddAt,
+      tutorial,
+      intentHint,
+      completeTutorial,
       menuId,
       setMenuId,
       needsServerHydrate,
@@ -761,6 +849,9 @@ export function HomeLayoutEditProvider({
       capabilities,
       addAt,
       openAddAt,
+      tutorial,
+      intentHint,
+      completeTutorial,
       menuId,
       needsServerHydrate,
       discardDraft,
@@ -773,11 +864,28 @@ export function HomeLayoutEditProvider({
     <DraftModuleLimitProvider editing={editing} limits={draft.limits}>
       <Ctx.Provider value={value}>
         {children}
+        <HomeMuaBanTutorialController
+          tutorial={tutorial}
+          intentHint={intentHint}
+          addAt={addAt}
+          completeTutorial={completeTutorial}
+          openAddAt={openAddAt}
+        />
         {editing && addAt ? (
           <AddModuleOverlay
             items={available}
             onPick={(id) => addModule(id, addAt.side, addAt.index)}
-            onClose={() => setAddAt(null)}
+            onClose={() => {
+              setAddAt(null);
+              if (
+                tutorial === "pending" &&
+                !completingTutorialRef.current &&
+                draft.left.length === 0 &&
+                draft.right.length === 0
+              ) {
+                void completeTutorial("mua_hang_su_kien", "skipped");
+              }
+            }}
           />
         ) : null}
       </Ctx.Provider>
@@ -987,6 +1095,17 @@ export function HomeEditableColumn({ side }: { side: Side }) {
         />
       ) : null}
 
+      {ctx.tutorial === "pending" && ids.length === 0 ? (
+        <HomeTutorialCtaCard onPick={() => ctx.openAddAt(side, 0)} />
+      ) : null}
+
+      {side === "left" &&
+      ctx.tutorial !== "pending" &&
+      !ctx.capabilities.includes("co_shop") &&
+      ctx.draft.presetDaAp.includes("chu_shop") ? (
+        <HomeOpenShopNotice hasShop={ctx.capabilities.includes("co_shop")} />
+      ) : null}
+
       {ids.map((id, index) => {
         const meta = MODULE_META[id];
         const isNew = ctx.newlyInjected.has(id) || !ctx.childMap.has(id);
@@ -1187,6 +1306,19 @@ export function HomeEditableColumn({ side }: { side: Side }) {
   );
 }
 
+export function HomeOpenShopFeedBannerBound() {
+  const ctx = useLayoutEdit();
+  return (
+    <HomeOpenShopFeedBanner
+      show={
+        ctx.tutorial !== "pending" &&
+        ctx.draft.presetDaAp.includes("chu_shop")
+      }
+      hasShop={ctx.capabilities.includes("co_shop")}
+    />
+  );
+}
+
 export function HomeEditToolbar() {
   const ctx = useLayoutEdit();
   const [saving, setSaving] = useState(false);
@@ -1218,6 +1350,7 @@ export function HomeEditToolbar() {
         da_ap: ctx.draft.presetDaAp,
         at: new Date().toISOString(),
       },
+      ...(ctx.tutorial === "pending" ? { tutorial: "done" as const } : {}),
     };
     /* Snapshot trước markSaved — reorder/ẩn không cần SSR lại. */
     const needRefresh = ctx.needsServerHydrate;
@@ -1439,9 +1572,13 @@ function AddModuleOverlay({
     setActiveTab((cur) => {
       if (cur === "catalog") return cur;
       if (cur && ctx.presets.some((p) => p.id === cur)) return cur;
+      if (ctx.tutorial === "pending") {
+        const hintId = tutorialPresetIdFromIntents(ctx.intentHint);
+        if (ctx.presets.some((p) => p.id === hintId)) return hintId;
+      }
       return ctx.presets[0]!.id;
     });
-  }, [ctx.presets]);
+  }, [ctx.presets, ctx.tutorial, ctx.intentHint]);
 
   const catalogOpen = activeTab === "catalog";
 
@@ -1455,14 +1592,17 @@ function AddModuleOverlay({
 
   const activePresetCols = useMemo(() => {
     if (!activePreset) return { left: [] as ModuleId[], right: [] as ModuleId[] };
+    const ignoreCap = ctx.tutorial === "pending";
     const allowed = new Set(
-      filterPresetModules(activePreset, ctx.capabilities),
+      ignoreCap
+        ? presetModuleIds(activePreset)
+        : filterPresetModules(activePreset, ctx.capabilities),
     );
     return {
       left: activePreset.left.filter((id) => allowed.has(id)),
       right: activePreset.right.filter((id) => allowed.has(id)),
     };
-  }, [activePreset, ctx.capabilities]);
+  }, [activePreset, ctx.capabilities, ctx.tutorial]);
 
   const activePresetModuleIds = useMemo(
     () => [...activePresetCols.left, ...activePresetCols.right],
@@ -1527,6 +1667,11 @@ function AddModuleOverlay({
   }, [filtered, ctx.persona]);
 
   const tryApplyPreset = (preset: HomePreset, mode: ApplyPresetMode = "merge") => {
+    if (ctx.tutorial === "pending") {
+      void ctx.completeTutorial(preset.id, "done");
+      return;
+    }
+
     const caps = ctx.capabilities;
     const tentative = applyPreset(
       {

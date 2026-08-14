@@ -109,9 +109,14 @@ const FEED_SOURCE_ICON: Record<FeedSourceFilter, LucideIcon> = {
 type Props = {
   open: boolean;
   onClose: () => void;
+  initialSection?: SettingsSection;
 };
 
-export function UserAccountSettingsModal({ open, onClose }: Props) {
+export function UserAccountSettingsModal({
+  open,
+  onClose,
+  initialSection = "journey-display",
+}: Props) {
   const titleId = useId();
   const router = useRouter();
   const [section, setSection] = useState<SettingsSection>("journey-display");
@@ -160,7 +165,7 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
 
   useEffect(() => {
     if (!open) return;
-    setSection("journey-display");
+    setSection(initialSection);
     setLayoutTab("profile");
     setSavedTick(false);
     setHomeLayout(readHomeFeedLayout());
@@ -184,7 +189,7 @@ export function UserAccountSettingsModal({ open, onClose }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [open, loadSettings]);
+  }, [open, initialSection, loadSettings]);
 
   const navItems = NAV.filter((item) => !item.adminOnly || isCinsAdmin);
 

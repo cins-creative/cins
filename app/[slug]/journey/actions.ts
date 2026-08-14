@@ -7,6 +7,8 @@ import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { revalidateHomeLayout } from "@/lib/cins/home-adaptive/home-layout-store";
 import {
   buildOnboardingHomeLayout,
+  buildPendingTutorialHomeLayout,
+  hasMuaBanIntent,
   parseOnboardingIntents,
 } from "@/lib/cins/home-adaptive/presets";
 import { createClient } from "@/lib/supabase/server";
@@ -322,7 +324,9 @@ export async function submitOnboarding(
     }
   }
 
-  const homeLayout = buildOnboardingHomeLayout(input.giaiDoan, intents);
+  const homeLayout = hasMuaBanIntent(intents)
+    ? buildPendingTutorialHomeLayout(intents)
+    : buildOnboardingHomeLayout(input.giaiDoan, intents);
 
   const patch: Record<string, unknown> = {
     ten_hien_thi: tenHienThi,

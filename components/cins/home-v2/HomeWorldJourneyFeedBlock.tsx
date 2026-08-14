@@ -148,6 +148,8 @@ export async function HomeWorldJourneyFeedBlock({
       layoutNewlyInjected={layout.newlyInjected}
       layoutLimits={layout.limits}
       layoutPresetDaAp={layout.presetDaAp}
+      layoutTutorial={layout.tutorial}
+      layoutIntentHint={layout.intentHint}
       feedPromosPromise={editing ? undefined : promosPromise}
       feedPromos={editPromos}
       moduleNodes={renderHomeModules(moduleIds, moduleCtx)}

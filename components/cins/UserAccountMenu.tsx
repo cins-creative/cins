@@ -15,6 +15,7 @@ import { signOutAction } from "@/app/auth/sign-out-action";
 import { HelpCenterModal } from "@/components/cins/HelpCenterModal";
 import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
 import { UserAccountSettingsModal } from "@/components/cins/UserAccountSettingsModal";
+import { OPEN_ACCOUNT_SETTINGS_EVENT } from "@/lib/cins/open-account-settings";
 import { GopYModal } from "@/components/feedback/GopYModal";
 import { clearAllClientCaches } from "@/lib/client-cache";
 import { prefetchHuongDanCatalog } from "@/lib/huong-dan/catalog-client";
@@ -54,6 +55,9 @@ export function UserAccountMenu({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsSection, setSettingsSection] = useState<
+    "ban-hang" | undefined
+  >(undefined);
   const [gopyOpen, setGopyOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [themeMode, setThemeMode] = useState<ThemeMode>("system");
@@ -95,6 +99,20 @@ export function UserAccountMenu({
       window.removeEventListener(THEME_CHANGE_EVENT, onThemeChange);
     };
   }, [open]);
+
+  useEffect(() => {
+    function onOpenSettings(ev: Event) {
+      const section = (ev as CustomEvent<{ section?: string }>).detail?.section;
+      if (section !== "ban-hang") return;
+      setOpen(false);
+      setSettingsSection("ban-hang");
+      setSettingsOpen(true);
+    }
+    window.addEventListener(OPEN_ACCOUNT_SETTINGS_EVENT, onOpenSettings);
+    return () => {
+      window.removeEventListener(OPEN_ACCOUNT_SETTINGS_EVENT, onOpenSettings);
+    };
+  }, []);
 
   function chooseTheme(mode: ThemeMode) {
     setThemeMode(mode);
@@ -152,6 +170,7 @@ export function UserAccountMenu({
             role="menuitem"
             onClick={() => {
               setOpen(false);
+              setSettingsSection(undefined);
               setSettingsOpen(true);
             }}
           >
@@ -275,7 +294,11 @@ export function UserAccountMenu({
     </div>
       <UserAccountSettingsModal
         open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
+        initialSection={settingsSection}
+        onClose={() => {
+          setSettingsOpen(false);
+          setSettingsSection(undefined);
+        }}
       />
       <GopYModal open={gopyOpen} onClose={() => setGopyOpen(false)} />
       <HelpCenterModal
