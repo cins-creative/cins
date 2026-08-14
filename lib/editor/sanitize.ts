@@ -20,6 +20,7 @@ import type { Block, BlockType } from "@/lib/editor/types";
 import {
   parseTableConfig,
   tableBlockClassName,
+  tableCellImageId,
   visibleCellsInRow,
 } from "@/lib/editor/table-block";
 import {
@@ -166,6 +167,11 @@ export function blocksToHtml(blocks: ReadonlyArray<Block>): string {
                 const span =
                   (cell.colspan > 1 ? ` colspan="${cell.colspan}"` : "") +
                   (cell.rowspan > 1 ? ` rowspan="${cell.rowspan}"` : "");
+                const imgId = tableCellImageId(cell.text);
+                if (imgId) {
+                  const src = escapeHtml(resolveImageSeedUrl(imgId, 640, 360));
+                  return `<${tag}${span}><img class="b-table-cell-img" src="${src}" alt="" loading="lazy"></${tag}>`;
+                }
                 return `<${tag}${span}>${escapeHtml(cell.text).replace(/\n/g, "<br>")}</${tag}>`;
               })
               .join("");

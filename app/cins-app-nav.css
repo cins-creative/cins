@@ -1131,9 +1131,11 @@
     --cins-sticky-follow: calc(-1 * var(--site-nav-height, 64px));
   }
 
+  /* Section head shop: chỉ follow khi `.is-chrome-stuck` — còn giữa
+   * trang (dưới hero) thì transform sẽ kéo thanh đè nội dung. */
   .cins-shell :is(
     .j-tlb,
-    .j-shop-sf-section-head,
+    .j-shop-sf-section-head.is-chrome-stuck,
     .org-baidang-tlb,
     .shop-quay-tlb,
     .ch-list-toolbar,

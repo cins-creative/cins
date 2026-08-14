@@ -75,3 +75,15 @@ export function uploadPostImageWithProgress(
     xhr.send(form);
   });
 }
+
+/** Xóa ảnh khỏi Cloudflare — best-effort, không chặn UI. */
+export function deletePostImage(imageId: string): void {
+  const id = imageId.trim();
+  if (!id) return;
+  void fetch("/api/post-image/delete", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ imageId: id }),
+  });
+}

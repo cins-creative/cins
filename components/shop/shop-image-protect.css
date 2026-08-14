@@ -41,6 +41,11 @@
   object-fit: fill;
   display: block;
   cursor: inherit;
+  /* 1×1 PNG + bilinear: iOS Safari nội suy alpha → lớp phủ xám/màu. */
+  image-rendering: pixelated;
+  image-rendering: -webkit-optimize-contrast;
+  filter: none;
+  opacity: 1;
 }
 
 .shop-img-protect-wm {

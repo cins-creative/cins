@@ -48,8 +48,20 @@ export function ShopImageWatermark({ text }: { text: string }) {
   const rawId = useId().replace(/:/g, "");
   if (!label) return null;
   const patternId = `shop-wm-${rawId}`;
-  const cellW = Math.min(720, Math.max(380, label.length * 14 + 100));
-  const cellH = 180;
+  const cellW = Math.min(520, Math.max(260, label.length * 12 + 72));
+  const rowH = 112;
+  const cellH = rowH * 2;
+  const textProps = {
+    textAnchor: "middle" as const,
+    fill: "#fff",
+    fillOpacity: 0.45,
+    stroke: "#111",
+    strokeOpacity: 0.15,
+    strokeWidth: 1.05,
+    fontSize: 18,
+    fontWeight: 700,
+    fontFamily: "Be Vietnam Pro, system-ui, sans-serif",
+  };
   return (
     <div className="shop-img-protect-wm" aria-hidden>
       <svg className="shop-img-protect-wm-svg" aria-hidden>
@@ -61,17 +73,10 @@ export function ShopImageWatermark({ text }: { text: string }) {
             patternUnits="userSpaceOnUse"
             patternTransform="rotate(-22)"
           >
-            <text
-              x={cellW / 2}
-              y={cellH / 2}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fill="#fff"
-              fillOpacity="0.42"
-              fontSize="22"
-              fontWeight="700"
-              fontFamily="var(--font-sans, system-ui, sans-serif)"
-            >
+            <text x={cellW / 2} y={rowH / 2} dy="0.32em" {...textProps}>
+              {label}
+            </text>
+            <text x={0} y={rowH + rowH / 2} dy="0.32em" {...textProps}>
               {label}
             </text>
           </pattern>

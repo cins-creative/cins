@@ -174,6 +174,18 @@ function redirectTruongRootToDefaultTab(
   return NextResponse.redirect(url, 308);
 }
 
+/** Forward cookie đã mutate trên `request` + header phụ (x-pathname, x-url). */
+function createSessionPassthrough(
+  request: NextRequest,
+  extraHeaders: Headers,
+): NextResponse {
+  const headers = new Headers(request.headers);
+  extraHeaders.forEach((value, key) => {
+    headers.set(key, value);
+  });
+  return NextResponse.next({ request: { headers } });
+}
+
 /**
  * Resolve session bằng `@supabase/ssr` server client với cookie adapter cho middleware.
  * Trả về `{ response, user }` — response đã được sync cookies refresh token (nếu Supabase
@@ -187,8 +199,7 @@ async function resolveSession(
   response: NextResponse;
   userId: string | null;
 }> {
-  const nextInit = { request: { headers: requestHeaders } };
-  let response = NextResponse.next(nextInit);
+  let response = createSessionPassthrough(request, requestHeaders);
 
   const url = getTrimmedSupabaseUrl();
   const key = getTrimmedSupabaseAnonKey();
@@ -207,7 +218,9 @@ async function resolveSession(
         cookiesToSet.forEach(({ name, value }) => {
           request.cookies.set(name, value);
         });
-        response = NextResponse.next(nextInit);
+        /* Phải dựng lại từ request đã set cookie — snapshot header cũ làm RSC
+         * đọc token đã tiêu thụ rồi xoay lần 2 / mất phiên (iPhone tắt Safari). */
+        response = createSessionPassthrough(request, requestHeaders);
         cookiesToSet.forEach(({ name, value, options }) => {
           response.cookies.set(name, value, options);
         });

@@ -35,7 +35,7 @@ export default async function Home({
 
   if (session?.profile?.slug) {
     return (
-      <CinsShell data-screen-label="Trang-chu">
+      <CinsShell data-screen-label="Trang-chu" data-cins-authed-home="1">
         <AuthGateRoot initialAuthenticated>
           <BeMatPageTracker
             nguon={includeGallery ? "gallery" : "journey_home"}

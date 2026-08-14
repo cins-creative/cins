@@ -26,6 +26,7 @@ import type { Block } from "@/lib/editor/types";
 import {
   parseTableConfig,
   tableBlockClassName,
+  tableCellImageId,
   visibleCellsInRow,
 } from "@/lib/editor/table-block";
 import {
@@ -239,17 +240,28 @@ function ReadOnlyBlock({
               >
                 {visibleCellsInRow(table.rows, table.merges, ri).map((cell) => {
                   const Tag = table.header && ri === 0 ? "th" : "td";
+                  const imgId = tableCellImageId(row[cell.col] ?? "");
                   return (
                     <Tag
                       key={`${ri}-${cell.col}`}
                       colSpan={cell.colspan > 1 ? cell.colspan : undefined}
                       rowSpan={cell.rowspan > 1 ? cell.rowspan : undefined}
                     >
-                      <MoTaMarkdown
-                        text={row[cell.col] ?? ""}
-                        as="span"
-                        className="b-table-cell-md"
-                      />
+                      {imgId ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          className="b-table-cell-img"
+                          src={resolveImageSeedUrl(imgId, 640, 360)}
+                          alt=""
+                          loading="lazy"
+                        />
+                      ) : (
+                        <MoTaMarkdown
+                          text={row[cell.col] ?? ""}
+                          as="span"
+                          className="b-table-cell-md"
+                        />
+                      )}
                     </Tag>
                   );
                 })}

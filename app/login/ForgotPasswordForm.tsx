@@ -18,6 +18,7 @@ import {
   maskEmail,
   normalizeOtpInput,
 } from "@/lib/auth/email-otp";
+import { useEnterAfterAuth } from "@/lib/auth/enter-after-auth";
 
 type Step = "request" | "otp" | "password";
 
@@ -56,6 +57,7 @@ export function ForgotPasswordForm({
   const [notice, setNotice] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const enterAfterAuth = useEnterAfterAuth();
 
   const otp = digits.join("");
   const lock = busy || resendBusy || disabled;
@@ -295,7 +297,7 @@ export function ForgotPasswordForm({
     }
 
     onDoneNotice?.("Đã đặt lại mật khẩu. Đang đăng nhập…");
-    window.location.assign(json.redirect || "/");
+    enterAfterAuth(json.redirect || "/");
   }
 
   function onSubmit(e: FormEvent) {

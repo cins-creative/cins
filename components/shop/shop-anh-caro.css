@@ -21,7 +21,6 @@
 .shop-thumb-frame.has-img,
 .shop-grid-readonly-thumb:not(.is-empty),
 .gio-chung-thumb:has(img),
-.j-shop-loai-gallery,
 .j-shop-loai-gallery-thumb:not(.is-video) {
   background-color: var(--shop-anh-caro-sang);
   background-image: repeating-conic-gradient(

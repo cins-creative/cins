@@ -7,6 +7,7 @@ import { ForgotPasswordForm } from "@/app/login/ForgotPasswordForm";
 import { EmailOtpVerification } from "@/components/auth/EmailOtpVerification";
 import { authOriginMismatchMessage } from "@/lib/auth/auth-origin";
 import { EMAIL_OTP_LENGTH } from "@/lib/auth/email-otp";
+import { useEnterAfterAuth } from "@/lib/auth/enter-after-auth";
 import { stashOAuthIntent } from "@/lib/auth/oauth-intent-client";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
@@ -59,6 +60,7 @@ export function LoginPasswordForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const enterAfterAuth = useEnterAfterAuth();
 
   const lock = busy || disabled;
 
@@ -135,8 +137,8 @@ export function LoginPasswordForm({
       setBusyState(false);
       return;
     }
-    /* Reload đầy đủ để SSR nhận session cookie mới. Giữ busy=true khi đang điều hướng. */
-    window.location.assign(json.redirect || "/");
+    /* Cookie phiên đã nằm trên response — vào shell ngay, không reload bundle. */
+    enterAfterAuth(json.redirect || "/");
   }
 
   async function handleRegister() {
@@ -163,7 +165,7 @@ export function LoginPasswordForm({
 
     /* Confirmation tắt → có session ngay → vào onboarding. */
     if (data.session) {
-      window.location.assign("/onboarding");
+      enterAfterAuth("/onboarding");
       return;
     }
 

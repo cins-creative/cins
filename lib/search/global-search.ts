@@ -14,6 +14,7 @@ import {
   stripHtmlToPlainText,
 } from "@/lib/search/helpers";
 import { buildSupabaseOrIlike } from "@/lib/search/ilike-patterns";
+import { parseSearchQuery } from "@/lib/search/normalize";
 import {
   buildOrgSearchItem,
   fetchOrgFootCounts,
@@ -311,19 +312,61 @@ async function searchOrgs(q: string): Promise<SearchHit[]> {
 
 async function searchUsers(q: string): Promise<SearchHit[]> {
   const admin = createServiceRoleClient();
+  const parsed = parseSearchQuery(q);
+  const slugKeys = [
+    ...parsed.handles.map((h) => h.toLowerCase()),
+    ...(parsed.nameQuery && !/\s/.test(parsed.nameQuery)
+      ? [parsed.nameQuery.toLowerCase()]
+      : []),
+  ].filter((slug, i, arr) => slug.length >= 2 && arr.indexOf(slug) === i);
 
-  const [ilikeRes, trigramMap] = await Promise.all([
+  const userCols = ["slug", "ten_hien_thi"] as const;
+  const phraseOr = buildSupabaseOrIlike(userCols, q, { phraseOnly: true });
+  const tokenOr = parsed.nameQuery
+    ? buildSupabaseOrIlike(userCols, parsed.nameQuery, { minTokenLength: 3 })
+    : "";
+
+  const runUserQuery = (orFilter: string) =>
     admin
       .from("user_nguoi_dung")
       .select(USER_SEARCH_SELECT)
-      .or(buildSupabaseOrIlike(["slug", "ten_hien_thi", "bio", "ai_summary_journey"], q))
-      .limit(FETCH_POOL),
+      .or(orFilter)
+      .limit(FETCH_POOL);
+
+  const [phraseRes, tokenRes, exactRes, trigramMap] = await Promise.all([
+    phraseOr
+      ? runUserQuery(phraseOr)
+      : Promise.resolve({ data: null, error: null }),
+    tokenOr
+      ? runUserQuery(tokenOr)
+      : Promise.resolve({ data: null, error: null }),
+    slugKeys.length > 0
+      ? admin
+          .from("user_nguoi_dung")
+          .select(USER_SEARCH_SELECT)
+          .in("slug", slugKeys)
+      : Promise.resolve({ data: null, error: null }),
     fuzzyUserSimilarity(q, TRIGRAM_POOL),
   ]);
 
+  if (phraseRes.error) {
+    console.error("[global-search:user:phrase]", phraseRes.error.message);
+  }
+  if (tokenRes.error) {
+    console.error("[global-search:user:token]", tokenRes.error.message);
+  }
+  if (exactRes.error) {
+    console.error("[global-search:user:slug]", exactRes.error.message);
+  }
+
   const rowsById = new Map<string, RawUserSearchRow>();
-  for (const row of ilikeRes.data ?? []) {
-    rowsById.set(String(row.id), row as RawUserSearchRow);
+  for (const row of [
+    ...((exactRes.data ?? []) as RawUserSearchRow[]),
+    ...((phraseRes.data ?? []) as RawUserSearchRow[]),
+    ...((tokenRes.data ?? []) as RawUserSearchRow[]),
+  ]) {
+    const id = String(row.id);
+    if (!rowsById.has(id)) rowsById.set(id, row);
   }
 
   const missingIds = [...trigramMap.keys()].filter((id) => !rowsById.has(id));

@@ -34,6 +34,7 @@ import {
 
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import { JourneyShopGuestActions } from "@/components/journey/JourneyShopGuestActions";
+import { JourneyShopSectionHead } from "@/components/journey/JourneyShopSectionHead";
 import { JourneyShopSfHero } from "@/components/journey/JourneyShopSfHero";
 import { useJourneyViewOptional } from "@/components/journey/JourneyViewContext";
 import {
@@ -1257,7 +1258,7 @@ export function JourneyShopLoaiClient({
         initials={initials}
         actions={guestHeroActions}
       />
-      <div className="j-shop-sf-section-head">
+      <JourneyShopSectionHead>
         <span className="j-tlb-streak-slow" aria-hidden="true" />
         <div className="j-shop-sf-section-tools">
           <Link href={shopHref} className="j-shop-loai-back">
@@ -1273,13 +1274,18 @@ export function JourneyShopLoaiClient({
               triggerClassName="j-shop-loai-share-btn"
               triggerLabel="Chia sẻ mặt hàng này"
               triggerIcon={
-                <Share2 size={15} strokeWidth={2} aria-hidden />
+                <>
+                  <Share2 size={15} strokeWidth={2} aria-hidden />
+                  <span className="j-shop-loai-share-label">
+                    Chia sẻ mặt hàng này
+                  </span>
+                </>
               }
               placement="down"
             />
           </div>
         </div>
-      </div>
+      </JourneyShopSectionHead>
     </>
   );
 

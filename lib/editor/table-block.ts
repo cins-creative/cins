@@ -1,3 +1,5 @@
+import { isCfImageUuid } from "@/lib/truong/image-ref";
+
 /** Block `table` — config JSONB `noi_dung_blocks`. */
 
 export const TABLE_MIN_ROWS = 1;
@@ -5,6 +7,7 @@ export const TABLE_MAX_ROWS = 20;
 export const TABLE_MIN_COLS = 1;
 export const TABLE_MAX_COLS = 8;
 export const TABLE_CELL_MAX = 500;
+const TABLE_CELL_IMG_PREFIX = "img:";
 export const TABLE_COL_WIDTH_MIN = 8;
 
 export const DEFAULT_TABLE_ROWS: string[][] = [
@@ -58,6 +61,18 @@ export type TableVisibleCell = {
 function clipCell(value: unknown): string {
   if (typeof value !== "string") return "";
   return value.slice(0, TABLE_CELL_MAX);
+}
+
+/** Ô chứa ảnh CF — lưu `img:<uuid>` trong string cell (không đổi schema). */
+export function tableCellImageId(text: string): string | null {
+  const t = text.trim();
+  if (!t.startsWith(TABLE_CELL_IMG_PREFIX)) return null;
+  const id = t.slice(TABLE_CELL_IMG_PREFIX.length).trim();
+  return isCfImageUuid(id) ? id : null;
+}
+
+export function encodeTableCellImage(imageId: string): string {
+  return `${TABLE_CELL_IMG_PREFIX}${imageId.trim()}`;
 }
 
 export function normalizeTableRows(raw: unknown): string[][] {
@@ -299,18 +314,27 @@ export function joinMergedTexts(
 ): string[][] {
   const { rMin, rMax, cMin, cMax } = selectionRect(r1, c1, r2, c2);
   const next = rows.map((row) => [...row]);
-  const parts: string[] = [];
+  const texts: string[] = [];
+  let firstImg = "";
   for (let r = rMin; r <= rMax; r += 1) {
     for (let c = cMin; c <= cMax; c += 1) {
       const text = next[r]?.[c]?.trim() ?? "";
-      if (text) parts.push(text);
+      if (text) {
+        if (tableCellImageId(text)) {
+          if (!firstImg) firstImg = text;
+        } else {
+          texts.push(text);
+        }
+      }
       if (r !== rMin || c !== cMin) {
         if (next[r]) next[r][c] = "";
       }
     }
   }
   if (next[rMin]) {
-    next[rMin][cMin] = parts.join(" ").slice(0, TABLE_CELL_MAX);
+    next[rMin][cMin] = texts.length
+      ? texts.join(" ").slice(0, TABLE_CELL_MAX)
+      : firstImg;
   }
   return next;
 }
@@ -349,6 +373,30 @@ export function remapMergesDeleteRow(
     }
   }
   return out;
+}
+
+export function remapMergesInsertRow(
+  merges: TableMerge[],
+  rowIndex: number,
+): TableMerge[] {
+  return merges.map((m) => {
+    const rEnd = m.r + m.rowspan - 1;
+    if (rowIndex <= m.r) return { ...m, r: m.r + 1 };
+    if (rowIndex <= rEnd) return { ...m, rowspan: m.rowspan + 1 };
+    return m;
+  });
+}
+
+export function remapMergesInsertCol(
+  merges: TableMerge[],
+  colIndex: number,
+): TableMerge[] {
+  return merges.map((m) => {
+    const cEnd = m.c + m.colspan - 1;
+    if (colIndex <= m.c) return { ...m, c: m.c + 1 };
+    if (colIndex <= cEnd) return { ...m, colspan: m.colspan + 1 };
+    return m;
+  });
 }
 
 export function remapMergesDeleteCol(
@@ -448,7 +496,9 @@ export function tablePlainText(
 ): string {
   const lines: string[] = [];
   for (const row of rows) {
-    const cells = row.map((c) => c.trim()).filter(Boolean);
+    const cells = row
+      .map((c) => c.trim())
+      .filter((c) => c && !tableCellImageId(c));
     if (cells.length) lines.push(cells.join(" · "));
   }
   return lines.join("\n").slice(0, maxChars);

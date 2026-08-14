@@ -10,6 +10,7 @@ import {
 import { OAUTH_RETURN_COOKIE } from "@/lib/auth/oauth-return-constants";
 import { normalizeOAuthReturnPath } from "@/lib/auth/oauth-return-path";
 import { clearOAuthReturnOnResponse } from "@/lib/auth/oauth-return-server";
+import { oauthSessionLandingResponse } from "@/lib/auth/oauth-session-landing";
 import {
   createSupabaseOAuthCallbackClient,
   flushDeferredAuthCookies,
@@ -53,8 +54,8 @@ function readOAuthReturnFromRequest(request: NextRequest): string | null {
 }
 
 /**
- * Google OAuth callback — exchange PKCE, ghi session cookie trực tiếp lên
- * response redirect (không copy từ staging response).
+ * Google OAuth callback — exchange PKCE, ghi session cookie lên response 200
+ * rồi mới chuyển trang. 302 + Set-Cookie bị Safari/iOS bỏ khi tắt app.
  */
 export async function GET(request: NextRequest) {
   const url = request.nextUrl;
@@ -96,10 +97,10 @@ export async function GET(request: NextRequest) {
     url.searchParams.get("intent"),
   );
 
-  const redirectResponse = NextResponse.redirect(new URL("/", origin));
+  const cookieCarrier = new NextResponse();
   const supabase = await createSupabaseOAuthCallbackClient(
     request,
-    redirectResponse,
+    cookieCarrier,
   );
 
   const { error: exchangeErr } =
@@ -154,8 +155,12 @@ export async function GET(request: NextRequest) {
     destination = new URL("/", origin);
   }
 
-  redirectResponse.headers.set("Location", destination.toString());
-  clearOAuthIntentOnResponse(redirectResponse);
-  clearOAuthReturnOnResponse(redirectResponse);
-  return redirectResponse;
+  const landing = oauthSessionLandingResponse(
+    origin,
+    destination,
+    cookieCarrier,
+  );
+  clearOAuthIntentOnResponse(landing);
+  clearOAuthReturnOnResponse(landing);
+  return landing;
 }

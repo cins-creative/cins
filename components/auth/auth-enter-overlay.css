@@ -1,0 +1,137 @@
+/* Khung logged-in khi vừa sign-in — không phụ thuộc journey.css trên /login. */
+
+.cins-auth-enter-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: var(--bg-page, #f4f5f8);
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.cins-auth-enter-chrome {
+  min-height: 100%;
+  pointer-events: none;
+}
+
+.cins-auth-enter-chrome .cins-main {
+  background: var(--bg-page, #f4f5f8);
+}
+
+.cins-auth-enter-chrome .j-skel {
+  display: block;
+  border-radius: var(--radius-sm, 10px);
+  background: linear-gradient(
+      90deg,
+      rgba(31, 116, 201, 0.06) 0%,
+      rgba(31, 116, 201, 0.14) 50%,
+      rgba(31, 116, 201, 0.06) 100%
+    )
+    var(--cins-blue-soft, #e7f0fb);
+  background-size: 200% 100%;
+  animation: cins-auth-enter-skel 1.4s ease-in-out infinite;
+}
+
+@keyframes cins-auth-enter-skel {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.cins-auth-enter-sidebar .sb-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.cins-auth-enter-tb-ava,
+.cins-auth-enter-sb-ico {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.cins-auth-enter-chrome .jcard-datebar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cins-auth-enter-chrome .j-skel-post-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.cins-auth-enter-chrome .j-skel-post-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.cins-auth-enter-chrome .j-skel-post-badge {
+  width: 72px;
+  height: 22px;
+  border-radius: 6px;
+}
+
+.cins-auth-enter-chrome .j-skel-post-line {
+  width: 100%;
+  height: 12px;
+  margin-bottom: 8px;
+}
+
+.cins-auth-enter-chrome .j-skel-post-line--title {
+  width: 55%;
+  height: 18px;
+  margin-bottom: 12px;
+}
+
+.cins-auth-enter-chrome .j-skel-post-media-grid {
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.cins-auth-enter-chrome .j-skel-post-media-main {
+  height: 180px;
+  border-radius: 14px;
+}
+
+.cins-auth-enter-chrome .j-skel-post-media-side {
+  height: 180px;
+  border-radius: 14px;
+}
+
+.cins-auth-enter-chrome .wj-shell {
+  width: 100%;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 280px) minmax(0, 760px) minmax(0, 280px);
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .cins-auth-enter-chrome .wj-shell {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 12px;
+  }
+
+  .cins-auth-enter-chrome .wj-guest-aside {
+    display: none;
+  }
+}

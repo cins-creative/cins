@@ -1,6 +1,21 @@
 "use client";
 
-import { useRef, useState, type PointerEvent } from "react";
+import {
+  CircleHelp,
+  Minus,
+  PanelTop,
+  Plus,
+  TableCellsMerge,
+  TableCellsSplit,
+  X,
+} from "lucide-react";
+import {
+  useRef,
+  useState,
+  type ClipboardEvent,
+  type PointerEvent,
+  type ReactNode,
+} from "react";
 
 import {
   TABLE_BORDER_LABELS,
@@ -19,17 +34,145 @@ import {
   normalizeColWidths,
   remapMergesDeleteCol,
   remapMergesDeleteRow,
+  remapMergesInsertCol,
+  remapMergesInsertRow,
   resizeAdjacentCols,
+  encodeTableCellImage,
   splitMergeAt,
   tableBlockClassName,
+  tableCellImageId,
   tableConfigFromData,
   visibleCellsInRow,
   type TableBlockData,
   type TableBorder,
   type TableTheme,
 } from "@/lib/editor/table-block";
+import { resolveImageSeedUrl } from "@/lib/editor/resolve-image-seed-url";
+import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
+import {
+  deletePostImage,
+  uploadPostImageWithProgress,
+} from "@/lib/files/upload-post-image";
 
 type CellPos = { r: number; c: number };
+
+function ToolBtn({
+  title,
+  active,
+  danger,
+  disabled,
+  onClick,
+  children,
+}: {
+  title: string;
+  active?: boolean;
+  danger?: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={title}
+      aria-pressed={active ? true : undefined}
+      className={[active ? "is-active" : "", danger ? "is-danger" : ""]
+        .filter(Boolean)
+        .join(" ") || undefined}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+}
+
+function BorderGlyph({ weight }: { weight: TableBorder }) {
+  const h = weight === "thin" ? 1.25 : weight === "med" ? 2.25 : 3.4;
+  return (
+    <svg viewBox="0 0 16 16" width={16} height={16} aria-hidden>
+      <rect
+        x="2"
+        y={8 - h / 2}
+        width="12"
+        height={h}
+        rx="0.7"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+function EdgeBtn({
+  title,
+  minus,
+  disabled,
+  onClick,
+}: {
+  title: string;
+  minus?: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={`b-table-edge-btn${minus ? " is-minus" : ""}`}
+      title={title}
+      aria-label={title}
+      disabled={disabled}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+    >
+      {minus ? (
+        <Minus size={11} strokeWidth={2.4} aria-hidden />
+      ) : (
+        <Plus size={11} strokeWidth={2.4} aria-hidden />
+      )}
+    </button>
+  );
+}
+
+function ThemeGlyph({ theme }: { theme: TableTheme }) {
+  if (theme === "lined") {
+    return (
+      <svg viewBox="0 0 16 16" width={16} height={16} aria-hidden>
+        <path
+          d="M3 5h10M3 8h10M3 11h10"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.35"
+          strokeLinecap="round"
+        />
+      </svg>
+    );
+  }
+  if (theme === "striped") {
+    return (
+      <svg viewBox="0 0 16 16" width={16} height={16} aria-hidden>
+        <rect x="2.5" y="2.5" width="11" height="11" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2" />
+        <rect x="3.2" y="6.2" width="9.6" height="3.6" fill="currentColor" opacity="0.28" />
+      </svg>
+    );
+  }
+  if (theme === "minimal") {
+    return (
+      <svg viewBox="0 0 16 16" width={16} height={16} aria-hidden>
+        <rect x="2.5" y="2.5" width="11" height="11" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 16 16" width={16} height={16} aria-hidden>
+      <rect x="2.5" y="2.5" width="11" height="11" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M8 2.5v11M2.5 8h11" fill="none" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
+  );
+}
 
 type Props = {
   data: TableBlockData;
@@ -42,56 +185,139 @@ export function TableBlockEditor({ data: raw, selected, onChange }: Props) {
   const { rows, header, colWidths, merges, theme, border } = data;
   const colCount = Math.max(TABLE_MIN_COLS, ...rows.map((r) => r.length));
   const tableRef = useRef<HTMLTableElement | null>(null);
+  const dataRef = useRef(data);
+  dataRef.current = data;
   const [sel, setSel] = useState<CellPos | null>(null);
   const [selEnd, setSelEnd] = useState<CellPos | null>(null);
+  const [imgUpload, setImgUpload] = useState<{
+    r: number;
+    c: number;
+    preview: string;
+  } | null>(null);
 
   function commit(patch: Partial<TableBlockData>) {
+    const current = dataRef.current;
     onChange(
       tableConfigFromData({
-        ...data,
+        ...current,
         ...patch,
       }),
     );
   }
 
   function patchCell(rowIndex: number, colIndex: number, value: string) {
-    const next = rows.map((row) => [...row]);
-    while (next[rowIndex].length < colCount) next[rowIndex].push("");
+    const current = dataRef.current;
+    const next = current.rows.map((row) => [...row]);
+    const cols = Math.max(TABLE_MIN_COLS, ...next.map((r) => r.length));
+    while (next[rowIndex].length < cols) next[rowIndex].push("");
     next[rowIndex][colIndex] = value;
     commit({ rows: next });
   }
 
-  function addRow() {
-    if (rows.length >= TABLE_MAX_ROWS) return;
-    commit({
-      rows: [...rows, Array.from({ length: colCount }, () => "")],
-    });
+  async function pasteImageIntoCell(
+    rowIndex: number,
+    colIndex: number,
+    e: ClipboardEvent,
+  ) {
+    const file = imageFilesFromClipboard(e.clipboardData)[0];
+    if (!file) return;
+    e.preventDefault();
+    e.stopPropagation();
+    selectCell(rowIndex, colIndex, false);
+    if (imgUpload?.preview) URL.revokeObjectURL(imgUpload.preview);
+    const replacedId = tableCellImageId(
+      dataRef.current.rows[rowIndex]?.[colIndex] ?? "",
+    );
+    const preview = URL.createObjectURL(file);
+    setImgUpload({ r: rowIndex, c: colIndex, preview });
+    try {
+      const { imageId } = await uploadPostImageWithProgress(file);
+      patchCell(rowIndex, colIndex, encodeTableCellImage(imageId));
+      if (replacedId && replacedId !== imageId) deletePostImage(replacedId);
+    } catch {
+      /* giữ ô cũ — user dán lại */
+    } finally {
+      URL.revokeObjectURL(preview);
+      setImgUpload((cur) =>
+        cur?.r === rowIndex && cur.c === colIndex ? null : cur,
+      );
+    }
   }
 
-  function addCol() {
+  function shiftSelAfterInsertRow(at: number) {
+    setSel((cur) => (cur && cur.r >= at ? { ...cur, r: cur.r + 1 } : cur));
+    setSelEnd((cur) => (cur && cur.r >= at ? { ...cur, r: cur.r + 1 } : cur));
+  }
+
+  function shiftSelAfterInsertCol(at: number) {
+    setSel((cur) => (cur && cur.c >= at ? { ...cur, c: cur.c + 1 } : cur));
+    setSelEnd((cur) => (cur && cur.c >= at ? { ...cur, c: cur.c + 1 } : cur));
+  }
+
+  function insertRowAt(at: number) {
+    if (rows.length >= TABLE_MAX_ROWS) return;
+    const next = [...rows];
+    next.splice(at, 0, Array.from({ length: colCount }, () => ""));
+    commit({
+      rows: next,
+      merges: remapMergesInsertRow(merges, at),
+    });
+    shiftSelAfterInsertRow(at);
+  }
+
+  function insertColAt(at: number) {
     if (colCount >= TABLE_MAX_COLS) return;
     const nextCols = colCount + 1;
+    const nextWidths = [...colWidths];
+    nextWidths.splice(at, 0, 100 / nextCols);
     commit({
-      rows: rows.map((row) => [...row, ""]),
-      colWidths: normalizeColWidths(
-        [...colWidths, 100 / nextCols],
-        nextCols,
-      ),
+      rows: rows.map((row) => {
+        const next = [...row];
+        next.splice(at, 0, "");
+        return next;
+      }),
+      colWidths: normalizeColWidths(nextWidths, nextCols),
+      merges: remapMergesInsertCol(merges, at),
     });
+    shiftSelAfterInsertCol(at);
   }
 
   function removeRow(rowIndex: number) {
     if (rows.length <= TABLE_MIN_ROWS) return;
+    for (const cell of rows[rowIndex] ?? []) {
+      const id = tableCellImageId(cell);
+      if (id) deletePostImage(id);
+    }
     commit({
       rows: rows.filter((_, i) => i !== rowIndex),
       merges: remapMergesDeleteRow(merges, rowIndex),
     });
-    setSel(null);
-    setSelEnd(null);
+    setSel((cur) => {
+      if (!cur) return cur;
+      if (cur.r > rowIndex) return { ...cur, r: cur.r - 1 };
+      if (cur.r === rowIndex) {
+        const nextR = Math.min(rowIndex, rows.length - 2);
+        return nextR < 0 ? null : { ...cur, r: nextR };
+      }
+      return cur;
+    });
+    setSelEnd((cur) => {
+      if (!cur) return cur;
+      if (cur.r > rowIndex) return { ...cur, r: cur.r - 1 };
+      if (cur.r === rowIndex) {
+        const nextR = Math.min(rowIndex, rows.length - 2);
+        return nextR < 0 ? null : { ...cur, r: nextR };
+      }
+      return cur;
+    });
   }
 
   function removeCol(colIndex: number) {
     if (colCount <= TABLE_MIN_COLS) return;
+    for (const row of rows) {
+      const id = tableCellImageId(row[colIndex] ?? "");
+      if (id) deletePostImage(id);
+    }
     const nextCols = colCount - 1;
     commit({
       rows: rows.map((row) => row.filter((_, i) => i !== colIndex)),
@@ -101,8 +327,24 @@ export function TableBlockEditor({ data: raw, selected, onChange }: Props) {
       ),
       merges: remapMergesDeleteCol(merges, colIndex),
     });
-    setSel(null);
-    setSelEnd(null);
+    setSel((cur) => {
+      if (!cur) return cur;
+      if (cur.c > colIndex) return { ...cur, c: cur.c - 1 };
+      if (cur.c === colIndex) {
+        const nextC = Math.min(colIndex, colCount - 2);
+        return nextC < 0 ? null : { ...cur, c: nextC };
+      }
+      return cur;
+    });
+    setSelEnd((cur) => {
+      if (!cur) return cur;
+      if (cur.c > colIndex) return { ...cur, c: cur.c - 1 };
+      if (cur.c === colIndex) {
+        const nextC = Math.min(colIndex, colCount - 2);
+        return nextC < 0 ? null : { ...cur, c: nextC };
+      }
+      return cur;
+    });
   }
 
   function selectCell(r: number, c: number, shift: boolean) {
@@ -156,7 +398,7 @@ export function TableBlockEditor({ data: raw, selected, onChange }: Props) {
     const startWidths = [...colWidths];
     const tableW = table.getBoundingClientRect().width || 1;
 
-    function onMove(ev: PointerEvent) {
+    function onMove(ev: globalThis.PointerEvent) {
       const deltaPct = ((ev.clientX - startX) / tableW) * 100;
       commit({
         colWidths: resizeAdjacentCols(startWidths, leftCol, deltaPct),
@@ -170,8 +412,10 @@ export function TableBlockEditor({ data: raw, selected, onChange }: Props) {
     window.addEventListener("pointerup", onUp);
   }
 
-  const activeRow = sel?.r ?? rows.length - 1;
-  const activeCol = sel?.c ?? colCount - 1;
+  const canAddRow = rows.length < TABLE_MAX_ROWS;
+  const canAddCol = colCount < TABLE_MAX_COLS;
+  const canDelRow = rows.length > TABLE_MIN_ROWS;
+  const canDelCol = colCount > TABLE_MIN_COLS;
 
   return (
     <div
@@ -179,71 +423,58 @@ export function TableBlockEditor({ data: raw, selected, onChange }: Props) {
       onClick={(e) => e.stopPropagation()}
     >
       {selected ? (
-        <div className="b-table-toolbar">
-          <label className="b-table-header-toggle">
-            <input
-              type="checkbox"
-              checked={header}
-              onChange={(e) => commit({ header: e.target.checked })}
-            />
-            Hàng đầu là tiêu đề
-          </label>
-          <button
-            type="button"
-            onClick={addRow}
-            disabled={rows.length >= TABLE_MAX_ROWS}
+        <div className="b-table-toolbar" role="toolbar" aria-label="Công cụ bảng">
+          <ToolBtn
+            title={header ? "Bỏ hàng tiêu đề" : "Hàng đầu là tiêu đề"}
+            active={header}
+            onClick={() => commit({ header: !header })}
           >
-            + Hàng
-          </button>
-          <button
-            type="button"
-            onClick={addCol}
-            disabled={colCount >= TABLE_MAX_COLS}
+            <PanelTop size={16} strokeWidth={1.85} aria-hidden />
+          </ToolBtn>
+          <span className="b-table-toolbar-sep" aria-hidden />
+          <ToolBtn
+            title="Gộp ô — Shift+bấm để chọn vùng"
+            disabled={!canMerge}
+            onClick={mergeSelection}
           >
-            + Cột
-          </button>
-          <button type="button" onClick={mergeSelection} disabled={!canMerge}>
-            Gộp ô
-          </button>
-          <button type="button" onClick={splitSelection} disabled={!canSplit}>
-            Tách ô
-          </button>
-          <button
-            type="button"
-            onClick={() => removeRow(activeRow)}
-            disabled={rows.length <= TABLE_MIN_ROWS}
+            <TableCellsMerge size={16} strokeWidth={1.85} aria-hidden />
+          </ToolBtn>
+          <ToolBtn
+            title="Tách ô"
+            disabled={!canSplit}
+            onClick={splitSelection}
           >
-            Xoá hàng
-          </button>
-          <button
-            type="button"
-            onClick={() => removeCol(activeCol)}
-            disabled={colCount <= TABLE_MIN_COLS}
-          >
-            Xoá cột
-          </button>
-          <span className="b-table-toolbar-lbl">Viền</span>
+            <TableCellsSplit size={16} strokeWidth={1.85} aria-hidden />
+          </ToolBtn>
+          <span className="b-table-toolbar-sep" aria-hidden />
           {TABLE_BORDERS.map((value) => (
-            <button
+            <ToolBtn
               key={value}
-              type="button"
-              className={border === value ? "is-active" : undefined}
+              title={`Viền ${TABLE_BORDER_LABELS[value].toLowerCase()}`}
+              active={border === value}
               onClick={() => commit({ border: value as TableBorder })}
             >
-              {TABLE_BORDER_LABELS[value]}
-            </button>
+              <BorderGlyph weight={value} />
+            </ToolBtn>
           ))}
-          <span className="b-table-toolbar-lbl">Kiểu</span>
+          <span className="b-table-toolbar-sep" aria-hidden />
           {TABLE_THEMES.map((value) => (
-            <button
+            <ToolBtn
               key={value}
-              type="button"
-              className={theme === value ? "is-active" : undefined}
+              title={TABLE_THEME_LABELS[value]}
+              active={theme === value}
               onClick={() => commit({ theme: value as TableTheme })}
             >
-              {TABLE_THEME_LABELS[value]}
-            </button>
+              <ThemeGlyph theme={value} />
+            </ToolBtn>
           ))}
+          <span className="b-table-toolbar-sep" aria-hidden />
+          <span
+            className="b-table-toolbar-help"
+            title="Dán ảnh vào ô. Chọn ô để thêm/xóa hàng cột trên 4 cạnh. Shift+bấm chọn vùng."
+          >
+            <CircleHelp size={15} strokeWidth={1.85} aria-hidden />
+          </span>
         </div>
       ) : null}
       <div className="b-table-scroll">
@@ -267,6 +498,15 @@ export function TableBlockEditor({ data: raw, selected, onChange }: Props) {
                 {visibleCellsInRow(rows, merges, rowIndex).map((cell) => {
                   const isHeader = header && rowIndex === 0;
                   const Tag = isHeader ? "th" : "td";
+                  const cellText = row[cell.col] ?? "";
+                  const imgId = tableCellImageId(cellText);
+                  const uploading =
+                    imgUpload &&
+                    imgUpload.r === rowIndex &&
+                    imgUpload.c === cell.col
+                      ? imgUpload
+                      : null;
+                  const showImg = Boolean(imgId || uploading);
                   return (
                     <Tag
                       key={`${rowIndex}-${cell.col}`}
@@ -280,16 +520,122 @@ export function TableBlockEditor({ data: raw, selected, onChange }: Props) {
                       onClick={(e) =>
                         selectCell(rowIndex, cell.col, e.shiftKey)
                       }
+                      onPaste={(e) =>
+                        pasteImageIntoCell(rowIndex, cell.col, e)
+                      }
                     >
-                      <input
-                        type="text"
-                        value={row[cell.col] ?? ""}
-                        placeholder={isHeader ? "Tiêu đề" : "Nội dung"}
-                        onFocus={() => selectCell(rowIndex, cell.col, false)}
-                        onChange={(e) =>
-                          patchCell(rowIndex, cell.col, e.target.value)
-                        }
-                      />
+                      {showImg ? (
+                        <div
+                          className="b-table-cell-img-wrap"
+                          tabIndex={0}
+                          onFocus={() => selectCell(rowIndex, cell.col, false)}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            className="b-table-cell-img"
+                            src={
+                              uploading
+                                ? uploading.preview
+                                : resolveImageSeedUrl(imgId ?? "", 640, 360)
+                            }
+                            alt=""
+                            draggable={false}
+                          />
+                          {uploading ? (
+                            <span className="b-table-cell-img-busy">
+                              Đang tải…
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              className="b-table-cell-img-clear"
+                              title="Xóa ảnh"
+                              aria-label="Xóa ảnh"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (imgId) deletePostImage(imgId);
+                                patchCell(rowIndex, cell.col, "");
+                              }}
+                            >
+                              <X size={12} strokeWidth={2.2} aria-hidden />
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <input
+                          type="text"
+                          value={cellText}
+                          placeholder=""
+                          onFocus={() => selectCell(rowIndex, cell.col, false)}
+                          onChange={(e) =>
+                            patchCell(rowIndex, cell.col, e.target.value)
+                          }
+                          onPaste={(e) =>
+                            pasteImageIntoCell(rowIndex, cell.col, e)
+                          }
+                        />
+                      )}
+                      {selected &&
+                      sel &&
+                      rowIndex === sel.r &&
+                      cell.col === sel.c ? (
+                        <div className="b-table-edge-handles">
+                          <div className="b-table-edge-btns b-table-edge-btns--top">
+                            <EdgeBtn
+                              title="Thêm hàng phía trên"
+                              disabled={!canAddRow}
+                              onClick={() => insertRowAt(rowIndex)}
+                            />
+                            <EdgeBtn
+                              title="Xoá hàng này"
+                              minus
+                              disabled={!canDelRow}
+                              onClick={() => removeRow(rowIndex)}
+                            />
+                          </div>
+                          <div className="b-table-edge-btns b-table-edge-btns--bottom">
+                            <EdgeBtn
+                              title="Thêm hàng phía dưới"
+                              disabled={!canAddRow}
+                              onClick={() => insertRowAt(rowIndex + cell.rowspan)}
+                            />
+                            <EdgeBtn
+                              title="Xoá hàng này"
+                              minus
+                              disabled={!canDelRow}
+                              onClick={() => removeRow(rowIndex)}
+                            />
+                          </div>
+                          <div className="b-table-edge-btns b-table-edge-btns--left">
+                            <EdgeBtn
+                              title="Thêm cột bên trái"
+                              disabled={!canAddCol}
+                              onClick={() => insertColAt(cell.col)}
+                            />
+                            <EdgeBtn
+                              title="Xoá cột này"
+                              minus
+                              disabled={!canDelCol}
+                              onClick={() => removeCol(cell.col)}
+                            />
+                          </div>
+                          <div className="b-table-edge-btns b-table-edge-btns--right">
+                            <EdgeBtn
+                              title="Thêm cột bên phải"
+                              disabled={!canAddCol}
+                              onClick={() =>
+                                insertColAt(cell.col + cell.colspan)
+                              }
+                            />
+                            <EdgeBtn
+                              title="Xoá cột này"
+                              minus
+                              disabled={!canDelCol}
+                              onClick={() => removeCol(cell.col)}
+                            />
+                          </div>
+                        </div>
+                      ) : null}
                       {selected &&
                       rowIndex === 0 &&
                       cell.col + cell.colspan - 1 < colCount - 1 ? (
@@ -311,11 +657,6 @@ export function TableBlockEditor({ data: raw, selected, onChange }: Props) {
           </tbody>
         </table>
       </div>
-      {selected ? (
-        <p className="b-table-hint">
-          Bấm ô rồi Shift+bấm ô khác để chọn vùng · kéo cạnh cột để đổi tỉ lệ
-        </p>
-      ) : null}
     </div>
   );
 }

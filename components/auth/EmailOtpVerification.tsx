@@ -19,6 +19,7 @@ import {
   maskEmail,
   normalizeOtpInput,
 } from "@/lib/auth/email-otp";
+import { useEnterAfterAuth } from "@/lib/auth/enter-after-auth";
 import type { OtpVerifyType } from "@/lib/auth/send-signup-otp";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
@@ -78,6 +79,7 @@ export function EmailOtpVerification({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(sendOnMount ? 0 : EMAIL_OTP_RESEND_COOLDOWN_SEC);
+  const enterAfterAuth = useEnterAfterAuth();
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const initialSendDone = useRef(false);
 
@@ -220,7 +222,7 @@ export function EmailOtpVerification({
         .maybeSingle<{ slug: string; giai_doan: string | null }>();
 
       if (!profile?.giai_doan) {
-        window.location.assign("/onboarding");
+        enterAfterAuth("/onboarding");
         return;
       }
 
@@ -228,7 +230,7 @@ export function EmailOtpVerification({
         returnPath && returnPath.startsWith("/") && !returnPath.startsWith("//")
           ? returnPath
           : "/";
-      window.location.assign(safeNext);
+      enterAfterAuth(safeNext);
       return;
     }
 

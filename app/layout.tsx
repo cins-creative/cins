@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Be_Vietnam_Pro } from "next/font/google";
 
+import { AuthEnterOverlayHost } from "@/components/auth/AuthEnterOverlayHost";
 import { AuthSessionRemember } from "@/components/auth/AuthSessionRemember";
 import { ThemeRoot } from "@/components/cins/ThemeRoot";
 import { HardNavGuard } from "@/components/navigation/HardNavGuard";
@@ -100,6 +101,7 @@ export default function RootLayout({
         <ThemeRoot />
         <HardNavGuard />
         <AuthSessionRemember />
+        <AuthEnterOverlayHost />
         {children}
       </body>
     </html>

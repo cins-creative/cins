@@ -1,6 +1,6 @@
 import "server-only";
 
-import { normalizeSearchText } from "@/lib/search/normalize";
+import { normalizeSearchText, parseSearchQuery } from "@/lib/search/normalize";
 import { withTagPostgres } from "@/lib/tag/postgres";
 
 const TRIGRAM_MIN = 0.2;
@@ -113,8 +113,17 @@ export async function fuzzyUserSimilarity(
   query: string,
   limit: number,
 ): Promise<Map<string, number>> {
-  const q = normalizeSearchText(query.replace(/^@/, ""));
-  if (q.length < 2) return new Map();
+  const parsed = parseSearchQuery(query);
+  const qAccent = parsed.nameQuery.trim().toLowerCase();
+  const qNorm = normalizeSearchText(parsed.nameQuery);
+  const slugQ =
+    (parsed.handles[0] ?? "").toLowerCase() ||
+    qNorm.replace(/\s+/g, "") ||
+    qNorm.replace(/\s+/g, "-");
+  const slugHyphen = qNorm.replace(/\s+/g, "-") || slugQ;
+  const nameNeedle = qAccent || qNorm;
+
+  if (slugQ.length < 2 && nameNeedle.length < 2) return new Map();
 
   const result = await withTagPostgres(async (sql) =>
     trigramIdMap(async () =>
@@ -122,13 +131,17 @@ export async function fuzzyUserSimilarity(
         SELECT
           id,
           GREATEST(
-            similarity(lower(trim(coalesce(ten_hien_thi, ''))), ${q}),
-            similarity(lower(trim(slug)), ${q.replace(/\s+/g, "-")})
+            similarity(lower(trim(coalesce(ten_hien_thi, ''))), ${nameNeedle}),
+            similarity(lower(trim(coalesce(ten_hien_thi, ''))), ${qNorm || nameNeedle}),
+            similarity(lower(trim(slug)), ${slugQ}),
+            similarity(lower(trim(slug)), ${slugHyphen})
           ) AS sim
         FROM user_nguoi_dung
         WHERE
-          similarity(lower(trim(coalesce(ten_hien_thi, ''))), ${q}) > ${TRIGRAM_MIN}
-          OR similarity(lower(trim(slug)), ${q.replace(/\s+/g, "-")}) > ${TRIGRAM_MIN}
+          similarity(lower(trim(slug)), ${slugQ}) > ${TRIGRAM_MIN}
+          OR similarity(lower(trim(slug)), ${slugHyphen}) > ${TRIGRAM_MIN}
+          OR similarity(lower(trim(coalesce(ten_hien_thi, ''))), ${nameNeedle}) > ${TRIGRAM_MIN}
+          OR similarity(lower(trim(coalesce(ten_hien_thi, ''))), ${qNorm || nameNeedle}) > ${TRIGRAM_MIN}
         ORDER BY sim DESC
         LIMIT ${limit}
       `,

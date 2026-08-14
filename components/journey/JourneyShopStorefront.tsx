@@ -21,6 +21,7 @@ import {
 } from "react";
 
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
+import { JourneyShopSectionHead } from "@/components/journey/JourneyShopSectionHead";
 import { JourneyShopSfHero } from "@/components/journey/JourneyShopSfHero";
 import {
   GIO_CHUNG_CHANGED_EVENT,
@@ -860,7 +861,7 @@ export function JourneyShopStorefront({
         />
       ) : null}
 
-      <div className="j-shop-sf-section-head">
+      <JourneyShopSectionHead>
         <span className="j-tlb-streak-slow" aria-hidden="true" />
         <div className="j-shop-sf-section-tools">
           {!loading && hasCards && !shopClosed ? (
@@ -893,7 +894,7 @@ export function JourneyShopStorefront({
           )}
           {isOwner ? ownerChrome?.actions : null}
         </div>
-      </div>
+      </JourneyShopSectionHead>
 
       {!loading && upcomingEvents.length > 0 && !searchActive ? (
         <section

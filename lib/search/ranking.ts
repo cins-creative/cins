@@ -1,4 +1,4 @@
-import { normalizeSearchText } from "@/lib/search/normalize";
+import { normalizeSearchText, parseSearchQuery } from "@/lib/search/normalize";
 import type { SearchHit } from "@/lib/search/types";
 
 /** Các tầng ưu tiên: tên/tiêu đề → mô tả ngắn → nội dung. */
@@ -95,29 +95,44 @@ function scoreSlug(query: string, slugRaw: string | null | undefined): number {
   );
 }
 
+function scoreFieldsAgainstQuery(
+  qRaw: string,
+  fields: SearchRankFields,
+): number {
+  const q = normalizeSearchText(qRaw.replace(/^@/, ""));
+  if (!q) return 0;
+
+  return Math.max(
+    scoreTextInTier(q, fields.titleVi, TIER_CEILING.titleVi),
+    scoreTextInTier(q, fields.title, TIER_CEILING.title),
+    scoreTextInTier(q, fields.titleAlt, TIER_CEILING.titleAlt),
+    scoreSlug(q, fields.slug),
+    scoreTextInTier(q, fields.summary, TIER_CEILING.summary),
+    scoreTextInTier(q, fields.content, TIER_CEILING.content),
+    0,
+  );
+}
+
 /**
  * Điểm cao hơn = khớp chính xác hơn & đúng tầng ưu tiên hơn.
  * Thứ tự: tên/tiêu đề (VN nếu có) → mô tả ngắn → nội dung.
+ * Tên và @handle được chấm riêng (không gộp thành một cụm).
  */
 export function scoreSearchMatch(
   query: string,
   fields: SearchRankFields,
   trigramSim = 0,
 ): number {
-  const q = normalizeSearchText(query.replace(/^@/, ""));
-  if (!q) return 0;
+  const parsed = parseSearchQuery(query);
+  const candidates: string[] = [parsed.nameQuery, ...parsed.handles].filter(
+    Boolean,
+  );
+  if (candidates.length === 0) candidates.push(query);
 
-  const titleScores = [
-    scoreTextInTier(q, fields.titleVi, TIER_CEILING.titleVi),
-    scoreTextInTier(q, fields.title, TIER_CEILING.title),
-    scoreTextInTier(q, fields.titleAlt, TIER_CEILING.titleAlt),
-    scoreSlug(q, fields.slug),
-  ];
-
-  const summaryScore = scoreTextInTier(q, fields.summary, TIER_CEILING.summary);
-  const contentScore = scoreTextInTier(q, fields.content, TIER_CEILING.content);
-
-  let best = Math.max(...titleScores, summaryScore, contentScore, 0);
+  let best = 0;
+  for (const candidate of candidates) {
+    best = Math.max(best, scoreFieldsAgainstQuery(candidate, fields));
+  }
 
   if (trigramSim > 0) {
     // Gần giống — dưới khớp title/summary rõ, trên khớp content yếu.

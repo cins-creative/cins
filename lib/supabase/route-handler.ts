@@ -50,8 +50,9 @@ export function createSupabaseRouteHandlerClient(
 }
 
 /**
- * OAuth callback — ghi cookie vào **cả** `cookies()` lẫn response redirect.
- * Next.js 15/16 không tự merge `cookies().set()` vào `NextResponse.redirect()`.
+ * OAuth callback — ghi cookie vào **cả** `cookies()` lẫn response đích
+ * (200 landing trên iOS, không phải 302). Next.js 15/16 không tự merge
+ * `cookies().set()` vào response mới.
  */
 export async function createSupabaseOAuthCallbackClient(
   request: NextRequest,
@@ -115,8 +116,9 @@ export function appendSetCookieHeaders(
     return;
   }
 
-  for (const { name, value } of from.cookies.getAll()) {
-    to.cookies.set(name, value);
+  for (const cookie of from.cookies.getAll()) {
+    const { name, value, ...options } = cookie;
+    to.cookies.set(name, value, options);
   }
 }
 

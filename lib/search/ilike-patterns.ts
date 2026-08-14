@@ -1,5 +1,9 @@
 import { escapeIlikePattern } from "@/lib/search/helpers";
-import { normalizeSearchText, searchQueryTokens } from "@/lib/search/normalize";
+import {
+  normalizeSearchText,
+  parseSearchQuery,
+  searchQueryTokens,
+} from "@/lib/search/normalize";
 
 function isSlugColumn(col: string): boolean {
   return col === "slug" || col.endsWith(".slug");
@@ -23,18 +27,28 @@ export function buildSupabaseOrIlike(
 ): string {
   const phraseOnly = options.phraseOnly === true;
   const minTokenLength = options.minTokenLength ?? 3;
-  const trimmed = query.trim();
+  const parsed = parseSearchQuery(query);
+  const phraseSeeds = [parsed.nameQuery, ...parsed.handles].filter(Boolean);
+  const trimmed = phraseSeeds.join(" ") || query.trim();
   if (!trimmed) return "";
 
   const tokens = phraseOnly
-    ? [trimmed]
-    : searchQueryTokens(trimmed).filter((token) => {
-        if (token === trimmed) return true;
-        return normalizeSearchText(token).replace(/\s+/g, "").length >= minTokenLength;
-      });
+    ? phraseSeeds.length > 0
+      ? phraseSeeds
+      : [trimmed]
+    : [
+        ...searchQueryTokens(parsed.nameQuery || trimmed).filter((token) => {
+          if (token === (parsed.nameQuery || trimmed)) return true;
+          return (
+            normalizeSearchText(token).replace(/\s+/g, "").length >=
+            minTokenLength
+          );
+        }),
+        ...parsed.handles,
+      ];
 
   const parts: string[] = [];
-  const asciiFull = normalizeSearchText(trimmed);
+  const asciiFull = normalizeSearchText(parsed.nameQuery || trimmed);
   const asciiHyphen = asciiFull.replace(/\s+/g, "-");
   const asciiCompact = asciiFull.replace(/\s+/g, "");
 

@@ -9,6 +9,36 @@ export function normalizeSearchText(value: string): string {
     .trim();
 }
 
+const SEARCH_HANDLE_RE = /@([A-Za-z0-9._-]+)/g;
+
+export type ParsedSearchQuery = {
+  /** Phần tên/cụm — đã gỡ @handle. */
+  nameQuery: string;
+  /** Handle không gồm `@` (vd. nguyenthanhtu). */
+  handles: string[];
+};
+
+/**
+ * Tách `@slug` khỏi cụm tên: `@nguyenthanhtu` → handle;
+ * `Nguyễn Thanh Tú @nguyenthanhtu` → tên + handle.
+ */
+export function parseSearchQuery(raw: string): ParsedSearchQuery {
+  const trimmed = raw.trim();
+  if (!trimmed) return { nameQuery: "", handles: [] };
+
+  const handles: string[] = [];
+  const nameQuery = trimmed
+    .replace(SEARCH_HANDLE_RE, (_full, handle: string) => {
+      if (handle) handles.push(handle);
+      return " ";
+    })
+    .replace(/^@+/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return { nameQuery, handles: [...new Set(handles)] };
+}
+
 /** Token ≥2 ký tự + cả chuỗi gốc (nếu khác token rời). */
 export function searchQueryTokens(query: string): string[] {
   const trimmed = query.trim();
