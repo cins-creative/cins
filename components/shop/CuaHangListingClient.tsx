@@ -28,6 +28,7 @@ import {
   canonicalizeDanhMucSlug,
   canonicalizeDanhMucSlugs,
 } from "@/lib/shop/danh-muc-constants";
+import { parseShopThumbFit, type ShopThumbFit } from "@/lib/shop/anh-thumb-fit";
 import { useChListLazyBatch, CH_LIST_SHOP_LAZY_BATCH } from "@/lib/shop/use-ch-list-lazy-batch";
 
 type BrowseMode = "shop" | "mat-hang" | "hang";
@@ -57,6 +58,7 @@ type HangHit = {
   shopId: string;
   ten: string;
   anhUrl: string | null;
+  anhThumbFit: ShopThumbFit;
   shopTen: string;
   shopAvatarUrl: string | null;
   href: string;
@@ -71,10 +73,11 @@ type HangHit = {
   facets: Record<string, string[]>;
   coCombo: boolean;
   comboTag: string | null;
+  /** Tên loại (`shop_nhom.nhan`) — mẫu thuộc loại nào. */
+  tenLoai: string | null;
 };
 
-/** Giới hạn khi đang gõ tìm — browse mặc định lấy hết loại đã nạp. */
-const HANG_SEARCH_LIMIT = 36;
+const LISTING_SEARCH_DEBOUNCE_MS = 300;
 
 type FilterOption = {
   slug: string;
@@ -715,12 +718,17 @@ function shopProfileMatches(shop: PublicShopListingItem, q: string): boolean {
 }
 
 function hangMatchesQuery(hang: PublicShopListingHang, q: string): boolean {
-  return textMatches(hang.ten, q);
+  if (textMatches(hang.ten, q)) return true;
+  if (hang.tenLoai && textMatches(hang.tenLoai, q)) return true;
+  return false;
 }
 
 function shopMatchesQuery(shop: PublicShopListingItem, q: string): boolean {
   if (!q) return true;
-  return shopProfileMatches(shop, q);
+  if (shopProfileMatches(shop, q)) return true;
+  if (shop.catalogHang.some((h) => hangMatchesQuery(h, q))) return true;
+  if (shop.catalogMau.some((m) => hangMatchesQuery(m, q))) return true;
+  return false;
 }
 
 function hangFromLoai(
@@ -732,6 +740,7 @@ function hangFromLoai(
     shopId: shop.id,
     ten: hang.ten,
     anhUrl: hang.anhUrl,
+    anhThumbFit: parseShopThumbFit(hang.anhThumbFit),
     shopTen: shop.ten,
     shopAvatarUrl: shop.avatarUrl,
     href: shopLoaiHref(shop.ownerSlug, shop.shopSlug, hang.id),
@@ -746,6 +755,7 @@ function hangFromLoai(
     facets: hang.facets ?? {},
     coCombo: hang.coCombo === true,
     comboTag: hang.comboTag ?? null,
+    tenLoai: null,
   };
 }
 
@@ -761,6 +771,7 @@ function hangFromMau(
     shopId: shop.id,
     ten: mau.ten,
     anhUrl: mau.anhUrl,
+    anhThumbFit: parseShopThumbFit(mau.anhThumbFit),
     shopTen: shop.ten,
     shopAvatarUrl: shop.avatarUrl,
     href,
@@ -775,7 +786,20 @@ function hangFromMau(
     facets: mau.facets ?? {},
     coCombo: mau.coCombo === true,
     comboTag: mau.comboTag ?? null,
+    tenLoai: resolveTenLoai(shop, mau),
   };
+}
+
+function resolveTenLoai(
+  shop: PublicShopListingItem,
+  mau: PublicShopListingHang,
+): string | null {
+  const attached = mau.tenLoai?.trim();
+  if (attached) return attached;
+  const idNhom = mau.idNhom?.trim();
+  if (!idNhom) return null;
+  const ten = shop.catalogHang.find((h) => h.id === idNhom)?.ten?.trim();
+  return ten || null;
 }
 
 /** Giống quầy: đang bán → còn hàng → bán chạy → có ảnh → nổi bật. */
@@ -834,19 +858,17 @@ function collectMatHangHits(
         if (q && !hangMatchesQuery(hang, q)) continue;
         hits.push(hangFromLoai(shop, hang));
       }
-      continue;
+      if (!q) continue;
     }
-    /* Shop không có loại → hiện mẫu (giống quầy mat-hang fallback). */
-    for (const mau of shop.catalogMau) {
-      if (q && !hangMatchesQuery(mau, q)) continue;
-      hits.push(hangFromMau(shop, mau));
+    /* Browse: shop không loại → mẫu. Search: thêm mẫu khớp tên. */
+    if (q || loai.length === 0) {
+      for (const mau of shop.catalogMau) {
+        if (q && !hangMatchesQuery(mau, q)) continue;
+        hits.push(hangFromMau(shop, mau));
+      }
     }
   }
-  const mixed = interleaveByShop(hits);
-  if (q && mixed.length > HANG_SEARCH_LIMIT) {
-    return mixed.slice(0, HANG_SEARCH_LIMIT);
-  }
-  return mixed;
+  return interleaveByShop(hits);
 }
 
 function collectHangHits(
@@ -860,11 +882,50 @@ function collectHangHits(
       hits.push(hangFromMau(shop, mau));
     }
   }
-  const mixed = interleaveByShop(hits);
-  if (q && mixed.length > HANG_SEARCH_LIMIT) {
-    return mixed.slice(0, HANG_SEARCH_LIMIT);
+  return interleaveByShop(hits);
+}
+
+function mergeListingShops(
+  base: PublicShopListingItem[],
+  extra: PublicShopListingItem[],
+): PublicShopListingItem[] {
+  if (extra.length === 0) return base;
+  const byId = new Map<string, PublicShopListingItem>();
+  for (const s of base) byId.set(s.id, s);
+  for (const s of extra) {
+    const cur = byId.get(s.id);
+    if (!cur) {
+      byId.set(s.id, s);
+      continue;
+    }
+    const hangIds = new Set(cur.catalogHang.map((h) => h.id));
+    const mauIds = new Set(cur.catalogMau.map((m) => m.id));
+    let catalogHang = cur.catalogHang;
+    let catalogMau = cur.catalogMau;
+    let changed = false;
+    for (const h of s.catalogHang) {
+      if (hangIds.has(h.id)) continue;
+      if (!changed) {
+        catalogHang = [...cur.catalogHang];
+        catalogMau = [...cur.catalogMau];
+        changed = true;
+      }
+      hangIds.add(h.id);
+      catalogHang.push(h);
+    }
+    for (const m of s.catalogMau) {
+      if (mauIds.has(m.id)) continue;
+      if (!changed) {
+        catalogHang = [...cur.catalogHang];
+        catalogMau = [...cur.catalogMau];
+        changed = true;
+      }
+      mauIds.add(m.id);
+      catalogMau.push(m);
+    }
+    if (changed) byId.set(s.id, { ...cur, catalogHang, catalogMau });
   }
-  return mixed;
+  return [...byId.values()];
 }
 
 function parseCsvParam(raw: string | null): string[] {
@@ -902,9 +963,35 @@ function hangMatchesTaxonomy(
   return true;
 }
 
+function ListingSearchSkeletons({
+  kind,
+  count,
+}: {
+  kind: "hang" | "shop";
+  count: number;
+}) {
+  const cls =
+    kind === "hang"
+      ? "ch-list-hang-card ch-list-hang-card--skeleton"
+      : "ch-list-card ch-list-card--skeleton";
+  return (
+    <>
+      {Array.from({ length: count }, (_, i) => (
+        <div key={`search-sk-${i}`} className={cls} aria-hidden />
+      ))}
+    </>
+  );
+}
+
 function HangHitCard({ hit }: { hit: HangHit }) {
   const giaLabel = formatHangGia(hit.giaHienThi, hit.tienTe);
   const sold = hit.soLuongBan > 0 ? hit.soLuongBan : 0;
+  const tenLoai =
+    hit.kind === "mau" &&
+    hit.tenLoai &&
+    hit.tenLoai.localeCompare(hit.ten, "vi", { sensitivity: "base" }) !== 0
+      ? hit.tenLoai
+      : null;
 
   return (
     <Link
@@ -913,7 +1000,12 @@ function HangHitCard({ hit }: { hit: HangHit }) {
     >
       {hit.anhUrl ? (
         <span className="ch-list-hang-card-thumb">
-          <ChListingImg src={hit.anhUrl} variant="thumbnail" />
+          <ChListingImg
+            src={hit.anhUrl}
+            variant="thumbnail"
+            fit={hit.anhThumbFit}
+            protect
+          />
         </span>
       ) : (
         <span className="ch-list-hang-card-thumb is-empty" aria-hidden>
@@ -922,6 +1014,11 @@ function HangHitCard({ hit }: { hit: HangHit }) {
       )}
       <div className="ch-list-hang-card-body">
         <div className="ch-list-hang-card-name">{hit.ten}</div>
+        {tenLoai ? (
+          <div className="ch-list-hang-card-loai" title={tenLoai}>
+            {tenLoai}
+          </div>
+        ) : null}
         {giaLabel || hit.comboTag || sold > 0 ? (
           <div className="ch-list-hang-card-foot">
             {giaLabel ? <strong>{giaLabel}</strong> : null}
@@ -983,6 +1080,8 @@ export function CuaHangListingClient({
   const showMatHang = browseMode === "mat-hang";
   const showHang = browseMode === "hang";
   const showProductGrid = showMatHang || showHang;
+  const [remoteShops, setRemoteShops] = useState<PublicShopListingItem[]>([]);
+  const [remoteSearching, setRemoteSearching] = useState(false);
 
   useEffect(() => {
     if (!searchOpen) return;
@@ -1075,9 +1174,56 @@ export function CuaHangListingClient({
 
   const hasListFilter = hasTaxonomyFilter || discountOnly;
 
+  useEffect(() => {
+    const raw = query.trim();
+    if (!raw) {
+      setRemoteShops([]);
+      setRemoteSearching(false);
+      return;
+    }
+    setRemoteSearching(true);
+    const abort = new AbortController();
+    const timer = window.setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({
+          q: raw.slice(0, 64),
+          mode: browseMode,
+        });
+        const res = await fetch(`/api/shop/listing/search?${params}`, {
+          signal: abort.signal,
+        });
+        if (!res.ok) {
+          if (!abort.signal.aborted) setRemoteShops([]);
+          return;
+        }
+        const data: unknown = await res.json();
+        const shopsIn =
+          data &&
+          typeof data === "object" &&
+          Array.isArray((data as { shops?: unknown }).shops)
+            ? ((data as { shops: PublicShopListingItem[] }).shops)
+            : [];
+        if (!abort.signal.aborted) setRemoteShops(shopsIn);
+      } catch {
+        if (!abort.signal.aborted) setRemoteShops([]);
+      } finally {
+        if (!abort.signal.aborted) setRemoteSearching(false);
+      }
+    }, LISTING_SEARCH_DEBOUNCE_MS);
+    return () => {
+      window.clearTimeout(timer);
+      abort.abort();
+    };
+  }, [query, browseMode]);
+
+  const mergedShops = useMemo(
+    () => mergeListingShops(shops, remoteShops),
+    [shops, remoteShops],
+  );
+
   const visibleShops = useMemo(() => {
     if (showProductGrid) return [];
-    let list = shops.filter((shop) => shopMatchesQuery(shop, q));
+    let list = mergedShops.filter((shop) => shopMatchesQuery(shop, q));
     if (discountOnly) list = list.filter(shopHasUuDai);
     /* Giống quầy Shop: đang bán → có voucher → … */
     return [...list].sort((a, b) => {
@@ -1092,13 +1238,13 @@ export function CuaHangListingClient({
       const bProfile = shopProfileMatches(b, q) ? 0 : 1;
       return aProfile - bProfile;
     });
-  }, [shops, q, showProductGrid, discountOnly]);
+  }, [mergedShops, q, showProductGrid, discountOnly]);
 
   const hangHitsRaw = useMemo(() => {
-    if (showMatHang) return collectMatHangHits(shops, q);
-    if (showHang) return collectHangHits(shops, q);
+    if (showMatHang) return collectMatHangHits(mergedShops, q);
+    if (showHang) return collectHangHits(mergedShops, q);
     return [];
-  }, [shops, q, showMatHang, showHang]);
+  }, [mergedShops, q, showMatHang, showHang]);
 
   const hangHitsScoped = useMemo(() => {
     if (!discountOnly) return hangHitsRaw;
@@ -1136,9 +1282,9 @@ export function CuaHangListingClient({
   }, [hangHitsScoped, taxonomy.facets]);
 
   const empty = showProductGrid
-    ? hangHits.length === 0
+    ? hangHits.length === 0 && !remoteSearching
     : searching
-      ? visibleShops.length === 0
+      ? visibleShops.length === 0 && !remoteSearching
       : shops.length === 0;
 
   const searchPlaceholder = showProductGrid
@@ -1214,7 +1360,10 @@ export function CuaHangListingClient({
               >
                 <Search size={18} strokeWidth={2} aria-hidden />
               </button>
-              <label className="ch-list-search">
+              <label
+                className={`ch-list-search${remoteSearching ? " is-busy" : ""}`}
+                aria-busy={remoteSearching || undefined}
+              >
                 <Search
                   size={18}
                   strokeWidth={2}
@@ -1258,11 +1407,16 @@ export function CuaHangListingClient({
 
               {searchOpen && (searching || hasListFilter) ? (
                 <p className="ch-list-result-meta" aria-live="polite">
-                  {empty
-                    ? "Không có kết quả"
-                    : showProductGrid
-                      ? `${hangHits.length} ${showMatHang ? "mặt hàng" : "hàng"}`
-                      : `${visibleShops.length} cửa hàng`}
+                  {remoteSearching &&
+                  (showProductGrid
+                    ? hangHits.length === 0
+                    : visibleShops.length === 0)
+                    ? "Đang tìm…"
+                    : empty
+                      ? "Không có kết quả"
+                      : showProductGrid
+                        ? `${hangHits.length} ${showMatHang ? "mặt hàng" : "hàng"}${remoteSearching ? "…" : ""}`
+                        : `${visibleShops.length} cửa hàng${remoteSearching ? "…" : ""}`}
                 </p>
               ) : null}
             </div>
@@ -1381,10 +1535,24 @@ export function CuaHangListingClient({
               showMatHang ? "Danh sách mặt hàng" : "Danh sách hàng"
             }
           >
-            <div className="ch-list-hang-grid">
+            {remoteSearching && lazyHangHits.length > 0 ? (
+              <div
+                className="ch-list-hang-grid ch-list-search-pending"
+                aria-hidden
+              >
+                <ListingSearchSkeletons kind="hang" count={4} />
+              </div>
+            ) : null}
+            <div
+              className="ch-list-hang-grid"
+              aria-busy={remoteSearching || undefined}
+            >
               {lazyHangHits.map((hit) => (
                 <HangHitCard key={hit.key} hit={hit} />
               ))}
+              {remoteSearching && lazyHangHits.length === 0 ? (
+                <ListingSearchSkeletons kind="hang" count={8} />
+              ) : null}
             </div>
             {hasMoreHang ? (
               <div
@@ -1396,10 +1564,21 @@ export function CuaHangListingClient({
           </section>
         ) : (
           <section className="ch-list-section" aria-label="Danh sách cửa hàng">
-            <div className="ch-list-grid">
+            {remoteSearching && lazyVisibleShops.length > 0 ? (
+              <div className="ch-list-grid ch-list-search-pending" aria-hidden>
+                <ListingSearchSkeletons kind="shop" count={3} />
+              </div>
+            ) : null}
+            <div
+              className="ch-list-grid"
+              aria-busy={remoteSearching || undefined}
+            >
               {lazyVisibleShops.map((shop) => (
                 <CuaHangListCard key={shop.id} shop={shop} query={q} />
               ))}
+              {remoteSearching && lazyVisibleShops.length === 0 ? (
+                <ListingSearchSkeletons kind="shop" count={6} />
+              ) : null}
             </div>
             {hasMoreShops ? (
               <div

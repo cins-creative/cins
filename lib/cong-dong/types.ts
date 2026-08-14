@@ -291,3 +291,12 @@ export type CongDongPageData = {
   categories: CongDongCategory[];
   linhVucs: CongDongLinhVuc[];
 };
+
+/** Cộng đồng user đang tham gia — submenu chia sẻ bài Journey. */
+export type ShareCongDongTarget = {
+  id: string;
+  slug: string;
+  ten: string;
+  avatarUrl: string | null;
+  href: string;
+};

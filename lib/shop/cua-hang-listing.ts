@@ -15,6 +15,7 @@ import { mapDanhMucSlugByIds } from "@/lib/shop/danh-muc";
 import { fandomSlugsByNhomIds } from "@/lib/shop/fandom";
 import { facetsByNhomIds } from "@/lib/shop/thuoc-tinh";
 import { SHOP_DON_TINH_DA_BAN, type ShopLoaiGiam } from "@/lib/shop/types";
+import { parseShopThumbFit, type ShopThumbFit } from "@/lib/shop/anh-thumb-fit";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 const IN_CHUNK = 120;
@@ -291,7 +292,7 @@ async function sanPhamCatalogByOwner(
 
   const { data, error } = await admin
     .from("shop_san_pham")
-    .select("id, id_nguoi_dung, ten, anh_id, id_nhom")
+    .select("id, id_nguoi_dung, ten, anh_id, id_nhom, anh_thumb_fit")
     .in("id_nguoi_dung", ownerIds)
     .eq("da_xoa", false)
     .eq("dang_ban", true)
@@ -304,6 +305,7 @@ async function sanPhamCatalogByOwner(
         ten: string | null;
         anh_id: string | null;
         id_nhom: string | null;
+        anh_thumb_fit?: string | null;
       }>
     >();
 
@@ -322,6 +324,7 @@ async function sanPhamCatalogByOwner(
       ten,
       anhUrl: shopImageUrl(row.anh_id, "thumbnail"),
       idNhom: row.id_nhom?.trim() || null,
+      anhThumbFit: parseShopThumbFit(row.anh_thumb_fit),
     });
     out.set(row.id_nguoi_dung, list);
   }
@@ -489,27 +492,55 @@ function filterNhomWithMau(
   return { previewHang, catalogHang };
 }
 
-/** Gắn giá loại lên mẫu (khi chưa có bảng giá chi tiết trên hub). */
+/** Gắn giá + tên loại lên mẫu (khi chưa có bảng giá chi tiết trên hub). */
 function attachMauGiaFromNhom(
   mau: PublicShopListingHang[],
   catalogHang: PublicShopListingHang[],
 ): PublicShopListingHang[] {
   if (mau.length === 0) return mau;
-  const giaByNhom = new Map(
+  const byNhom = new Map(
     catalogHang.map((h) => [
       h.id,
-      { gia: h.giaHienThi ?? null, tienTe: h.tienTe ?? "VND" },
+      {
+        gia: h.giaHienThi ?? null,
+        tienTe: h.tienTe ?? "VND",
+        ten: h.ten.trim(),
+      },
     ]),
   );
   return mau.map((m) => {
-    if (m.giaHienThi != null) return m;
-    const fromNhom = m.idNhom ? giaByNhom.get(m.idNhom) : null;
-    if (!fromNhom) return m;
+    const fromNhom = m.idNhom ? byNhom.get(m.idNhom) : null;
+    const tenLoai = m.tenLoai?.trim() || fromNhom?.ten || null;
+    if (m.giaHienThi != null) {
+      return tenLoai && tenLoai !== m.tenLoai ? { ...m, tenLoai } : m;
+    }
+    if (!fromNhom) return tenLoai ? { ...m, tenLoai } : m;
     return {
       ...m,
       giaHienThi: fromNhom.gia,
       tienTe: fromNhom.tienTe,
+      tenLoai,
     };
+  });
+}
+
+/** Loại không có cột fit — lấy fit mẫu đầu trong nhóm. */
+function attachNhomThumbFitFromMau(
+  hang: PublicShopListingHang[],
+  mau: PublicShopListingHang[],
+): PublicShopListingHang[] {
+  if (hang.length === 0) return hang;
+  const fitByNhom = new Map<string, ShopThumbFit>();
+  for (const m of mau) {
+    const idNhom = m.idNhom?.trim();
+    if (!idNhom || fitByNhom.has(idNhom) || !m.anhThumbFit) continue;
+    fitByNhom.set(idNhom, m.anhThumbFit);
+  }
+  if (fitByNhom.size === 0) return hang;
+  return hang.map((h) => {
+    if (h.anhThumbFit) return h;
+    const fit = fitByNhom.get(h.id);
+    return fit ? { ...h, anhThumbFit: fit } : h;
   });
 }
 
@@ -901,19 +932,23 @@ export async function listPublicShopCuaHang(
       nhomIdsWithHang.get(row.id_nguoi_dung),
     );
 
-    const catalogHang = isShopMode
+    const catalogHangRaw = isShopMode
       ? []
       : applyNhomStats(nhomCat.catalogHang, nhomStats).map((h) =>
           tagHangUuDai(h, "loai", uuDaiFlags),
         );
-    const featuredHang = isShopMode
-      ? nhomCat.previewHang.map((h) => tagHangUuDai(h, "loai", uuDaiFlags))
-      : [];
     const catalogMau = isShopMode
       ? []
-      : attachMauGiaFromNhom(catalogMauRaw, catalogHang).map((m) =>
+      : attachMauGiaFromNhom(catalogMauRaw, catalogHangRaw).map((m) =>
           tagHangUuDai(m, "mau", uuDaiFlags),
         );
+    const catalogHang = attachNhomThumbFitFromMau(catalogHangRaw, catalogMau);
+    const featuredHang = isShopMode
+      ? attachNhomThumbFitFromMau(
+          nhomCat.previewHang.map((h) => tagHangUuDai(h, "loai", uuDaiFlags)),
+          catalogMau,
+        )
+      : [];
     const ownerTen = owner.ten_hien_thi?.trim() || null;
     /** Chỉ đếm mẫu đang bán — loại trống không tính «có hàng». */
     const hasHang =
@@ -1112,14 +1147,18 @@ export async function listShopListingCardsByOwnerIds(
       nhomByOwnerRaw.get(ownerId),
       nhomIdsWithHang.get(ownerId),
     );
-    const catalogHang = applyNhomStats(nhomCat.catalogHang, nhomStats).map((h) =>
-      tagHangUuDai(h, "loai", uuDaiFlags),
+    const catalogHangRaw = applyNhomStats(nhomCat.catalogHang, nhomStats).map(
+      (h) => tagHangUuDai(h, "loai", uuDaiFlags),
     );
-    const featuredHang = applyNhomStats(nhomCat.previewHang, nhomStats).map((h) =>
-      tagHangUuDai(h, "loai", uuDaiFlags),
+    const catalogMau = attachMauGiaFromNhom(catalogMauRaw, catalogHangRaw).map(
+      (m) => tagHangUuDai(m, "mau", uuDaiFlags),
     );
-    const catalogMau = attachMauGiaFromNhom(catalogMauRaw, catalogHang).map((m) =>
-      tagHangUuDai(m, "mau", uuDaiFlags),
+    const catalogHang = attachNhomThumbFitFromMau(catalogHangRaw, catalogMau);
+    const featuredHang = attachNhomThumbFitFromMau(
+      applyNhomStats(nhomCat.previewHang, nhomStats).map((h) =>
+        tagHangUuDai(h, "loai", uuDaiFlags),
+      ),
+      catalogMau,
     );
     const ownerTen = owner.ten_hien_thi?.trim() || null;
     void ownersWithHang;
@@ -1156,4 +1195,460 @@ export async function listShopListingCardsByOwnerIds(
   }
 
   return out;
+}
+
+const SEARCH_LIMIT = 80;
+const SEARCH_SHOP_LIMIT = 40;
+
+function sanitizeListingSearchQ(raw: string): string {
+  return raw
+    .trim()
+    .replace(/[%_\\,().]/g, " ")
+    .replace(/\s+/g, " ")
+    .slice(0, 64);
+}
+
+type MauSearchRow = {
+  id: string;
+  id_nguoi_dung: string;
+  ten: string | null;
+  anh_id: string | null;
+  id_nhom: string | null;
+  anh_thumb_fit?: string | null;
+};
+
+async function searchSanPhamByTen(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  like: string,
+  limit: number,
+  ownerIds?: string[],
+): Promise<MauSearchRow[]> {
+  if (limit <= 0) return [];
+  let q = admin
+    .from("shop_san_pham")
+    .select("id, id_nguoi_dung, ten, anh_id, id_nhom, anh_thumb_fit")
+    .eq("da_xoa", false)
+    .eq("dang_ban", true)
+    .ilike("ten", like)
+    .limit(limit);
+  if (ownerIds?.length) q = q.in("id_nguoi_dung", ownerIds);
+  const { data, error } = await q.returns<MauSearchRow[]>();
+  if (error) {
+    console.error("[shop] searchPublicShopListing san_pham", error);
+    return [];
+  }
+  return data ?? [];
+}
+
+async function searchNhomByNhan(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  like: string,
+  limit: number,
+  ownerIds?: string[],
+): Promise<NhomCatalogRow[]> {
+  if (limit <= 0) return [];
+  let q = admin
+    .from("shop_nhom")
+    .select(
+      "id, id_nguoi_dung, nhan, mo_ta, anh_id, noi_bat, thu_tu, gia_mac_dinh, id_danh_muc",
+    )
+    .eq("da_xoa", false)
+    .eq("truc", 1)
+    .ilike("nhan", like)
+    .limit(limit);
+  if (ownerIds?.length) q = q.in("id_nguoi_dung", ownerIds);
+  const { data, error } = await q.returns<NhomCatalogRow[]>();
+  if (error) {
+    console.error("[shop] searchPublicShopListing nhom", error);
+    return [];
+  }
+  return data ?? [];
+}
+
+async function searchShopOwnerIdsByTen(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  like: string,
+  limit: number,
+): Promise<string[]> {
+  const { data, error } = await admin
+    .from("shop_cua_hang")
+    .select("id_nguoi_dung")
+    .eq("da_xoa", false)
+    .ilike("ten", like)
+    .limit(limit)
+    .returns<Array<{ id_nguoi_dung: string }>>();
+  if (error) {
+    console.error("[shop] searchPublicShopListing shop-ten", error);
+    return [];
+  }
+  return (data ?? []).map((r) => r.id_nguoi_dung).filter(Boolean);
+}
+
+async function searchPublicOwnersByProfile(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  like: string,
+  limit: number,
+): Promise<OwnerRow[]> {
+  const { data, error } = await admin
+    .from("user_nguoi_dung")
+    .select("id, slug, ten_hien_thi")
+    .eq("ban_hang_bat", true)
+    .eq("shop_hien_thi", true)
+    .not("slug", "is", null)
+    .or(`ten_hien_thi.ilike.${like},slug.ilike.${like}`)
+    .limit(limit)
+    .returns<OwnerRow[]>();
+  if (error) {
+    console.error("[shop] searchPublicShopListing owner-profile", error);
+    return [];
+  }
+  return (data ?? []).filter((o) => Boolean(o.slug?.trim()));
+}
+
+async function loadOwnersByIds(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  ids: string[],
+): Promise<OwnerRow[]> {
+  const unique = [...new Set(ids.filter(Boolean))];
+  if (unique.length === 0) return [];
+  const out: OwnerRow[] = [];
+  for (let i = 0; i < unique.length; i += IN_CHUNK) {
+    const chunk = unique.slice(i, i + IN_CHUNK);
+    const { data, error } = await admin
+      .from("user_nguoi_dung")
+      .select("id, slug, ten_hien_thi")
+      .in("id", chunk)
+      .not("slug", "is", null)
+      .returns<OwnerRow[]>();
+    if (error) {
+      console.error("[shop] searchPublicShopListing owners-scoped", error);
+      break;
+    }
+    out.push(...(data ?? []).filter((o) => Boolean(o.slug?.trim())));
+  }
+  return out;
+}
+
+async function loadPublicOwnersByIds(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  ids: string[],
+): Promise<OwnerRow[]> {
+  const unique = [...new Set(ids.filter(Boolean))];
+  if (unique.length === 0) return [];
+  const out: OwnerRow[] = [];
+  for (let i = 0; i < unique.length; i += IN_CHUNK) {
+    const chunk = unique.slice(i, i + IN_CHUNK);
+    const { data, error } = await admin
+      .from("user_nguoi_dung")
+      .select("id, slug, ten_hien_thi")
+      .in("id", chunk)
+      .eq("ban_hang_bat", true)
+      .eq("shop_hien_thi", true)
+      .not("slug", "is", null)
+      .returns<OwnerRow[]>();
+    if (error) {
+      console.error("[shop] searchPublicShopListing owners-by-id", error);
+      break;
+    }
+    out.push(...(data ?? []).filter((o) => Boolean(o.slug?.trim())));
+  }
+  return out;
+}
+
+async function loadShopsByOwnerIds(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  ownerIds: string[],
+): Promise<Map<string, ShopRow>> {
+  const shopByOwner = new Map<string, ShopRow>();
+  if (ownerIds.length === 0) return shopByOwner;
+  for (let i = 0; i < ownerIds.length; i += IN_CHUNK) {
+    const chunk = ownerIds.slice(i, i + IN_CHUNK);
+    const { data, error } = await admin
+      .from("shop_cua_hang")
+      .select(
+        "id, id_nguoi_dung, ten, mo_ta, avatar_id, cover_id, tam_dong, tam_dong_tu, tam_dong_den, tam_dong_ly_do, tao_luc",
+      )
+      .in("id_nguoi_dung", chunk)
+      .eq("da_xoa", false)
+      .order("tao_luc", { ascending: false })
+      .returns<ShopRow[]>();
+    if (error) {
+      console.error("[shop] searchPublicShopListing shops", error);
+      break;
+    }
+    for (const row of data ?? []) {
+      if (!shopByOwner.has(row.id_nguoi_dung)) {
+        shopByOwner.set(row.id_nguoi_dung, row);
+      }
+    }
+  }
+  return shopByOwner;
+}
+
+async function applyTaxonomyToNhomHang(
+  hang: PublicShopListingHang[],
+  danhMucIdByNhom: Map<string, string>,
+): Promise<void> {
+  if (hang.length === 0) return;
+  const nhomIds = hang.map((h) => h.id);
+  const danhMucIds = [...danhMucIdByNhom.values()];
+  const [slugByDm, facetsMap, fandomSlugMap] = await Promise.all([
+    mapDanhMucSlugByIds(danhMucIds),
+    facetsByNhomIds(nhomIds),
+    fandomSlugsByNhomIds(nhomIds),
+  ]);
+  for (const h of hang) {
+    const dmId = danhMucIdByNhom.get(h.id);
+    const rawSlug = dmId ? (slugByDm.get(dmId) ?? null) : null;
+    h.danhMucSlug = rawSlug ? canonicalizeDanhMucSlug(rawSlug) : null;
+    const facets = { ...(facetsMap.get(h.id) ?? {}) };
+    delete facets.fandom;
+    const fandomSlugs = fandomSlugMap.get(h.id) ?? [];
+    if (fandomSlugs.length > 0) facets.fandom = fandomSlugs;
+    h.facets = facets;
+  }
+}
+
+async function nhomHangByIds(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  ids: string[],
+): Promise<Map<string, PublicShopListingHang>> {
+  const unique = [...new Set(ids.filter(Boolean))];
+  const out = new Map<string, PublicShopListingHang>();
+  if (unique.length === 0) return out;
+  const rows: NhomCatalogRow[] = [];
+  for (let i = 0; i < unique.length; i += IN_CHUNK) {
+    const chunk = unique.slice(i, i + IN_CHUNK);
+    const { data, error } = await admin
+      .from("shop_nhom")
+      .select(
+        "id, id_nguoi_dung, nhan, mo_ta, anh_id, noi_bat, thu_tu, gia_mac_dinh, id_danh_muc",
+      )
+      .in("id", chunk)
+      .eq("da_xoa", false)
+      .returns<NhomCatalogRow[]>();
+    if (error) {
+      console.error("[shop] searchPublicShopListing nhom-by-id", error);
+      break;
+    }
+    rows.push(...(data ?? []));
+  }
+  const hang = rows.map(mapNhomToHang);
+  const danhMucIdByNhom = new Map<string, string>();
+  for (const r of rows) {
+    if (r.id_danh_muc?.trim()) danhMucIdByNhom.set(r.id, r.id_danh_muc.trim());
+  }
+  await applyTaxonomyToNhomHang(hang, danhMucIdByNhom);
+  for (const h of hang) out.set(h.id, h);
+  return out;
+}
+
+function mapMauSearchRow(row: MauSearchRow): PublicShopListingHang | null {
+  const ten = row.ten?.trim();
+  if (!ten) return null;
+  return {
+    id: row.id,
+    ten,
+    anhUrl: shopImageUrl(row.anh_id, "thumbnail"),
+    idNhom: row.id_nhom?.trim() || null,
+    anhThumbFit: parseShopThumbFit(row.anh_thumb_fit),
+  };
+}
+
+function inheritMauFromNhom(
+  mau: PublicShopListingHang,
+  nhom: PublicShopListingHang | undefined,
+): PublicShopListingHang {
+  if (!nhom) return mau;
+  return {
+    ...mau,
+    giaHienThi: mau.giaHienThi ?? nhom.giaHienThi ?? null,
+    tienTe: mau.tienTe ?? nhom.tienTe ?? "VND",
+    tenLoai: mau.tenLoai?.trim() || nhom.ten.trim() || null,
+    danhMucSlug: mau.danhMucSlug ?? nhom.danhMucSlug ?? null,
+    facets: Object.keys(mau.facets ?? {}).length
+      ? mau.facets
+      : (nhom.facets ?? {}),
+  };
+}
+
+function buildSearchListingItem(opts: {
+  row: ShopRow;
+  owner: OwnerRow;
+  nowMs: number;
+  catalogHang: PublicShopListingHang[];
+  catalogMau: PublicShopListingHang[];
+  flags: HubUuDaiFlags;
+}): PublicShopListingItem | null {
+  const ownerSlug = opts.owner.slug?.trim();
+  if (!ownerSlug) return null;
+  const ten = (
+    opts.row.ten?.trim() ||
+    opts.owner.ten_hien_thi?.trim() ||
+    ownerSlug
+  ).trim();
+  const shopSlug = shopSlugFromTen(opts.row.ten, ownerSlug);
+  const dangTamDong = isShopTamDongActive(
+    {
+      tamDong: opts.row.tam_dong === true,
+      tamDongTu: opts.row.tam_dong_tu,
+      tamDongDen: opts.row.tam_dong_den,
+      tamDongLyDo: opts.row.tam_dong_ly_do,
+    },
+    opts.nowMs,
+  );
+  const taggedHang = opts.catalogHang.map((h) =>
+    tagHangUuDai(h, "loai", opts.flags),
+  );
+  const taggedMau = attachMauGiaFromNhom(opts.catalogMau, taggedHang).map((m) =>
+    tagHangUuDai(m, "mau", opts.flags),
+  );
+  const catalogHang = attachNhomThumbFitFromMau(taggedHang, taggedMau);
+  const moTa = opts.row.mo_ta?.trim() || null;
+  const ownerTen = opts.owner.ten_hien_thi?.trim() || null;
+  return {
+    id: opts.row.id,
+    ten,
+    moTa,
+    href: shopPublicHref(ownerSlug, shopSlug),
+    shopSlug,
+    avatarUrl: shopImageUrl(opts.row.avatar_id, "avatar"),
+    coverUrl: shopImageUrl(opts.row.cover_id, "gridsm"),
+    ownerSlug,
+    ownerTen,
+    dangTamDong,
+    tamDongLyDo: dangTamDong ? opts.row.tam_dong_ly_do?.trim() || null : null,
+    featuredHang: catalogHang.slice(0, FEATURED_HANG_PER_CARD),
+    catalogHang,
+    catalogMau: taggedMau,
+    searchHaystack: "",
+    coVoucher: opts.flags.voucherOwners.has(opts.row.id_nguoi_dung),
+    coCombo: opts.flags.comboOwners.has(opts.row.id_nguoi_dung),
+    voucherTickerLines: [],
+  };
+}
+
+/**
+ * Search hub `/shopping` — bổ sung kết quả ngoài catalog SSR
+ * (catalog mẫu bị cắt 40/shop).
+ */
+export async function searchPublicShopListing(
+  qRaw: string,
+  mode: "shop" | "mat-hang" | "hang",
+  opts?: { ownerIds?: string[] },
+): Promise<PublicShopListingItem[]> {
+  const q = sanitizeListingSearchQ(qRaw);
+  if (q.length < 1) return [];
+  const like = `%${q}%`;
+  const admin = createServiceRoleClient();
+  const nowMs = Date.now();
+  const cap = mode === "shop" ? SEARCH_SHOP_LIMIT : SEARCH_LIMIT;
+  const fetchCap = Math.min(cap + 20, 100);
+  const scopeIds = opts?.ownerIds?.filter(Boolean);
+  const scoped = Boolean(scopeIds?.length);
+
+  const wantMau = mode === "hang" || mode === "mat-hang" || mode === "shop";
+  const wantNhom = mode === "mat-hang" || mode === "shop";
+
+  const [mauRowsRaw, nhomRowsRaw, shopTenOwnerIds, profileOwners] =
+    await Promise.all([
+      wantMau
+        ? searchSanPhamByTen(admin, like, fetchCap, scopeIds)
+        : Promise.resolve([] as MauSearchRow[]),
+      wantNhom
+        ? searchNhomByNhan(admin, like, fetchCap, scopeIds)
+        : Promise.resolve([] as NhomCatalogRow[]),
+      mode === "shop"
+        ? searchShopOwnerIdsByTen(admin, like, SEARCH_SHOP_LIMIT)
+        : Promise.resolve([] as string[]),
+      mode === "shop" && !scoped
+        ? searchPublicOwnersByProfile(admin, like, SEARCH_SHOP_LIMIT)
+        : Promise.resolve([] as OwnerRow[]),
+    ]);
+
+  const candidateOwnerIds = [
+    ...new Set([
+      ...mauRowsRaw.map((r) => r.id_nguoi_dung),
+      ...nhomRowsRaw.map((r) => r.id_nguoi_dung),
+      ...shopTenOwnerIds,
+      ...profileOwners.map((o) => o.id),
+    ]),
+  ].filter((id) => !scoped || scopeIds!.includes(id));
+  if (candidateOwnerIds.length === 0) return [];
+
+  const ownerRows = scoped
+    ? await loadOwnersByIds(admin, candidateOwnerIds)
+    : await loadPublicOwnersByIds(admin, candidateOwnerIds);
+  if (ownerRows.length === 0) return [];
+  const ownerById = new Map(ownerRows.map((o) => [o.id, o]));
+  const publicOwnerIds = new Set(ownerRows.map((o) => o.id));
+
+  const mauRows = mauRowsRaw.filter((r) => publicOwnerIds.has(r.id_nguoi_dung));
+  const nhomRows = nhomRowsRaw.filter((r) =>
+    publicOwnerIds.has(r.id_nguoi_dung),
+  );
+  const matchedOwners = [...publicOwnerIds];
+
+  const hangByOwner = new Map<string, PublicShopListingHang[]>();
+  const danhMucIdByNhom = new Map<string, string>();
+  const searchedHang: PublicShopListingHang[] = [];
+  for (const row of nhomRows) {
+    const hang = mapNhomToHang(row);
+    if (row.id_danh_muc?.trim()) {
+      danhMucIdByNhom.set(row.id, row.id_danh_muc.trim());
+    }
+    searchedHang.push(hang);
+    const list = hangByOwner.get(row.id_nguoi_dung) ?? [];
+    list.push(hang);
+    hangByOwner.set(row.id_nguoi_dung, list);
+  }
+
+  const parentNhomIds = [
+    ...new Set(
+      mauRows
+        .map((r) => r.id_nhom?.trim())
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+
+  const [shopByOwner, parentById, flags] = await Promise.all([
+    loadShopsByOwnerIds(admin, matchedOwners),
+    nhomHangByIds(admin, parentNhomIds),
+    hubUuDaiFlagsByOwner(admin, matchedOwners, {
+      includeVouchers: mode === "shop",
+      includeCombos: true,
+    }),
+    applyTaxonomyToNhomHang(searchedHang, danhMucIdByNhom),
+  ]);
+
+  const mauByOwner = new Map<string, PublicShopListingHang[]>();
+  for (const row of mauRows) {
+    const mau = mapMauSearchRow(row);
+    if (!mau) continue;
+    const inherited = inheritMauFromNhom(
+      mau,
+      mau.idNhom ? parentById.get(mau.idNhom) : undefined,
+    );
+    const list = mauByOwner.get(row.id_nguoi_dung) ?? [];
+    list.push(inherited);
+    mauByOwner.set(row.id_nguoi_dung, list);
+  }
+
+  const items: PublicShopListingItem[] = [];
+  for (const ownerId of matchedOwners) {
+    const owner = ownerById.get(ownerId);
+    const row = shopByOwner.get(ownerId);
+    if (!owner || !row) continue;
+    const item = buildSearchListingItem({
+      row,
+      owner,
+      nowMs,
+      catalogHang: hangByOwner.get(ownerId) ?? [],
+      catalogMau: mauByOwner.get(ownerId) ?? [],
+      flags,
+    });
+    if (item) items.push(item);
+    if (items.length >= cap) break;
+  }
+  return items;
 }

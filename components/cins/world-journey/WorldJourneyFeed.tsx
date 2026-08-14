@@ -28,6 +28,7 @@ import { CinsFeedComposer } from "@/components/cins/CinsFeedComposer";
 import { WorldJourneyFeedTimeline } from "@/components/cins/world-journey/WorldJourneyFeedTimeline";
 import { WorldJourneyGuestLeftAside } from "@/components/cins/world-journey/WorldJourneyGuestLeftAside";
 import { WorldJourneyGuestRightAside } from "@/components/cins/world-journey/WorldJourneyGuestRightAside";
+import { useMobileFeedChromeHide } from "@/components/cins/world-journey/useMobileFeedChromeHide";
 import { WorldJourneyVideoFeed } from "@/components/cins/world-journey/WorldJourneyVideoFeed";
 import {
   WorldJourneyVideoListing,
@@ -333,6 +334,8 @@ export function WorldJourneyFeed({
   const homeRootRef = useRef<HTMLDivElement | null>(null);
   const openAsideRef = useRef<OpenAside>(null);
   openAsideRef.current = openAside;
+
+  useMobileFeedChromeHide(homeRootRef, !openAside && !playingVideoId);
 
   const closeAside = useCallback(() => {
     setOpenAside(null);

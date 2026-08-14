@@ -67,7 +67,9 @@
   --wj-feed-card-gap: 14px;
   --wj-feed-pad-top: 0;
   --wj-feed-max: 760px;
+  /* Inset asides (shell padding = 0). Solo: pad-bottom = pad-top. */
   --wj-shell-pad-top: 16px;
+  --wj-aside-inset: var(--wj-shell-pad-top);
   --wj-shell-gutter: 16px;
   /* Hai cột aside cùng bề ngang (tổng ~580px như trước: 248 + 332). */
   --wj-aside-w: 290px;
@@ -105,6 +107,15 @@
   border-bottom: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 82%, transparent);
   overflow: visible;
   cursor: pointer;
+}
+
+/* Mobile: chrome follow ngón tay — tắt transition kẻo trễ / sượn. */
+@media (max-width: 960px) {
+  .cins-app-topbar.topbar.wj-chrome-follow,
+  .wj-feed-header.wj-chrome-follow {
+    transition: none !important;
+    will-change: transform;
+  }
 }
 
 /* Header nằm đầu cột feed — sát mép trên cột. */
@@ -597,7 +608,7 @@
   width: 100%;
   max-width: 1360px;
   margin: 0 auto;
-  padding: var(--wj-shell-pad-top, 16px) 16px 32px;
+  padding: 0;
   display: grid;
   grid-template-columns:
     minmax(0, var(--wj-aside-left-w))
@@ -609,10 +620,8 @@
 
 .wj-aside-right {
   position: sticky;
-  /* Header filter chỉ trong cột feed — aside sticky dưới topbar (+ pad shell). */
-  top: calc(
-    var(--wj-sticky-top, var(--j-topbar-h, 64px)) + var(--wj-shell-pad-top, 16px)
-  );
+  /* Header filter chỉ trong cột feed — aside sticky dưới topbar. */
+  top: var(--wj-sticky-top, var(--j-topbar-h, 64px));
   align-self: start;
   display: flex;
   flex-direction: column;
@@ -3176,22 +3185,20 @@
 /* ── Guest-page sidebars (cins-trang-khach.html) ───────────── */
 .wj-guest-aside {
   position: sticky;
-  top: calc(var(--wj-sticky-top) + var(--wj-shell-pad-top, 16px));
+  top: var(--wj-sticky-top);
   align-self: start;
   display: flex;
   flex-direction: column;
   min-width: 0;
-  /* Desktop: luôn fill từ sticky-top xuống cạnh dưới viewport; nội dung tràn thì cuộn trong cột. */
-  height: calc(
-    100dvh - var(--wj-sticky-top) - var(--wj-shell-pad-top, 16px)
-  );
+  box-sizing: border-box;
+  padding-top: var(--wj-aside-inset, 16px);
+  /* Desktop: fill dưới topbar; pad-top bù shell padding 0. Nội dung tràn → cuộn trong cột. */
+  height: calc(100dvh - var(--wj-sticky-top));
   /* Grid item mặc định min-height:auto (= chiều cao nội dung) sẽ thắng max-height,
      làm cột tràn khỏi viewport và không cuộn được. min-height:0 để max-height +
      overflow-y:auto có hiệu lực → cột tự cuộn riêng khi tràn. */
   min-height: 0;
-  max-height: calc(
-    100dvh - var(--wj-sticky-top) - var(--wj-shell-pad-top, 16px)
-  );
+  max-height: calc(100dvh - var(--wj-sticky-top));
   overflow-x: clip;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -4996,17 +5003,15 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 .world-journey-home .ha-col {
   gap: 14px;
   position: sticky;
-  top: calc(var(--wj-sticky-top) + var(--wj-shell-pad-top, 16px));
+  top: var(--wj-sticky-top);
   align-self: start;
   min-width: 0;
   width: 100%;
-  height: calc(
-    100dvh - var(--wj-sticky-top) - var(--wj-shell-pad-top, 16px)
-  );
+  box-sizing: border-box;
+  padding-top: var(--wj-aside-inset, 16px);
+  height: calc(100dvh - var(--wj-sticky-top));
   min-height: 0;
-  max-height: calc(
-    100dvh - var(--wj-sticky-top) - var(--wj-shell-pad-top, 16px)
-  );
+  max-height: calc(100dvh - var(--wj-sticky-top));
   overflow-x: clip;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -5023,6 +5028,8 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
     height: calc(100dvh - var(--site-nav-height, 64px));
     max-height: none;
     top: var(--site-nav-height, 64px);
+    padding-top: 0;
+    padding-bottom: 0;
     z-index: calc(var(--cins-app-topbar-z, 200) + 20);
     transform: translate3d(100%, 0, 0);
     visibility: hidden;
@@ -5040,6 +5047,8 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
     width: 100%;
     height: calc(100dvh - var(--site-nav-height, 64px));
     max-height: none;
+    padding-top: 0;
+    padding-bottom: 0;
     align-self: auto;
     transform: translate3d(0, 0, 0);
     visibility: visible;
@@ -5054,6 +5063,8 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
     height: calc(100dvh - var(--site-nav-height, 64px));
     max-height: none;
     top: var(--site-nav-height, 64px);
+    padding-top: 0;
+    padding-bottom: 0;
     z-index: calc(var(--cins-app-topbar-z, 200) + 20);
     transform: translate3d(-100%, 0, 0);
     visibility: hidden;
@@ -5071,6 +5082,8 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
     width: 100%;
     height: calc(100dvh - var(--site-nav-height, 64px));
     max-height: none;
+    padding-top: 0;
+    padding-bottom: 0;
     align-self: auto;
     transform: translate3d(0, 0, 0);
     visibility: visible;
@@ -8019,10 +8032,11 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   color: var(--ink-display, rgba(255, 255, 255, 0.92));
 }
 
-/* Cột chỉ 1 khối — card kéo full chiều cao cột (đã fill viewport ở .ha-col). */
+/* Cột chỉ 1 khối — card fill cột, chừa pad-bottom = pad-top (không sát đáy viewport). */
 .world-journey-home .ha-col.ha-col--solo {
   overflow: hidden;
   gap: 0;
+  padding-bottom: var(--wj-aside-inset, 16px);
 }
 
 .world-journey-home .ha-col.ha-col--solo > .ha-edit-slot-wrap {

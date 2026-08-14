@@ -10053,6 +10053,48 @@ select.j-edit-input {
 .j-m-submenu-item:disabled {
   cursor: not-allowed;
 }
+.j-m-submenu-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--cins-blue-soft, #e7f0fb);
+}
+.j-m-submenu-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.j-m-submenu-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--cins-blue);
+  line-height: 1;
+}
+.j-m-submenu-empty {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--ink-muted);
+  line-height: 1.45;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.j-m-submenu-empty-link {
+  color: var(--cins-blue);
+  text-decoration: none;
+  font-weight: 500;
+}
+.j-m-submenu-empty-link:hover {
+  text-decoration: underline;
+}
 
 .j-m-menu-sep {
   height: 1px;
@@ -14803,6 +14845,131 @@ select.j-edit-input {
   flex-shrink: 0;
 }
 
+/* Popup «Chia sẻ vào cộng đồng» — list cộng đồng từ kebab owner. */
+.j-share-cd-root {
+  position: fixed;
+  inset: 0;
+  z-index: 12050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+.j-share-cd-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: rgba(15, 23, 42, 0.48);
+  cursor: pointer;
+}
+.j-share-cd-modal {
+  position: relative;
+  z-index: 1;
+  width: min(380px, calc(100vw - 28px));
+  max-height: min(80vh, 560px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong, var(--border));
+  border-radius: var(--radius-md, 14px);
+  box-shadow: var(--shadow-md, 0 16px 40px rgba(15, 23, 42, 0.22));
+  padding: 8px 8px 10px;
+  gap: 8px;
+}
+.j-share-cd-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 6px 2px;
+  flex-shrink: 0;
+}
+.j-share-cd-head-copy {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+.j-share-cd-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--cins-blue-soft, #e7f0fb);
+  color: var(--cins-blue);
+  flex-shrink: 0;
+}
+.j-share-cd-head h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+  line-height: 1.3;
+}
+.j-share-cd-head p {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: var(--ink-muted);
+  line-height: 1.4;
+}
+.j-share-cd-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.j-share-cd-close:hover:not(:disabled) {
+  background: var(--neutral-100, #f4f4f5);
+  color: var(--ink-title);
+}
+.j-share-cd-close:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.j-share-cd-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.j-share-cd-list {
+  flex: 1 1 auto;
+  max-height: none;
+  min-height: 72px;
+  overflow-y: auto;
+}
+.j-share-cd-check {
+  display: inline-flex;
+  align-items: center;
+  color: var(--cins-blue);
+  flex-shrink: 0;
+}
+.j-share-cd-modal .j-m-share-friends-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+:root[data-theme="dark"] .j-share-cd-icon {
+  background: color-mix(in srgb, var(--cins-blue) 18%, transparent);
+}
+:root[data-theme="dark"] .j-share-cd-close:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--cins-blue) 12%, transparent);
+}
+
 /* Panel chia sẻ trong menu viewer — icon MXH gọn hơn modal share. */
 .jcard-viewer-menu .j-m-share-item {
   gap: 12px;
@@ -18763,6 +18930,10 @@ a.action-btn-part {
 }
 .jcard-actions .jcard-share .post-byline-share-ic--friends {
   background: var(--cins-blue, #1f74c9);
+  color: #fff;
+}
+.jcard-actions .jcard-share .post-byline-share-ic--community {
+  background: #5b4fcf;
   color: #fff;
 }
 .jcard-actions .jcard-share .post-byline-share-ic--back {

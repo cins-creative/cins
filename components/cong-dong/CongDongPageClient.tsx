@@ -1,11 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {
-  BadgeCheck,
-  Heart,
-  MessageCircle,
-} from "lucide-react";
+import { BadgeCheck, Heart } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -21,7 +17,9 @@ import { useCongDongAuthGate } from "@/components/cong-dong/useCongDongAuthGate"
 import { VideoProcessingPoller } from "@/components/journey/VideoProcessingPoller";
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
 import { JourneyCreateComposer } from "@/components/journey/JourneyCreateComposer";
+import { JourneyCommentLink } from "@/components/journey/JourneyCommentLink";
 import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
+import { PostShareMenu } from "@/components/journey/PostActionsRail";
 import { CongDongAuthorMetaLine } from "@/components/cong-dong/CongDongAuthorMetaLine";
 import { CongDongTopicsAside } from "@/components/cong-dong/CongDongTopicsAside";
 import {
@@ -46,7 +44,6 @@ import { CongDongFeedPostContent } from "@/components/cong-dong/CongDongFeedPost
 import { CongDongFilterChip } from "@/components/cong-dong/CongDongFilterChip";
 import { CongDongPostFilterChips } from "@/components/cong-dong/CongDongPostFilterChips";
 import { CongDongPostMenu } from "@/components/cong-dong/CongDongPostMenu";
-import { JourneyArticleTagManager } from "@/components/journey/JourneyArticleTagManager";
 import { JourneyChiChuNenPicker } from "@/components/journey/JourneyChiChuNenPicker";
 import { JourneyMilestoneUnfold } from "@/components/journey/JourneyMilestoneUnfold";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
@@ -65,6 +62,7 @@ import {
   canManageMembers,
   type CongDongVaiTro,
 } from "@/lib/cong-dong/vai-tro";
+import { congDongPostPermalink } from "@/lib/cong-dong/post-permalink";
 import { getCongDongPostMenuPermissions } from "@/lib/cong-dong/post-permissions";
 import type { OrgNotifyLevel } from "@/lib/social/org-notify";
 import type {
@@ -1229,10 +1227,9 @@ function CongDongJourneyPostCard({
 
   const postOwnerSlug = mirror?.ownerSlug || post.author.slug;
   const postSlug = mirror?.postSlug || null;
+  const sharePath = congDongPostPermalink(post);
   const cardTitle =
     mirror?.tieuDe || post.tieuDe || post.noiDung.slice(0, 80);
-  const canManageArticleTags =
-    Boolean(mirror) && viewerId === post.author.id;
   const canEditFilters = getCongDongPostMenuPermissions(
     viewerId,
     viewerVaiTro,
@@ -1385,51 +1382,46 @@ function CongDongJourneyPostCard({
         </div>
       ) : null}
 
-      <footer className="cd-v4-jcard-foot">
-        <div className="cd-v4-jcard-act-group jcard-actions">
-          <JourneyLikeButton
+      <footer className="cd-v4-jcard-foot jcard-actions">
+        <JourneyLikeButton
+          milestoneId={post.id}
+          initialLiked={post.viewerLiked}
+          initialCount={post.likeCount}
+          initialReactionEmoji={post.viewerReactionEmoji}
+          initialTopReactionEmoji={post.topReactionEmoji}
+          showCount
+          onRequireAuth={requireCongDongAuth}
+        />
+        <JourneyCommentLink
+          commentCount={social.commentCount}
+          idDoiTuong={post.id}
+          sharePath={sharePath}
+          shareTitle={cardTitle}
+          onOpenComments={social.openComments}
+        />
+        <CongDongPostBookmarkAct
+          orgId={orgId}
+          postId={post.id}
+          title={
+            post.journeyMirror?.tieuDe ||
+            post.tieuDe ||
+            post.noiDung.slice(0, 55)
+          }
+          canInteract={canInteract}
+          initialSaved={post.viewerBookmarked}
+          milestoneId={post.id}
+        />
+        <span className="action-spacer" />
+        {sharePath ? (
+          <PostShareMenu
+            sharePath={sharePath}
+            shareTitle={cardTitle}
+            className="jcard-share"
+            buttonClassName="share-btn"
             milestoneId={post.id}
-            initialLiked={post.viewerLiked}
-            initialCount={post.likeCount}
-            initialReactionEmoji={post.viewerReactionEmoji}
-            initialTopReactionEmoji={post.topReactionEmoji}
-            showCount
-            onRequireAuth={requireCongDongAuth}
-          />
-          <button
-            type="button"
-            className="cd-v4-jcard-act"
-            aria-label="Bình luận"
-            onClick={social.openComments}
-          >
-            <MessageCircle size={18} strokeWidth={2} aria-hidden />
-            {social.commentCount > 0 ? (
-              <span className="cd-v4-jcard-act-count">{social.commentCount}</span>
-            ) : null}
-          </button>
-          <CongDongPostBookmarkAct
-            orgId={orgId}
-            postId={post.id}
-            title={
-              post.journeyMirror?.tieuDe ||
-              post.tieuDe ||
-              post.noiDung.slice(0, 55)
-            }
-            canInteract={canInteract}
-            initialSaved={post.viewerBookmarked}
-            milestoneId={post.id}
-          />
-        </div>
-        {canManageArticleTags && mirror ? (
-          <JourneyArticleTagManager
-            tacPhamId={mirror.tacPhamId}
-            initialTags={mirror.articleTags}
-            onTagsSaved={(articleTags) =>
-              onPostUpdated({
-                ...post,
-                journeyMirror: { ...mirror, articleTags },
-              })
-            }
+            canShareToCommunity={viewerId === post.author.id}
+            currentOrgId={orgId}
+            ownerSlug={postOwnerSlug}
           />
         ) : null}
       </footer>

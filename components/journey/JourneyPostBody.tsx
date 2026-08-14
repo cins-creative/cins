@@ -407,6 +407,10 @@ export function JourneyPostBody({
           shareTitle={heroTitle}
           className="jcard-share"
           buttonClassName="share-btn"
+          milestoneId={milestone.id}
+          canShareToCommunity={isOwner}
+          ownerSlug={owner.slug}
+          onAfterShareToCommunity={onMilestoneUpdated}
         />
       ) : null}
     </div>

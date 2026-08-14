@@ -1,0 +1,32 @@
+/* Caro minh họa nền trong suốt (kiểu canvas) — vẽ CSS, không dùng file ảnh. */
+:root {
+  --shop-anh-caro-sang: #ffffff;
+  --shop-anh-caro-toi: #dce3e7;
+  --shop-anh-caro-o: 20px;
+}
+
+:root[data-theme="dark"] {
+  --shop-anh-caro-sang: #4a4d55;
+  --shop-anh-caro-toi: #3d4048;
+}
+
+.shop-anh-caro,
+.shop-kiosk-ticker-thumb-btn,
+.shop-kiosk-thumb-btn,
+.shop-kiosk-catalog-thumb-btn,
+.shop-kiosk-hoa-don-thumb:not(.shop-kiosk-hoa-don-thumb--empty),
+.ch-list-hang-card-thumb:not(.is-empty),
+.ch-list-card-hang-thumb:has(img),
+.ch-listing-img-stack,
+.shop-thumb-frame.has-img,
+.shop-grid-readonly-thumb:not(.is-empty),
+.gio-chung-thumb:has(img),
+.j-shop-loai-gallery,
+.j-shop-loai-gallery-thumb:not(.is-video) {
+  background-color: var(--shop-anh-caro-sang);
+  background-image: repeating-conic-gradient(
+    var(--shop-anh-caro-toi) 0deg 90deg,
+    var(--shop-anh-caro-sang) 90deg 180deg
+  );
+  background-size: var(--shop-anh-caro-o) var(--shop-anh-caro-o);
+}

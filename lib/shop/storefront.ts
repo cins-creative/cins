@@ -87,6 +87,8 @@ export async function listShopStorefrontItems(opts: {
   limit?: number;
   /** Chỉ SP thuộc loại (`id_nhom`) — dùng trang chi tiết loại. */
   idNhom?: string | null;
+  /** Lọc tên (`ilike`) — search quầy / hub. */
+  tenIlike?: string | null;
 }): Promise<ShopStorefrontItem[]> {
   if (!opts.asOwner) {
     const publicVisible = await getShopHienThi(opts.sellerId);
@@ -115,6 +117,8 @@ export async function listShopStorefrontItems(opts: {
       .order("tao_luc", { ascending: false })
       .range(from, from + pageSize - 1);
     if (idNhom) q = q.eq("id_nhom", idNhom);
+    const tenIlike = opts.tenIlike?.trim();
+    if (tenIlike) q = q.ilike("ten", tenIlike);
     const { data: spRows, error: spErr } = await q;
     if (spErr) {
       console.error("[shop] listShopStorefrontItems sp", spErr);
@@ -530,6 +534,9 @@ export async function listShopStorefrontNhomCards(opts: {
     .sort((a, b) => {
       if (a.id === SHOP_STOREFRONT_KHAC_SLUG) return 1;
       if (b.id === SHOP_STOREFRONT_KHAC_SLUG) return -1;
+      if (a.anyInStock !== b.anyInStock) {
+        return Number(b.anyInStock) - Number(a.anyInStock);
+      }
       if (a.noiBat !== b.noiBat) return Number(b.noiBat) - Number(a.noiBat);
       if (a.thuTu !== b.thuTu) return a.thuTu - b.thuTu;
       return a.nhan.localeCompare(b.nhan, "vi");

@@ -1,3 +1,5 @@
+@import "./shop-anh-caro.css";
+
 .gio-chung {
   /* Theme shop = cam (brand orange). */
   --shop-accent: var(--cins-orange, #fdad4c);

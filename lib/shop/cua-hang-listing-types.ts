@@ -1,14 +1,22 @@
 /** DTO hub `/shopping` — client-safe (không `server-only`). */
 
+import type { ShopThumbFit } from "@/lib/shop/anh-thumb-fit";
+
+export type ShopListingBrowseMode = "shop" | "mat-hang" | "hang";
+
 /** Loại / mẫu hiện trên card hoặc kết quả search hàng. */
 export type PublicShopListingHang = {
   id: string;
   ten: string;
   anhUrl: string | null;
+  /** Ô vuông listing — mẫu từ `shop_san_pham.anh_thumb_fit`; loại kế thừa mẫu. */
+  anhThumbFit?: ShopThumbFit;
   /** Mô tả loại (`shop_nhom.mo_ta`) — dùng card «Mặt hàng». */
   moTa?: string | null;
   /** Có khi là mẫu (`shop_san_pham`) gắn loại. */
   idNhom?: string | null;
+  /** Tên loại (`shop_nhom.nhan`) — gắn lên mẫu để card Hàng biết thuộc loại nào. */
+  tenLoai?: string | null;
   /** Giá gợi ý — `shop_nhom.gia_mac_dinh` (loại) hoặc kế thừa từ loại (mẫu). */
   giaHienThi?: number | null;
   tienTe?: string;

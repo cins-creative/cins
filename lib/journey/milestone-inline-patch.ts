@@ -1,4 +1,5 @@
 import type {
+  MilestoneCongDongOrg,
   MilestoneItem,
   MilestoneType,
   MilestoneVisibility,
@@ -17,6 +18,7 @@ export type MilestoneInlinePatchDetail =
       kind: "visibility";
       value: MilestoneVisibility;
       visibilityCustom?: MilestoneVisibilityCustom | null;
+      congDongOrg?: MilestoneCongDongOrg | null;
     }
   | {
       milestoneId: string;
@@ -69,6 +71,8 @@ export function applyMilestoneInlinePatch(
         detail.visibilityCustom === undefined
           ? null
           : detail.visibilityCustom,
+      congDongOrg:
+        detail.congDongOrg === undefined ? m.congDongOrg : detail.congDongOrg,
     };
   });
 }

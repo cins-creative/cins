@@ -5172,6 +5172,11 @@
   padding: 0 4px;
 }
 
+/* Composer dưới filter bar — bỏ margin Journey (24px) để sát `.cd-v4-moc-bar`. */
+.cd-v4-main > .cins-feed-composer-row--journey {
+  margin-top: 0;
+}
+
 /* Cụm lọc — đẩy về phải, cạnh view toggle */
 .cd-v4-moc-bar .j-tlb-filters.cd-v4-feed-controls {
   grid-column: 1;
@@ -5286,7 +5291,9 @@
   margin-top: 0;
 }
 
-.cd-v4-jcard.is-pinned {
+.cd-v4-jcard.is-pinned,
+.cd-v4-jcard:has(.post-byline-share-wrap.is-open),
+.cd-v4-jcard:has(.is-picker-open) {
   overflow: visible;
 }
 
@@ -5686,81 +5693,17 @@ a.cd-v4-role-menu-btn {
   margin-top: 0;
 }
 
-.cd-v4-jcard-foot {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 12px 10px;
+/* Khớp `.jcard-actions` Journey — padding / gap / nút action-btn. */
+.cd-v4-jcard-foot.jcard-actions {
   margin-top: 0;
-  border-top: 1px solid var(--cd-jcard-border-soft);
-  background: var(--bg-surface, #fff);
+  border-top-color: var(--cd-jcard-border-soft, var(--jcard-border2, var(--border)));
   color: inherit;
-}
-
-.cd-v4-jcard-foot .j-article-tag-manage {
-  margin-left: auto;
-}
-
-.cd-v4-jcard-act-group {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  flex-wrap: wrap;
-  min-width: 0;
-}
-
-/* Đồng bộ nút thích Journey (split + emoji) trong footer card cộng đồng */
-.cd-v4-jcard-foot .jcard-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  flex: 0 1 auto;
-  min-width: 0;
+  flex-wrap: nowrap;
 }
 
 .cd-v4-jcard-foot .j-reaction-wrap,
 .cd-v4-jcard-foot .action-btn--split {
   flex-shrink: 0;
-}
-
-.cd-v4-jcard-act {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  min-width: 36px;
-  height: 36px;
-  padding: 0 8px;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--ink-body, rgba(0, 0, 0, 0.55));
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1;
-  cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
-}
-
-.cd-v4-jcard-act-count {
-  font-size: 12px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.cd-v4-jcard-act:hover {
-  background: var(--neutral-100, #f4f4f5);
-  color: var(--cins-blue, #1f74c9);
-}
-
-.cd-v4-jcard-act.is-liked {
-  color: #e11d48;
-  background: #fff1f2;
-}
-
-.cd-v4-jcard-act.is-bookmarked {
-  color: var(--cins-blue, #1f74c9);
-  background: #eff6ff;
 }
 
 /* Journey mirror trong feed — cùng DOM `j-m-body-wrap` / `j-m-card` như timeline */

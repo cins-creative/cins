@@ -3072,6 +3072,10 @@
   background: var(--cins-blue, #1f74c9);
   color: #fff;
 }
+.cins-post-view .post-byline-share-ic--community {
+  background: #5b4fcf;
+  color: #fff;
+}
 .cins-post-view .post-byline-share-ic--back {
   background: var(--neutral-200, #e5e7eb);
   color: var(--ink-title);

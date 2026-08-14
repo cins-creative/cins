@@ -1674,6 +1674,14 @@ export function JourneyMilestoneCard({
           shareTitle={title}
           className="jcard-share"
           buttonClassName="share-btn"
+          milestoneId={cotMocId ?? milestone.id}
+          canShareToCommunity={canActAsPostOwner && !foreignJourneyContext}
+          currentOrgId={
+            (visibility ?? "public") === "cong-dong"
+              ? congDongOrg?.orgId ?? null
+              : null
+          }
+          ownerSlug={ownerSlug}
         />
       ) : null}
     </div>
@@ -1951,6 +1959,7 @@ export function JourneyMilestoneCard({
             journeyGhimLuc={milestone.journeyGhimLuc ?? null}
             showJourneyPin={showJourneyPin}
             banHangEnabled={banHangEnabled}
+            congDongOrg={congDongOrg}
           />
         ) : null}
       </>
@@ -2317,6 +2326,7 @@ export function JourneyMilestoneCard({
                     journeyGhimLuc={milestone.journeyGhimLuc ?? null}
                     showJourneyPin={showJourneyPin}
                     banHangEnabled={banHangEnabled}
+                    congDongOrg={congDongOrg}
                   />
                 </>
               ) : null}

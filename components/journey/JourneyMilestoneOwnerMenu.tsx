@@ -17,6 +17,7 @@ import {
   Pin,
   PinOff,
   Pencil,
+  Share2,
   SlidersHorizontal,
   Star,
   Tag,
@@ -38,6 +39,7 @@ import { createPortal } from "react-dom";
 
 import {
   deleteMilestone,
+  shareMilestoneToCongDongAction,
   updateForeignMilestoneJourneyVisibility,
   updateJourneyMilestonePin,
   updateMilestoneType,
@@ -47,12 +49,16 @@ import {
 import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
 import { MilestoneVisibilityCustomModal } from "@/components/journey/MilestoneVisibilityCustomModal";
 import type {
+  MilestoneCongDongOrg,
   MilestoneType,
   MilestoneVisibility,
   MilestoneVisibilityCustom,
 } from "@/components/journey/milestone-types";
+import type { ShareCongDongTarget } from "@/lib/cong-dong/types";
+import { CONG_DONG_PERSONAL_FILTER_SLUG } from "@/lib/filter/default-personal-filters.shared";
 import { mapCheDoToMilestoneVisibility } from "@/lib/journey/milestone-ui-map";
 import { VISIBILITY_CUSTOM_BASE } from "@/lib/journey/milestone-visibility-custom.shared";
+import { ShareMilestoneToCongDongModal } from "@/components/journey/ShareMilestoneToCongDongModal";
 import { ShopAttachHangModal } from "@/components/shop/ShopAttachHangModal";
 import type { FilterLoaiDoiTuong } from "@/lib/filter/types";
 import type { LoaiMoc, Visibility } from "@/lib/editor/types";
@@ -121,6 +127,8 @@ type Props = {
   showJourneyPin?: boolean;
   /** Bật bán hàng — hiện «Thêm hàng bán» / «Xin làm quầy». */
   banHangEnabled?: boolean;
+  /** Cộng đồng hiện tại nếu bài đã ở feed cộng đồng. */
+  congDongOrg?: MilestoneCongDongOrg | null;
 };
 
 /* ╔══════════════════════════════════════════════════════════════════╗
@@ -197,6 +205,7 @@ export function JourneyMilestoneOwnerMenu({
   journeyGhimLuc = null,
   showJourneyPin = false,
   banHangEnabled = false,
+  congDongOrg = null,
 }: Props) {
   const router = useRouter();
   const personalAttach = useMilestonePersonalFilterAttach(
@@ -212,6 +221,10 @@ export function JourneyMilestoneOwnerMenu({
   const [customOpen, setCustomOpen] = useState(false);
   const [customError, setCustomError] = useState<string | null>(null);
   const [attachHangOpen, setAttachHangOpen] = useState(false);
+  const [shareCommunityOpen, setShareCommunityOpen] = useState(false);
+  const [shareCommunityError, setShareCommunityError] = useState<string | null>(
+    null,
+  );
   const [sub, setSub] = useState<SubMenu>("none");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -568,6 +581,74 @@ export function JourneyMilestoneOwnerMenu({
       : null;
   const [copied, setCopied] = useState(false);
 
+  const canShareToCommunity = !foreignJourney;
+
+  function handleShareToCommunity(org: ShareCongDongTarget) {
+    if (pending || personalAttach.pending) return;
+    if (congDongOrg?.orgId === org.id && currentVisibility === "cong-dong") {
+      setShareCommunityOpen(false);
+      return;
+    }
+
+    const previousVis = currentVisibility;
+    const previousCustom = visibilityCustom;
+    const previousOrg = congDongOrg ?? null;
+    const nextOrg: MilestoneCongDongOrg = {
+      orgId: org.id,
+      name: org.ten,
+      slug: org.slug,
+      href: org.href,
+      avatarUrl: org.avatarUrl,
+      initial: org.ten.charAt(0).toUpperCase(),
+    };
+
+    setError(null);
+    setShareCommunityError(null);
+    close();
+    dispatchMilestoneInlinePatch({
+      milestoneId,
+      kind: "visibility",
+      value: "cong-dong",
+      visibilityCustom: null,
+      congDongOrg: nextOrg,
+    });
+    dispatchMilestoneInlinePatch({
+      milestoneId,
+      kind: "personalFilters",
+      value: [CONG_DONG_PERSONAL_FILTER_SLUG],
+    });
+
+    startTransition(async () => {
+      const res = await shareMilestoneToCongDongAction({
+        milestoneId,
+        orgId: org.id,
+      });
+      if (!res.ok) {
+        dispatchMilestoneInlinePatch({
+          milestoneId,
+          kind: "visibility",
+          value: previousVis,
+          visibilityCustom: previousCustom,
+          congDongOrg: previousOrg,
+        });
+        setShareCommunityError(res.error);
+        setShareCommunityOpen(true);
+        return;
+      }
+      setShareCommunityOpen(false);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("cins:journey-gallery-sync", {
+            detail: { ownerSlug },
+          }),
+        );
+      }
+      router.refresh();
+      onVisibilityChange?.("cong-dong");
+      onAfterChange?.();
+    });
+  }
+
   function copyLink() {
     if (!viewHref) return;
     /* Build absolute URL từ window.location nếu có (client-only). */
@@ -634,6 +715,24 @@ export function JourneyMilestoneOwnerMenu({
             <span className="j-m-menu-lbl">
               {copied ? "Đã sao chép link!" : "Sao chép link"}
             </span>
+          </button>
+        ) : null}
+
+        {canShareToCommunity ? (
+          <button
+            type="button"
+            className="j-m-menu-item"
+            role="menuitem"
+            onClick={() => {
+              close();
+              setShareCommunityError(null);
+              setShareCommunityOpen(true);
+            }}
+          >
+            <span className="j-m-menu-ico" aria-hidden>
+              <Share2 size={14} strokeWidth={1.7} />
+            </span>
+            <span className="j-m-menu-lbl">Chia sẻ vào cộng đồng</span>
           </button>
         ) : null}
 
@@ -980,6 +1079,20 @@ export function JourneyMilestoneOwnerMenu({
         ? createPortal(menuPop, document.body)
         : null}
 
+      <ShareMilestoneToCongDongModal
+        open={shareCommunityOpen}
+        onClose={() => {
+          if (pending) return;
+          setShareCommunityOpen(false);
+          setShareCommunityError(null);
+        }}
+        currentOrgId={
+          currentVisibility === "cong-dong" ? congDongOrg?.orgId ?? null : null
+        }
+        pending={pending || personalAttach.pending}
+        error={shareCommunityError}
+        onShare={handleShareToCommunity}
+      />
       <ShopAttachHangModal
         open={attachHangOpen}
         milestoneId={milestoneId}

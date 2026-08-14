@@ -2,8 +2,14 @@
 
 import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
 import { JourneySocialActorsModal } from "@/components/journey/JourneySocialActorsModal";
+import { ShareMilestoneToCongDongModal } from "@/components/journey/ShareMilestoneToCongDongModal";
 import { SharePostToFriendsPanel } from "@/components/social/SharePostToFriendsPanel";
+import { shareMilestoneToCongDongAction } from "@/app/[slug]/journey/actions";
+import type { MilestoneCongDongOrg } from "@/components/journey/milestone-types";
+import type { ShareCongDongTarget } from "@/lib/cong-dong/types";
 import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
+import { CONG_DONG_PERSONAL_FILTER_SLUG } from "@/lib/filter/default-personal-filters.shared";
+import { dispatchMilestoneInlinePatch } from "@/lib/journey/milestone-inline-patch";
 import {
   Bookmark,
   BookmarkCheck,
@@ -11,8 +17,10 @@ import {
   Heart,
   MessageCircle,
   Share2,
+  Users,
 } from "lucide-react";
 import { POST_COMMENTS_SYNC_EVENT } from "@/lib/journey/comments-sync-client";
+import { useRouter } from "next/navigation";
 import {
   useEffect,
   useRef,
@@ -55,6 +63,12 @@ type ShareMenuProps = {
   /** Class nút trigger — mặc định byline; jcard dùng `share-btn`. */
   buttonClassName?: string;
   showLabel?: boolean;
+  /** Chủ bài — hiện «Chia sẻ vào cộng đồng». */
+  milestoneId?: string | null;
+  canShareToCommunity?: boolean;
+  currentOrgId?: string | null;
+  ownerSlug?: string | null;
+  onAfterShareToCommunity?: () => void;
 };
 
 type ShareItem = {
@@ -78,14 +92,24 @@ export function PostShareMenu({
   className = "",
   buttonClassName = "post-byline-act is-share",
   showLabel = false,
+  milestoneId = null,
+  canShareToCommunity = false,
+  currentOrgId = null,
+  ownerSlug = null,
+  onAfterShareToCommunity,
 }: ShareMenuProps) {
+  const router = useRouter();
   const authGate = useOptionalAuthGate();
   const [shareOpen, setShareOpen] = useState(false);
   const [panel, setPanel] = useState<"main" | "friends">("main");
   const [copied, setCopied] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState("");
+  const [communityOpen, setCommunityOpen] = useState(false);
+  const [communityError, setCommunityError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
   const shareWrapRef = useRef<HTMLDivElement>(null);
+  const showCommunityShare = canShareToCommunity && Boolean(milestoneId);
 
   function closeShare() {
     setShareOpen(false);
@@ -169,6 +193,74 @@ export function PostShareMenu({
       return;
     }
     go();
+  }
+
+  function openCommunityShare() {
+    const go = () => {
+      closeShare();
+      setCommunityError(null);
+      setCommunityOpen(true);
+    };
+    if (authGate && !authGate.isAuthenticated) {
+      authGate.requireAuth(go);
+      return;
+    }
+    go();
+  }
+
+  function handleShareToCommunity(org: ShareCongDongTarget) {
+    const id = milestoneId?.trim();
+    if (!id || pending) return;
+    if (currentOrgId === org.id) {
+      setCommunityOpen(false);
+      return;
+    }
+
+    const nextOrg: MilestoneCongDongOrg = {
+      orgId: org.id,
+      name: org.ten,
+      slug: org.slug,
+      href: org.href,
+      avatarUrl: org.avatarUrl,
+      initial: org.ten.charAt(0).toUpperCase(),
+    };
+
+    setCommunityError(null);
+    dispatchMilestoneInlinePatch({
+      milestoneId: id,
+      kind: "visibility",
+      value: "cong-dong",
+      visibilityCustom: null,
+      congDongOrg: nextOrg,
+    });
+    dispatchMilestoneInlinePatch({
+      milestoneId: id,
+      kind: "personalFilters",
+      value: [CONG_DONG_PERSONAL_FILTER_SLUG],
+    });
+
+    startTransition(async () => {
+      const res = await shareMilestoneToCongDongAction({
+        milestoneId: id,
+        orgId: org.id,
+      });
+      if (!res.ok) {
+        setCommunityError(res.error);
+        setCommunityOpen(true);
+        router.refresh();
+        return;
+      }
+      setCommunityOpen(false);
+      if (typeof window !== "undefined" && ownerSlug) {
+        window.dispatchEvent(
+          new CustomEvent("cins:journey-gallery-sync", {
+            detail: { ownerSlug },
+          }),
+        );
+      }
+      router.refresh();
+      onAfterShareToCommunity?.();
+    });
   }
 
   const encodedUrl = encodeURIComponent(shareUrl);
@@ -315,6 +407,22 @@ export function PostShareMenu({
                 </span>
                 <span>Gửi bạn bè, nhóm, tổ chức</span>
               </button>
+              {showCommunityShare ? (
+                <button
+                  type="button"
+                  className="post-byline-share-item"
+                  role="menuitem"
+                  onClick={openCommunityShare}
+                >
+                  <span
+                    className="post-byline-share-ic post-byline-share-ic--community"
+                    aria-hidden
+                  >
+                    <Users size={14} strokeWidth={2} />
+                  </span>
+                  <span>Chia sẻ vào cộng đồng</span>
+                </button>
+              ) : null}
               {shareItems.map((item) =>
                 item.href ? (
                   <a
@@ -363,6 +471,21 @@ export function PostShareMenu({
             </>
           )}
         </div>
+      ) : null}
+
+      {showCommunityShare ? (
+        <ShareMilestoneToCongDongModal
+          open={communityOpen}
+          onClose={() => {
+            if (pending) return;
+            setCommunityOpen(false);
+            setCommunityError(null);
+          }}
+          currentOrgId={currentOrgId}
+          pending={pending}
+          error={communityError}
+          onShare={handleShareToCommunity}
+        />
       ) : null}
     </div>
   );

@@ -277,6 +277,7 @@ function GalleryMainItemTile({
         onOpenInsights={
           canSeeInsights ? () => setInsightsOpen(true) : undefined
         }
+        congDongOrg={item.congDongOrg}
       />
     ) : null;
 

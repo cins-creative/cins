@@ -1,7 +1,11 @@
 import "server-only";
 
 import { getAvatarUrl } from "@/lib/journey/profile";
-import { listShopListingCardsByOwnerIds } from "@/lib/shop/cua-hang-listing";
+import {
+  listShopListingCardsByOwnerIds,
+  searchPublicShopListing,
+} from "@/lib/shop/cua-hang-listing";
+import type { PublicShopListingItem } from "@/lib/shop/cua-hang-listing-types";
 import {
   notifyShopQuayResolved,
   syncShopQuayPendingAdminNotifications,
@@ -154,7 +158,7 @@ export async function listQuaySuKien(
  */
 export async function listQuayHangSearch(
   suKienId: string,
-  opts?: { actorId?: string },
+  opts?: { actorId?: string; tenIlike?: string | null },
 ): Promise<Map<string, ShopQuayHangSearch[]>> {
   const admin = createServiceRoleClient();
   const { data, error } = await admin
@@ -173,7 +177,67 @@ export async function listQuayHangSearch(
   const items = await mapQuay((data ?? []) as QuayRow[]);
   if (items.length === 0) return new Map();
   const sellerIds = [...new Set(items.map((i) => i.idNguoiDung))];
-  return loadHangSearchBySeller(sellerIds, items, opts?.actorId);
+  return loadHangSearchBySeller(
+    sellerIds,
+    items,
+    opts?.actorId,
+    opts?.tenIlike,
+  );
+}
+
+/** Search trong seller có quầy đã duyệt — không lẫn hub toàn site. */
+export async function searchQuayCatalog(
+  suKienId: string,
+  qRaw: string,
+  mode: "shop" | "mat-hang" | "hang",
+  opts?: { actorId?: string },
+): Promise<{
+  shops: PublicShopListingItem[];
+  hangBySeller: Record<string, ShopQuayHangSearch[]>;
+}> {
+  const q = qRaw
+    .trim()
+    .replace(/[%_\\,().]/g, " ")
+    .replace(/\s+/g, " ")
+    .slice(0, 64);
+  if (q.length < 1) return { shops: [], hangBySeller: {} };
+  const like = `%${q}%`;
+
+  const wantHang = mode === "hang" || mode === "shop";
+  const wantListing = mode === "mat-hang" || mode === "shop";
+
+  const admin = createServiceRoleClient();
+  const { data, error } = await admin
+    .from("shop_quay_su_kien")
+    .select(
+      "id, id_su_kien, id_nguoi_dung, id_cot_moc, bang_chung, trang_thai, ly_do_tu_choi, tao_luc",
+    )
+    .eq("id_su_kien", suKienId)
+    .eq("trang_thai", "da_duyet")
+    .order("tao_luc", { ascending: true })
+    .limit(100);
+  if (error) {
+    console.error("[shop] searchQuayCatalog quay", error);
+    return { shops: [], hangBySeller: {} };
+  }
+  const quayItems = await mapQuay((data ?? []) as QuayRow[]);
+  const sellerIds = [...new Set(quayItems.map((i) => i.idNguoiDung))];
+  if (sellerIds.length === 0) return { shops: [], hangBySeller: {} };
+
+  const [hangMap, shops] = await Promise.all([
+    wantHang
+      ? loadHangSearchBySeller(sellerIds, quayItems, opts?.actorId, like)
+      : Promise.resolve(new Map<string, ShopQuayHangSearch[]>()),
+    wantListing
+      ? searchPublicShopListing(q, mode === "shop" ? "shop" : "mat-hang", {
+          ownerIds: sellerIds,
+        })
+      : Promise.resolve([] as PublicShopListingItem[]),
+  ]);
+
+  const hangBySeller: Record<string, ShopQuayHangSearch[]> = {};
+  for (const [id, cards] of hangMap) hangBySeller[id] = cards;
+  return { shops, hangBySeller };
 }
 
 /** Catalog shop đang bán → haystack / lưới «Hàng». */
@@ -181,6 +245,7 @@ async function loadHangSearchBySeller(
   sellerIds: string[],
   quayItems: ShopQuaySuKien[],
   actorId?: string,
+  tenIlike?: string | null,
 ): Promise<Map<string, ShopQuayHangSearch[]>> {
   const out = new Map<string, ShopQuayHangSearch[]>();
   if (sellerIds.length === 0) return out;
@@ -201,6 +266,7 @@ async function loadHangSearchBySeller(
         /* Chỉ chủ shop xem preview khi chưa công khai — không lộ catalog cho khách. */
         asOwner: Boolean(actorId && actorId === sellerId),
         limit: 80,
+        tenIlike: tenIlike?.trim() || null,
       });
       const cards: ShopQuayHangSearch[] = [];
       for (const it of items) {
@@ -216,6 +282,7 @@ async function loadHangSearchBySeller(
           idNhom: it.idNhom,
           tenLoai: it.tenLoai,
           anhUrl: it.anhUrl,
+          anhThumbFit: it.anhThumbFit,
           soLuongTon: it.soLuongTon,
           soLuongBan: it.soLuongBan,
           giaHienThi: it.giaHienThi ?? 0,

@@ -28,9 +28,7 @@ export function CongDongPostBookmarkAct({
       milestoneId={milestoneId ?? ""}
       title={title}
       initialSaved={initialSaved}
-      buttonClassName="cd-v4-jcard-act"
-      iconSize={18}
-      iconStrokeWidth={2}
+      showCount
       modalZIndex={10800}
       onRequireAuth={requireCongDongAuth}
       resolveOpenBlock={() => {

@@ -731,6 +731,8 @@ export type ShopQuayHangSearch = {
   /** Tên loại hàng (`shop_nhom.nhan`). */
   tenLoai: string | null;
   anhUrl: string | null;
+  /** Ô vuông catalog quầy — từ `shop_san_pham.anh_thumb_fit`. */
+  anhThumbFit?: ShopThumbFit;
   soLuongTon: number;
   soLuongBan: number;
   giaHienThi: number;

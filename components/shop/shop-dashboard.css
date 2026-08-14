@@ -1,3 +1,5 @@
+@import "./shop-anh-caro.css";
+
 /* Trang quản lý shop — ẩn FAB góp ý + chat dock (tránh chồng UI mobile). */
 body:has(.shop-dash) .gopy-fab,
 body:has(.shop-dash) .j-chat-dock,
@@ -4400,7 +4402,6 @@ body:has(.shop-dash-gate) .j-chat-dock {
   padding: 0;
   border-radius: 10px;
   overflow: hidden;
-  background: var(--bg-page, #f7f8fa);
   border: 1px solid var(--border, #e4e6eb);
 }
 
@@ -4452,6 +4453,7 @@ body:has(.shop-dash-gate) .j-chat-dock {
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--bg-page, #f7f8fa);
   color: var(--ink-muted);
   font-size: 11px;
 }
@@ -7095,6 +7097,23 @@ body:has(.shop-dash-gate) .j-chat-dock {
 
 .shop-quay-mat-hang .j-shop-sf-grid {
   margin: 0;
+}
+
+.shop-quay-mat-hang .j-shop-sf-card-media .ch-listing-img-stack {
+  position: absolute;
+  inset: 0;
+}
+
+.shop-quay-mat-hang
+  .j-shop-sf-card-media
+  .ch-listing-img-stack
+  img:not(.ch-listing-img-blur) {
+  object-fit: contain;
+  background: transparent;
+}
+
+.shop-quay-mat-hang .ch-list-search-pending {
+  margin-bottom: 10px;
 }
 
 .shop-quay-mat-hang-seller {

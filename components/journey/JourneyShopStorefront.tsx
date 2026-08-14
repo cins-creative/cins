@@ -779,7 +779,9 @@ export function JourneyShopStorefront({
           return hay.includes(searchQ);
         });
     return [...filtered].sort(
-      (a, b) => Number(b.noiBat) - Number(a.noiBat),
+      (a, b) =>
+        Number(a.hetHang) - Number(b.hetHang) ||
+        Number(b.noiBat) - Number(a.noiBat),
     );
   }, [cards, searchQ]);
 
@@ -798,11 +800,18 @@ export function JourneyShopStorefront({
           .toLowerCase();
         return hay.includes(searchQ);
       })
-      .sort((a, b) => Number(b.noiBat) - Number(a.noiBat));
+      .sort(
+        (a, b) =>
+          Number(a.hetHang) - Number(b.hetHang) ||
+          Number(b.noiBat) - Number(a.noiBat),
+      );
   }, [items, searchQ]);
 
   const featuredItems = useMemo(
-    () => items.filter((i) => i.noiBat),
+    () =>
+      items
+        .filter((i) => i.noiBat)
+        .sort((a, b) => Number(a.hetHang) - Number(b.hetHang)),
     [items],
   );
 

@@ -30,6 +30,11 @@ import {
 } from "@/lib/journey/foreign-milestone-visibility";
 import { graduateCongDongMilestone } from "@/lib/journey/graduate-cong-dong-milestone";
 import {
+  listMyCongDongTargets,
+  shareJourneyMilestoneToCongDong,
+  type ShareCongDongTarget,
+} from "@/lib/cong-dong/share-journey-milestone";
+import {
   clearVisibilityNgoaiLe,
   isVisibilityNgoaiLeLoai,
   replaceVisibilityNgoaiLe,
@@ -1095,6 +1100,41 @@ export async function updateJourneyMilestonePin(input: {
 
   revalidatePath(`/${ownerSlug}`);
   return { ok: true, data: { journeyGhimLuc: ghimLuc } };
+}
+
+/** Cộng đồng user đang tham gia — submenu chia sẻ bài Journey. */
+export async function listMyCongDongForShareAction(): Promise<
+  ActionResult<ShareCongDongTarget[]>
+> {
+  const session = await getCurrentSessionAndProfile();
+  if (!session?.profile) {
+    return { ok: false, error: "Phiên đăng nhập đã hết hạn." };
+  }
+  const orgs = await listMyCongDongTargets(session.profile.id);
+  return { ok: true, data: orgs };
+}
+
+/**
+ * Đưa cột mốc Journey vào feed cộng đồng (`che_do_hien_thi=cong_dong`).
+ * Chỉ chủ bài + thành viên active của cộng đồng đích.
+ */
+export async function shareMilestoneToCongDongAction(input: {
+  milestoneId: string;
+  orgId: string;
+}): Promise<ActionResult<ShareCongDongTarget>> {
+  const owner = await requireMilestoneOwnership(input.milestoneId);
+  if (!owner.ok) return { ok: false, error: owner.error };
+
+  const result = await shareJourneyMilestoneToCongDong({
+    milestoneId: input.milestoneId,
+    userId: owner.profileId,
+    orgId: input.orgId,
+  });
+  if (!result.ok) return { ok: false, error: result.error };
+
+  revalidatePath(`/${owner.profileSlug}`);
+  revalidatePath(`/community/${result.org.slug}`);
+  return { ok: true, data: result.org };
 }
 
 /** Rời feed cộng đồng — đổi `che_do_hien_thi` khỏi `cong_dong`, gỡ nhãn org feed. */
