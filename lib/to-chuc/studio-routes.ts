@@ -1,11 +1,19 @@
 import { STUDIO_TAB_IDS, type StudioTabId } from "@/lib/to-chuc/studio-page-config";
-
-const TAB_SET = new Set<string>(STUDIO_TAB_IDS);
+import {
+  orgTabIdFromUrlSegment,
+  orgTabUrlSegment,
+} from "@/lib/to-chuc/org-public-tab-url";
 
 export const STUDIO_DEFAULT_TAB: StudioTabId = "bai-dang";
 
+/** Id nội bộ (`bai-dang`…) — không gồm alias URL (`posts`). */
 export function isStudioTabId(value: string): value is StudioTabId {
-  return TAB_SET.has(value);
+  return STUDIO_TAB_IDS.includes(value as StudioTabId);
+}
+
+/** Segment URL tab studio (`bai-dang` hoặc `posts`). */
+export function parseStudioTabId(value: string): StudioTabId | null {
+  return orgTabIdFromUrlSegment(value, STUDIO_TAB_IDS);
 }
 
 export function studioRootPath(orgSlug: string): string {
@@ -13,7 +21,7 @@ export function studioRootPath(orgSlug: string): string {
 }
 
 export function studioTabPath(orgSlug: string, tab: StudioTabId): string {
-  return `${studioRootPath(orgSlug)}/${tab}`;
+  return `${studioRootPath(orgSlug)}/${orgTabUrlSegment(tab)}`;
 }
 
 /** URL sâu tới một tin tuyển dụng: `/studio/:slug/jobs/:jobId`. */
@@ -83,19 +91,20 @@ export function parseStudioRouteFromPathname(
   }
 
   const tabSeg = rest[0];
-  if (!tabSeg || !isStudioTabId(tabSeg)) {
+  const tab = tabSeg ? parseStudioTabId(tabSeg) : null;
+  if (!tab) {
     return null;
   }
 
   const deepId = rest[1] ? decodeURIComponent(rest[1]) : null;
-  if (tabSeg === "tuyen-dung") {
-    return { tab: tabSeg, jobId: deepId, baiDangId: null, suKienId: null };
+  if (tab === "tuyen-dung") {
+    return { tab, jobId: deepId, baiDangId: null, suKienId: null };
   }
-  if (tabSeg === "bai-dang" || tabSeg === "showcase") {
-    return { tab: tabSeg, jobId: null, baiDangId: deepId, suKienId: null };
+  if (tab === "bai-dang" || tab === "showcase") {
+    return { tab, jobId: null, baiDangId: deepId, suKienId: null };
   }
-  if (tabSeg === "su-kien") {
-    return { tab: tabSeg, jobId: null, baiDangId: null, suKienId: deepId };
+  if (tab === "su-kien") {
+    return { tab, jobId: null, baiDangId: null, suKienId: deepId };
   }
-  return { tab: tabSeg, jobId: null, baiDangId: null, suKienId: null };
+  return { tab, jobId: null, baiDangId: null, suKienId: null };
 }

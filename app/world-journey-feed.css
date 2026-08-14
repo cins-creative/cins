@@ -1532,15 +1532,27 @@
   display: none;
 }
 
-.world-journey-home .wj-feed-promo-rail-track.is-dragging {
+.world-journey-home .wj-feed-promo-rail-track.is-dragging,
+.world-journey-home .wj-feed-promo-rail-track.is-free,
+.world-journey-home .wj-feed-promo-rail-track.is-coasting {
   cursor: grabbing;
   scroll-snap-type: none;
   user-select: none;
+}
+
+.world-journey-home .wj-feed-promo-rail-track.is-dragging,
+.world-journey-home .wj-feed-promo-rail-track.is-coasting {
   touch-action: none;
 }
 
+.world-journey-home .wj-feed-promo-rail-track.is-free:not(.is-dragging):not(.is-coasting) {
+  cursor: grab;
+}
+
 .world-journey-home .wj-feed-promo-rail-track.is-dragging a,
-.world-journey-home .wj-feed-promo-rail-track.is-dragging button {
+.world-journey-home .wj-feed-promo-rail-track.is-dragging button,
+.world-journey-home .wj-feed-promo-rail-track.is-coasting a,
+.world-journey-home .wj-feed-promo-rail-track.is-coasting button {
   pointer-events: none;
 }
 
@@ -4324,12 +4336,18 @@
   .world-journey-home .wj-feed-promo-rail-track {
     overflow-x: auto;
     overflow-y: hidden;
-    scroll-snap-type: x proximity;
-    scroll-padding-inline: 12px;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 0;
     overscroll-behavior-inline: contain;
     touch-action: pan-y;
     scrollbar-width: none;
     -ms-overflow-style: none;
+  }
+
+  .world-journey-home .wj-feed-promo-rail-track.is-dragging,
+  .world-journey-home .wj-feed-promo-rail-track.is-free,
+  .world-journey-home .wj-feed-promo-rail-track.is-coasting {
+    scroll-snap-type: none;
   }
 
   .world-journey-home .wj-feed-promo-rail-track::-webkit-scrollbar {
@@ -4345,7 +4363,7 @@
     width: 240px;
     min-width: 240px;
     max-width: 240px;
-    scroll-snap-align: start;
+    scroll-snap-align: center;
   }
 }
 

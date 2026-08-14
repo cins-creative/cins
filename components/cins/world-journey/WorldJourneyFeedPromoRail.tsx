@@ -25,6 +25,33 @@ const PROMO_RAIL_MAX_CARDS = 5;
 /** Nhân bản track để kéo ngang vòng vô hạn. */
 const PROMO_RAIL_LOOP_COPIES = 3;
 const DRAG_CLICK_THRESHOLD_PX = 6;
+const INERTIA_DECEL = 0.997;
+const INERTIA_MIN_PX_MS = 0.04;
+const INERTIA_SAMPLE_MS = 80;
+const INERTIA_BOOST = 1.08;
+const INERTIA_SAMPLES_MAX = 12;
+const INERTIA_DT_MAX_MS = 64;
+
+type PromoDragSample = { t: number; x: number };
+
+function promoFingerVelocityPxMs(samples: PromoDragSample[]): number {
+  if (samples.length < 2) return 0;
+  const now = performance.now();
+  let i = 0;
+  while (i < samples.length && now - samples[i]!.t > INERTIA_SAMPLE_MS) {
+    i += 1;
+  }
+  const a = samples[i];
+  const b = samples[samples.length - 1];
+  if (!a || !b || b.t <= a.t) return 0;
+  return ((b.x - a.x) / (b.t - a.t)) * INERTIA_BOOST;
+}
+
+function centerCardInTrack(el: HTMLDivElement, cardIndex: number) {
+  const card = el.children[cardIndex] as HTMLElement | undefined;
+  if (!card) return;
+  el.scrollLeft = card.offsetLeft - (el.clientWidth - card.offsetWidth) / 2;
+}
 
 type Props = {
   variant: FeedPromoVariant;
@@ -501,8 +528,14 @@ export function WorldJourneyFeedPromoRail({
     startScroll: number;
     moved: boolean;
     axis: "undecided" | "x" | "y";
+    samples: PromoDragSample[];
   } | null>(null);
+  const inertiaRef = useRef<{ velocity: number } | null>(null);
+  const inertiaRafRef = useRef<number | null>(null);
+  const inertiaLastTsRef = useRef<number | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [freeScroll, setFreeScroll] = useState(false);
+  const [coasting, setCoasting] = useState(false);
 
   const wrapInfiniteScroll = useCallback(() => {
     const el = trackRef.current;
@@ -516,34 +549,108 @@ export function WorldJourneyFeedPromoRail({
     }
   }, [canLoop]);
 
+  const stopInertia = useCallback(() => {
+    if (inertiaRafRef.current != null) {
+      cancelAnimationFrame(inertiaRafRef.current);
+      inertiaRafRef.current = null;
+    }
+    inertiaRef.current = null;
+    inertiaLastTsRef.current = null;
+    setCoasting(false);
+  }, []);
+
+  const startInertia = useCallback(
+    (velocity: number) => {
+      const el = trackRef.current;
+      if (!el || Math.abs(velocity) < INERTIA_MIN_PX_MS) {
+        stopInertia();
+        return;
+      }
+      inertiaRef.current = { velocity };
+      inertiaLastTsRef.current = null;
+      setCoasting(true);
+      if (inertiaRafRef.current != null) {
+        cancelAnimationFrame(inertiaRafRef.current);
+      }
+      const tick = (ts: number) => {
+        const last = inertiaLastTsRef.current;
+        inertiaLastTsRef.current = ts;
+        const inertia = inertiaRef.current;
+        const track = trackRef.current;
+        if (!inertia || !track) {
+          stopInertia();
+          return;
+        }
+        if (last != null) {
+          let dt = ts - last;
+          if (dt > INERTIA_DT_MAX_MS) dt = INERTIA_DT_MAX_MS;
+          if (dt > 0) {
+            inertia.velocity *= Math.pow(INERTIA_DECEL, dt);
+            track.scrollLeft += inertia.velocity * dt;
+            wrapInfiniteScroll();
+            if (Math.abs(inertia.velocity) < INERTIA_MIN_PX_MS) {
+              stopInertia();
+              return;
+            }
+          }
+        }
+        inertiaRafRef.current = requestAnimationFrame(tick);
+      };
+      inertiaRafRef.current = requestAnimationFrame(tick);
+    },
+    [stopInertia, wrapInfiniteScroll],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (inertiaRafRef.current != null) {
+        cancelAnimationFrame(inertiaRafRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    setFreeScroll(false);
+    stopInertia();
+  }, [slotKey, stopInertia]);
+
   useEffect(() => {
     const el = trackRef.current;
-    if (!el || !canLoop) return;
-    /* Đặt giữa bộ nhân bản — chỉ khi mount / đổi tập card, không reset khi resize giữa lúc kéo. */
+    if (!el || freeScroll) return;
+    /* Giữa bộ nhân bản + snap center card đầu — không reset khi đang kéo. */
     const id = window.requestAnimationFrame(() => {
-      const setWidth = el.scrollWidth / PROMO_RAIL_LOOP_COPIES;
-      if (setWidth > 0) el.scrollLeft = setWidth;
+      if (dragRef.current || inertiaRef.current) return;
+      if (canLoop) {
+        centerCardInTrack(el, items.length);
+      } else {
+        centerCardInTrack(el, 0);
+      }
     });
     return () => window.cancelAnimationFrame(id);
-  }, [canLoop, loopedItems.length, slotKey]);
+  }, [canLoop, freeScroll, items.length, loopedItems.length, slotKey]);
 
-  const onPointerDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0) return;
-    const el = trackRef.current;
-    if (!el) return;
-    dragRef.current = {
-      pointerId: e.pointerId,
-      startX: e.clientX,
-      startY: e.clientY,
-      startScroll: el.scrollLeft,
-      moved: false,
-      axis: "undecided",
-    };
-    /* Chuột: capture ngay. Touch: chưa capture — vuốt dọc phải trả về trang. */
-    if (e.pointerType === "mouse") {
-      el.setPointerCapture(e.pointerId);
-    }
-  }, []);
+  const onPointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (e.button !== 0) return;
+      const el = trackRef.current;
+      if (!el) return;
+      stopInertia();
+      dragRef.current = {
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        startScroll: el.scrollLeft,
+        moved: false,
+        axis: "undecided",
+        samples: [{ t: performance.now(), x: e.clientX }],
+      };
+      /* Chuột: capture ngay. Touch: chưa capture — vuốt dọc phải trả về trang. */
+      if (e.pointerType === "mouse") {
+        el.setPointerCapture(e.pointerId);
+      }
+    },
+    [stopInertia],
+  );
 
   const onPointerMove = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -567,6 +674,7 @@ export function WorldJourneyFeedPromoRail({
         drag.axis = "x";
         drag.moved = true;
         setDragging(true);
+        setFreeScroll(true);
         if (e.pointerType !== "mouse" && !el.hasPointerCapture(e.pointerId)) {
           try {
             el.setPointerCapture(e.pointerId);
@@ -576,6 +684,10 @@ export function WorldJourneyFeedPromoRail({
         }
       }
       if (drag.axis !== "x") return;
+      drag.samples.push({ t: performance.now(), x: e.clientX });
+      if (drag.samples.length > INERTIA_SAMPLES_MAX) {
+        drag.samples.splice(0, drag.samples.length - INERTIA_SAMPLES_MAX);
+      }
       el.scrollLeft = drag.startScroll - dx;
       wrapInfiniteScroll();
     },
@@ -593,10 +705,11 @@ export function WorldJourneyFeedPromoRail({
       if (drag.moved) {
         wrapInfiniteScroll();
         setDragging(false);
+        startInertia(-promoFingerVelocityPxMs(drag.samples));
       }
       dragRef.current = null;
     },
-    [wrapInfiniteScroll],
+    [startInertia, wrapInfiniteScroll],
   );
 
   /*
@@ -638,7 +751,12 @@ export function WorldJourneyFeedPromoRail({
     >
       <div
         ref={trackRef}
-        className={`wj-feed-promo-rail-track${dragging ? " is-dragging" : ""}`}
+        className={
+          "wj-feed-promo-rail-track" +
+          (dragging ? " is-dragging" : "") +
+          (freeScroll ? " is-free" : "") +
+          (coasting ? " is-coasting" : "")
+        }
         role="list"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}

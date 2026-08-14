@@ -10776,6 +10776,7 @@ select.j-edit-input {
     align-items: stretch;
     justify-content: flex-start;
     touch-action: pan-y;
+    animation: j-overlay-in 280ms ease both;
   }
 
   .j-post-overlay .j-post-sheet:has(.post-canvas--split) {
@@ -10785,6 +10786,14 @@ select.j-edit-input {
     min-height: 100dvh;
     max-height: none;
     flex: none;
+    /* 100dvh — không dùng 100% (sheet bài dài ~10k px sẽ trượt từ rất xa). */
+    animation: j-sheet-wipe-up 460ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+
+  .j-post-overlay .j-post-sheet.is-settled:has(.post-canvas--split) {
+    animation: none;
+    transform: none;
+    clip-path: none;
   }
 
   .j-post-overlay .j-post-sheet:has(.post-canvas--media.post-canvas--split) {
@@ -10875,14 +10884,24 @@ select.j-edit-input {
     width: 100%;
   }
 
+  .j-post-overlay .j-post-sheet:has(.post-canvas--split) .post-rail-actions-anchor {
+    display: none;
+  }
+
   .j-post-overlay .j-post-sheet:has(.post-canvas--split) .post-rail-blk--actions {
     order: 4;
     width: 100%;
+    /* sticky — không fixed: overlay vừa backdrop-filter vừa là scroller,
+       fixed sẽ trôi theo nội dung thay vì dính đáy viewport. */
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
     background: var(--bg-surface, #fff);
     border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
     padding-top: 8px;
-    padding-bottom: 8px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.08);
   }
 
   .j-post-overlay
@@ -12444,6 +12463,22 @@ select.j-edit-input {
   }
 }
 
+@keyframes j-sheet-wipe-up {
+  from {
+    transform: translate3d(0, 100dvh, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .j-post-overlay:has(.post-canvas--split),
+  .j-post-overlay .j-post-sheet:has(.post-canvas--split) {
+    animation-duration: 1ms;
+  }
+}
+
 /* Panel chi tiết — trượt từ phải (admin / nested overlay) */
 .j-post-overlay.j-post-overlay--slide-right {
   justify-content: flex-end;
@@ -12515,6 +12550,9 @@ select.j-edit-input {
   text-align: center;
   color: #b42318;
   box-shadow: var(--shadow-lg, 0 14px 32px rgba(15, 23, 42, 0.1));
+}
+.j-post-err-btn + .j-post-err-btn {
+  margin-left: 8px;
 }
 .j-post-err-btn {
   margin-top: 16px;
@@ -14747,13 +14785,21 @@ select.j-edit-input {
   z-index: 14;
   flex: 0 0 auto;
 }
-.jcard-viewer-menu .j-m-menu-btn {
+.jcard-viewer-menu .j-m-menu-btn,
+.jcard-viewer-menu .j-m-menu-btn:hover,
+.jcard-viewer-menu .j-m-menu-btn[aria-expanded="true"] {
   width: 30px;
   height: 30px;
-  background: rgba(255, 255, 255, 0.94);
-  border-color: rgba(15, 23, 42, 0.1);
-  color: var(--ink-body, #334155);
+  background: transparent;
+  border-color: transparent;
   box-shadow: none;
+}
+.jcard-viewer-menu .j-m-menu-btn {
+  color: var(--ink-body, #334155);
+}
+.jcard-viewer-menu .j-m-menu-btn:hover,
+.jcard-viewer-menu .j-m-menu-btn[aria-expanded="true"] {
+  color: var(--cins-blue);
 }
 .jcard-viewer-menu .j-m-menu-pop {
   top: calc(100% + 6px);
@@ -15248,9 +15294,11 @@ select.j-edit-input {
    giá trị hard-code còn sót (nút trắng + trạng thái danger).
    Gallery owner: override ngay cạnh rule gallery (trên).
    ======================================================== */
-:root[data-theme="dark"] .jcard-viewer-menu .j-m-menu-btn {
-  background: color-mix(in srgb, var(--bg-surface) 88%, transparent);
-  border-color: var(--border);
+:root[data-theme="dark"] .jcard-viewer-menu .j-m-menu-btn,
+:root[data-theme="dark"] .jcard-viewer-menu .j-m-menu-btn:hover,
+:root[data-theme="dark"] .jcard-viewer-menu .j-m-menu-btn[aria-expanded="true"] {
+  background: transparent;
+  border-color: transparent;
 }
 :root[data-theme="dark"] .j-m-menu-err {
   color: #fca5a5;

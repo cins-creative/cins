@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
 import { CO_SO_TAB_LABELS } from "@/lib/to-chuc/co-so-page-cau-hinh";
 import { getCoSoMetaBySlugCached } from "@/lib/to-chuc/co-so-page-queries";
-import { isCoSoTabId } from "@/lib/to-chuc/co-so-routes";
+import { parseCoSoTabId } from "@/lib/to-chuc/co-so-routes";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 
 export const revalidate = 60;
@@ -15,7 +15,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, tab } = await params;
   const metadataBase = new URL(getConfiguredSiteOrigin() ?? "https://cins.vn");
 
-  if (!hasSupabaseEnv() || !isCoSoTabId(tab)) {
+  const tabId = parseCoSoTabId(tab);
+  if (!hasSupabaseEnv() || !tabId) {
     return { metadataBase, title: "Cơ sở đào tạo | CINs" };
   }
 
@@ -24,10 +25,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { metadataBase, title: "Không tìm thấy cơ sở | CINs" };
   }
 
-  const title = `${meta.ten} — ${CO_SO_TAB_LABELS[tab]} | CINs`;
+  const title = `${meta.ten} — ${CO_SO_TAB_LABELS[tabId]} | CINs`;
   const description =
     meta.moTa ??
-    `Trang cơ sở đào tạo ${meta.ten} trên CINs — ${CO_SO_TAB_LABELS[tab].toLowerCase()}.`;
+    `Trang cơ sở đào tạo ${meta.ten} trên CINs — ${CO_SO_TAB_LABELS[tabId].toLowerCase()}.`;
   const pagePath = `/academy/${encodeURIComponent(slug)}`;
   const ogImagePath = `${pagePath}/opengraph-image`;
 
@@ -56,6 +57,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 /** Tab URL — UI render trong `[slug]/layout.tsx`. */
 export default async function CoSoTabPage({ params }: Props) {
   const { tab } = await params;
-  if (!hasSupabaseEnv() || !isCoSoTabId(tab)) notFound();
+  if (!hasSupabaseEnv() || !parseCoSoTabId(tab)) notFound();
   return null;
 }

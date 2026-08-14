@@ -8,6 +8,11 @@ import {
   pushOverlayHistory,
   withSearchParam,
 } from "@/lib/navigation/overlay-history";
+import {
+  blurOverlayFocus,
+  captureOverlayPageScroll,
+  pinOverlayPageScroll,
+} from "@/lib/navigation/overlay-page-scroll";
 
 type OpenOpts = {
   /** Permalink `/slug/p/postSlug` nếu có — ưu tiên hơn `?post=`. */
@@ -25,11 +30,14 @@ export function useJourneyPostOverlay() {
   const ignorePopRef = useRef(false);
 
   const closePost = useCallback(() => {
+    blurOverlayFocus();
     setMilestoneId(null);
     if (pushedRef.current) {
       ignorePopRef.current = true;
       pushedRef.current = false;
       window.history.back();
+      pinOverlayPageScroll();
+      queueMicrotask(pinOverlayPageScroll);
     }
   }, []);
 
@@ -45,7 +53,10 @@ export function useJourneyPostOverlay() {
           : permalink
         : withSearchParam("post", id);
 
+      captureOverlayPageScroll();
       pushOverlayHistory(CINS_HISTORY_POST, id, href);
+      pinOverlayPageScroll();
+      queueMicrotask(pinOverlayPageScroll);
       pushedRef.current = true;
       setMilestoneId(id);
     },

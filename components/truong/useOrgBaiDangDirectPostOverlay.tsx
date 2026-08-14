@@ -9,6 +9,11 @@ import {
   pushOverlayHistory,
   withSearchParam,
 } from "@/lib/navigation/overlay-history";
+import {
+  blurOverlayFocus,
+  captureOverlayPageScroll,
+  pinOverlayPageScroll,
+} from "@/lib/navigation/overlay-page-scroll";
 import type { TruongBaiDang } from "@/lib/truong/types";
 
 type OpenOpts = {
@@ -39,11 +44,14 @@ export function useOrgBaiDangDirectPostOverlay({
   const ignorePopRef = useRef(false);
 
   const closePost = useCallback(() => {
+    blurOverlayFocus();
     setPost(null);
     if (pushedRef.current) {
       ignorePopRef.current = true;
       pushedRef.current = false;
       window.history.back();
+      pinOverlayPageScroll();
+      queueMicrotask(pinOverlayPageScroll);
     }
   }, []);
 
@@ -58,7 +66,10 @@ export function useOrgBaiDangDirectPostOverlay({
           : permalink
         : withSearchParam("orgPost", next.id);
 
+      captureOverlayPageScroll();
       pushOverlayHistory(CINS_HISTORY_POST, next.id, href);
+      pinOverlayPageScroll();
+      queueMicrotask(pinOverlayPageScroll);
       pushedRef.current = true;
       setOwner(opts?.owner ?? defaultOwner);
       setPost(next);

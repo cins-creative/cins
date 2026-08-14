@@ -9,6 +9,10 @@ import {
   loadMilestoneDetailCached,
   readCachedMilestoneDetailById,
 } from "@/lib/journey/milestone-detail-cache";
+import {
+  formatPostLoadError,
+  parsePostPermalinkPath,
+} from "@/lib/journey/post-load-error";
 import type { MilestonePostDetail } from "@/lib/journey/milestone-post-types";
 import { countCommentThreads } from "@/lib/social/comments/client-tree";
 /* Portal vào document.body — CSS phải đi theo component (trang trường không
@@ -16,7 +20,13 @@ import { countCommentThreads } from "@/lib/social/comments/client-tree";
 import "@/app/[slug]/p/new/editor.css";
 import "@/app/[slug]/p/[postSlug]/post-page.css";
 
+import {
+  lockOverlayPageScroll,
+  unlockOverlayPageScroll,
+} from "@/lib/navigation/overlay-page-scroll";
+
 import { JourneyPostBody } from "./JourneyPostBody";
+import { PostOverlayCloseContext } from "./post-overlay-close";
 
 type Props = {
   /** Milestone đang mở. `null` = modal đóng. */
@@ -37,8 +47,10 @@ export function JourneyPostModal({
   const [detail, setDetail] = useState<MilestonePostDetail | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [retryTick, setRetryTick] = useState(0);
   const sheetRef = useRef<HTMLElement | null>(null);
   const [portalNode, setPortalNode] = useState<HTMLElement | null>(null);
+  const [sheetSettled, setSheetSettled] = useState(false);
 
   useEffect(() => {
     setPortalNode(document.body);
@@ -63,10 +75,11 @@ export function JourneyPostModal({
       setLoadError(null);
     }
 
+    const permalink = parsePostPermalinkPath(window.location.pathname);
     void loadMilestoneDetailCached({
       milestoneId,
-      postOwnerSlug: cached?.owner.slug ?? "",
-      postSlug: cached?.posts[0]?.slug ?? null,
+      postOwnerSlug: cached?.owner.slug || permalink?.ownerSlug || "",
+      postSlug: cached?.posts[0]?.slug || permalink?.postSlug || null,
       lite: true,
     })
       .then((data) => {
@@ -100,34 +113,20 @@ export function JourneyPostModal({
         if (cancelled) return;
         setLoading(false);
         if (!cached) {
-          setLoadError(
-            err instanceof Error ? err.message : "Không tải được bài viết.",
-          );
+          setLoadError(formatPostLoadError(err));
         }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [milestoneId]);
+  }, [milestoneId, retryTick]);
 
   useEffect(() => {
     if (milestoneId === null) return;
-    const scrollY = window.scrollY;
-    document.body.style.position = "fixed";
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.left = "0";
-    document.body.style.right = "0";
-    document.body.style.width = "100%";
-    document.body.style.overflow = "hidden";
+    lockOverlayPageScroll();
     return () => {
-      document.body.style.position = "";
-      document.body.style.top = "";
-      document.body.style.left = "";
-      document.body.style.right = "";
-      document.body.style.width = "";
-      document.body.style.overflow = "";
-      window.scrollTo(0, scrollY);
+      unlockOverlayPageScroll();
     };
   }, [milestoneId]);
 
@@ -139,6 +138,13 @@ export function JourneyPostModal({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [milestoneId, onClose]);
+
+  useEffect(() => {
+    setSheetSettled(false);
+    if (milestoneId === null) return;
+    const settle = window.setTimeout(() => setSheetSettled(true), 520);
+    return () => window.clearTimeout(settle);
+  }, [milestoneId]);
 
   useEffect(() => {
     if (milestoneId === null) return;
@@ -171,66 +177,73 @@ export function JourneyPostModal({
       aria-label="Chi tiết bài viết"
       onClick={handleBackdropClick}
     >
-      <button
-        type="button"
-        className="j-post-close"
-        aria-label="Đóng"
-        onClick={onClose}
-      >
-        ×
-      </button>
       <article
-        className="j-post-sheet"
+        className={`j-post-sheet${sheetSettled ? " is-settled" : ""}`}
         ref={sheetRef}
+        onAnimationEnd={(e) => {
+          if (e.target === e.currentTarget) setSheetSettled(true);
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        {loading && !detail ? (
-          <div className="j-post-loading" role="status" aria-live="polite">
-            <MemeShapesLoader size={36} label="Đang tải nội dung" />
-          </div>
-        ) : loadError && !detail ? (
-          <div className="j-post-err">
-            <p>{loadError}</p>
-            <button type="button" onClick={onClose} className="j-post-err-btn">
-              Đóng
-            </button>
-          </div>
-        ) : detail ? (
-          <JourneyPostBody
-            initialDetail={detail}
-            postSlug={postSlug}
-            isOwner={detail.viewerIsOwner}
-            hideOpenLink
-            layout={variant === "slide-right" ? "stack" : "split"}
-            onMilestoneUpdated={() => {
-              if (!milestoneId) return;
-              void loadMilestoneDetailCached({
-                milestoneId,
-                postOwnerSlug: detail.owner.slug,
-                postSlug: detail.posts[0]?.slug ?? null,
-                lite: true,
-              }).then((data) => {
-                setDetail(data);
-                void hydrateMilestoneDetailComments(milestoneId).then(
-                  (comments) => {
-                    setDetail((prev) =>
-                      prev
-                        ? {
-                            ...prev,
-                            comments,
-                            social: {
-                              ...prev.social,
-                              commentCount: countCommentThreads(comments),
-                            },
-                          }
-                        : prev,
-                    );
-                  },
-                );
-              });
-            }}
-          />
-        ) : null}
+        <PostOverlayCloseContext.Provider value={onClose}>
+          {loading && !detail ? (
+            <div className="j-post-loading" role="status" aria-live="polite">
+              <MemeShapesLoader size={36} label="Đang tải nội dung" />
+            </div>
+          ) : loadError && !detail ? (
+            <div className="j-post-err">
+              <p>{loadError}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setLoadError(null);
+                  setRetryTick((n) => n + 1);
+                }}
+                className="j-post-err-btn"
+              >
+                Thử lại
+              </button>
+              <button type="button" onClick={onClose} className="j-post-err-btn">
+                Đóng
+              </button>
+            </div>
+          ) : detail ? (
+            <JourneyPostBody
+              initialDetail={detail}
+              postSlug={postSlug}
+              isOwner={detail.viewerIsOwner}
+              hideOpenLink
+              layout={variant === "slide-right" ? "stack" : "split"}
+              onMilestoneUpdated={() => {
+                if (!milestoneId) return;
+                void loadMilestoneDetailCached({
+                  milestoneId,
+                  postOwnerSlug: detail.owner.slug,
+                  postSlug: detail.posts[0]?.slug ?? null,
+                  lite: true,
+                }).then((data) => {
+                  setDetail(data);
+                  void hydrateMilestoneDetailComments(milestoneId).then(
+                    (comments) => {
+                      setDetail((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              comments,
+                              social: {
+                                ...prev.social,
+                                commentCount: countCommentThreads(comments),
+                              },
+                            }
+                          : prev,
+                      );
+                    },
+                  );
+                });
+              }}
+            />
+          ) : null}
+        </PostOverlayCloseContext.Provider>
       </article>
     </div>,
     portalNode,

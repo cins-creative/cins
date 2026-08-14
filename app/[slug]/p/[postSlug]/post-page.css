@@ -1336,6 +1336,36 @@
   gap: 6px;
 }
 
+.cins-post-view .post-rail-author-tools {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.cins-post-view .post-rail-close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: -2px -6px 0 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.cins-post-view .post-rail-close:hover {
+  color: var(--ink-title);
+  background: transparent;
+  transform: none;
+}
+
 .cins-post-view .post-rail-author > .j-user-pop-wrap {
   flex: 1;
   min-width: 0;
@@ -1786,8 +1816,7 @@
 .cins-post-view .post-rail-blk--actions {
   position: relative;
   overflow: visible;
-  padding-top: 8px;
-  padding-bottom: 8px;
+  padding: 8px 0;
   z-index: 1;
 }
 
@@ -2012,6 +2041,19 @@
   right: auto;
   flex-shrink: 0;
   margin: -2px -4px 0 0;
+}
+
+.cins-post-view .post-rail-menu .j-m-menu-btn,
+.cins-post-view .post-rail-menu .j-m-menu-btn:hover,
+.cins-post-view .post-rail-menu .j-m-menu-btn[aria-expanded="true"] {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.cins-post-view .post-rail-menu .j-m-menu-btn:hover,
+.cins-post-view .post-rail-menu .j-m-menu-btn[aria-expanded="true"] {
+  color: var(--cins-blue);
 }
 
 .cins-post-view .post-rail-lbl {
@@ -5429,12 +5471,19 @@
     padding-inline: 20px;
   }
 
+  .cins-post-view.post-canvas--split:not(.post-canvas--media) .post-rail-actions-anchor,
+  .cins-post-view .post-canvas--split:not(.post-canvas--media) .post-rail-actions-anchor,
   .cins-post-view.post-canvas--split:not(.post-canvas--media) .post-rail-blk--actions,
   .cins-post-view .post-canvas--split:not(.post-canvas--media) .post-rail-blk--actions {
-    order: 3;
+    order: 7;
     width: 100%;
+    flex: none;
+  }
+
+  .cins-post-view.post-canvas--split:not(.post-canvas--media) .post-rail-blk--actions,
+  .cins-post-view .post-canvas--split:not(.post-canvas--media) .post-rail-blk--actions {
     border-top: 1px solid var(--border);
-    padding: 8px 20px;
+    padding: 8px 0 max(8px, env(safe-area-inset-bottom, 0px));
   }
 
   .cins-post-view.post-canvas--split:not(.post-canvas--media) .post-view-kicker,
@@ -5544,7 +5593,7 @@
 
   .cins-post-view.post-canvas--split:not(.post-canvas--media) .post-rail-blk--comments,
   .cins-post-view .post-canvas--split:not(.post-canvas--media) .post-rail-blk--comments {
-    order: 7;
+    order: 8;
     border-top: 1px solid var(--border);
     padding-inline: 20px;
   }
@@ -5563,12 +5612,22 @@
     order: 3;
   }
 
+  .cins-post-view .post-rail-actions-anchor {
+    display: none;
+  }
+
   .cins-post-view .post-rail-blk--actions {
     order: 4;
     width: 100%;
+    flex: none;
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
     border-top: 1px solid var(--border);
     padding-top: 8px;
-    padding-bottom: 8px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    background: var(--bg-surface, #fff);
+    box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.08);
   }
 
   /* Mobile — giữ 1 hàng đều cột */
@@ -5720,12 +5779,19 @@
     padding-inline: 20px;
   }
 
+  .cins-post-view.post-canvas--media.post-canvas--split .post-rail-actions-anchor,
+  .cins-post-view .post-canvas--media.post-canvas--split .post-rail-actions-anchor,
   .cins-post-view.post-canvas--media.post-canvas--split .post-rail-blk--actions,
   .cins-post-view .post-canvas--media.post-canvas--split .post-rail-blk--actions {
-    order: 3;
+    order: 5;
     width: 100%;
+    flex: none;
+  }
+
+  .cins-post-view.post-canvas--media.post-canvas--split .post-rail-blk--actions,
+  .cins-post-view .post-canvas--media.post-canvas--split .post-rail-blk--actions {
     border-top: 1px solid var(--border);
-    padding: 8px 20px;
+    padding: 8px 0 max(8px, env(safe-area-inset-bottom, 0px));
   }
 
   .cins-post-view.post-canvas--split .post-view-content--media,
@@ -5744,7 +5810,7 @@
 
   .cins-post-view.post-canvas--media.post-canvas--split .post-rail-blk--comments,
   .cins-post-view .post-canvas--media.post-canvas--split .post-rail-blk--comments {
-    order: 5;
+    order: 6;
     border-top: 1px solid var(--border);
     padding-inline: 20px;
   }

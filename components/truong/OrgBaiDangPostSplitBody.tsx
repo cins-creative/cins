@@ -1,11 +1,12 @@
 "use client";
 
-import { Award, CalendarDays, FileText, GraduationCap, Megaphone, Package, type LucideIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Award, CalendarDays, FileText, GraduationCap, Megaphone, Package, X, type LucideIcon } from "lucide-react";
+import { useContext, useMemo, useState } from "react";
 
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
 import { JourneyCommentLink } from "@/components/journey/JourneyCommentLink";
 import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
+import { PostOverlayCloseContext } from "@/components/journey/post-overlay-close";
 import { JourneyUnfoldArticleContent } from "@/components/journey/JourneyUnfoldArticleContent";
 import { PostShareMenu } from "@/components/journey/PostActionsRail";
 import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
@@ -83,6 +84,7 @@ export function OrgBaiDangPostSplitBody({
 }: Props) {
   const [commentCount, setCommentCount] = useState(post.commentCount ?? 0);
   const [viewerCommented, setViewerCommented] = useState(false);
+  const onClose = useContext(PostOverlayCloseContext);
 
   const usesBlocks = baiDangUsesBlocks(post);
   const blocks = post.noiDungBlocks ?? null;
@@ -245,6 +247,18 @@ export function OrgBaiDangPostSplitBody({
                 ) : (
                   <span className="post-rail-author-link">{authorBody}</span>
                 )}
+                {onClose ? (
+                  <div className="post-rail-author-tools">
+                    <button
+                      type="button"
+                      className="post-rail-close"
+                      aria-label="Đóng"
+                      onClick={onClose}
+                    >
+                      <X size={18} strokeWidth={2} aria-hidden />
+                    </button>
+                  </div>
+                ) : null}
               </div>
             </div>
 

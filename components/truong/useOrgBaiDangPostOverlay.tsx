@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 
 import { OrgBaiDangPostModal } from "@/components/truong/OrgBaiDangPostModal";
+import { blurOverlayFocus } from "@/lib/navigation/overlay-page-scroll";
 import type { OrgBaiDangOverlayOwner } from "@/lib/truong/org-bai-dang-from-milestone";
 import type { TruongBaiDang, TruongListItem } from "@/lib/truong/types";
 
@@ -32,6 +33,7 @@ export function useOrgBaiDangPostOverlay({
   }, []);
 
   const closePost = useCallback(() => {
+    blurOverlayFocus();
     setPostId(null);
   }, []);
 

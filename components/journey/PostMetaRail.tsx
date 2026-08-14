@@ -12,15 +12,17 @@ import {
   Trophy,
   UserCircle2,
   Users,
+  X,
   type LucideIcon,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useContext, type ReactNode } from "react";
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
 import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
+import { PostOverlayCloseContext } from "@/components/journey/post-overlay-close";
 import { ShopKioskBlock } from "@/components/shop/ShopKioskBlock";
 import type {
   MilestonePostAuthor,
@@ -99,6 +101,7 @@ export function PostMetaRail({
   onMilestoneUpdated,
 }: Props) {
   const { viewerProfileId } = useCinsChat();
+  const onClose = useContext(PostOverlayCloseContext);
   const typeLabel = TYPE_LABEL[milestone.loaiMoc] ?? "Cột mốc";
   const TypeIcon = TYPE_ICON[milestone.loaiMoc] ?? UserCircle2;
   const vis = VIS_LABEL[milestone.cheDoHienThi] ?? VIS_LABEL.public;
@@ -172,18 +175,32 @@ export function PostMetaRail({
             {/* Không dùng <Link> trong trigger — click mở card, vào hồ sơ từ trong popover. */}
             <span className="post-rail-author-link">{authorBody}</span>
           </JourneyUserPopover>
-          {isOwner ? (
-            <JourneyMilestoneOwnerMenu
-              className="post-rail-menu"
-              milestoneId={milestone.id}
-              ownerSlug={owner.slug}
-              currentType={mapLoaiMocToMilestoneType(milestone.loaiMoc)}
-              currentVisibility={mapCheDoToMilestoneVisibility(
-                milestone.cheDoHienThi,
-              )}
-              postSlug={postSlug ?? null}
-              onAfterChange={onMilestoneUpdated}
-            />
+          {isOwner || onClose ? (
+            <div className="post-rail-author-tools">
+              {isOwner ? (
+                <JourneyMilestoneOwnerMenu
+                  className="post-rail-menu"
+                  milestoneId={milestone.id}
+                  ownerSlug={owner.slug}
+                  currentType={mapLoaiMocToMilestoneType(milestone.loaiMoc)}
+                  currentVisibility={mapCheDoToMilestoneVisibility(
+                    milestone.cheDoHienThi,
+                  )}
+                  postSlug={postSlug ?? null}
+                  onAfterChange={onMilestoneUpdated}
+                />
+              ) : null}
+              {onClose ? (
+                <button
+                  type="button"
+                  className="post-rail-close"
+                  aria-label="Đóng"
+                  onClick={onClose}
+                >
+                  <X size={18} strokeWidth={2} aria-hidden />
+                </button>
+              ) : null}
+            </div>
           ) : null}
         </div>
         <div className="post-rail-meta-row">
@@ -270,10 +287,14 @@ export function PostMetaRail({
         </div>
       ) : null}
 
-      <div className="post-rail-blk post-rail-blk--actions">{actionsRail}</div>
+      <div className="post-rail-blk post-rail-blk--actions">
+        {actionsRail}
+      </div>
 
       {commentsRail ? (
-        <div className="post-rail-blk post-rail-blk--comments">{commentsRail}</div>
+        <div className="post-rail-blk post-rail-blk--comments">
+          {commentsRail}
+        </div>
       ) : null}
       </div>
     </aside>

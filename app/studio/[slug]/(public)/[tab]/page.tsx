@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
 import { STUDIO_TAB_LABELS } from "@/lib/to-chuc/studio-page-config";
 import { getStudioMetaBySlugCached } from "@/lib/to-chuc/studio-page-queries";
-import { isStudioTabId } from "@/lib/to-chuc/studio-routes";
+import { parseStudioTabId } from "@/lib/to-chuc/studio-routes";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 
 export const revalidate = 60;
@@ -15,17 +15,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, tab } = await params;
   const metadataBase = new URL(getConfiguredSiteOrigin() ?? "https://cins.vn");
 
-  if (!hasSupabaseEnv() || !isStudioTabId(tab)) {
+  const tabId = parseStudioTabId(tab);
+  if (!hasSupabaseEnv() || !tabId) {
     return { metadataBase, title: "Studio / Doanh nghiệp | CINs" };
   }
 
   const meta = await getStudioMetaBySlugCached(slug);
   if (!meta) return { metadataBase, title: "Không tìm thấy studio | CINs" };
 
-  const title = `${meta.ten} — ${STUDIO_TAB_LABELS[tab]} | CINs`;
+  const title = `${meta.ten} — ${STUDIO_TAB_LABELS[tabId]} | CINs`;
   const description =
     meta.moTa ??
-    `Trang studio / doanh nghiệp ${meta.ten} trên CINs — ${STUDIO_TAB_LABELS[tab].toLowerCase()}.`;
+    `Trang studio / doanh nghiệp ${meta.ten} trên CINs — ${STUDIO_TAB_LABELS[tabId].toLowerCase()}.`;
   const pagePath = `/studio/${encodeURIComponent(slug)}`;
   const ogImagePath = `${pagePath}/opengraph-image`;
 
@@ -54,6 +55,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 /** Tab URL — UI render trong `(public)/layout.tsx`. */
 export default async function StudioTabPage({ params }: Props) {
   const { tab } = await params;
-  if (!hasSupabaseEnv() || !isStudioTabId(tab)) notFound();
+  if (!hasSupabaseEnv() || !parseStudioTabId(tab)) notFound();
   return null;
 }

@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { PostOverlayCloseContext } from "@/components/journey/post-overlay-close";
 import { OrgBaiDangPostSplitBody } from "@/components/truong/OrgBaiDangPostSplitBody";
+import {
+  lockOverlayPageScroll,
+  unlockOverlayPageScroll,
+} from "@/lib/navigation/overlay-page-scroll";
 import type { OrgBaiDangOverlayOwner } from "@/lib/truong/org-bai-dang-from-milestone";
 import type { TruongBaiDang } from "@/lib/truong/types";
 
@@ -29,6 +34,7 @@ export function OrgBaiDangPostModal({
 }: Props) {
   const sheetRef = useRef<HTMLElement | null>(null);
   const [portalNode, setPortalNode] = useState<HTMLElement | null>(null);
+  const [sheetSettled, setSheetSettled] = useState(false);
 
   useEffect(() => {
     setPortalNode(document.body);
@@ -36,21 +42,9 @@ export function OrgBaiDangPostModal({
 
   useEffect(() => {
     if (post === null) return;
-    const scrollY = window.scrollY;
-    document.body.style.position = "fixed";
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.left = "0";
-    document.body.style.right = "0";
-    document.body.style.width = "100%";
-    document.body.style.overflow = "hidden";
+    lockOverlayPageScroll();
     return () => {
-      document.body.style.position = "";
-      document.body.style.top = "";
-      document.body.style.left = "";
-      document.body.style.right = "";
-      document.body.style.width = "";
-      document.body.style.overflow = "";
-      window.scrollTo(0, scrollY);
+      unlockOverlayPageScroll();
     };
   }, [post]);
 
@@ -62,6 +56,13 @@ export function OrgBaiDangPostModal({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [post, onClose]);
+
+  useEffect(() => {
+    setSheetSettled(false);
+    if (post === null) return;
+    const settle = window.setTimeout(() => setSheetSettled(true), 520);
+    return () => window.clearTimeout(settle);
+  }, [post]);
 
   useEffect(() => {
     if (post === null) return;
@@ -85,25 +86,22 @@ export function OrgBaiDangPostModal({
       aria-label="Chi tiết bài đăng"
       onClick={handleBackdropClick}
     >
-      <button
-        type="button"
-        className="j-post-close"
-        aria-label="Đóng"
-        onClick={onClose}
-      >
-        ×
-      </button>
       <article
-        className="j-post-sheet"
+        className={`j-post-sheet${sheetSettled ? " is-settled" : ""}`}
         ref={sheetRef}
+        onAnimationEnd={(e) => {
+          if (e.target === e.currentTarget) setSheetSettled(true);
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        <OrgBaiDangPostSplitBody
-          key={post.id}
-          post={post}
-          owner={owner}
-          contentOnly={contentOnly}
-        />
+        <PostOverlayCloseContext.Provider value={onClose}>
+          <OrgBaiDangPostSplitBody
+            key={post.id}
+            post={post}
+            owner={owner}
+            contentOnly={contentOnly}
+          />
+        </PostOverlayCloseContext.Provider>
       </article>
     </div>,
     portalNode,

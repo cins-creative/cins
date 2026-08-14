@@ -9,7 +9,7 @@ const cache = new Map<string, MilestonePostDetail>();
 const inflight = new Map<string, Promise<MilestonePostDetail>>();
 const commentsInflight = new Map<string, Promise<MilestonePostComment[]>>();
 
-const FETCH_TIMEOUT_MS = 20_000;
+const FETCH_TIMEOUT_MS = 40_000;
 const INFLIGHT_WAIT_MS = FETCH_TIMEOUT_MS + 500;
 
 export function milestoneDetailCacheKey(
@@ -26,7 +26,9 @@ async function fetchWithTimeout(
   init?: RequestInit,
 ): Promise<Response> {
   const controller = new AbortController();
-  const timer = window.setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const timer = window.setTimeout(() => {
+    controller.abort(new DOMException("Tải bài viết quá lâu.", "TimeoutError"));
+  }, FETCH_TIMEOUT_MS);
   try {
     return await fetch(url, {
       ...init,

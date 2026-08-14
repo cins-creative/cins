@@ -11,6 +11,7 @@ import type {
   MilestoneVariant,
   MilestoneCardLayout,
   MilestoneVisibility,
+  MilestoneCongDongOrg,
 } from "@/components/journey/milestone-types";
 import type { FeedSourceKind } from "@/lib/cins/worldJourneyFeedSource";
 import {
@@ -134,6 +135,8 @@ export type GalleryMainItem = {
    * World Journey — đang editorial boost (L29). Chỉ dùng UI admin; không badge viewer.
    */
   worldBoosted?: boolean;
+  /** Cột mốc đang ở feed cộng đồng — menu chủ «Chia sẻ vào cộng đồng». */
+  congDongOrg?: MilestoneCongDongOrg | null;
 };
 
 const getGalleryStubsCached = cache(

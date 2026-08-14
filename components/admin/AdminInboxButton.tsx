@@ -54,26 +54,26 @@ const ROWS: InboxRow[] = [
   {
     key: "baoCao",
     label: "Báo cáo mới",
-    href: "/admin/reports",
+    href: "/admin/bao-cao",
     icon: Flag,
   },
   {
     key: "gopY",
     label: "Góp ý mới",
-    href: "/admin/feedback",
+    href: "/admin/gop-y",
     icon: MessageSquareText,
   },
   {
     key: "dongGop",
     label: "Đóng góp chờ duyệt",
-    href: "/admin/articles?tab=dong-gop",
+    href: "/admin/bai-viet?tab=dong-gop",
     icon: FilePenLine,
   },
   {
     key: "noiDungChoXacThuc",
     label: "Nội dung chờ xác thực",
     hint: "Theo dõi · duyệt tại trang tổ chức",
-    href: "/admin/content/cho-xac-thuc",
+    href: "/admin/noi-dung-dang/cho-xac-thuc",
     icon: BadgeCheck,
   },
   {
@@ -85,13 +85,13 @@ const ROWS: InboxRow[] = [
   {
     key: "tranhChap",
     label: "Tranh chấp shop",
-    href: "/admin/disputes",
+    href: "/admin/tranh-chap",
     icon: Scale,
   },
   {
     key: "danhMuc",
     label: "Danh mục hàng chờ",
-    href: "/admin/catalog",
+    href: "/admin/danh-muc",
     icon: FolderTree,
   },
   {

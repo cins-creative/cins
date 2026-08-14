@@ -1,4 +1,5 @@
 import { loadPostBySlug } from "@/app/[slug]/journey/actions";
+import { formatPostLoadError } from "@/lib/journey/post-load-error";
 import { JourneyPostBody } from "@/components/journey/JourneyPostBody";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
@@ -36,12 +37,21 @@ export default async function InterceptedPostModal({
   const { slug, postSlug } = await params;
   const query = await searchParams;
   const ownerSlug = query.owner?.trim() || slug;
-  const res = await loadPostBySlug(ownerSlug, postSlug);
+  let res;
+  try {
+    res = await loadPostBySlug(ownerSlug, postSlug);
+  } catch (err) {
+    return (
+      <div className="j-post-err">
+        <p>{formatPostLoadError(err)}</p>
+      </div>
+    );
+  }
 
   if (!res.ok) {
     return (
       <div className="j-post-err">
-        <p>{res.error}</p>
+        <p>{formatPostLoadError(res.error)}</p>
       </div>
     );
   }

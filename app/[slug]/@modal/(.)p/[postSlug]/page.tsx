@@ -1,4 +1,5 @@
 import { getCachedPostBySlug } from "@/lib/journey/post-page-cache";
+import { formatPostLoadError } from "@/lib/journey/post-load-error";
 import { JourneyPostBody } from "@/components/journey/JourneyPostBody";
 
 export const dynamic = "force-dynamic";
@@ -16,12 +17,21 @@ export default async function InterceptedPostModal({
   const { slug, postSlug } = await params;
   const query = await searchParams;
   const ownerSlug = query.owner?.trim() || slug;
-  const res = await getCachedPostBySlug(ownerSlug, postSlug);
+  let res;
+  try {
+    res = await getCachedPostBySlug(ownerSlug, postSlug);
+  } catch (err) {
+    return (
+      <div className="j-post-err">
+        <p>{formatPostLoadError(err)}</p>
+      </div>
+    );
+  }
 
   if (!res.ok) {
     return (
       <div className="j-post-err">
-        <p>{res.error}</p>
+        <p>{formatPostLoadError(res.error)}</p>
       </div>
     );
   }

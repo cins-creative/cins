@@ -75,11 +75,20 @@ type PreviewState = {
 const QTY_SYNC_MS = 200;
 /** Tạm dừng sau cuộn user (touch/wheel) trước khi ticker chạy lại. */
 const TICKER_RESUME_MS = 1200;
-/** Sau thả kéo: tốc độ 0 → cruise, cubic ease-out. */
+/** Sau quán tính / thả nhẹ: tốc độ 0 → cruise, cubic ease-out. */
 const TICKER_RESUME_EASE_MS = 1500;
 /** Clamp dt rAF — tab vừa hồi tỉnh không nhảy một phát. */
 const TICKER_DT_MAX_MS = 64;
 const TICKER_SPEED_DEFAULT = 28;
+/** Ma sát / ms — thấp hơn 0.998 thì trôi ngắn hơn. */
+const TICKER_INERTIA_DECEL = 0.997;
+/** Dừng quán tính khi |v| < 40px/s. */
+const TICKER_INERTIA_MIN_PX_MS = 0.04;
+/** Cửa sổ lấy vận tốc lúc thả (tránh nhiễu 1 frame). */
+const TICKER_INERTIA_SAMPLE_MS = 80;
+/** Nhân nhẹ vận tốc thả — cửa sổ 80ms hơi thấp hơn flick cảm nhận. */
+const TICKER_INERTIA_BOOST = 1.08;
+const TICKER_INERTIA_SAMPLES_MAX = 12;
 /** Tối thiểu 3 bản để neo giữa [oneSet, 2·oneSet). */
 const TICKER_COPIES_MIN = 3;
 /** Trần bản nhân — 1 thumb hẹp + viewport rộng vẫn đủ cuộn. */
@@ -94,6 +103,25 @@ function tickerResumeEase(t: number): number {
   const x = t <= 0 ? 0 : t >= 1 ? 1 : t;
   const inv = 1 - x;
   return 1 - inv * inv * inv;
+}
+
+type TickerDragSample = { t: number; x: number };
+
+/** Vận tốc ngón (px/ms) từ mẫu gần nhất — 0 nếu đứng yên lúc thả. */
+function tickerFingerVelocityPxMs(samples: TickerDragSample[]): number {
+  if (samples.length < 2) return 0;
+  const now = performance.now();
+  let i = 0;
+  while (
+    i < samples.length &&
+    now - samples[i].t > TICKER_INERTIA_SAMPLE_MS
+  ) {
+    i += 1;
+  }
+  const a = samples[i];
+  const b = samples[samples.length - 1];
+  if (!a || !b || b.t <= a.t) return 0;
+  return ((b.x - a.x) / (b.t - a.t)) * TICKER_INERTIA_BOOST;
 }
 
 export function ShopKioskBlock({
@@ -152,6 +180,7 @@ export function ShopKioskBlock({
     startY: number;
     startScroll: number;
     active: boolean;
+    samples: TickerDragSample[];
   } | null>(null);
   const tickerSuppressClickRef = useRef(false);
   const [tickerDragging, setTickerDragging] = useState(false);
@@ -179,6 +208,8 @@ export function ShopKioskBlock({
   const tickerSpeedRef = useRef(TICKER_SPEED_DEFAULT);
   /** Timestamp rAF lúc bắt đầu ease sau thả kéo; null = cruise. */
   const tickerEaseStartRef = useRef<number | null>(null);
+  /** Quán tính sau thả — px/ms theo chiều pos (kéo trái = dương). */
+  const tickerInertiaRef = useRef<{ velocity: number } | null>(null);
   const tickerReducedMotionRef = useRef(false);
   /** Hẹn giờ gỡ từng lý do drag / user-scroll. */
   const tickerResumeTimersRef = useRef(
@@ -290,6 +321,7 @@ export function ShopKioskBlock({
       tickerResumeTimersRef.current.delete("drag");
     }
     tickerHoldReasonsRef.current.delete("drag");
+    tickerInertiaRef.current = null;
     tickerEaseStartRef.current = 0;
   }, []);
 
@@ -300,6 +332,7 @@ export function ShopKioskBlock({
         clearTimeout(resumeTimer);
         tickerResumeTimersRef.current.delete("drag");
       }
+      tickerInertiaRef.current = null;
       tickerEaseStartRef.current = null;
       tickerHoldReasonsRef.current.add("drag");
       tickerDragRef.current = {
@@ -308,6 +341,7 @@ export function ShopKioskBlock({
         startY: clientY,
         startScroll: tickerPosRef.current,
         active: false,
+        samples: [{ t: performance.now(), x: clientX }],
       };
     },
     [],
@@ -338,6 +372,12 @@ export function ShopKioskBlock({
         setTickerDragging(true);
       }
 
+      const now = performance.now();
+      drag.samples.push({ t: now, x: clientX });
+      if (drag.samples.length > TICKER_INERTIA_SAMPLES_MAX) {
+        drag.samples.splice(0, drag.samples.length - TICKER_INERTIA_SAMPLES_MAX);
+      }
+
       writeTickerPos(drag.startScroll - dx);
       normalizeTickerLoop();
       return "horizontal";
@@ -358,14 +398,27 @@ export function ShopKioskBlock({
     }
     if (drag.active) tickerSuppressClickRef.current = true;
     setTickerDragging(false);
-    /* Thả → chạy lại ngay; tốc độ ease 0 → cruise trong 1.5s. */
     const resumeTimer = tickerResumeTimersRef.current.get("drag");
     if (resumeTimer) {
       clearTimeout(resumeTimer);
       tickerResumeTimersRef.current.delete("drag");
     }
     tickerHoldReasonsRef.current.delete("drag");
-    tickerEaseStartRef.current = 0;
+
+    /* Flick → quán tính; đứng yên / reduced-motion → ease về cruise. */
+    const fingerV = drag.active ? tickerFingerVelocityPxMs(drag.samples) : 0;
+    const posV = -fingerV;
+    if (
+      drag.active &&
+      !tickerReducedMotionRef.current &&
+      Math.abs(posV) >= TICKER_INERTIA_MIN_PX_MS
+    ) {
+      tickerInertiaRef.current = { velocity: posV };
+      tickerEaseStartRef.current = null;
+    } else {
+      tickerInertiaRef.current = null;
+      tickerEaseStartRef.current = 0;
+    }
   }, []);
 
   const onTickerPointerDown = useCallback(
@@ -781,6 +834,7 @@ export function ShopKioskBlock({
         tickerRafRef.current = null;
       }
       tickerLastTsRef.current = null;
+      tickerInertiaRef.current = null;
       if (track) track.style.willChange = "";
     };
 
@@ -795,6 +849,24 @@ export function ShopKioskBlock({
       let dt = ts - last;
       if (dt > TICKER_DT_MAX_MS) dt = TICKER_DT_MAX_MS;
       if (dt <= 0) return;
+
+      const inertia = tickerInertiaRef.current;
+      if (inertia) {
+        inertia.velocity *= Math.pow(TICKER_INERTIA_DECEL, dt);
+        writeTickerPos(tickerPosRef.current + inertia.velocity * dt);
+        normalizeTickerLoop();
+        const cruisePxMs = tickerSpeedRef.current / 1000;
+        const v = inertia.velocity;
+        if (v > 0 && v <= Math.max(cruisePxMs * 1.15, TICKER_INERTIA_MIN_PX_MS)) {
+          /* Flick cùng chiều cruise → nhập cruise, không phanh về 0. */
+          tickerInertiaRef.current = null;
+          tickerEaseStartRef.current = null;
+        } else if (v <= 0 && Math.abs(v) < TICKER_INERTIA_MIN_PX_MS) {
+          tickerInertiaRef.current = null;
+          tickerEaseStartRef.current = 0;
+        }
+        return;
+      }
 
       let speed = tickerSpeedRef.current;
       let easeStart = tickerEaseStartRef.current;
@@ -855,6 +927,7 @@ export function ShopKioskBlock({
       e.preventDefault();
       holdReasons.add("user-scroll");
       scheduleTickerHoldClear("user-scroll");
+      tickerInertiaRef.current = null;
       tickerEaseStartRef.current = null;
       let pos = tickerPosRef.current + e.deltaX;
       const oneSet = tickerSetWidthRef.current;
@@ -902,7 +975,7 @@ export function ShopKioskBlock({
       holdReasons.delete("drag");
       holdReasons.delete("user-scroll");
     };
-  }, [scheduleTickerHoldClear, tickerLoop, writeTickerPos]);
+  }, [normalizeTickerLoop, scheduleTickerHoldClear, tickerLoop, writeTickerPos]);
 
   /* Dọn timer debounce khi unmount. */
   useEffect(() => {

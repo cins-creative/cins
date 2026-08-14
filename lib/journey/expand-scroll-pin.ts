@@ -1,3 +1,5 @@
+import { isOverlayScrollFrozen } from "@/lib/navigation/overlay-page-scroll";
+
 /**
  * Giữ vị trí viewport khi xổ bài dài — neo theo khoảng cách từ mép trên
  * viewport tới card (không chỉ snapshot `scrollY` một lần).
@@ -40,6 +42,8 @@ export function scrollElementsToViewportCenter(
   opts?: { behavior?: ScrollBehavior },
 ): void {
   if (typeof window === "undefined") return;
+  /* Overlay bài vừa đóng — đừng kéo thanh action/BL vào giữa màn. */
+  if (isOverlayScrollFrozen()) return;
   const a = topEl ?? bottomEl ?? null;
   if (!a) return;
   const b = bottomEl && topEl ? bottomEl : a;
@@ -141,7 +145,7 @@ export function subscribeExpandScrollPin(
   };
 
   const restore = () => {
-    if (cancelled) return;
+    if (cancelled || isOverlayScrollFrozen()) return;
     restoring = true;
     if (useCenter) {
       scrollElementsToViewportCenter(centerTop ?? centerBottom, centerBottom, {

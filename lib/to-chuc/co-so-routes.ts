@@ -2,11 +2,17 @@ import {
   CO_SO_TAB_IDS,
   type CoSoTabId,
 } from "@/lib/to-chuc/co-so-page-cau-hinh";
-
-const TAB_SET = new Set<string>(CO_SO_TAB_IDS);
+import {
+  orgTabIdFromUrlSegment,
+  orgTabUrlSegment,
+} from "@/lib/to-chuc/org-public-tab-url";
 
 export function isCoSoTabId(value: string): value is CoSoTabId {
-  return TAB_SET.has(value);
+  return CO_SO_TAB_IDS.includes(value as CoSoTabId);
+}
+
+export function parseCoSoTabId(value: string): CoSoTabId | null {
+  return orgTabIdFromUrlSegment(value, CO_SO_TAB_IDS);
 }
 
 export function coSoRootPath(orgSlug: string): string {
@@ -14,11 +20,11 @@ export function coSoRootPath(orgSlug: string): string {
 }
 
 export function coSoTabPath(orgSlug: string, tab: CoSoTabId): string {
-  return `${coSoRootPath(orgSlug)}/${tab}`;
+  return `${coSoRootPath(orgSlug)}/${orgTabUrlSegment(tab)}`;
 }
 
 export function coSoKhoaHocDetailPath(orgSlug: string, khoaSlug: string): string {
-  return `${coSoRootPath(orgSlug)}/khoa-hoc/${encodeURIComponent(khoaSlug)}`;
+  return `${coSoRootPath(orgSlug)}/${orgTabUrlSegment("khoa-hoc")}/${encodeURIComponent(khoaSlug)}`;
 }
 
 /** URL sâu tới một tin tuyển dụng: `/academy/:slug/jobs/:jobId`. */
@@ -99,19 +105,20 @@ const DEFAULT_PATH_STATE: CoSoPathState = {
 
 /** Kiểm tra segment URL hợp lệ dưới `/academy/[slug]/`. */
 export function validateCoSoSegments(segments: readonly string[]): boolean {
+  const tab = segments[0] ? parseCoSoTabId(segments[0]) : null;
   if (segments.length === 1) {
-    return isCoSoTabId(segments[0]);
+    return tab !== null;
   }
-  if (segments.length === 2 && segments[0] === "khoa-hoc") {
+  if (segments.length === 2 && tab === "khoa-hoc") {
     return Boolean(segments[1]?.trim());
   }
-  if (segments.length === 2 && segments[0] === "bai-dang") {
+  if (segments.length === 2 && tab === "bai-dang") {
     return Boolean(segments[1]?.trim());
   }
-  if (segments.length === 2 && segments[0] === "tuyen-dung") {
+  if (segments.length === 2 && tab === "tuyen-dung") {
     return Boolean(segments[1]?.trim());
   }
-  if (segments.length === 2 && segments[0] === "su-kien") {
+  if (segments.length === 2 && tab === "su-kien") {
     return Boolean(segments[1]?.trim());
   }
   return false;
@@ -119,7 +126,8 @@ export function validateCoSoSegments(segments: readonly string[]): boolean {
 
 /** Parse layout segments dưới `[slug]` → tab + optional khóa slug / jobId. */
 export function parseCoSoLayoutSegments(segments: readonly string[]): CoSoPathState {
-  if (segments.length >= 2 && segments[0] === "khoa-hoc") {
+  const tab = segments[0] ? parseCoSoTabId(segments[0]) : null;
+  if (segments.length >= 2 && tab === "khoa-hoc") {
     return {
       tab: "khoa-hoc",
       khoaSlug: decodeURIComponent(segments[1]),
@@ -128,7 +136,7 @@ export function parseCoSoLayoutSegments(segments: readonly string[]): CoSoPathSt
       suKienId: null,
     };
   }
-  if (segments.length >= 2 && segments[0] === "bai-dang") {
+  if (segments.length >= 2 && tab === "bai-dang") {
     return {
       tab: "bai-dang",
       khoaSlug: null,
@@ -137,7 +145,7 @@ export function parseCoSoLayoutSegments(segments: readonly string[]): CoSoPathSt
       suKienId: null,
     };
   }
-  if (segments.length >= 2 && segments[0] === "tuyen-dung") {
+  if (segments.length >= 2 && tab === "tuyen-dung") {
     return {
       tab: "tuyen-dung",
       khoaSlug: null,
@@ -146,7 +154,7 @@ export function parseCoSoLayoutSegments(segments: readonly string[]): CoSoPathSt
       suKienId: null,
     };
   }
-  if (segments.length >= 2 && segments[0] === "su-kien") {
+  if (segments.length >= 2 && tab === "su-kien") {
     return {
       tab: "su-kien",
       khoaSlug: null,
@@ -155,9 +163,9 @@ export function parseCoSoLayoutSegments(segments: readonly string[]): CoSoPathSt
       suKienId: decodeURIComponent(segments[1]),
     };
   }
-  if (segments.length >= 1 && isCoSoTabId(segments[0])) {
+  if (tab) {
     return {
-      tab: segments[0],
+      tab,
       khoaSlug: null,
       jobId: null,
       baiDangId: null,
