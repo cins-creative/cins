@@ -14,6 +14,7 @@ import { milestonePreviewMedia } from "@/lib/journey/milestone-preview-media";
 import { parseServerBlocks } from "@/lib/journey/parse-server-blocks";
 import { loadVerifiedMetaForCotMocs, type VerifiedMilestoneMeta } from "@/lib/journey/milestone-verify";
 import { getAvatarUrl } from "@/lib/journey/profile";
+import { resolveTruongImageSrcSync } from "@/lib/truong/media-url";
 import {
   isHiddenOnForeignJourney,
   mapForeignJourneyVisibilityToUi,
@@ -46,6 +47,12 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { hideProcessingVideoFromViewer } from "@/lib/journey/video-processing-meta";
 import { isCotMocDueForPublic } from "@/lib/journey/cot-moc-schedule";
 import { pickTopReactionEmoji } from "@/lib/social/reaction-emoji";
+import {
+  buildAcademyKhoaHref,
+  isBatDauHocNguonGoc,
+  parseBatDauHocAutoBody,
+  parseBatDauHocAutoTitle,
+} from "@/lib/journey/bat-dau-hoc-card";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ Fetch milestones cho 1 user (Journey center column).             ║
@@ -76,6 +83,8 @@ type CotMocRow = {
   tao_luc: string | null;
   id_nguoi_dung?: string;
   id_to_chuc?: string | null;
+  id_khoa_hoc?: string | null;
+  id_lop_hoc?: string | null;
 };
 
 type ThuocMocRow = {
@@ -160,6 +169,90 @@ function milestoneCoverMedia(
   return milestonePreviewMedia(coverId, parseServerBlocks(blocks), label);
 }
 
+async function loadKhoaHocForBatDauHoc(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  khoaIds: string[],
+): Promise<
+  Map<string, { ten: string; slug: string; thumbnailUrl: string | null }>
+> {
+  const out = new Map<
+    string,
+    { ten: string; slug: string; thumbnailUrl: string | null }
+  >();
+  const ids = [...new Set(khoaIds.filter(Boolean))];
+  if (ids.length === 0) return out;
+  const { data } = await admin
+    .from("org_khoa_hoc")
+    .select("id, slug, ten_khoa_hoc, avatar_id, cover_id")
+    .in("id", ids)
+    .returns<
+      Array<{
+        id: string;
+        slug: string;
+        ten_khoa_hoc: string;
+        avatar_id: string | null;
+        cover_id: string | null;
+      }>
+    >();
+  for (const row of data ?? []) {
+    const ten = row.ten_khoa_hoc?.trim() || "Khóa học";
+    const slug = row.slug?.trim() || "";
+    const thumbnailUrl =
+      resolveTruongImageSrcSync(row.avatar_id, [
+        "public",
+        "medium",
+        "avatar",
+      ]) ??
+      resolveTruongImageSrcSync(row.cover_id, ["public", "cover", "medium"]) ??
+      null;
+    out.set(row.id, { ten, slug, thumbnailUrl });
+  }
+  return out;
+}
+
+async function loadLopThumbForBatDauHoc(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  lopIds: string[],
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  const ids = [...new Set(lopIds.filter(Boolean))];
+  if (ids.length === 0) return out;
+  const { data: lopRows } = await admin
+    .from("org_lop_hoc")
+    .select("id, id_chat_phong")
+    .in("id", ids)
+    .returns<Array<{ id: string; id_chat_phong: string | null }>>();
+  const roomByLop = new Map<string, string>();
+  const roomIds: string[] = [];
+  for (const row of lopRows ?? []) {
+    const roomId = row.id_chat_phong?.trim();
+    if (!roomId) continue;
+    roomByLop.set(row.id, roomId);
+    roomIds.push(roomId);
+  }
+  if (roomIds.length === 0) return out;
+  const { data: rooms } = await admin
+    .from("chat_phong")
+    .select("id, avatar_id")
+    .in("id", [...new Set(roomIds)])
+    .returns<Array<{ id: string; avatar_id: string | null }>>();
+  const urlByRoom = new Map<string, string>();
+  for (const room of rooms ?? []) {
+    const url =
+      resolveTruongImageSrcSync(room.avatar_id, [
+        "public",
+        "medium",
+        "avatar",
+      ]) ?? getAvatarUrl(room.avatar_id);
+    if (url) urlByRoom.set(room.id, url);
+  }
+  for (const [lopId, roomId] of roomByLop) {
+    const url = urlByRoom.get(roomId);
+    if (url) out.set(lopId, url);
+  }
+  return out;
+}
+
 export async function buildSelfMilestonesForCotMocs(
   admin: ReturnType<typeof createServiceRoleClient>,
   cotMocs: CotMocRow[],
@@ -197,17 +290,27 @@ export async function buildSelfMilestonesForCotMocs(
   const congDongOrgIds = cotMocs
     .filter((m) => m.che_do_hien_thi === CHE_DO_MOC_CONG_DONG && m.id_to_chuc)
     .map((m) => m.id_to_chuc as string);
+  const batDauHocKhoaIds = cotMocs
+    .filter((m) => isBatDauHocNguonGoc(m.nguon_goc, m.loai_moc) && m.id_khoa_hoc)
+    .map((m) => m.id_khoa_hoc as string);
+  const batDauHocLopIds = cotMocs
+    .filter((m) => isBatDauHocNguonGoc(m.nguon_goc, m.loai_moc) && m.id_lop_hoc)
+    .map((m) => m.id_lop_hoc as string);
 
   const [
     personalFiltersByMoc,
     congDongOrgs,
     membershipContextByMoc,
     visibilityCustomByMoc,
+    khoaById,
+    lopThumbById,
   ] = await Promise.all([
     loadPersonalFiltersForCotMocs(ids),
     loadCongDongOrgsForMilestones(congDongOrgIds),
     loadMembershipMilestoneContextForCotMocs(admin, ids),
     loadVisibilityCustomStates(ids),
+    loadKhoaHocForBatDauHoc(admin, batDauHocKhoaIds),
+    loadLopThumbForBatDauHoc(admin, batDauHocLopIds),
   ]);
 
   const cotMocsForCards = dedupeMembershipCotMocs(cotMocs, membershipContextByMoc);
@@ -237,7 +340,9 @@ export async function buildSelfMilestonesForCotMocs(
     const membershipPending = membershipCtx?.pending ?? null;
     const isApprovedMembership = membershipCtx?.approved ?? false;
     let cardLayout = resolveOrgCreateCardLayout(verified, m.nguon_goc);
-    if (membershipPending) {
+    if (isBatDauHocNguonGoc(m.nguon_goc, m.loai_moc)) {
+      cardLayout = "bat-dau-hoc";
+    } else if (membershipPending) {
       cardLayout = "identity-pending";
     } else if (
       isApprovedMembership &&
@@ -257,7 +362,9 @@ export async function buildSelfMilestonesForCotMocs(
     const isOrgCreateCard =
       cardLayout !== "default" &&
       cardLayout !== "identity-pending" &&
-      cardLayout !== "identity-verified";
+      cardLayout !== "identity-verified" &&
+      cardLayout !== "bat-dau-hoc";
+    const isBatDauHocCard = cardLayout === "bat-dau-hoc";
     const isIdentityPending = cardLayout === "identity-pending";
     const isIdentityVerified = cardLayout === "identity-verified";
     const isIdentityCard = isIdentityPending || isIdentityVerified;
@@ -288,6 +395,26 @@ export async function buildSelfMilestonesForCotMocs(
       : null;
 
     const ownerId = m.id_nguoi_dung?.trim() || null;
+    const parsedBatDauHoc =
+      isBatDauHocCard
+        ? (parseBatDauHocAutoTitle(m.tieu_de) ?? parseBatDauHocAutoBody(m.mo_ta))
+        : null;
+    const khoaRow = m.id_khoa_hoc ? khoaById.get(m.id_khoa_hoc) : undefined;
+    const orgSlug = verified?.attribution.slug ?? null;
+    const batDauHoc = isBatDauHocCard
+      ? {
+          khoaTen: khoaRow?.ten ?? parsedBatDauHoc?.khoaTen ?? m.tieu_de,
+          orgTen:
+            verified?.attribution.name ??
+            parsedBatDauHoc?.orgTen ??
+            "Cơ sở đào tạo",
+          khoaHref: buildAcademyKhoaHref(orgSlug, khoaRow?.slug),
+          thumbnailUrl:
+            (m.id_lop_hoc ? lopThumbById.get(m.id_lop_hoc) : null) ??
+            khoaRow?.thumbnailUrl ??
+            null,
+        }
+      : null;
 
     return {
       id: m.id,
@@ -306,49 +433,72 @@ export async function buildSelfMilestonesForCotMocs(
       month,
       day,
       createdAt,
-      title: isIdentityCard ? m.tieu_de : (firstPost?.tieu_de ?? m.tieu_de),
-      body: isIdentityPending ? m.mo_ta || "Chờ xác thực" : m.mo_ta || null,
+      title:
+        isIdentityCard || isBatDauHocCard
+          ? m.tieu_de
+          : (firstPost?.tieu_de ?? m.tieu_de),
+      body: isIdentityPending
+        ? m.mo_ta || "Chờ xác thực"
+        : isBatDauHocCard
+          ? null
+          : m.mo_ta || null,
       org: verified?.attribution.role ?? pendingAttribution?.name ?? null,
       /* Bắt buộc cho author-echo World Timeline (L30) — kể cả sau publish optimistic. */
       postOwnerId: ownerId,
       lensOwnerId: ownerId,
-      postSlug: isOrgCreateCard || isIdentityCard ? null : firstPostSlug,
-      tacPhamId: isOrgCreateCard || isIdentityCard ? null : (firstPost?.id ?? null),
+      postSlug:
+        isOrgCreateCard || isIdentityCard || isBatDauHocCard
+          ? null
+          : firstPostSlug,
+      tacPhamId:
+        isOrgCreateCard || isIdentityCard || isBatDauHocCard
+          ? null
+          : (firstPost?.id ?? null),
       attribution: verified?.attribution ?? pendingAttribution,
       verifiedBy: verified?.verifiedBy ?? null,
       cardLayout,
+      batDauHoc,
       membershipPending,
       orgHref: isOrgCreateCard
         ? (verified?.orgHref ?? null)
         : isIdentityPending
           ? (membershipPending?.orgHref ?? null)
-          : isIdentityVerified
+          : isIdentityVerified || isBatDauHocCard
             ? (verified?.orgHref ?? null)
             : null,
-      media: isOrgCreateCard || isIdentityCard
+      media: isOrgCreateCard || isIdentityCard || isBatDauHocCard
         ? []
         : milestoneCoverMedia(
             firstPost?.cover_id,
             firstPost?.noi_dung_blocks,
             firstPost?.tieu_de ?? m.tieu_de,
           ),
-      noiDungBlocks: isOrgCreateCard || isIdentityCard ? null : noiDungBlocks,
+      noiDungBlocks:
+        isOrgCreateCard || isIdentityCard || isBatDauHocCard
+          ? null
+          : noiDungBlocks,
       tacPhamCoverId:
-        isOrgCreateCard || isIdentityCard ? null : (firstPost?.cover_id ?? null),
+        isOrgCreateCard || isIdentityCard || isBatDauHocCard
+          ? null
+          : (firstPost?.cover_id ?? null),
       tacPhamMoTa:
-        isOrgCreateCard || isIdentityCard ? null : (firstPost?.mo_ta ?? null),
-      articleTags: isOrgCreateCard || isIdentityCard ? [] : articleTags,
-      coAuthorCredits: isOrgCreateCard || isIdentityCard
-        ? []
-        : firstPost?.id
-          ? (creditsByTacPham.get(firstPost.id) ?? [])
-          : [],
+        isOrgCreateCard || isIdentityCard || isBatDauHocCard
+          ? null
+          : (firstPost?.mo_ta ?? null),
+      articleTags:
+        isOrgCreateCard || isIdentityCard || isBatDauHocCard ? [] : articleTags,
+      coAuthorCredits:
+        isOrgCreateCard || isIdentityCard || isBatDauHocCard
+          ? []
+          : firstPost?.id
+            ? (creditsByTacPham.get(firstPost.id) ?? [])
+            : [],
     };
   });
 }
 
 const COT_MOC_CARD_SELECT =
-  "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc, id_nguoi_dung, id_to_chuc";
+  "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc, id_nguoi_dung, id_to_chuc, id_khoa_hoc, id_lop_hoc";
 
 /** Build một `MilestoneItem` sau publish/edit — dùng optimistic merge timeline. */
 export async function buildMilestoneItemForCotMoc(
@@ -413,7 +563,7 @@ export async function fetchMilestonesForUser(params: {
   const { data: cotMocs, error } = await admin
     .from("content_cot_moc")
     .select(
-      "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc, id_to_chuc",
+      "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc, id_to_chuc, id_khoa_hoc, id_lop_hoc",
     )
     .eq("id_nguoi_dung", userId)
     /* Order chính: ngày xảy ra (`thoi_diem`) DESC. Tiebreak: `tao_luc` DESC
@@ -749,7 +899,7 @@ export async function fetchBookmarkedMilestonesForUser(params: {
   const { data: cotMocs } = await admin
     .from("content_cot_moc")
     .select(
-      "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc, id_nguoi_dung, id_to_chuc",
+      "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc, id_nguoi_dung, id_to_chuc, id_khoa_hoc, id_lop_hoc",
     )
     .in("id", cotMocIds)
     .returns<CotMocRow[]>();

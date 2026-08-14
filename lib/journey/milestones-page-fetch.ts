@@ -715,6 +715,9 @@ type CotMocFullRow = {
   thoi_diem: string;
   che_do_hien_thi: CotMocStubRow["che_do_hien_thi"];
   tao_luc: string | null;
+  id_to_chuc?: string | null;
+  id_khoa_hoc?: string | null;
+  id_lop_hoc?: string | null;
 };
 
 async function hydrateTimelineStubs(
@@ -737,7 +740,7 @@ async function hydrateTimelineStubs(
       ? admin
           .from("content_cot_moc")
           .select(
-            "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc, id_to_chuc",
+            "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc, id_to_chuc, id_khoa_hoc, id_lop_hoc",
           )
           .in("id", selfCotMocIds)
           .returns<CotMocFullRow[]>()

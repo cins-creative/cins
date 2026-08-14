@@ -130,7 +130,17 @@ export type MilestoneCardLayout =
   | "co-so-create"
   | "studio-create"
   | "identity-pending"
-  | "identity-verified";
+  | "identity-verified"
+  | "bat-dau-hoc";
+
+/** Cột mốc ghi danh «Bắt đầu học {khóa} tại {cơ sở}». */
+export type BatDauHocCardMeta = {
+  khoaTen: string;
+  orgTen: string;
+  khoaHref: string | null;
+  /** Thumbnail lớp (chat) → khóa; không dùng cover org. */
+  thumbnailUrl: string | null;
+};
 
 /** Cột mốc danh tính chờ org duyệt (`membership_milestone_v1`). */
 export type MembershipPendingMeta = {
@@ -362,6 +372,8 @@ export type MilestoneItem = {
 
   /** Card layout — `cong-dong-create` = milestone tạo cộng đồng (logo org). */
   cardLayout?: MilestoneCardLayout;
+  /** Meta card «Bắt đầu học» — tên khóa + link trang khóa. */
+  batDauHoc?: BatDauHocCardMeta | null;
   /** Cột mốc danh tính chờ org duyệt — chỉ owner thấy (`chi_minh`). */
   membershipPending?: MembershipPendingMeta | null;
   /** Link cộng đồng/org khi `cardLayout === 'cong-dong-create'`. */

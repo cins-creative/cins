@@ -57,7 +57,7 @@
   --shop-accent-strong: var(--cins-orange-strong, #f07800);
   position: fixed;
   inset: 0;
-  /* Trên j-chat-dock (480) + gopy-fab (500) + gopy modal (1000);
+  /* Trên j-chat-dock (480) + gopy modal (1000);
      dưới j-cmt-sheet (10845) / chat overlay (11000). */
   z-index: 1080;
   display: flex;

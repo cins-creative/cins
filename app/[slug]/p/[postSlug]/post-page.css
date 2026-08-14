@@ -2518,7 +2518,9 @@
   min-width: 0;
 }
 
-/* Title / sub read-only — render bằng <h1>/<p> thay vì textarea. */
+/* Title / sub read-only — render bằng <h1>/<p> thay vì textarea.
+   Gỡ overflow:hidden + width:100% từ editor.css (autosize textarea) —
+   không thì chữ dài / dấu tiếng Việt bị crop sát mép overlay. */
 .cins-post-view .title-in.title-ro {
   font-family: var(--font-sans);
   font-weight: 800;
@@ -2528,6 +2530,11 @@
   color: var(--ink-display);
   margin: 0 0 8px;
   padding: 0.08em 0 0.04em;
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .cins-post-view .sub-in.sub-ro {
   font-family: var(--font-sans, "Be Vietnam Pro", system-ui, sans-serif);
@@ -2537,6 +2544,12 @@
   margin: 0 0 14px;
   padding: 0;
   line-height: 1.45;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .cins-post-view .sub-in.sub-ro.post-view-dek.jcard-desc {
   font-family: var(--font-sans, "Be Vietnam Pro", system-ui, sans-serif);
@@ -5488,12 +5501,31 @@
 
   .cins-post-view.post-canvas--split:not(.post-canvas--media) .post-view-kicker,
   .cins-post-view.post-canvas--split:not(.post-canvas--media) .title-in.title-ro,
-  .cins-post-view.post-canvas--split:not(.post-canvas--media) .sub-in.sub-ro.post-view-dek,
+  .cins-post-view.post-canvas--split:not(.post-canvas--media) .sub-in.sub-ro,
   .cins-post-view .post-canvas--split:not(.post-canvas--media) .post-view-kicker,
   .cins-post-view .post-canvas--split:not(.post-canvas--media) .title-in.title-ro,
-  .cins-post-view .post-canvas--split:not(.post-canvas--media) .sub-in.sub-ro.post-view-dek {
+  .cins-post-view .post-canvas--split:not(.post-canvas--media) .sub-in.sub-ro {
     order: 4;
     padding-inline: 20px;
+  }
+
+  /* Org overlay: title/sub nằm trong .post-view-content-inner (không phải
+     sibling lead như Journey) — chừa khoảng sau author rail. */
+  .cins-post-view.post-canvas--split:not(.post-canvas--media)
+    .post-view-content-inner
+    > .title-in.title-ro:first-child,
+  .cins-post-view
+    .post-canvas--split:not(.post-canvas--media)
+    .post-view-content-inner
+    > .title-in.title-ro:first-child,
+  .cins-post-view.post-canvas--split:not(.post-canvas--media)
+    .post-view-content-inner
+    > .sub-in.sub-ro:first-child,
+  .cins-post-view
+    .post-canvas--split:not(.post-canvas--media)
+    .post-view-content-inner
+    > .sub-in.sub-ro:first-child {
+    padding-top: 20px;
   }
 
   .cins-post-view.post-canvas--split:not(.post-canvas--media) .cover-add.cover-readonly,

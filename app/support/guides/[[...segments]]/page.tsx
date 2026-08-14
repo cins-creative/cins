@@ -3,8 +3,6 @@ import { redirect } from "next/navigation";
 
 import { HoTroClient } from "@/app/support/HoTroClient";
 import { CinsShell } from "@/components/cins/CinsShell";
-import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
-import { listHuongDanPublic } from "@/lib/huong-dan/huong-dan";
 import { huongDanHref } from "@/lib/huong-dan/slug";
 
 import "@/styles/article-rich-content.css";
@@ -34,8 +32,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export const dynamic = "force-dynamic";
-
 export default async function HoTroHuongDanPage({ params }: Props) {
   const { segments = [] } = await params;
   const nhomSlug = segments[0] ?? null;
@@ -45,19 +41,9 @@ export default async function HoTroHuongDanPage({ params }: Props) {
     redirect(huongDanHref(nhomSlug));
   }
 
-  const [guideCatalog, isCinsAdmin] = await Promise.all([
-    listHuongDanPublic(),
-    getCurrentUserIsCinsAdmin(),
-  ]);
-
   return (
     <CinsShell data-screen-label="Ho-tro-huong-dan">
-      <HoTroClient
-        initialMode="guide"
-        initialNhomSlug={nhomSlug}
-        guideCatalog={guideCatalog}
-        isCinsAdmin={isCinsAdmin}
-      />
+      <HoTroClient initialMode="guide" initialNhomSlug={nhomSlug} />
     </CinsShell>
   );
 }

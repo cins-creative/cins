@@ -53,12 +53,6 @@ import {
   sortJourneyViewTimeline,
   splitJourneyPinnedMilestones,
 } from "@/lib/journey/journey-timeline-sort";
-import {
-  computeScrollSpyFromMarkers,
-  JOURNEY_TIMELINE_SPY_ANCHOR_PX,
-  timelineScrollSpyFromParts,
-  type TimelineScrollSpy,
-} from "@/lib/journey/timeline-scroll-spy";
 import type { PendingCoAuthorInvite } from "@/lib/social/types";
 import type { PendingCongDongInviteNotification } from "@/lib/cong-dong/invite";
 import type { PendingCoSoStaffInviteNotification } from "@/lib/to-chuc/co-so-staff-invite";
@@ -563,58 +557,6 @@ export function JourneyTimeline({
   const byYear = useMemo(() => groupByYearDesc(timelineRest), [timelineRest]);
 
   const yearNow = String(new Date().getFullYear());
-  const [timelineSpy, setTimelineSpy] = useState<TimelineScrollSpy>(() =>
-    timelineScrollSpyFromParts(filtered[0]?.year, filtered[0]?.month, yearNow),
-  );
-
-  useEffect(() => {
-    setTimelineSpy(
-      timelineScrollSpyFromParts(
-        filtered[0]?.year,
-        filtered[0]?.month,
-        yearNow,
-      ),
-    );
-  }, [
-    filter,
-    ownerSlug,
-    yearNow,
-    filtered[0]?.id,
-    filtered[0]?.year,
-    filtered[0]?.month,
-  ]);
-
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root || filtered.length === 0) return;
-
-    let frame = 0;
-    const sync = () => {
-      frame = 0;
-      const next = computeScrollSpyFromMarkers(
-        root,
-        ".j-milestone[data-year][data-month]",
-        JOURNEY_TIMELINE_SPY_ANCHOR_PX,
-      );
-      if (!next) return;
-      setTimelineSpy((prev) =>
-        prev.year === next.year && prev.month === next.month ? prev : next,
-      );
-    };
-    const schedule = () => {
-      if (frame) return;
-      frame = window.requestAnimationFrame(sync);
-    };
-
-    sync();
-    window.addEventListener("scroll", schedule, { passive: true });
-    window.addEventListener("resize", schedule);
-    return () => {
-      window.removeEventListener("scroll", schedule);
-      window.removeEventListener("resize", schedule);
-      if (frame) window.cancelAnimationFrame(frame);
-    };
-  }, [filtered]);
 
   const totalVisible = filtered.length;
   const hasPersonalLabelFilter = Boolean(personalFilter?.activeSlug);
@@ -638,8 +580,6 @@ export function JourneyTimeline({
       ref={rootRef}
     >
       <JourneyTimelineBar
-        year={timelineSpy.year}
-        month={timelineSpy.month}
         filter={filter}
         onFilterChange={handleFilterChange}
         options={options}

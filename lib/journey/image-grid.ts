@@ -52,18 +52,24 @@ function isMosaicImgsBlock(block: Block): boolean {
   return block.loai === "imgs" && block.config?.layout === "mosaic";
 }
 
+/** Có width/height thật từ block — không phải fallback 1200×800. */
+export function hasGridImageDimensions(image: Pick<GridImage, "width" | "height">): boolean {
+  return image.width > 0 && image.height > 0;
+}
+
 /** Trích ảnh từ block `imgs` (kể cả mosaic / cells legacy). */
 export function extractImagesFromImgsBlock(block: Block): GridImage[] {
   if (block.loai !== "imgs") return [];
   const cfg = block.config || {};
+  /* 0 = chưa biết tỉ lệ. Không giả 1200×800 — justified sẽ đợi đo intrinsic. */
   const width =
     typeof cfg.width === "number" && cfg.width > 0
       ? Math.round(cfg.width)
-      : GRID_IMAGE_DEFAULT_WIDTH;
+      : 0;
   const height =
     typeof cfg.height === "number" && cfg.height > 0
       ? Math.round(cfg.height)
-      : GRID_IMAGE_DEFAULT_HEIGHT;
+      : 0;
 
   const fromImgs = Array.isArray(cfg.imgs)
     ? cfg.imgs.filter(
@@ -256,11 +262,15 @@ export const JUSTIFIED_MIN_CANVAS_HEIGHT_RATIO = 9 / 16;
  */
 export const JUSTIFIED_MAX_ROW_HEIGHT_RATIO = 1;
 
-/** Aspect ratio = width / height (fallback 1 nếu thiếu số liệu). */
+/** Aspect ratio = width / height. Thiếu số liệu → null (đừng giả 1200×800). */
+export function gridImageAspectOrNull(image: GridImage): number | null {
+  if (!hasGridImageDimensions(image)) return null;
+  return image.width / image.height;
+}
+
+/** Aspect ratio = width / height (fallback 1.5 nếu thiếu — chỉ chỗ không layout hàng). */
 export function gridImageAspect(image: GridImage): number {
-  const w = image.width > 0 ? image.width : GRID_IMAGE_DEFAULT_WIDTH;
-  const h = image.height > 0 ? image.height : GRID_IMAGE_DEFAULT_HEIGHT;
-  return w / h;
+  return gridImageAspectOrNull(image) ?? GRID_IMAGE_DEFAULT_WIDTH / GRID_IMAGE_DEFAULT_HEIGHT;
 }
 
 export function classifyGridImage(image: GridImage): GridImageOrientation {

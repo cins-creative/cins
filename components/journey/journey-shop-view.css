@@ -5267,8 +5267,7 @@
   background: color-mix(in srgb, #fff 6%, var(--bg-page));
 }
 
-/* Trang chi ti?t lo?i ? ?n FAB g?p ? + chat (thay b?ng sticky th?m gi?). */
-body:has(.j-shop-loai-page) .gopy-fab,
+/* Trang chi tiết loại — ẩn chat dock (thay bằng sticky thêm giỏ). */
 body:has(.j-shop-loai-page) .j-chat-dock {
   display: none !important;
 }

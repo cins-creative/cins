@@ -35,6 +35,23 @@ export function buildStreamThumbnailUrl(uid: string): string | null {
   return `${deliveryHost()}/${id}/thumbnails/thumbnail.jpg`;
 }
 
+/** Thumbnail tại mốc thời gian — scrub preview (CF `time=12.5s`). */
+export function buildStreamThumbnailAtTime(
+  uid: string,
+  seconds: number,
+  height = 180,
+): string | null {
+  const id = uid.trim();
+  if (!id || !Number.isFinite(seconds) || seconds < 0) return null;
+  const snapped = Math.round(seconds * 2) / 2;
+  const params = new URLSearchParams({
+    time: `${snapped}s`,
+    height: String(height),
+    fit: "crop",
+  });
+  return `${deliveryHost()}/${id}/thumbnails/thumbnail.jpg?${params}`;
+}
+
 /** MP4 tải xuống — chỉ khả dụng nếu bật "downloads" trên video. Dùng làm fallback frame. */
 export function buildStreamMp4Url(uid: string): string | null {
   const id = uid.trim();

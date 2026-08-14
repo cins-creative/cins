@@ -78,10 +78,6 @@ const GROUP_ICON: Record<FilterGroup, LucideIcon> = {
 };
 
 type Props = {
-  /** Năm tại cột mốc đang nằm dưới context bar. Bỏ khi `embed`. */
-  year?: string;
-  /** Tháng tại cột mốc đang nằm dưới context bar. */
-  month?: string;
   /** Filter group đang chọn. */
   filter: FilterGroup;
   /** Callback đổi filter. */
@@ -151,14 +147,12 @@ function selectTimelineFilter(
 }
 
 /**
- * Context bar Journey: filter trái · toggle chế độ xem phải.
+ * Context bar Journey: filter · toggle chế độ xem.
  *
  * - Dropdown menu mở/đóng bằng local state, click ngoài đóng.
  * - Filter group được nâng lên parent (`JourneyTimeline`) để filter milestones.
  */
 export function JourneyTimelineBar({
-  year = "",
-  month = "",
   filter,
   onFilterChange,
   options,
@@ -428,15 +422,6 @@ export function JourneyTimelineBar({
   return (
     <div className="j-tlb">
       <span className="j-tlb-streak-slow" aria-hidden="true" />
-      <div className="j-tlb-date">
-        <div className="j-tlb-year">{year}</div>
-        <div
-          className="j-tlb-month"
-          style={{ visibility: month ? "visible" : "hidden" }}
-        >
-          {month || "—"}
-        </div>
-      </div>
       {filterControl}
       {showSurfaceToggle ? <JourneySurfaceViewToggle /> : null}
       {portalReady && menu ? createPortal(menu, document.body) : null}

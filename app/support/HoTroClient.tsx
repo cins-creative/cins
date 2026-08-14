@@ -8,7 +8,7 @@ import type { HuongDanCatalogPublic } from "@/lib/huong-dan/types";
 type Props = {
   initialMode?: "help" | "guide";
   initialNhomSlug?: string | null;
-  guideCatalog: HuongDanCatalogPublic;
+  guideCatalog?: HuongDanCatalogPublic;
   isCinsAdmin?: boolean;
 };
 

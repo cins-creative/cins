@@ -325,6 +325,19 @@
   row-gap: var(--cins-img-slot-gap);
   column-gap: var(--cins-img-slot-gap);
 }
+/* Đợi đo intrinsic — placeholder ổn định, không tách hàng trên 1200×800 giả. */
+.image-grid--justified.is-measuring {
+  position: relative;
+  min-height: min(42cqi, 280px);
+  background: var(--bg-page, #f4f5f8);
+}
+.image-grid-measure {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
 .image-grid-jrow {
   display: flex;
   gap: var(--cins-img-slot-gap);

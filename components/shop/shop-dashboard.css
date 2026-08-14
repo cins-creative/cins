@@ -1,11 +1,8 @@
 @import "./shop-anh-caro.css";
 
-/* Trang quản lý shop — ẩn FAB góp ý + chat dock (tránh chồng UI mobile). */
-body:has(.shop-dash) .gopy-fab,
+/* Trang quản lý shop — ẩn chat dock (tránh chồng UI mobile). */
 body:has(.shop-dash) .j-chat-dock,
-body:has(.shop-dash-loading) .gopy-fab,
 body:has(.shop-dash-loading) .j-chat-dock,
-body:has(.shop-dash-gate) .gopy-fab,
 body:has(.shop-dash-gate) .j-chat-dock {
   display: none !important;
 }

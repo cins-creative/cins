@@ -1475,9 +1475,10 @@ export function WorldJourneyFeed({
             ) : (
               <div
                 className={
-                  filterLoading && galleryRows.length > 0
-                    ? "wj-gallery-revalidating"
-                    : undefined
+                  "wj-video-feed-host" +
+                  (filterLoading && galleryRows.length > 0
+                    ? " wj-gallery-revalidating"
+                    : "")
                 }
                 aria-busy={filterLoading || undefined}
               >

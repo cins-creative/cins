@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type DragEvent,
@@ -24,7 +25,10 @@ import {
 } from "@/lib/journey/album-layout-mode";
 import {
   albumGridComposeRows,
+  GRID_IMAGE_DEFAULT_HEIGHT,
+  GRID_IMAGE_DEFAULT_WIDTH,
   gridThumbAsset,
+  hasGridImageDimensions,
   justifiedRowStyle,
   resolveAlbumLayout,
   splitJustifiedRows,
@@ -175,6 +179,21 @@ function ImageGridCell({
     tall: useTallVariant || tallClip,
   });
   const thumbSrc = thumb.src;
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  const reportAspect = useCallback(
+    (width: number, height: number) => {
+      if (width > 0 && height > 0) {
+        onNaturalAspect?.(slotIndex, width / height);
+      }
+    },
+    [onNaturalAspect, slotIndex],
+  );
+  useEffect(() => {
+    const el = imgRef.current;
+    if (el?.complete && el.naturalWidth > 0 && el.naturalHeight > 0) {
+      reportAspect(el.naturalWidth, el.naturalHeight);
+    }
+  }, [reportAspect, thumbSrc]);
   const uploadActive = uploadState?.status === "uploading";
   const uploadDone = uploadState?.status === "done";
   const uploadFailed = uploadState?.status === "error";
@@ -324,25 +343,35 @@ function ImageGridCell({
       {thumbSrc ? (
         /* eslint-disable-next-line @next/next/no-img-element */
         <img
+          ref={imgRef}
           src={thumbSrc}
           srcSet={thumb.srcSet}
           sizes={thumb.srcSet ? thumb.sizes : undefined}
           alt=""
-          width={preferPublicSrc ? undefined : image.width}
-          height={preferPublicSrc ? undefined : image.height}
-          loading={isFirstGroup && slotIndex === 0 ? "eager" : "lazy"}
+          width={
+            preferPublicSrc || image.width <= 0 ? undefined : image.width
+          }
+          height={
+            preferPublicSrc || image.height <= 0 ? undefined : image.height
+          }
+          loading={
+            isFirstGroup && slotIndex === 0
+              ? "eager"
+              : "lazy"
+          }
           decoding="async"
           draggable={false}
           onLoad={(e) => {
             const el = e.currentTarget;
-            if (el.naturalWidth > 0 && el.naturalHeight > 0) {
-              onNaturalAspect?.(
-                slotIndex,
-                el.naturalWidth / el.naturalHeight,
-              );
-            }
+            reportAspect(el.naturalWidth, el.naturalHeight);
           }}
-          onError={handleGridThumbError}
+          onError={(e) => {
+            onNaturalAspect?.(
+              slotIndex,
+              GRID_IMAGE_DEFAULT_WIDTH / GRID_IMAGE_DEFAULT_HEIGHT,
+            );
+            handleGridThumbError(e);
+          }}
         />
       ) : null}
       {uploadState ? (
@@ -603,32 +632,57 @@ export function ImageGrid({
       </div>
     );
   } else if (layout.kind === "justified") {
-    /* Tách lại hàng theo tỉ lệ intrinsic — metadata width/height hay sai khiến
-       split 1+2 với ảnh dọc → hàng đơn quá cao. */
-    const cellsWithAspect = layout.rows.flat().map((c) => ({
-      ...c,
-      aspect: resolveCellAspect(c),
-    }));
-    const justifiedRows = splitJustifiedRows(cellsWithAspect);
-    body = (
-      <div className="image-grid image-grid-col image-grid--justified" data-count={total}>
-        {justifiedRows.map((row, ri) => (
-          <div
-            key={`jrow-${ri}`}
-            className="image-grid-jrow"
-            style={justifiedRowStyle(row) as CSSProperties}
-          >
-            {row.map((c: AlbumCell) =>
-              renderCell(c.index, {
-                style: { flexGrow: c.aspect },
-                overlay: layout.overlaySlotIndex === c.index,
-                remaining: layout.remaining,
-              }),
-            )}
+    /* Chỉ tách hàng khi mọi ô đã có tỉ lệ thật (block hoặc onLoad).
+       Fallback 1200×800 khiến 3 ảnh nhảy 1+2 ↔ 1 hàng, 6 ảnh nhảy 3+3 ↔ 2+2+2. */
+    const baseCells = layout.rows.flat();
+    const cellsWithAspect = baseCells.map((c) => {
+      const img = images[c.index];
+      const measured = measuredAspectByIndex[c.index];
+      if (measured != null && measured > 0) {
+        return { ...c, aspect: measured, ready: true };
+      }
+      if (img && hasGridImageDimensions(img)) {
+        return { ...c, aspect: img.width / img.height, ready: true };
+      }
+      if (img?.composePending) {
+        return { ...c, aspect: 1, ready: true };
+      }
+      return { ...c, aspect: 0, ready: false };
+    });
+    const pendingMeasure = cellsWithAspect.some((c) => !c.ready);
+    if (pendingMeasure) {
+      body = (
+        <div
+          className="image-grid image-grid-col image-grid--justified is-measuring"
+          data-count={total}
+        >
+          <div className="image-grid-measure" aria-hidden>
+            {baseCells.map((c) => renderCell(c.index))}
           </div>
-        ))}
-      </div>
-    );
+        </div>
+      );
+    } else {
+      const justifiedRows = splitJustifiedRows(cellsWithAspect);
+      body = (
+        <div className="image-grid image-grid-col image-grid--justified" data-count={total}>
+          {justifiedRows.map((row, ri) => (
+            <div
+              key={`jrow-${ri}`}
+              className="image-grid-jrow"
+              style={justifiedRowStyle(row) as CSSProperties}
+            >
+              {row.map((c: AlbumCell) =>
+                renderCell(c.index, {
+                  style: { flexGrow: c.aspect },
+                  overlay: layout.overlaySlotIndex === c.index,
+                  remaining: layout.remaining,
+                }),
+              )}
+            </div>
+          ))}
+        </div>
+      );
+    }
   } else if (layout.kind === "stack") {
     body = (
       <div className="image-grid image-grid-col image-grid--stack" data-count={total}>

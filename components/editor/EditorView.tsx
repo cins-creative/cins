@@ -1662,8 +1662,17 @@ export function EditorView({
       }
       setImageUploadTrack(localSeed, { progress: 0, status: "uploading" });
 
+      const pendingDims = { width: 0, height: 0, ready: false };
+      let resolvedIdForDims: string | null = null;
+
       void readImageFileDimensions(file).then(({ width, height }) => {
+        pendingDims.width = width;
+        pendingDims.height = height;
+        pendingDims.ready = true;
         applyImageDimensionsToSeed(localSeed, width, height);
+        if (resolvedIdForDims) {
+          applyImageDimensionsToSeed(resolvedIdForDims, width, height);
+        }
       });
 
       const finishTrack = (key: string, track: ImageUploadTrack | null) => {
@@ -1680,6 +1689,7 @@ export function EditorView({
             rememberCfAccountHashFromDeliveryUrl(result.url);
           }
           const resolvedId = result.imageId;
+          resolvedIdForDims = resolvedId;
           setImageUploads((prev) => {
             const next = { ...prev };
             delete next[localSeed];
@@ -1688,10 +1698,18 @@ export function EditorView({
           setBlocks((prev) =>
             prev.map((b) => {
               if (b.t !== "imgs") return b;
+              const hit = b.imgs?.includes(localSeed);
               const imgs = b.imgs?.map((seed) =>
                 seed === localSeed ? resolvedId : seed,
               );
-              return { ...b, imgs };
+              if (!hit) return { ...b, imgs };
+              return {
+                ...b,
+                imgs,
+                ...(pendingDims.ready
+                  ? { width: pendingDims.width, height: pendingDims.height }
+                  : {}),
+              };
             }),
           );
           setCoverSeed((current) => (current === localSeed ? resolvedId : current));

@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  ArrowLeft,
+  ChevronLeft,
   Clapperboard,
   Play,
 } from "lucide-react";
@@ -9,6 +9,7 @@ import Link from "next/link";
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -22,7 +23,10 @@ import { JourneyCommentLink } from "@/components/journey/JourneyCommentLink";
 import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
 import { PostShareMenu } from "@/components/journey/PostActionsRail";
 import { WORLD_JOURNEY_VIDEO_PAGE_SIZE } from "@/lib/cins/worldJourneyFeedConstants";
-import { buildStreamIframeUrl } from "@/lib/cloudflare/stream-embed";
+import {
+  buildStreamIframeUrl,
+  buildStreamThumbnailAtTime,
+} from "@/lib/cloudflare/stream-embed";
 import {
   bindStreamPlayer,
   type StreamPlayer,
@@ -133,11 +137,14 @@ function ReelSlide({
   item,
   active,
   preload,
+  canPlay,
 }: {
   item: GalleryMainItem;
   active: boolean;
   /** Mount iframe trước (không autoplay) để cuộn tới phát ngay. */
   preload: boolean;
+  /** Chỉ play khi slide đã vào khung chính (sau scroll-into-view). */
+  canPlay: boolean;
 }) {
   const uid = item.streamUid!.trim();
   const poster = item.src || item.videoPreviewSrc || undefined;
@@ -146,23 +153,37 @@ function ReelSlide({
     seededAspect.mode,
   );
   const [aspectRatio, setAspectRatio] = useState(seededAspect.ratio);
-  const [paused, setPaused] = useState(!active);
+  const [paused, setPaused] = useState(!(active && canPlay));
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [scrubbing, setScrubbing] = useState(false);
+  const [scrubRatio, setScrubRatio] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerRef = useRef<StreamPlayer | null>(null);
   /** User chủ động pause — đừng auto-play lại khi effect active chạy. */
   const userPausedRef = useRef(false);
   const scrubbingRef = useRef(false);
+  const wasPlayingRef = useRef(false);
+  const seekRafRef = useRef(0);
   const activeRef = useRef(active);
   activeRef.current = active;
+  const canPlayRef = useRef(canPlay);
+  canPlayRef.current = canPlay;
   const target = reactionTarget(item);
   const authorHref = item.authorSlug ? `/${item.authorSlug}` : item.href;
   const caption = item.meta?.trim() || item.label?.trim() || "";
   const iframeSrc = active || preload ? streamIframeSrc(uid) : null;
   const progress =
-    duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
+    duration > 0
+      ? Math.min(
+          100,
+          Math.max(0, (scrubbing ? scrubRatio : currentTime / duration) * 100),
+        )
+      : 0;
+  const previewThumb =
+    scrubbing && duration > 0
+      ? buildStreamThumbnailAtTime(uid, scrubRatio * duration)
+      : null;
   const sharePath = item.href?.trim() || null;
   const shareTitle = item.label?.trim() || caption || "CINs";
 
@@ -171,6 +192,12 @@ function ReelSlide({
     setAspectMode(next.mode);
     setAspectRatio(next.ratio);
   }, [item]);
+
+  useEffect(() => {
+    return () => {
+      if (seekRafRef.current) cancelAnimationFrame(seekRafRef.current);
+    };
+  }, []);
 
   /* Thiếu videoCanvasRatio → đo poster thật (Stream thumb) để chọn fill-W / 9:16. */
   useEffect(() => {
@@ -236,7 +263,8 @@ function ReelSlide({
     };
 
     const playIfActive = (next: StreamPlayer) => {
-      if (!activeRef.current || userPausedRef.current) {
+      if (!activeRef.current || !canPlayRef.current || userPausedRef.current) {
+        next.pause();
         onMeta();
         return;
       }
@@ -286,12 +314,12 @@ function ReelSlide({
     };
   }, [iframeSrc, uid]);
 
-  /* Slide active → play (trừ khi user đã pause); inactive → pause. */
+  /* Slide vào khung chính → play; preload / chưa snap xong → pause. */
   useEffect(() => {
     const el = iframeRef.current;
 
     const playActive = () => {
-      if (userPausedRef.current) return;
+      if (userPausedRef.current || !canPlayRef.current) return;
       /* Ẩn nút play ngay khi bắt đầu autoplay — đừng chờ event SDK. */
       setPaused(false);
       const player = playerRef.current;
@@ -321,6 +349,13 @@ function ReelSlide({
       pauseInactive();
       return;
     }
+    if (!canPlay) {
+      setPaused(true);
+      const player = playerRef.current;
+      if (player) player.pause();
+      else postStreamEvent(el, "pause");
+      return;
+    }
 
     playActive();
     const t1 = window.setTimeout(playActive, 350);
@@ -329,7 +364,7 @@ function ReelSlide({
       window.clearTimeout(t1);
       window.clearTimeout(t2);
     };
-  }, [active, iframeSrc]);
+  }, [active, canPlay, iframeSrc]);
 
   const togglePlayback = useCallback(() => {
     if (!active) return;
@@ -356,13 +391,28 @@ function ReelSlide({
   }, [active, paused]);
 
   const seekToRatio = useCallback((ratio: number) => {
+    const clamped = Math.min(1, Math.max(0, ratio));
     const player = playerRef.current;
     const d = player?.duration || duration;
-    if (!player || !Number.isFinite(d) || d <= 0) return;
-    const next = Math.min(d, Math.max(0, ratio * d));
-    player.currentTime = next;
+    setScrubRatio(clamped);
+    if (!Number.isFinite(d) || d <= 0) return;
+    const next = clamped * d;
     setCurrentTime(next);
+    if (!player) return;
+    if (seekRafRef.current) cancelAnimationFrame(seekRafRef.current);
+    seekRafRef.current = requestAnimationFrame(() => {
+      seekRafRef.current = 0;
+      player.currentTime = next;
+    });
   }, [duration]);
+
+  const ratioFromPointer = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      return rect.width > 0 ? (e.clientX - rect.left) / rect.width : 0;
+    },
+    [],
+  );
 
   const onTimelinePointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -370,31 +420,31 @@ function ReelSlide({
       e.preventDefault();
       const track = e.currentTarget;
       track.setPointerCapture(e.pointerId);
+      const player = playerRef.current;
+      wasPlayingRef.current = player ? !player.paused : !paused;
+      if (player && !player.paused) player.pause();
       scrubbingRef.current = true;
       setScrubbing(true);
-      const rect = track.getBoundingClientRect();
-      const ratio =
-        rect.width > 0 ? (e.clientX - rect.left) / rect.width : 0;
-      seekToRatio(ratio);
+      seekToRatio(ratioFromPointer(e));
     },
-    [seekToRatio],
+    [paused, ratioFromPointer, seekToRatio],
   );
 
   const onTimelinePointerMove = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       if (!scrubbingRef.current) return;
       e.stopPropagation();
-      const rect = e.currentTarget.getBoundingClientRect();
-      const ratio =
-        rect.width > 0 ? (e.clientX - rect.left) / rect.width : 0;
-      seekToRatio(ratio);
+      seekToRatio(ratioFromPointer(e));
     },
-    [seekToRatio],
+    [ratioFromPointer, seekToRatio],
   );
 
   const onTimelinePointerUp = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       e.stopPropagation();
+      if (scrubbingRef.current) {
+        seekToRatio(ratioFromPointer(e));
+      }
       scrubbingRef.current = false;
       setScrubbing(false);
       try {
@@ -402,8 +452,18 @@ function ReelSlide({
       } catch {
         /* ignore */
       }
+      if (wasPlayingRef.current && !userPausedRef.current) {
+        const player = playerRef.current;
+        if (player) {
+          void player.play().catch(() => {
+            player.muted = true;
+            void player.play();
+          });
+        }
+      }
+      wasPlayingRef.current = false;
     },
-    [],
+    [ratioFromPointer, seekToRatio],
   );
 
   return (
@@ -455,7 +515,7 @@ function ReelSlide({
           />
         ) : null}
 
-        {active && paused ? (
+        {active && paused && !scrubbing ? (
           <div className="wj-reel-pause-badge" aria-hidden>
             <Play size={28} strokeWidth={2.2} fill="currentColor" />
           </div>
@@ -550,13 +610,30 @@ function ReelSlide({
               }
             }}
           >
+            {scrubbing && previewThumb ? (
+              <div
+                className="wj-reel-scrub-preview"
+                style={{
+                  left: `${Math.min(86, Math.max(14, progress))}%`,
+                }}
+                aria-hidden
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={previewThumb} alt="" />
+                <span>{formatReelTime(currentTime)}</span>
+              </div>
+            ) : null}
             <div className="wj-reel-timeline-track">
               <div
                 className="wj-reel-timeline-fill"
                 style={{ width: `${progress}%` }}
               />
+              <span
+                className="wj-reel-timeline-knob"
+                style={{ left: `${progress}%` }}
+              />
             </div>
-            {scrubbing || paused ? (
+            {!scrubbing && paused ? (
               <span className="wj-reel-timeline-time">
                 {formatReelTime(currentTime)}
                 {duration > 0 ? ` / ${formatReelTime(duration)}` : ""}
@@ -681,6 +758,9 @@ export function WorldJourneyVideoFeed({
   const sentinelRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
   const didScrollStartRef = useRef(false);
+  const [snapReady, setSnapReady] = useState(() => !startItemId);
+  const snapReadyRef = useRef(snapReady);
+  snapReadyRef.current = snapReady;
 
   const activeIndex = useMemo(() => {
     if (!activeId) return 0;
@@ -786,7 +866,8 @@ export function WorldJourneyVideoFeed({
             best = { id, ratio: entry.intersectionRatio };
           }
         }
-        if (best) setActiveId(best.id);
+        if (!snapReadyRef.current) return;
+        if (best && best.ratio >= 0.7) setActiveId(best.id);
       },
       { root, threshold: [0.55, 0.75, 0.9] },
     );
@@ -810,10 +891,14 @@ export function WorldJourneyVideoFeed({
 
   useEffect(() => {
     didScrollStartRef.current = false;
+    setSnapReady(!startItemId);
   }, [startItemId]);
 
-  useEffect(() => {
-    if (didScrollStartRef.current || !startItemId) return;
+  useLayoutEffect(() => {
+    if (!startItemId) {
+      setSnapReady(true);
+      return;
+    }
     const root = scrollerRef.current;
     if (!root) return;
     const el = root.querySelector<HTMLElement>(
@@ -822,6 +907,8 @@ export function WorldJourneyVideoFeed({
     if (!el) return;
     el.scrollIntoView({ block: "start" });
     didScrollStartRef.current = true;
+    setActiveId(startItemId);
+    setSnapReady(true);
   }, [items.length, startItemId]);
 
   useEffect(() => {
@@ -859,7 +946,7 @@ export function WorldJourneyVideoFeed({
           aria-label="Quay lại danh sách video"
           onClick={onClose}
         >
-          <ArrowLeft size={22} strokeWidth={2.2} aria-hidden />
+          <ChevronLeft size={28} strokeWidth={2.2} aria-hidden />
         </button>
         {empty}
       </div>
@@ -875,7 +962,7 @@ export function WorldJourneyVideoFeed({
           aria-label="Quay lại danh sách video"
           onClick={onClose}
         >
-          <ArrowLeft size={22} strokeWidth={2.2} aria-hidden />
+          <ChevronLeft size={28} strokeWidth={2.2} aria-hidden />
         </button>
       ) : null}
       <div className="wj-video-feed" ref={scrollerRef} aria-label="Video">
@@ -887,7 +974,12 @@ export function WorldJourneyVideoFeed({
             index <= activeIndex + REEL_IFRAME_PRELOAD;
           return (
             <div key={item.id} className="wj-reel-snap" data-reel-id={item.id}>
-              <ReelSlide item={item} active={active} preload={preload} />
+              <ReelSlide
+                item={item}
+                active={active}
+                preload={preload}
+                canPlay={active && snapReady}
+              />
             </div>
           );
         })}

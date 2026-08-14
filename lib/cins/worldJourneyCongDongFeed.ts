@@ -16,7 +16,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { WORLD_JOURNEY_CONG_DONG_SUGGEST_LIMIT } from "@/lib/cins/worldJourneyFeedConstants";
 
 const COT_MOC_FEED_SELECT =
-  "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc, id_nguoi_dung, id_to_chuc";
+  "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc, id_nguoi_dung, id_to_chuc, id_khoa_hoc, id_lop_hoc";
 
 const QUERY_LIMIT = 80;
 
@@ -31,6 +31,8 @@ type CotMocFeedRow = {
   tao_luc: string | null;
   id_nguoi_dung: string;
   id_to_chuc?: string | null;
+  id_khoa_hoc?: string | null;
+  id_lop_hoc?: string | null;
 };
 
 type AuthorRow = {

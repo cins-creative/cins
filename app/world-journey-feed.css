@@ -67,9 +67,9 @@
   --wj-feed-card-gap: 14px;
   --wj-feed-pad-top: 0;
   --wj-feed-max: 760px;
-  /* Inset asides (shell padding = 0). Solo: pad-bottom = pad-top. */
-  --wj-shell-pad-top: 16px;
-  --wj-aside-inset: var(--wj-shell-pad-top);
+  /* Shell sát topbar; aside tự inset (không phụ thuộc pad-top shell). */
+  --wj-shell-pad-top: 0;
+  --wj-aside-inset: 16px;
   --wj-shell-gutter: 16px;
   /* Hai cột aside cùng bề ngang (tổng ~580px như trước: 248 + 332). */
   --wj-aside-w: 290px;
@@ -766,7 +766,7 @@
   margin: 0;
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
-  padding: var(--wj-shell-pad-top, 16px) 16px 32px;
+  padding: var(--wj-shell-pad-top, 0) 16px 32px;
 }
 
 .world-journey-home.view-grid .wj-shell .wj-guest-aside--left,
@@ -2980,7 +2980,7 @@
 
 .wj-feed-empty svg {
   margin: 0 auto 10px;
-  color: var(--cins-violet, #7c5cfc);
+  color: var(--cins-blue, #1f74c9);
 }
 
 .wj-feed-empty b {
@@ -3030,17 +3030,17 @@
   background:
     linear-gradient(
       145deg,
-      color-mix(in srgb, var(--cins-violet, #7c5cfc) 8%, transparent),
+      color-mix(in srgb, var(--cins-blue, #1f74c9) 8%, transparent),
       transparent 70%
     ),
     var(--surface-2, color-mix(in srgb, var(--ink2) 4%, var(--surface)));
-  border: 1px solid color-mix(in srgb, var(--cins-violet, #7c5cfc) 18%, var(--border-s));
+  border: 1px solid color-mix(in srgb, var(--cins-blue, #1f74c9) 18%, var(--border-s));
 }
 
 .wj-feed-searching-grid span {
   display: block;
   border-radius: 4px;
-  background: color-mix(in srgb, var(--cins-violet, #7c5cfc) 14%, var(--border-s));
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 14%, var(--border-s));
   animation: wj-feed-cell-scan 1.35s ease-in-out infinite;
 }
 
@@ -3059,10 +3059,10 @@
   height: 28px;
   padding: 5px;
   border-radius: 999px;
-  color: var(--cins-violet, #7c5cfc);
+  color: var(--cins-blue, #1f74c9);
   background: color-mix(in srgb, var(--surface) 88%, transparent);
-  border: 1px solid color-mix(in srgb, var(--cins-violet, #7c5cfc) 28%, var(--border-s));
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--cins-violet, #7c5cfc) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cins-blue, #1f74c9) 28%, var(--border-s));
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--cins-blue, #1f74c9) 18%, transparent);
   backdrop-filter: blur(4px);
 }
 
@@ -3071,7 +3071,7 @@
   width: 42px;
   height: 42px;
   border-radius: 999px;
-  border: 1.5px solid color-mix(in srgb, var(--cins-violet, #7c5cfc) 45%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--cins-blue, #1f74c9) 45%, transparent);
   animation: wj-feed-beam-pulse 1.6s ease-out infinite;
 }
 
@@ -3085,7 +3085,7 @@
   width: 6px;
   height: 6px;
   border-radius: 999px;
-  background: var(--cins-violet, #7c5cfc);
+  background: var(--cins-blue, #1f74c9);
   opacity: 0.35;
   animation: wj-feed-dot-bounce 1.05s ease-in-out infinite;
 }
@@ -3103,12 +3103,12 @@
   100% {
     opacity: 0.35;
     transform: scale(0.92);
-    background: color-mix(in srgb, var(--cins-violet, #7c5cfc) 12%, var(--border-s));
+    background: color-mix(in srgb, var(--cins-blue, #1f74c9) 12%, var(--border-s));
   }
   40% {
     opacity: 1;
     transform: scale(1);
-    background: color-mix(in srgb, var(--cins-violet, #7c5cfc) 55%, var(--border-s));
+    background: color-mix(in srgb, var(--cins-blue, #1f74c9) 55%, var(--border-s));
   }
 }
 
@@ -4391,6 +4391,31 @@
 }
 
 /* ── Video / Reels surface (Facebook-style) ── */
+/* Reels: cột flex lấp hết phần còn lại — tránh khe đáy do 100vh > 100dvh (Chrome mobile). */
+body:has(.world-journey-home.view-video) .cins-shell,
+body:has(.world-journey-home.view-video) .cins-shell-column {
+  min-height: 100dvh;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+.cins-main:has(> .world-journey-home.view-video) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.world-journey-home.view-video {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 .world-journey-home.view-video .wj-shell {
   max-width: none;
   width: 100%;
@@ -4398,12 +4423,28 @@
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
   padding: 0;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .world-journey-home.view-video .wj-feed.view-video {
   gap: 0;
   max-width: none;
   padding-top: 0;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.wj-video-feed-host {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .world-journey-home.view-video .wj-guest-aside--left,
@@ -4412,8 +4453,7 @@
   display: none !important;
 }
 
-/* Tab Video: ẩn FAB góp ý + chat dock (giống layout Reels sạch). */
-body:has(.world-journey-home.view-video) .gopy-fab,
+/* Tab Video: ẩn chat dock (giống layout Reels sạch). */
 body:has(.world-journey-home.view-video) .j-chat-dock {
   display: none !important;
 }
@@ -4438,14 +4478,33 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   overflow-y: auto;
   scroll-snap-type: y mandatory;
   overscroll-behavior-y: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   background: #000;
   border-radius: 0;
   color: #fff;
 }
 
+.wj-video-feed::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 .wj-video-feed-wrap {
   position: relative;
   width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.world-journey-home.view-video .wj-video-feed {
+  flex: 1;
+  height: auto;
+  max-height: none;
+  min-height: 0;
 }
 
 .wj-reel-back {
@@ -4460,14 +4519,16 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   height: 44px;
   padding: 0;
   border: 0;
-  border-radius: 50%;
+  border-radius: 0;
   color: #fff;
-  background: rgba(15, 23, 42, 0.55);
+  background: transparent;
   cursor: pointer;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.65));
 }
 .wj-reel-back:hover,
 .wj-reel-back:focus-visible {
-  background: rgba(15, 23, 42, 0.78);
+  background: transparent;
+  color: #fff;
 }
 .wj-reel-back:focus-visible {
   outline: 2px solid #fff;
@@ -4797,7 +4858,7 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   right: 0;
   bottom: 0;
   z-index: 3;
-  height: 22px;
+  height: 28px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -4814,14 +4875,14 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   height: 3px;
   background: rgba(255, 255, 255, 0.28);
   border-radius: 0;
-  overflow: hidden;
+  overflow: visible;
   transition: height 120ms ease;
 }
 
 .wj-reel-timeline.is-scrubbing .wj-reel-timeline-track,
 .wj-reel-timeline:hover .wj-reel-timeline-track,
 .wj-reel-timeline:focus-visible .wj-reel-timeline-track {
-  height: 5px;
+  height: 6px;
 }
 
 .wj-reel-timeline-fill {
@@ -4829,6 +4890,58 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   background: #fff;
   border-radius: inherit;
   will-change: width;
+}
+
+.wj-reel-timeline-knob {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  border-radius: 50%;
+  background: #fff;
+  transform: translateY(-50%) scale(0);
+  pointer-events: none;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+
+.wj-reel-timeline.is-scrubbing .wj-reel-timeline-knob,
+.wj-reel-timeline:hover .wj-reel-timeline-knob,
+.wj-reel-timeline:focus-visible .wj-reel-timeline-knob {
+  transform: translateY(-50%) scale(1);
+}
+
+.wj-reel-scrub-preview {
+  position: absolute;
+  bottom: 18px;
+  z-index: 4;
+  width: 112px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.wj-reel-scrub-preview img {
+  display: block;
+  width: 112px;
+  height: 63px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #111;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+}
+
+.wj-reel-scrub-preview span {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
+  font-variant-numeric: tabular-nums;
 }
 
 .wj-reel-timeline-time {
@@ -4961,10 +5074,10 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
     --wj-reel-rail-w: 56px;
     --wj-reel-max-w-portrait: 100%;
     --wj-reel-max-w-landscape: 100%;
-    height: calc(
-      100dvh - var(--site-nav-height, 56px) - var(--wj-feed-header-h, 48px)
-    );
+    flex: 1;
+    height: auto;
     max-height: none;
+    min-height: 0;
   }
 
   .wj-reel-snap {
@@ -5007,7 +5120,7 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   }
 
   .wj-reel-timeline {
-    height: 26px;
+    height: 36px;
   }
 
   .wj-reel-timeline-time {

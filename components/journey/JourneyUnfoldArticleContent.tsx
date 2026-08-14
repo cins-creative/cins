@@ -48,7 +48,7 @@ export function JourneyUnfoldArticleContent({
       {unfoldTomTat ? (
         <MoTaMarkdown
           text={unfoldTomTat}
-          className="sub-in sub-ro"
+          className="sub-in sub-ro post-view-dek"
           as="div"
         />
       ) : null}

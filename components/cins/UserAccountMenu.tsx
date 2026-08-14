@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  MessageSquarePlus,
   Monitor,
   Moon,
   PlusCircle,
@@ -11,9 +12,12 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { signOutAction } from "@/app/auth/sign-out-action";
+import { HelpCenterModal } from "@/components/cins/HelpCenterModal";
 import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
 import { UserAccountSettingsModal } from "@/components/cins/UserAccountSettingsModal";
+import { GopYModal } from "@/components/feedback/GopYModal";
 import { clearAllClientCaches } from "@/lib/client-cache";
+import { prefetchHuongDanCatalog } from "@/lib/huong-dan/catalog-client";
 import { clearAllWorldJourneyFirstImpressionSeen } from "@/lib/cins/worldJourneyFirstImpression";
 import { getNameInitials } from "@/lib/journey/profile";
 import { clearRecentSearches } from "@/lib/search/recent-searches-storage";
@@ -50,6 +54,8 @@ export function UserAccountMenu({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [gopyOpen, setGopyOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [themeMode, setThemeMode] = useState<ThemeMode>("system");
   const cardRef = useRef<HTMLDivElement | null>(null);
   const menuId = useId();
@@ -66,6 +72,7 @@ export function UserAccountMenu({
 
   useEffect(() => {
     if (!open) return;
+    prefetchHuongDanCatalog();
     setThemeMode(readThemeMode());
     function onDocClick(ev: MouseEvent) {
       if (!cardRef.current) return;
@@ -153,17 +160,34 @@ export function UserAccountMenu({
             </span>
             <span>Cài đặt</span>
           </button>
-          <Link
-            href="/support"
+          <button
+            type="button"
             className="app-user-menu-item"
             role="menuitem"
-            onClick={() => setOpen(false)}
+            onClick={() => {
+              setOpen(false);
+              setGopyOpen(true);
+            }}
+          >
+            <span className="app-user-menu-ico" aria-hidden>
+              <MessageSquarePlus size={18} strokeWidth={1.7} />
+            </span>
+            <span>Góp ý</span>
+          </button>
+          <button
+            type="button"
+            className="app-user-menu-item"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              setHelpOpen(true);
+            }}
           >
             <span className="app-user-menu-ico" aria-hidden>
               <SidebarNavIcon name="help" />
             </span>
             <span>Trợ giúp</span>
-          </Link>
+          </button>
 
           <div
             className="app-user-theme"
@@ -252,6 +276,11 @@ export function UserAccountMenu({
       <UserAccountSettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
+      />
+      <GopYModal open={gopyOpen} onClose={() => setGopyOpen(false)} />
+      <HelpCenterModal
+        open={helpOpen}
+        onClose={() => setHelpOpen(false)}
       />
     </>
   );

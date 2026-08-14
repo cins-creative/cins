@@ -3,7 +3,6 @@ import { Be_Vietnam_Pro } from "next/font/google";
 
 import { AuthSessionRemember } from "@/components/auth/AuthSessionRemember";
 import { ThemeRoot } from "@/components/cins/ThemeRoot";
-import { GopYButton } from "@/components/feedback/GopYButton";
 import { HardNavGuard } from "@/components/navigation/HardNavGuard";
 import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
 import { THEME_NO_FLASH_SCRIPT } from "@/lib/theme/theme-mode";
@@ -102,7 +101,6 @@ export default function RootLayout({
         <HardNavGuard />
         <AuthSessionRemember />
         {children}
-        <GopYButton />
       </body>
     </html>
   );

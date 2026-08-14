@@ -24,20 +24,31 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useState } from "react";
+import { lazy, Suspense, useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { HelpCenterGuidePanel } from "@/components/cins/HelpCenterGuidePanel";
 import {
   FEED_SCORE_FORMULA,
   FEED_SCORE_SCOPE,
 } from "@/lib/cins/feed-scoring-catalog";
 import { DEFAULT_FEED_SCORE_CONFIG } from "@/lib/cins/feed-scoring-config";
+import {
+  fetchHuongDanCatalog,
+  peekHuongDanCatalog,
+} from "@/lib/huong-dan/catalog-client";
 import { huongDanHref } from "@/lib/huong-dan/slug";
 import type { HuongDanCatalogPublic } from "@/lib/huong-dan/types";
 
+const HelpCenterGuidePanel = lazy(() =>
+  import("@/components/cins/HelpCenterGuidePanel").then((m) => ({
+    default: m.HelpCenterGuidePanel,
+  })),
+);
+
 import "./user-account-settings-modal.css";
 import "./help-center-modal.css";
+
+const EMPTY_CATALOG: HuongDanCatalogPublic = { nhom: [] };
 
 type HelpMode = "help" | "guide";
 
@@ -291,7 +302,7 @@ export function HelpCenterModal({
   initialMode = "help",
   initialNhomSlug = null,
   initialPhienSlug = null,
-  guideCatalog = { nhom: [] },
+  guideCatalog = EMPTY_CATALOG,
   syncUrl = false,
   isCinsAdmin = false,
 }: Props) {
@@ -302,6 +313,20 @@ export function HelpCenterModal({
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [guideNhom, setGuideNhom] = useState<string | null>(initialNhomSlug);
   const [guidePhien, setGuidePhien] = useState<string | null>(initialPhienSlug);
+  const [catalog, setCatalog] = useState<HuongDanCatalogPublic>(() =>
+    guideCatalog.nhom.length > 0
+      ? guideCatalog
+      : (peekHuongDanCatalog() ?? guideCatalog),
+  );
+  const [admin, setAdmin] = useState(isCinsAdmin);
+
+  useEffect(() => {
+    if (guideCatalog.nhom.length > 0) setCatalog(guideCatalog);
+  }, [guideCatalog]);
+
+  useEffect(() => {
+    setAdmin(isCinsAdmin);
+  }, [isCinsAdmin]);
 
   useEffect(() => {
     if (!open) return;
@@ -311,6 +336,33 @@ export function HelpCenterModal({
     setGuideNhom(initialNhomSlug);
     setGuidePhien(initialPhienSlug);
   }, [open, initialMode, initialNhomSlug, initialPhienSlug]);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    void fetchHuongDanCatalog()
+      .then((next) => {
+        if (!cancelled) setCatalog(next);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || isCinsAdmin || mode !== "guide") return;
+    let cancelled = false;
+    void fetch("/api/auth/session-profile", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((json: { isCinsAdmin?: boolean } | null) => {
+        if (!cancelled) setAdmin(json?.isCinsAdmin === true);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [open, isCinsAdmin, mode]);
 
   function replaceUrl(nextMode: HelpMode, nhom: string | null) {
     if (!syncUrl) return;
@@ -327,9 +379,9 @@ export function HelpCenterModal({
       replaceUrl("help", null);
       return;
     }
-    const firstNhom = guideCatalog.nhom[0] ?? null;
+    const firstNhom = catalog.nhom[0] ?? null;
     const nhom = guideNhom || firstNhom?.slug || null;
-    const matched = guideCatalog.nhom.find((n) => n.slug === nhom) ?? firstNhom;
+    const matched = catalog.nhom.find((n) => n.slug === nhom) ?? firstNhom;
     const phien =
       (matched && guideNhom === matched.slug ? guidePhien : null) ||
       matched?.phien[0]?.slug ||
@@ -414,18 +466,24 @@ export function HelpCenterModal({
             aria-labelledby={`${titleId}-mode-guide`}
             className="help-center-guide-shell"
           >
-            <HelpCenterGuidePanel
-              titleId={titleId}
-              catalog={guideCatalog}
-              initialNhomSlug={guideNhom}
-              initialPhienSlug={guidePhien}
-              isCinsAdmin={isCinsAdmin}
-              onNavigate={(nhom, phien) => {
-                setGuideNhom(nhom);
-                setGuidePhien(phien);
-                replaceUrl("guide", nhom);
-              }}
-            />
+            <Suspense
+              fallback={
+                <div className="help-center-guide-shell" aria-busy="true" />
+              }
+            >
+              <HelpCenterGuidePanel
+                titleId={titleId}
+                catalog={catalog}
+                initialNhomSlug={guideNhom}
+                initialPhienSlug={guidePhien}
+                isCinsAdmin={admin}
+                onNavigate={(nhom, phien) => {
+                  setGuideNhom(nhom);
+                  setGuidePhien(phien);
+                  replaceUrl("guide", nhom);
+                }}
+              />
+            </Suspense>
           </div>
         ) : (
         <div

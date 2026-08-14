@@ -67,7 +67,7 @@ const FEED_FILTER_POOL_LIMIT = 240;
 const QUERY_LIMIT = 120;
 
 const COT_MOC_FEED_SELECT =
-  "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc, id_nguoi_dung, id_to_chuc";
+  "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc, id_nguoi_dung, id_to_chuc, id_khoa_hoc, id_lop_hoc";
 
 type CotMocFeedRow = {
   id: string;
@@ -80,6 +80,8 @@ type CotMocFeedRow = {
   tao_luc: string | null;
   id_nguoi_dung: string;
   id_to_chuc?: string | null;
+  id_khoa_hoc?: string | null;
+  id_lop_hoc?: string | null;
 };
 
 type LinkRow = {

@@ -35,7 +35,13 @@ import {
 import { JourneyAuthorRowFriendAction } from "@/components/journey/JourneyAuthorRowFriendAction";
 import { JourneyOwnCoAuthorRoleEditor } from "@/components/journey/JourneyOwnCoAuthorRoleEditor";
 import { JourneyBookmarkListingCard } from "@/components/journey/JourneyBookmarkListingCard";
+import { BatDauHocMilestoneCard } from "@/components/journey/BatDauHocMilestonePanel";
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
+import {
+  parseBatDauHocAutoBody,
+  parseBatDauHocAutoTitle,
+  resolveBatDauHocCardCopy,
+} from "@/lib/journey/bat-dau-hoc-card";
 import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
 import { JourneyMilestoneUnfold } from "@/components/journey/JourneyMilestoneUnfold";
 import { VerifiedTick } from "@/components/journey/VerifiedTick";
@@ -496,6 +502,7 @@ export function JourneyMilestoneCard({
     orgBaiDangRef,
     orgSuKienRef,
     cardLayout = "default",
+    batDauHoc,
     orgHref,
     congDongOrg,
     personalFilterSlugs = [],
@@ -716,6 +723,42 @@ export function JourneyMilestoneCard({
         attribution={attribution}
         verifiedBy={verifiedBy}
         orgHref={orgHref}
+        isOwner={isOwner}
+      />
+    );
+  }
+
+  const batDauHocCopy = resolveBatDauHocCardCopy({
+    title,
+    body,
+    orgName: attribution?.name,
+    meta: batDauHoc,
+  });
+  const isBatDauHocCard =
+    cardLayout === "bat-dau-hoc" ||
+    Boolean(batDauHoc) ||
+    (type === "hoc" &&
+      Boolean(parseBatDauHocAutoTitle(title) ?? parseBatDauHocAutoBody(body)));
+  if (isBatDauHocCard) {
+    return (
+      <BatDauHocMilestoneCard
+        milestoneCls={["j-milestone", "j-tagged", "j-verified", "j-bat-dau-hoc"]
+          .filter(Boolean)
+          .join(" ")}
+        milestoneId={cotMocId ?? milestone.id}
+        cotMocId={cotMocId ?? milestone.id}
+        ownerSlug={ownerSlug ?? ""}
+        displayDate={displayDate}
+        year={year}
+        month={month}
+        khoaTen={batDauHocCopy.khoaTen}
+        orgTen={batDauHocCopy.orgTen}
+        orgAvatarUrl={attribution?.avatarUrl}
+        thumbnailUrl={batDauHoc?.thumbnailUrl}
+        khoaHref={batDauHoc?.khoaHref}
+        orgHref={orgHref ?? attribution?.href}
+        type={type}
+        visibility={visibility}
         isOwner={isOwner}
       />
     );

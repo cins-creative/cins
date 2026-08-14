@@ -122,7 +122,7 @@ export function OrgBaiDangPostSplitBody({
     <>
       <h1 className="title-in title-ro">{post.tieu_de}</h1>
       {tomTat ? (
-        <p className="sub-in sub-ro">{tomTat}</p>
+        <p className="sub-in sub-ro post-view-dek">{tomTat}</p>
       ) : null}
       <div
         className="post-html-fallback article-rich-content"
@@ -133,7 +133,7 @@ export function OrgBaiDangPostSplitBody({
     <>
       <h1 className="title-in title-ro">{post.tieu_de}</h1>
       {tomTat || legacyPlain ? (
-        <p className="sub-in sub-ro">{tomTat || legacyPlain}</p>
+        <p className="sub-in sub-ro post-view-dek">{tomTat || legacyPlain}</p>
       ) : (
         <div className="post-empty">Bài đăng chưa có nội dung chi tiết.</div>
       )}
