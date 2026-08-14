@@ -165,6 +165,14 @@ function translateLiteral(raw) {
   const rest = m[2] ?? "";
   if (!pathPart.startsWith("/")) return raw;
   if (ASSET_EXT.test(pathPart)) return raw;
+  /* `/admin/*` giữ tiếng Việt — ngoài phạm vi đổi URL. */
+  if (
+    pathPart === "/admin" ||
+    pathPart.startsWith("/admin/") ||
+    pathPart.startsWith("/api/admin/")
+  ) {
+    return raw;
+  }
 
   const { path: next } = translatePath(pathPart);
   if (next === null) return raw;

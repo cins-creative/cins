@@ -1115,10 +1115,52 @@
   will-change: transform;
 }
 
-.cins-app-topbar.topbar.is-hidden {
-  transform: translateY(-100%);
-  margin-bottom: calc(-1 * var(--site-nav-height));
-  pointer-events: none;
+/* Mobile: ẩn bằng transform — không co layout (margin âm làm giật scrollY). */
+@media (max-width: 960px) {
+  .cins-app-topbar.topbar.is-hidden {
+    transform: translate3d(0, -100%, 0);
+    pointer-events: none;
+  }
+
+  /* Cùng transform + duration với topbar — animate `top` lệch nhịp, để hở khe. */
+  .cins-shell {
+    --cins-sticky-follow: 0px;
+  }
+
+  .cins-shell:has(#app-topbar.is-hidden) {
+    --cins-sticky-follow: calc(-1 * var(--site-nav-height, 64px));
+  }
+
+  .cins-shell :is(
+    .j-tlb,
+    .j-shop-sf-section-head,
+    .org-baidang-tlb,
+    .shop-quay-tlb,
+    .ch-list-toolbar,
+    .cd-list-toolbar,
+    .tdh-list-toolbar,
+    .tkh-hub-header,
+    .td-hub-header,
+    .tdh-v6-tabs-bar,
+    .hn-dept-tabs,
+    .hn-page-head,
+    .hn-rail-bar,
+    .sk-detail-topbar,
+    .shop-dash-head,
+    .shop-dash-subtabs,
+    .tdh-admin-toolbar-host,
+    .nct-admin-toolbar-host,
+    .hn-hub-admin-toolbar-host,
+    .sw-admin-toolbar-host,
+    .studio-shell-tabs,
+    .tdh-page .filter-bar,
+    .cd-v4-id,
+    .cd-v4-event-rail,
+    .wj-feed-header:not(.wj-chrome-follow)
+  ) {
+    transition: transform var(--app-nav-dur) var(--app-nav-ease);
+    transform: translate3d(0, var(--cins-sticky-follow, 0px), 0);
+  }
 }
 
 .cins-app-topbar.topbar.scrolled {

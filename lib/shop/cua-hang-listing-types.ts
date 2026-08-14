@@ -15,6 +15,10 @@ export type PublicShopListingHang = {
   moTa?: string | null;
   /** Có khi là mẫu (`shop_san_pham`) gắn loại. */
   idNhom?: string | null;
+  /** Biến thể mặc định để thêm giỏ từ hub (chỉ mẫu). */
+  idBienThe?: string | null;
+  /** Tồn biến thể mặc định — 0 = hết hàng. */
+  soLuongTon?: number;
   /** Tên loại (`shop_nhom.nhan`) — gắn lên mẫu để card Hàng biết thuộc loại nào. */
   tenLoai?: string | null;
   /** Giá gợi ý — `shop_nhom.gia_mac_dinh` (loại) hoặc kế thừa từ loại (mẫu). */
@@ -48,6 +52,8 @@ export type PublicShopListingItem = {
   avatarUrl: string | null;
   coverUrl: string | null;
   ownerSlug: string;
+  /** `user_nguoi_dung.id` của chủ shop — ẩn nút giỏ khi xem shop mình. */
+  ownerId?: string;
   ownerTen: string | null;
   dangTamDong: boolean;
   tamDongLyDo: string | null;

@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 
 import { chatImageVariantUrl } from "@/lib/chat/image-url";
 import { useHorizontalSwipe } from "@/lib/ui/use-horizontal-swipe";
+import { usePinchZoomPan } from "@/lib/ui/use-pinch-zoom-pan";
 
 type ChatImageLightboxProps = {
   images: string[];
@@ -72,8 +73,12 @@ export function ChatImageLightbox({
   }, [index, onIndexChange, total]);
 
   const hasFilmstrip = total > 1;
+  const { viewportRef, contentRef, isZoomed, gestureLock } = usePinchZoomPan(
+    `${index}-${current}`,
+  );
+
   const swipe = useHorizontalSwipe({
-    enabled: hasFilmstrip,
+    enabled: hasFilmstrip && !isZoomed && !gestureLock,
     onSwipeLeft: goNext,
     onSwipeRight: goPrev,
   });
@@ -127,9 +132,20 @@ export function ChatImageLightbox({
           </>
         ) : null}
 
-        <figure className="cins-chat-lightbox-figure" {...swipe}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={current} alt="Ảnh đính kèm" decoding="async" />
+        <figure
+          ref={viewportRef}
+          className={`cins-chat-lightbox-figure${isZoomed ? " is-zoomed" : ""}`}
+          {...swipe}
+        >
+          <div ref={contentRef} className="cins-chat-lightbox-zoom">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={current}
+              alt="Ảnh đính kèm"
+              decoding="async"
+              draggable={false}
+            />
+          </div>
         </figure>
 
         {hasFilmstrip ? (

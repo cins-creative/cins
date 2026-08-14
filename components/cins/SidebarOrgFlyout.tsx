@@ -67,10 +67,12 @@ export function SidebarOrgFlyout({
   kind,
   item,
   pathname,
+  onNavigate,
 }: {
   kind: OrgFlyoutKind;
   item: MainNavItem;
   pathname: string;
+  onNavigate?: (href: string) => void;
 }) {
   const cfg = KIND_CONFIG[kind];
   const [orgs, setOrgs] = useState<MyOrg[] | null>(null);
@@ -116,6 +118,7 @@ export function SidebarOrgFlyout({
               className="sb-flyout-main"
               data-tip={item.tip}
               aria-current={active ? "page" : undefined}
+              onPointerDown={() => onNavigate?.(item.href)}
             >
               <span className="sb-ico">
                 <SidebarNavIcon name={item.icon} />
@@ -147,6 +150,7 @@ export function SidebarOrgFlyout({
             className={`sb-item${active ? " active" : ""}`}
             data-tip={item.tip}
             aria-current={active ? "page" : undefined}
+            onPointerDown={() => onNavigate?.(item.href)}
           >
             <span className="sb-ico">
               <SidebarNavIcon name={item.icon} />
@@ -169,6 +173,7 @@ export function SidebarOrgFlyout({
                       onPointerDown={(event) => {
                         /* Giữ :focus-within trên sidebar suốt lúc click — rail không thu giữa mousedown→click. */
                         event.currentTarget.focus({ preventScroll: true });
+                        if (o.href) onNavigate?.(o.href);
                       }}
                     >
                       <span className="sb-subitem-ava" aria-hidden>

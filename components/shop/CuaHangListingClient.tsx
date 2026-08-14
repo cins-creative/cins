@@ -2,7 +2,17 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Check, LayoutGrid, Package, Search, SlidersHorizontal, Store, X } from "lucide-react";
+import {
+  Check,
+  LayoutGrid,
+  Minus,
+  Package,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  Store,
+  X,
+} from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -14,10 +24,18 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
+import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { CuaHangHubDeXuatDanhMuc } from "@/components/shop/CuaHangHubDeXuatDanhMuc";
 import { CuaHangListCard } from "@/components/shop/CuaHangListCard";
 import { ChListingImg } from "@/components/shop/ChListingImg";
 import { CuaHangSanVoucher } from "@/components/shop/CuaHangSanVoucher";
+import {
+  GIO_CHUNG_CHANGED_EVENT,
+  notifyGioChungAdded,
+} from "@/components/shop/ShopGioChungButton";
+import type { ShopGioChung } from "@/lib/shop/types";
+import { trackShopThemGio } from "@/lib/social/track-su-kien";
 import type { CuaHangHubTaxonomy } from "@/lib/shop/cua-hang-hub-taxonomy-types";
 import type {
   PublicShopListingHang,
@@ -75,6 +93,9 @@ type HangHit = {
   comboTag: string | null;
   /** Tên loại (`shop_nhom.nhan`) — mẫu thuộc loại nào. */
   tenLoai: string | null;
+  idBienThe: string | null;
+  soLuongTon: number;
+  ownerId: string | null;
 };
 
 const LISTING_SEARCH_DEBOUNCE_MS = 300;
@@ -756,6 +777,9 @@ function hangFromLoai(
     coCombo: hang.coCombo === true,
     comboTag: hang.comboTag ?? null,
     tenLoai: null,
+    idBienThe: hang.idBienThe ?? null,
+    soLuongTon: Math.max(0, Math.trunc(hang.soLuongTon ?? 0)),
+    ownerId: shop.ownerId ?? null,
   };
 }
 
@@ -787,6 +811,9 @@ function hangFromMau(
     coCombo: mau.coCombo === true,
     comboTag: mau.comboTag ?? null,
     tenLoai: resolveTenLoai(shop, mau),
+    idBienThe: mau.idBienThe ?? null,
+    soLuongTon: Math.max(0, Math.trunc(mau.soLuongTon ?? 0)),
+    ownerId: shop.ownerId ?? null,
   };
 }
 
@@ -983,7 +1010,151 @@ function ListingSearchSkeletons({
   );
 }
 
-function HangHitCard({ hit }: { hit: HangHit }) {
+const LISTING_QTY_SYNC_MS = 200;
+
+function qtyMapFromGio(gio: ShopGioChung | null | undefined): Map<string, number> {
+  const map = new Map<string, number>();
+  if (!gio) return map;
+  for (const n of gio.nhom) {
+    for (const d of n.dong) map.set(d.idBienThe, d.soLuong);
+  }
+  return map;
+}
+
+function useListingHangCart() {
+  const { viewerProfileId } = useCinsChat();
+  const authGate = useOptionalAuthGate();
+  const [qtyByBt, setQtyByBt] = useState<Map<string, number>>(() => new Map());
+  const pendingQtyRef = useRef(new Map<string, number>());
+  const syncTimersRef = useRef(
+    new Map<string, ReturnType<typeof setTimeout>>(),
+  );
+  const qtyEpochRef = useRef(new Map<string, number>());
+
+  const applyGio = useCallback((gio: ShopGioChung | null | undefined) => {
+    const map = qtyMapFromGio(gio);
+    for (const [bt, q] of pendingQtyRef.current) {
+      if (q <= 0) map.delete(bt);
+      else map.set(bt, q);
+    }
+    setQtyByBt(map);
+  }, []);
+
+  const refreshGio = useCallback(async () => {
+    if (!viewerProfileId) return;
+    try {
+      const res = await fetch("/api/shop/shared-cart", { cache: "no-store" });
+      const json = (await res.json().catch(() => null)) as {
+        gio?: ShopGioChung;
+      } | null;
+      if (!res.ok || !json?.gio) return;
+      applyGio(json.gio);
+    } catch {
+      /* ignore */
+    }
+  }, [viewerProfileId, applyGio]);
+
+  useEffect(() => {
+    void refreshGio();
+    const onChange = () => {
+      void refreshGio();
+    };
+    window.addEventListener(GIO_CHUNG_CHANGED_EVENT, onChange);
+    return () => window.removeEventListener(GIO_CHUNG_CHANGED_EVENT, onChange);
+  }, [refreshGio]);
+
+  useEffect(() => {
+    const timers = syncTimersRef.current;
+    return () => {
+      for (const t of timers.values()) clearTimeout(t);
+      timers.clear();
+    };
+  }, []);
+
+  const flushQtySync = useCallback(async (idBienThe: string) => {
+    const soLuong = pendingQtyRef.current.get(idBienThe);
+    if (soLuong === undefined) return;
+    pendingQtyRef.current.delete(idBienThe);
+    const epoch = qtyEpochRef.current.get(idBienThe) ?? 0;
+    try {
+      const res = await fetch("/api/shop/shared-cart", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idBienThe, soLuong }),
+      });
+      const json = (await res.json().catch(() => null)) as {
+        gio?: ShopGioChung;
+      } | null;
+      if ((qtyEpochRef.current.get(idBienThe) ?? 0) !== epoch) return;
+      if (!res.ok || !json?.gio) {
+        await refreshGio();
+        return;
+      }
+      applyGio(json.gio);
+      window.dispatchEvent(new Event(GIO_CHUNG_CHANGED_EVENT));
+    } catch {
+      if ((qtyEpochRef.current.get(idBienThe) ?? 0) !== epoch) return;
+      await refreshGio();
+    }
+  }, [applyGio, refreshGio]);
+
+  const patchQty = useCallback(
+    (hit: HangHit, soLuong: number) => {
+      if (!viewerProfileId) {
+        authGate?.openAuthModal("Đăng nhập để thêm vào giỏ.");
+        return;
+      }
+      const idBienThe = hit.idBienThe;
+      if (!idBienThe) return;
+      const cap = Math.max(0, hit.soLuongTon);
+      const qty = Math.min(Math.max(0, Math.trunc(soLuong)), cap);
+      qtyEpochRef.current.set(
+        idBienThe,
+        (qtyEpochRef.current.get(idBienThe) ?? 0) + 1,
+      );
+      let shouldNotify = false;
+      setQtyByBt((prev) => {
+        const prevQty = prev.get(idBienThe) ?? 0;
+        shouldNotify = qty > prevQty;
+        const next = new Map(prev);
+        if (qty <= 0) next.delete(idBienThe);
+        else next.set(idBienThe, qty);
+        return next;
+      });
+      if (shouldNotify) {
+        notifyGioChungAdded();
+        if (hit.kind === "mau") {
+          trackShopThemGio(hit.key.split(":").pop() ?? hit.key);
+        }
+      }
+      pendingQtyRef.current.set(idBienThe, qty);
+      const prevTimer = syncTimersRef.current.get(idBienThe);
+      if (prevTimer) clearTimeout(prevTimer);
+      syncTimersRef.current.set(
+        idBienThe,
+        setTimeout(() => {
+          syncTimersRef.current.delete(idBienThe);
+          void flushQtySync(idBienThe);
+        }, LISTING_QTY_SYNC_MS),
+      );
+    },
+    [viewerProfileId, authGate, flushQtySync],
+  );
+
+  return { viewerProfileId, qtyByBt, patchQty };
+}
+
+function HangHitCard({
+  hit,
+  qty,
+  onQty,
+  isOwnShop,
+}: {
+  hit: HangHit;
+  qty: number;
+  onQty: (hit: HangHit, next: number) => void;
+  isOwnShop: boolean;
+}) {
   const giaLabel = formatHangGia(hit.giaHienThi, hit.tienTe);
   const sold = hit.soLuongBan > 0 ? hit.soLuongBan : 0;
   const tenLoai =
@@ -992,60 +1163,98 @@ function HangHitCard({ hit }: { hit: HangHit }) {
     hit.tenLoai.localeCompare(hit.ten, "vi", { sensitivity: "base" }) !== 0
       ? hit.tenLoai
       : null;
+  const showCart =
+    hit.kind === "mau" && Boolean(hit.idBienThe) && !hit.dangTamDong && !isOwnShop;
+  const canBuy = showCart && !hit.hetHang && hit.giaHienThi != null;
+  const maxQty = Math.max(0, hit.soLuongTon);
 
   return (
-    <Link
-      href={hit.href}
+    <article
       className={`ch-list-hang-card${hit.hetHang ? " is-soldout" : ""}`}
     >
-      {hit.anhUrl ? (
-        <span className="ch-list-hang-card-thumb">
-          <ChListingImg
-            src={hit.anhUrl}
-            variant="thumbnail"
-            fit={hit.anhThumbFit}
-            protect
-          />
-        </span>
-      ) : (
-        <span className="ch-list-hang-card-thumb is-empty" aria-hidden>
-          {hit.ten.charAt(0).toUpperCase()}
-        </span>
-      )}
-      <div className="ch-list-hang-card-body">
-        <div className="ch-list-hang-card-name">{hit.ten}</div>
-        {tenLoai ? (
-          <div className="ch-list-hang-card-loai" title={tenLoai}>
-            {tenLoai}
-          </div>
-        ) : null}
-        {giaLabel || hit.comboTag || sold > 0 ? (
-          <div className="ch-list-hang-card-foot">
-            {giaLabel ? <strong>{giaLabel}</strong> : null}
-            {hit.comboTag ? (
-              <span className="ch-list-hang-combo-tag">{hit.comboTag}</span>
-            ) : null}
-            {sold > 0 ? (
-              <span className="ch-list-hang-card-sold">
-                Đã bán: {sold.toLocaleString("vi-VN")}
-              </span>
-            ) : null}
-          </div>
-        ) : null}
-        <div className="ch-list-hang-card-action">
-          <span className="ch-list-hang-card-seller">
-            <span className="ch-list-hang-card-seller-avatar" aria-hidden>
-              {hit.shopAvatarUrl ? (
-                <ChListingImg src={hit.shopAvatarUrl} variant="avatar" />
-              ) : (
-                hit.shopTen.charAt(0).toUpperCase()
-              )}
-            </span>
-            <span className="ch-list-hang-card-seller-name">{hit.shopTen}</span>
+      <Link href={hit.href} className="ch-list-hang-card-link">
+        {hit.anhUrl ? (
+          <span className="ch-list-hang-card-thumb">
+            <ChListingImg
+              src={hit.anhUrl}
+              variant="thumbnail"
+              fit={hit.anhThumbFit}
+              protect
+            />
           </span>
+        ) : (
+          <span className="ch-list-hang-card-thumb is-empty" aria-hidden>
+            {hit.ten.charAt(0).toUpperCase()}
+          </span>
+        )}
+        <div className="ch-list-hang-card-body">
+          <div className="ch-list-hang-card-name">{hit.ten}</div>
+          {tenLoai ? (
+            <div className="ch-list-hang-card-loai" title={tenLoai}>
+              {tenLoai}
+            </div>
+          ) : null}
+          {giaLabel || hit.comboTag || sold > 0 ? (
+            <div className="ch-list-hang-card-foot">
+              {giaLabel ? <strong>{giaLabel}</strong> : null}
+              {hit.comboTag ? (
+                <span className="ch-list-hang-combo-tag">{hit.comboTag}</span>
+              ) : null}
+              {sold > 0 ? (
+                <span className="ch-list-hang-card-sold">
+                  Đã bán: {sold.toLocaleString("vi-VN")}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
+      </Link>
+      <div className="ch-list-hang-card-action">
+        <span className="ch-list-hang-card-seller">
+          <span className="ch-list-hang-card-seller-avatar" aria-hidden>
+            {hit.shopAvatarUrl ? (
+              <ChListingImg src={hit.shopAvatarUrl} variant="avatar" />
+            ) : (
+              hit.shopTen.charAt(0).toUpperCase()
+            )}
+          </span>
+          <span className="ch-list-hang-card-seller-name">{hit.shopTen}</span>
+        </span>
+        {showCart ? (
+          qty > 0 ? (
+            <span className="ch-list-hang-qty">
+              <button
+                type="button"
+                aria-label="Bớt"
+                onClick={() => onQty(hit, qty - 1)}
+              >
+                <Minus size={12} strokeWidth={2.5} aria-hidden />
+              </button>
+              <span>{qty}</span>
+              <button
+                type="button"
+                aria-label="Thêm"
+                disabled={maxQty > 0 && qty >= maxQty}
+                onClick={() => onQty(hit, qty + 1)}
+              >
+                <Plus size={12} strokeWidth={2.5} aria-hidden />
+              </button>
+            </span>
+          ) : (
+            <button
+              type="button"
+              className="ch-list-hang-add"
+              disabled={!canBuy}
+              aria-label={`Thêm ${hit.ten} vào giỏ`}
+              title={hit.hetHang ? "Hết hàng" : "Thêm vào giỏ"}
+              onClick={() => onQty(hit, 1)}
+            >
+              <Plus size={15} strokeWidth={2.5} aria-hidden />
+            </button>
+          )
+        ) : null}
       </div>
-    </Link>
+    </article>
   );
 }
 
@@ -1057,6 +1266,7 @@ export function CuaHangListingClient({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { viewerProfileId, qtyByBt, patchQty } = useListingHangCart();
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -1393,17 +1603,17 @@ export function CuaHangListingClient({
                     <X size={16} strokeWidth={2.25} aria-hidden />
                   </button>
                 ) : null}
+                {searchOpen ? (
+                  <button
+                    type="button"
+                    className="ch-list-search-close"
+                    aria-label="Đóng tìm kiếm"
+                    onClick={() => setSearchOpen(false)}
+                  >
+                    <X size={16} strokeWidth={2.2} aria-hidden />
+                  </button>
+                ) : null}
               </label>
-              {searchOpen ? (
-                <button
-                  type="button"
-                  className="ch-list-search-close"
-                  aria-label="Đóng tìm kiếm"
-                  onClick={() => setSearchOpen(false)}
-                >
-                  <X size={18} strokeWidth={2.2} aria-hidden />
-                </button>
-              ) : null}
 
               {searchOpen && (searching || hasListFilter) ? (
                 <p className="ch-list-result-meta" aria-live="polite">
@@ -1548,7 +1758,17 @@ export function CuaHangListingClient({
               aria-busy={remoteSearching || undefined}
             >
               {lazyHangHits.map((hit) => (
-                <HangHitCard key={hit.key} hit={hit} />
+                <HangHitCard
+                  key={hit.key}
+                  hit={hit}
+                  qty={hit.idBienThe ? (qtyByBt.get(hit.idBienThe) ?? 0) : 0}
+                  onQty={patchQty}
+                  isOwnShop={
+                    Boolean(viewerProfileId) &&
+                    Boolean(hit.ownerId) &&
+                    viewerProfileId === hit.ownerId
+                  }
+                />
               ))}
               {remoteSearching && lazyHangHits.length === 0 ? (
                 <ListingSearchSkeletons kind="hang" count={8} />

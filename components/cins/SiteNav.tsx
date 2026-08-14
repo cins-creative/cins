@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Fragment, Suspense, useState } from "react";
+import { Fragment, Suspense, useEffect, useState } from "react";
 
 import { CinsComingSoonModal } from "@/components/cins/CinsComingSoonModal";
 import { CinsSidebarRiveBrand } from "@/components/cins/CinsSidebarRiveBrand";
@@ -31,10 +31,12 @@ function SidebarItemContent({ item }: { item: MainNavItem }) {
 function SidebarAnchor({
   item,
   pathname,
+  onNavigate,
   onComingSoon,
 }: {
   item: MainNavItem;
   pathname: string;
+  onNavigate?: (href: string) => void;
   onComingSoon?: () => void;
 }) {
   const active = item.isActive(pathname);
@@ -59,6 +61,7 @@ function SidebarAnchor({
       className={className}
       data-tip={item.flyout ? undefined : item.tip}
       aria-current={active ? "page" : undefined}
+      onPointerDown={() => onNavigate?.(item.href)}
     >
       <SidebarItemContent item={item} />
     </Link>
@@ -68,15 +71,22 @@ function SidebarAnchor({
 function SidebarLink({
   item,
   pathname,
+  onNavigate,
   onComingSoon,
 }: {
   item: MainNavItem;
   pathname: string;
+  onNavigate?: (href: string) => void;
   onComingSoon?: () => void;
 }) {
   if (item.flyout) {
     return (
-      <SidebarOrgFlyout kind={item.flyout} item={item} pathname={pathname} />
+      <SidebarOrgFlyout
+        kind={item.flyout}
+        item={item}
+        pathname={pathname}
+        onNavigate={onNavigate}
+      />
     );
   }
   return (
@@ -84,6 +94,7 @@ function SidebarLink({
       <SidebarAnchor
         item={item}
         pathname={pathname}
+        onNavigate={onNavigate}
         onComingSoon={onComingSoon}
       />
     </li>
@@ -93,6 +104,12 @@ function SidebarLink({
 export function CinsAppSidebar() {
   const pathname = usePathname() ?? "/";
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
+  const navPath = pendingPath ?? pathname;
+
+  useEffect(() => {
+    setPendingPath(null);
+  }, [pathname]);
 
   return (
     <>
@@ -116,7 +133,11 @@ export function CinsAppSidebar() {
           </li>
           {MAIN_NAV_ITEMS.map((item) => (
             <Fragment key={item.id}>
-              <SidebarLink item={item} pathname={pathname} />
+              <SidebarLink
+                item={item}
+                pathname={navPath}
+                onNavigate={setPendingPath}
+              />
               {MAIN_NAV_GROUP_BREAK_AFTER.has(item.id) ? (
                 <li className="sb-sep" role="separator" aria-hidden />
               ) : null}
@@ -126,7 +147,7 @@ export function CinsAppSidebar() {
         <div className="sb-foot">
           <nav className="sb-foot-meta" aria-label="Liên kết phụ">
             {MAIN_NAV_FOOT_ITEMS.map((item, index) => {
-              const active = item.isActive(pathname);
+              const active = item.isActive(navPath);
               return (
                 <Fragment key={item.id}>
                   {index > 0 ? (
@@ -139,6 +160,7 @@ export function CinsAppSidebar() {
                     className={`sb-foot-link${active ? " is-active" : ""}`}
                     title={item.tip}
                     aria-current={active ? "page" : undefined}
+                    onPointerDown={() => setPendingPath(item.href)}
                   >
                     {item.label}
                   </Link>

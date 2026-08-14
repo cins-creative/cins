@@ -104,7 +104,7 @@ export function AdminMonThiThumb({
 
     try {
       const resp = await fetch(
-        `/api/admin/exam-subjects/${encodeURIComponent(row.id)}/thumbnail`,
+        `/api/admin/mon-thi/${encodeURIComponent(row.id)}/thumbnail`,
         {
           method: "POST",
           body: fd,

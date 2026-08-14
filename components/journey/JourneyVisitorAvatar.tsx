@@ -4,6 +4,8 @@ import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { usePinchZoomPan } from "@/lib/ui/use-pinch-zoom-pan";
+
 import {
   AVATAR_DISPLAY_PX,
   AVATAR_VARIANT_PX,
@@ -136,6 +138,7 @@ function JourneyProfileMediaLightbox({
   onClose: () => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const { viewportRef, contentRef, isZoomed } = usePinchZoomPan(src);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -173,44 +176,52 @@ function JourneyProfileMediaLightbox({
       }}
     >
       <div className="image-lightbox-inner">
-        <button
-          type="button"
-          className="image-lightbox-close"
-          aria-label="Đóng"
-          onClick={onClose}
+        <div
+          ref={viewportRef}
+          className={`image-lightbox-stage${isZoomed ? " is-zoomed" : ""}`}
         >
-          <X size={22} strokeWidth={2} aria-hidden />
-        </button>
-        <figure
-          className={
-            variant === "avatar"
-              ? "image-lightbox-figure j-profile-media-lightbox-figure--avatar"
-              : "image-lightbox-figure"
-          }
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={src}
-            alt={alt}
-            width={width}
-            height={height}
-            decoding="async"
-            onError={(event) => {
-              const img = event.currentTarget;
-              const current = img.currentSrc || img.src;
-              if (
-                /imagedelivery\.net/i.test(current) &&
-                img.dataset.cfPublicFallback !== "1"
-              ) {
-                const next = imagedeliveryPublicUrl(current);
-                if (next !== current) {
-                  img.dataset.cfPublicFallback = "1";
-                  img.src = next;
-                }
-              }
-            }}
-          />
-        </figure>
+          <button
+            type="button"
+            className="image-lightbox-close"
+            aria-label="Đóng"
+            onClick={onClose}
+          >
+            <X size={22} strokeWidth={2} aria-hidden />
+          </button>
+          <figure
+            className={
+              variant === "avatar"
+                ? "image-lightbox-figure j-profile-media-lightbox-figure--avatar"
+                : "image-lightbox-figure"
+            }
+          >
+            <div ref={contentRef} className="image-lightbox-zoom">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={src}
+                alt={alt}
+                width={width}
+                height={height}
+                decoding="async"
+                draggable={false}
+                onError={(event) => {
+                  const img = event.currentTarget;
+                  const current = img.currentSrc || img.src;
+                  if (
+                    /imagedelivery\.net/i.test(current) &&
+                    img.dataset.cfPublicFallback !== "1"
+                  ) {
+                    const next = imagedeliveryPublicUrl(current);
+                    if (next !== current) {
+                      img.dataset.cfPublicFallback = "1";
+                      img.src = next;
+                    }
+                  }
+                }}
+              />
+            </div>
+          </figure>
+        </div>
       </div>
     </dialog>,
     document.body,

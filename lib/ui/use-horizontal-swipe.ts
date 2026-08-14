@@ -37,6 +37,11 @@ export function useHorizontalSwipe({
       if (!enabled) return;
       if (e.pointerType === "mouse" && e.button !== 0) return;
       if ((e.target as Element | null)?.closest?.("button, a")) return;
+      /* Ngón thứ 2 (pinch) — hủy vuốt ngang, không đổi ảnh. */
+      if (startRef.current) {
+        startRef.current = null;
+        return;
+      }
       startRef.current = {
         id: e.pointerId,
         x: e.clientX,

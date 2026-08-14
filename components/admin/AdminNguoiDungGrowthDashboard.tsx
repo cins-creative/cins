@@ -96,7 +96,7 @@ export function AdminNguoiDungGrowthDashboard() {
     void (async () => {
       try {
         const [userRes, contentRes] = await Promise.all([
-          fetch(`/api/admin/users/growth?days=${days}`),
+          fetch(`/api/admin/nguoi-dung/growth?days=${days}`),
           fetch(`/api/admin/world-boost?growth=1&days=${days}`),
         ]);
         if (!userRes.ok) {

@@ -64,7 +64,7 @@ export async function notifyCuratorsOnDongGopSubmit(
     contributorSlug: contributor?.slug ?? null,
     entityTitle: article.tieu_de,
     entityHref: articlePublicHref(article.loai_bai_viet, article.slug),
-    adminHref: "/admin/articles?tab=dong-gop",
+    adminHref: "/admin/bai-viet?tab=dong-gop",
   };
 
   const curatorIds = await resolveCuratorIdsForArticle(row.id_bai_viet);
@@ -182,7 +182,7 @@ export async function listArticleDongGopCuratorNotifications(
           idDongGop,
           entityTitle: parsed?.entityTitle ?? "Bài entity",
           entityHref: parsed?.entityHref ?? "#",
-          adminHref: parsed?.adminHref ?? "/admin/articles?tab=dong-gop",
+          adminHref: parsed?.adminHref ?? "/admin/bai-viet?tab=dong-gop",
           contributorName,
           contributorSlug: parsed?.contributorSlug ?? contributor?.slug ?? null,
           contributorAvatarUrl: getAvatarUrl(contributor?.avatar_id ?? null),

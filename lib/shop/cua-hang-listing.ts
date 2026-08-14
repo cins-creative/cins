@@ -332,6 +332,63 @@ async function sanPhamCatalogByOwner(
   return out;
 }
 
+/**
+ * Gắn biến thể mặc định (ưu tiên còn tồn) lên mẫu — để hub Hàng thêm giỏ
+ * không phải mở trang loại.
+ */
+async function attachMauDefaultBienThe(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  mauByOwner: Map<string, PublicShopListingHang[]>,
+): Promise<void> {
+  const all: PublicShopListingHang[] = [];
+  for (const list of mauByOwner.values()) all.push(...list);
+  if (all.length === 0) return;
+
+  const spIds = [...new Set(all.map((m) => m.id))];
+  type BtRow = {
+    id: string;
+    id_san_pham: string;
+    so_luong_ton: number | null;
+  };
+  const bestBySp = new Map<string, { id: string; ton: number }>();
+
+  for (let i = 0; i < spIds.length; i += IN_CHUNK) {
+    const chunk = spIds.slice(i, i + IN_CHUNK);
+    const { data, error } = await admin
+      .from("shop_bien_the")
+      .select("id, id_san_pham, so_luong_ton")
+      .in("id_san_pham", chunk)
+      .eq("da_xoa", false)
+      .returns<BtRow[]>();
+    if (error) {
+      console.error("[shop] attachMauDefaultBienThe", error);
+      break;
+    }
+    for (const bt of data ?? []) {
+      const ton = Math.max(0, Math.trunc(Number(bt.so_luong_ton) || 0));
+      const prev = bestBySp.get(bt.id_san_pham);
+      if (!prev || (prev.ton <= 0 && ton > 0)) {
+        bestBySp.set(bt.id_san_pham, { id: bt.id, ton });
+      }
+    }
+  }
+
+  for (const list of mauByOwner.values()) {
+    for (let i = 0; i < list.length; i++) {
+      const m = list[i]!;
+      const best = bestBySp.get(m.id);
+      list[i] = best
+        ? {
+            ...m,
+            idBienThe: best.id,
+            soLuongTon: best.ton,
+            hetHang: best.ton <= 0,
+          }
+        : { ...m, idBienThe: null, soLuongTon: 0, hetHang: true };
+    }
+  }
+}
+
 type NhomListingStats = {
   soLuongBan: number;
   anyInStock: boolean;
@@ -903,6 +960,10 @@ export async function listPublicShopCuaHang(
     }),
   ]);
 
+  if (!isShopMode) {
+    await attachMauDefaultBienThe(admin, mauByOwner);
+  }
+
   const items: ListingDraft[] = [];
   for (const row of shopRows) {
     const owner = ownerById.get(row.id_nguoi_dung);
@@ -963,6 +1024,7 @@ export async function listPublicShopCuaHang(
       avatarUrl,
       coverUrl,
       ownerSlug,
+      ownerId: row.id_nguoi_dung,
       ownerTen,
       dangTamDong,
       tamDongLyDo: dangTamDong ? row.tam_dong_ly_do?.trim() || null : null,
@@ -1098,6 +1160,7 @@ export async function listShopListingCardsByOwnerIds(
         avatarUrl: shopImageUrl(row.avatar_id, "avatar"),
         coverUrl: shopImageUrl(row.cover_id, "gridsm"),
         ownerSlug,
+        ownerId,
         ownerTen,
         dangTamDong,
         tamDongLyDo: dangTamDong ? row.tam_dong_ly_do?.trim() || null : null,
@@ -1122,6 +1185,8 @@ export async function listShopListingCardsByOwnerIds(
       nhomListingStats(admin, shopOwnerIds),
       hubUuDaiFlagsByOwner(admin, shopOwnerIds),
     ]);
+
+  await attachMauDefaultBienThe(admin, mauByOwner);
 
   for (const [ownerId, row] of shopByOwner) {
     const owner = ownerById.get(ownerId);
@@ -1172,6 +1237,7 @@ export async function listShopListingCardsByOwnerIds(
       avatarUrl,
       coverUrl,
       ownerSlug,
+      ownerId,
       ownerTen,
       dangTamDong,
       tamDongLyDo: dangTamDong ? row.tam_dong_ly_do?.trim() || null : null,
@@ -1515,6 +1581,7 @@ function buildSearchListingItem(opts: {
     avatarUrl: shopImageUrl(opts.row.avatar_id, "avatar"),
     coverUrl: shopImageUrl(opts.row.cover_id, "gridsm"),
     ownerSlug,
+    ownerId: opts.row.id_nguoi_dung,
     ownerTen,
     dangTamDong,
     tamDongLyDo: dangTamDong ? opts.row.tam_dong_ly_do?.trim() || null : null,
@@ -1633,6 +1700,8 @@ export async function searchPublicShopListing(
     list.push(inherited);
     mauByOwner.set(row.id_nguoi_dung, list);
   }
+
+  await attachMauDefaultBienThe(admin, mauByOwner);
 
   const items: PublicShopListingItem[] = [];
   for (const ownerId of matchedOwners) {

@@ -24,7 +24,7 @@ export async function revalidateEntityArticlePaths(idBaiViet: string) {
 }
 
 export async function revalidateAfterDongGopMutation(idDongGop: string) {
-  revalidatePath("/admin/articles");
+  revalidatePath("/admin/bai-viet");
 
   const row = await fetchDongGopById(idDongGop);
   if (!row) return;

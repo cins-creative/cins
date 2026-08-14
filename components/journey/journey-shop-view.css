@@ -785,7 +785,6 @@
   background: transparent;
   border-bottom: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 82%, transparent);
   box-shadow: 0 6px 18px -14px rgba(15, 23, 42, 0.4);
-  transition: top var(--app-nav-dur, 0.18s) var(--app-nav-ease, ease);
   pointer-events: auto;
 }
 

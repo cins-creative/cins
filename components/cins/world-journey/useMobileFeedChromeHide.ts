@@ -89,6 +89,9 @@ export function useMobileFeedChromeHide(
       const max = topH + headH;
       if (y <= SHOW_AT_TOP_PX) {
         offset = 0;
+      } else if (dy > 0) {
+        // Kéo xuống: topbar luôn ẩn hết (không để hở một phần).
+        offset = clamp(Math.max(offset + dy, topH), 0, max);
       } else {
         offset = clamp(offset + dy, 0, max);
       }

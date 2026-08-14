@@ -126,7 +126,7 @@ export function AdminHuongDanScreen({ initialNhom }: Props) {
     nhomSlug?: string;
     phienId?: string;
   }) {
-    const res = await fetch("/api/admin/guides", { cache: "no-store" });
+    const res = await fetch("/api/admin/huong-dan", { cache: "no-store" });
     if (!res.ok) {
       // Fallback: soft reload page data via router would be heavier — keep local.
       return;

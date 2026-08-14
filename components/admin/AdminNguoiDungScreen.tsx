@@ -187,7 +187,7 @@ export function AdminNguoiDungScreen() {
       if (query.trim()) qs.set("q", query.trim());
       if (giaiDoanFilter !== "all") qs.set("giaiDoan", giaiDoanFilter);
       if (shopFilter !== "all") qs.set("shop", shopFilter);
-      const res = await fetch(`/api/admin/users/list?${qs.toString()}`);
+      const res = await fetch(`/api/admin/nguoi-dung/list?${qs.toString()}`);
       if (!res.ok) {
         const json = (await res.json()) as { error?: string };
         throw new Error(json.error ?? "Không tải được danh sách user.");
@@ -241,7 +241,7 @@ export function AdminNguoiDungScreen() {
     setSaveError(null);
     try {
       const res = await fetch(
-        `/api/admin/users/${encodeURIComponent(userId)}/roles`,
+        `/api/admin/nguoi-dung/${encodeURIComponent(userId)}/vai-tro`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -272,7 +272,7 @@ export function AdminNguoiDungScreen() {
     setSaveError(null);
     try {
       const res = await fetch(
-        `/api/admin/users/${encodeURIComponent(userId)}/verify`,
+        `/api/admin/nguoi-dung/${encodeURIComponent(userId)}/xac-minh`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -299,7 +299,7 @@ export function AdminNguoiDungScreen() {
     setDeleteError(null);
     try {
       const res = await fetch(
-        `/api/admin/users/${encodeURIComponent(deletingRow.id)}`,
+        `/api/admin/nguoi-dung/${encodeURIComponent(deletingRow.id)}`,
         { method: "DELETE" },
       );
       const json = (await res.json()) as {

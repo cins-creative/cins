@@ -12,6 +12,7 @@ import {
   type GridImage,
 } from "@/lib/journey/image-grid";
 import { useHorizontalSwipe } from "@/lib/ui/use-horizontal-swipe";
+import { usePinchZoomPan } from "@/lib/ui/use-pinch-zoom-pan";
 
 type Props = {
   images: GridImage[];
@@ -79,8 +80,12 @@ export function ImageLightbox({
     onIndexChange((index + 1) % total);
   }, [index, onIndexChange, total]);
 
+  const { viewportRef, contentRef, isZoomed, gestureLock } = usePinchZoomPan(
+    `${index}-${current?.id ?? ""}`,
+  );
+
   const swipe = useHorizontalSwipe({
-    enabled: hasFilmstrip,
+    enabled: hasFilmstrip && !isZoomed && !gestureLock,
     onSwipeLeft: goNext,
     onSwipeRight: goPrev,
   });
@@ -101,7 +106,11 @@ export function ImageLightbox({
       }}
     >
       <div className="image-lightbox-inner">
-        <div className="image-lightbox-stage" {...swipe}>
+        <div
+          ref={viewportRef}
+          className={`image-lightbox-stage${isZoomed ? " is-zoomed" : ""}`}
+          {...swipe}
+        >
           <button
             type="button"
             className="image-lightbox-close"
@@ -133,15 +142,18 @@ export function ImageLightbox({
           ) : null}
 
           <figure className="image-lightbox-figure">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={gridLightboxSrc(current, isPortraitGridImage(current))}
-              alt=""
-              width={current.width}
-              height={current.height}
-              decoding="async"
-              onError={handleBlockImageError}
-            />
+            <div ref={contentRef} className="image-lightbox-zoom">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={gridLightboxSrc(current, isPortraitGridImage(current))}
+                alt=""
+                width={current.width}
+                height={current.height}
+                decoding="async"
+                draggable={false}
+                onError={handleBlockImageError}
+              />
+            </div>
           </figure>
         </div>
 

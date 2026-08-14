@@ -60,7 +60,7 @@ export function AdminTuyenDungScreen({ jobs: jobsProp }: Props) {
     }
     setMsg(null);
     startTransition(async () => {
-      const res = await fetch("/api/admin/jobs", {
+      const res = await fetch("/api/admin/tuyen-dung", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",

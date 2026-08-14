@@ -6846,7 +6846,6 @@ body:has(.shop-dash-gate) .j-chat-dock {
   top: var(--j-topbar-h, var(--site-nav-height, 64px));
   z-index: 40;
   pointer-events: auto;
-  transition: top var(--app-nav-dur, 0.18s) var(--app-nav-ease, ease);
   background: transparent;
   box-shadow: 0 6px 18px -14px rgba(15, 23, 42, 0.4);
   border-bottom: 1px solid

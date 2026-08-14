@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 
 import { ShopImageProtect } from "@/components/shop/ShopImageProtect";
 import { useHorizontalSwipe } from "@/lib/ui/use-horizontal-swipe";
+import { usePinchZoomPan } from "@/lib/ui/use-pinch-zoom-pan";
 
 type Props = {
   images: string[];
@@ -67,8 +68,12 @@ export function ShopImageLightbox({
     onIndexChange((index + 1) % total);
   }, [index, onIndexChange, total]);
 
+  const { viewportRef, contentRef, isZoomed, gestureLock } = usePinchZoomPan(
+    `${index}-${current}`,
+  );
+
   const swipe = useHorizontalSwipe({
-    enabled: hasNav,
+    enabled: hasNav && !isZoomed && !gestureLock,
     onSwipeLeft: goNext,
     onSwipeRight: goPrev,
   });
@@ -88,7 +93,11 @@ export function ShopImageLightbox({
         if (e.target === dialogRef.current) onClose();
       }}
     >
-      <div className="shop-img-lb-stage" {...swipe}>
+      <div
+        ref={viewportRef}
+        className={`shop-img-lb-stage${isZoomed ? " is-zoomed" : ""}`}
+        {...swipe}
+      >
         <button
           type="button"
           className="shop-img-lb-close"
@@ -118,15 +127,17 @@ export function ShopImageLightbox({
           </>
         ) : null}
         <figure className="shop-img-lb-figure">
-          <ShopImageProtect
-            src={current}
-            alt=""
-            protect={protect}
-            watermarkText={protect ? watermarkText : null}
-            fit="contain"
-            imgClassName="shop-img-lb-img"
-            decoding="async"
-          />
+          <div ref={contentRef} className="shop-img-lb-zoom">
+            <ShopImageProtect
+              src={current}
+              alt=""
+              protect={protect}
+              watermarkText={protect ? watermarkText : null}
+              fit="contain"
+              imgClassName="shop-img-lb-img"
+              decoding="async"
+            />
+          </div>
         </figure>
         {hasNav ? (
           <p className="shop-img-lb-counter" aria-live="polite">

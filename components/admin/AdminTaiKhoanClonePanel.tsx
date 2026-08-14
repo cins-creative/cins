@@ -192,7 +192,7 @@ export function AdminTaiKhoanClonePanel({
       void (async () => {
         try {
           const res = await fetch(
-            `/api/admin/users/list?q=${encodeURIComponent(q)}`,
+            `/api/admin/nguoi-dung/list?q=${encodeURIComponent(q)}`,
             { cache: "no-store" },
           );
           const data = (await res.json()) as {

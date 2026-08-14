@@ -82,7 +82,11 @@
   flex-shrink: 0;
 }
 
-/* Nút đóng bảng chat — chỉ hiện ở mobile (desktop có nút đóng riêng). */
+/* Một nút đóng mỗi breakpoint — desktop Minimize, mobile X. */
+.cins-chat-close-desktop {
+  display: inline-flex;
+}
+
 .cins-chat-close-mobile {
   display: none;
 }
@@ -2915,19 +2919,35 @@ html.is-cins-share-dropping {
   box-shadow: none;
 }
 
+.cins-shell--chat-page .cins-app-topbar,
+body:has(.cins-chat-root.is-chat-page) .cins-app-topbar {
+  display: none;
+}
+
 .cins-shell--chat-page .cins-main {
   padding: 0;
   overflow: hidden;
-  min-height: calc(100vh - var(--site-nav-height, 64px));
+  min-height: 100dvh;
 }
 
 .cins-chat-page-slot {
-  min-height: calc(100vh - var(--site-nav-height, 64px));
+  min-height: 100dvh;
+}
+
+/* /chat (trang cứng + overlay fill): không trừ topbar. */
+body:has(.cins-shell--chat-page) .cins-chat-root.is-chat-fullscreen,
+.cins-chat-root.is-chat-fullscreen.is-chat-page {
+  top: 0;
+  z-index: calc(var(--cins-app-topbar-z, 200) + 20);
 }
 
 @media (max-width: 960px) {
-  .cins-chat-root.is-chat-fullscreen {
+  .cins-chat-root.is-chat-fullscreen,
+  .cins-chat-root.is-chat-fullscreen.is-chat-page {
+    top: 0;
     left: 0;
+    height: var(--cins-chat-vv-height, 100dvh);
+    max-height: var(--cins-chat-vv-height, 100dvh);
   }
 }
 
@@ -6516,6 +6536,8 @@ button.cins-canvas-table-cell-text {
   height: 100%;
   background: rgba(0, 0, 0, 0.92);
   color: #fff;
+  overflow: hidden;
+  touch-action: none;
 }
 
 .cins-chat-lightbox::backdrop {
@@ -6544,7 +6566,21 @@ button.cins-canvas-table-cell-text {
   display: flex;
   align-items: center;
   justify-content: center;
-  touch-action: pan-y;
+  overflow: hidden;
+  touch-action: none;
+}
+.cins-chat-lightbox-figure.is-zoomed {
+  cursor: grab;
+}
+.cins-chat-lightbox-zoom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  max-height: 100%;
+  transform-origin: center center;
+  will-change: transform;
+  user-select: none;
 }
 
 .cins-chat-lightbox.has-filmstrip .cins-chat-lightbox-figure {
@@ -6573,7 +6609,7 @@ button.cins-canvas-table-cell-text {
   height: 44px;
   border: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
+  background: transparent;
   color: #fff;
   cursor: pointer;
   display: flex;
@@ -6582,7 +6618,8 @@ button.cins-canvas-table-cell-text {
 }
 
 .cins-chat-lightbox-close:hover {
-  background: rgba(255, 255, 255, 0.22);
+  background: transparent;
+  opacity: 0.75;
 }
 
 .cins-chat-lightbox-nav {
@@ -9827,25 +9864,15 @@ button.cins-chat-don-card-cta.is-action:disabled {
     overflow: hidden;
   }
 
-  /* Trang /chat: `.cins-chat-root.is-chat-fullscreen` (top nav + bottom:0) thắng
-     specificity rule trên, nhưng height vv vẫn áp → box cao thêm đúng nav →
-     thanh soạn tin bị đẩy khỏi viewport. Trừ nav khỏi height. */
-  .cins-chat-root.is-chat-fullscreen {
-    top: calc(var(--cins-chat-vv-top, 0px) + var(--site-nav-height, 64px));
+  /* /chat + overlay fill: lấp visual viewport, không trừ nav. */
+  .cins-chat-root.is-chat-fullscreen,
+  .cins-chat-root.is-chat-fullscreen.is-chat-page,
+  .cins-chat-root.is-chat-fullscreen.is-vv-shrunk,
+  body:has(.cins-shell--chat-page) .cins-chat-root.is-chat-fullscreen {
+    top: var(--cins-chat-vv-top, 0px);
     left: 0;
     right: 0;
     bottom: auto;
-    height: calc(
-      var(--cins-chat-vv-height, 100dvh) - var(--site-nav-height, 64px)
-    );
-    max-height: calc(
-      var(--cins-chat-vv-height, 100dvh) - var(--site-nav-height, 64px)
-    );
-  }
-
-  /* Bàn phím mở: topbar sticky nằm ngoài visual viewport → chat lấp toàn bộ. */
-  .cins-chat-root.is-chat-fullscreen.is-vv-shrunk {
-    top: var(--cins-chat-vv-top, 0px);
     height: var(--cins-chat-vv-height, 100dvh);
     max-height: var(--cins-chat-vv-height, 100dvh);
   }
@@ -9864,6 +9891,9 @@ button.cins-chat-don-card-cta.is-action:disabled {
     width: 100%;
     min-width: 0;
     min-height: 0;
+    height: 100%;
+    flex: 1 1 auto;
+    align-self: stretch;
   }
 
   .cins-chat-list.is-hidden-mobile {
@@ -9959,6 +9989,10 @@ button.cins-chat-don-card-cta.is-action:disabled {
     border: 0;
     background: transparent;
     color: var(--cins-blue);
+  }
+
+  .cins-chat-close-desktop {
+    display: none;
   }
 
   .cins-chat-close-mobile {

@@ -1010,13 +1010,17 @@
 
   .ch-list-toolbar-search {
     flex: 0 0 auto;
-    gap: 6px;
+    gap: 8px;
     width: auto;
   }
 
   .ch-list-toolbar-main.is-search-open .ch-list-toolbar-search {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     flex: 1 1 auto;
     width: 100%;
+    gap: 6px;
   }
 
   .ch-list-search-toggle {
@@ -1051,20 +1055,26 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    width: 36px;
-    height: 36px;
+    width: 28px;
+    height: 28px;
     margin: 0;
     padding: 0;
     border: 0;
-    border-radius: 10px;
+    border-radius: 7px;
     background: transparent;
-    color: var(--ink-muted, rgba(0, 0, 0, 0.55));
+    color: var(--ink-muted, rgba(0, 0, 0, 0.45));
     cursor: pointer;
+    box-shadow: none;
   }
 
   .ch-list-search-close:hover {
-    background: var(--bg-muted, #f0f2f5);
+    background: transparent;
     color: var(--ink-display, rgba(0, 0, 0, 0.85));
+  }
+
+  .ch-list-search-close:focus-visible {
+    outline: 2px solid var(--cins-blue, #1f74c9);
+    outline-offset: 2px;
   }
 
   .ch-list-toolbar-search:not(.is-open) .ch-list-search {
@@ -1080,10 +1090,53 @@
     flex: 1 1 auto;
     width: auto;
     min-width: 0;
+    max-width: none;
+    height: 36px;
+    padding: 0 6px 0 10px;
+    gap: 6px;
+    border-radius: 10px;
+    border: 1px solid var(--border, #e4e6eb);
+    background: var(--bg-surface, #fff);
+    box-shadow: var(--shadow-sm, 0 2px 8px rgba(15, 23, 42, 0.04));
+  }
+
+  .ch-list-toolbar-search.is-open .ch-list-search:focus-within {
+    border-color: color-mix(in srgb, var(--cins-blue, #1f74c9) 42%, var(--border, #e4e6eb));
+    background: color-mix(in srgb, var(--cins-blue, #1f74c9) 9%, #fff);
+    box-shadow: var(--shadow-sm, 0 2px 8px rgba(15, 23, 42, 0.04));
   }
 
   .ch-list-toolbar-search.is-open .ch-list-search-icon-inline {
+    display: block;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    color: var(--ink-muted, rgba(0, 0, 0, 0.55));
+  }
+
+  .ch-list-toolbar-search.is-open .ch-list-search:focus-within .ch-list-search-icon-inline {
+    color: var(--cins-blue, #1f74c9);
+  }
+
+  .ch-list-toolbar-search.is-open .ch-list-search input {
+    font-size: max(16px, 1rem);
+    font-weight: 400;
+  }
+
+  .ch-list-toolbar-search.is-open .ch-list-search input::-webkit-search-cancel-button,
+  .ch-list-toolbar-search.is-open .ch-list-search input::-webkit-search-decoration {
+    appearance: none;
+  }
+
+  .ch-list-toolbar-search.is-open .ch-list-search-clear {
     display: none;
+  }
+
+  .ch-list-toolbar-search.is-open .ch-list-result-meta {
+    flex: 1 0 100%;
+    padding: 0 4px;
+    font-size: 12px;
+    font-weight: 500;
   }
 
   .ch-list-toolbar-tabs {
@@ -1437,12 +1490,21 @@
   z-index: 2;
 }
 
+.ch-list-hang-card-link {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  text-decoration: none;
+  color: inherit;
+}
+
 .ch-list-hang-card-body {
   display: flex;
   flex-direction: column;
   gap: 4px;
   min-width: 0;
-  padding: 8px 10px 10px;
+  padding: 8px 10px 4px;
 }
 
 .ch-list-hang-card-name {
@@ -1517,8 +1579,71 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 6px;
+  margin-top: 0;
+  padding: 2px 10px 10px;
   min-height: 28px;
+}
+
+.ch-list-hang-qty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex-shrink: 0;
+  min-width: 72px;
+  padding: 2px;
+  border-radius: 10px;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, #e4e6eb);
+  color: var(--ink-display, rgba(0, 0, 0, 0.88));
+}
+
+.ch-list-hang-qty > span {
+  flex: 0 0 20px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.ch-list-hang-qty button {
+  flex: 0 0 26px;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: color-mix(in srgb, var(--cins-orange, #fdad4c) 55%, #7c2d12);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ch-list-hang-qty button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.ch-list-hang-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 26px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: var(--cins-orange, #fdad4c);
+  color: #5c3200;
+  cursor: pointer;
+}
+
+.ch-list-hang-add:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .ch-list-hang-card-seller {
@@ -2133,8 +2258,38 @@
   min-width: 0;
 }
 
+.ch-san-voucher-chip-shop-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: 160px;
+}
+
+.ch-san-voucher-chip-avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--border, #e4e6eb) 55%, #fff);
+  font-size: 8px;
+  font-weight: 750;
+  color: var(--ink-muted, rgba(0, 0, 0, 0.5));
+}
+
+.ch-san-voucher-chip-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+
 .ch-san-voucher-chip-shop {
-  max-width: 140px;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2520,6 +2675,11 @@
 
 :root[data-theme="dark"] .ch-san-voucher-chip-shop {
   color: var(--ink-display, rgba(255, 255, 255, 0.9));
+}
+
+:root[data-theme="dark"] .ch-san-voucher-chip-avatar {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.55);
 }
 
 :root[data-theme="dark"] .ch-san-voucher-rail-all {

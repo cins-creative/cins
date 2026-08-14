@@ -3571,7 +3571,6 @@ a.j-main-gallery-item:focus-visible,
   top: var(--j-topbar-h);
   z-index: 120;
   pointer-events: auto;
-  transition: top var(--app-nav-dur, 0.18s) var(--app-nav-ease, ease);
   background: transparent;
   box-shadow: 0 6px 18px -14px rgba(15, 23, 42, 0.4);
   border-bottom: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 82%, transparent);
@@ -10755,7 +10754,11 @@ select.j-edit-input {
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
+  scrollbar-width: none;
+}
+.j-post-sheet:has(.post-canvas--split:not(.post-canvas--media))
+  .post-view-content::-webkit-scrollbar {
+  display: none;
 }
 
 .j-post-sheet:has(.post-canvas--split:not(.post-canvas--media)) .post-view-rail {
@@ -10780,6 +10783,10 @@ select.j-edit-input {
     justify-content: flex-start;
     touch-action: pan-y;
     animation: j-overlay-in 280ms ease both;
+    scrollbar-width: none;
+  }
+  .j-post-overlay:has(.post-canvas--split)::-webkit-scrollbar {
+    display: none;
   }
 
   .j-post-overlay .j-post-sheet:has(.post-canvas--split) {

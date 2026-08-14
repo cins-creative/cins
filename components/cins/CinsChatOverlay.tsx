@@ -324,7 +324,6 @@ function mergeLaunchThread(
 
 type ChatSidePanel = "pin" | "mocs" | "canvas" | "hoc_vien";
 
-type BanBeListFilter = "all" | "nhom";
 /** Launch compat — map sang expand/collapse hub org (project parent), không còn sub-tab UI. */
 type ToChucListFilter = "all" | "cua_toi" | "tham_gia";
 
@@ -1119,7 +1118,8 @@ export function CinsChatOverlay({
   const [activeTab, setActiveTab] = useState<ChatThreadView>(
     () => launch?.tab ?? launch?.thread?.group ?? "ban_be",
   );
-  const [banBeFilter, setBanBeFilter] = useState<BanBeListFilter>("all");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [toChucFilter, setToChucFilter] = useState<ToChucListFilter>(
     () => launch?.toChucFilter ?? "all",
   );
@@ -1215,6 +1215,11 @@ export function CinsChatOverlay({
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
   }, []);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+    searchInputRef.current?.focus();
+  }, [searchOpen]);
 
   useEffect(() => {
     if (!canvasNotice) return;
@@ -1592,9 +1597,6 @@ export function CinsChatOverlay({
       }
       if (t.group !== activeTab) return false;
       if (hiddenRoomIds.includes(t.roomId)) return false;
-      if (activeTab === "ban_be") {
-        if (banBeFilter === "nhom" && !t.isGroup) return false;
-      }
       /* Tab Tổ chức: không còn sub-filter — gom nhóm trong UI. */
       return threadMatchesQuery(t, q);
     });
@@ -1638,7 +1640,6 @@ export function CinsChatOverlay({
     query,
     activeTab,
     muaBanSub,
-    banBeFilter,
     khachHangTagFilter,
     pinnedListRoomIds,
     hiddenRoomIds,
@@ -4629,6 +4630,21 @@ export function CinsChatOverlay({
               ) : null}
             </div>
             <div className="cins-chat-list-head-actions">
+              <button
+                type="button"
+                className={`cins-chat-icon-btn is-plain${searchOpen ? " is-active" : ""}`}
+                aria-label={searchOpen ? "Đóng tìm kiếm" : "Tìm hội thoại"}
+                aria-expanded={searchOpen}
+                title="Tìm hội thoại"
+                onClick={() => {
+                  setSearchOpen((wasOpen) => {
+                    if (wasOpen) setQuery("");
+                    return !wasOpen;
+                  });
+                }}
+              >
+                <Search size={18} strokeWidth={1.8} aria-hidden />
+              </button>
               {activeTab === "ban_be" ? (
                 <button
                   type="button"
@@ -4642,7 +4658,7 @@ export function CinsChatOverlay({
               ) : null}
               <button
                 type="button"
-                className="cins-chat-icon-btn is-plain"
+                className="cins-chat-icon-btn is-plain cins-chat-close-desktop"
                 aria-label="Đóng bảng chat"
                 title="Đóng"
                 onClick={(e) => {
@@ -4671,37 +4687,24 @@ export function CinsChatOverlay({
             </div>
           </header>
 
-          <div className="cins-chat-search-row">
-            <label className="cins-chat-search">
-              <Search size={16} strokeWidth={1.8} aria-hidden />
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Tìm hội thoại"
-              />
-            </label>
-            {activeTab === "ban_be" ? (
-              <button
-                type="button"
-                className={`cins-chat-banbe-filter-icon${banBeFilter === "nhom" ? " is-active" : ""}`}
-                aria-pressed={banBeFilter === "nhom"}
-                aria-label={
-                  banBeFilter === "nhom"
-                    ? "Đang lọc nhóm — bấm để hiện tất cả"
-                    : "Chỉ hiện nhóm"
-                }
-                title={
-                  banBeFilter === "nhom" ? "Đang lọc nhóm" : "Lọc nhóm"
-                }
-                onClick={() =>
-                  setBanBeFilter((f) => (f === "nhom" ? "all" : "nhom"))
-                }
-              >
-                <Users size={15} strokeWidth={1.9} aria-hidden />
-              </button>
-            ) : null}
-          </div>
+          {searchOpen ? (
+            <div className="cins-chat-search-row">
+              <label className="cins-chat-search">
+                <input
+                  ref={searchInputRef}
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Escape") return;
+                    setSearchOpen(false);
+                    setQuery("");
+                  }}
+                  placeholder="Tìm hội thoại"
+                />
+              </label>
+            </div>
+          ) : null}
 
           {visibleThreadViews.length > 1 ? (
           <div
@@ -4909,9 +4912,7 @@ export function CinsChatOverlay({
               <p className="cins-chat-threads-empty">
                 {query.trim()
                   ? "Không tìm thấy hội thoại phù hợp."
-                  : activeTab === "ban_be" && banBeFilter === "nhom"
-                    ? "Chưa có nhóm chat nào."
-                    : activeTab === "mua_ban" && muaBanSub === "khach_hang"
+                  : activeTab === "mua_ban" && muaBanSub === "khach_hang"
                       ? khachHangTagFilter.length > 0
                         ? "Không có khách nào khớp thẻ đã chọn."
                         : "Chưa có khách hàng nào trong chat."

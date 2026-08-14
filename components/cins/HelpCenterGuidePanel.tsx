@@ -154,7 +154,7 @@ export function HelpCenterGuidePanel({
     if (!isCinsAdmin) return;
     setAdminLoading(true);
     try {
-      const res = await fetch("/api/admin/guides", { cache: "no-store" });
+      const res = await fetch("/api/admin/huong-dan", { cache: "no-store" });
       const json = (await res.json()) as {
         ok?: boolean;
         nhom?: HuongDanNhomAdmin[];
@@ -286,7 +286,7 @@ export function HelpCenterGuidePanel({
       setNewNhomSlug("");
       setCreatingNhom(false);
 
-      const adminRes = await fetch("/api/admin/guides", { cache: "no-store" });
+      const adminRes = await fetch("/api/admin/huong-dan", { cache: "no-store" });
       const json = (await adminRes.json()) as {
         ok?: boolean;
         nhom?: HuongDanNhomAdmin[];

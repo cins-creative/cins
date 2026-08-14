@@ -33,8 +33,31 @@ const TICKER_RESUME_MS = 1200;
 const TICKER_RESUME_EASE_MS = 1500;
 const TICKER_DT_MAX_MS = 64;
 const TICKER_SPEED_DEFAULT = 28;
+const TICKER_INERTIA_DECEL = 0.997;
+const TICKER_INERTIA_MIN_PX_MS = 0.04;
+const TICKER_INERTIA_SAMPLE_MS = 80;
+const TICKER_INERTIA_BOOST = 1.08;
+const TICKER_INERTIA_SAMPLES_MAX = 12;
 const TICKER_COPIES_MIN = 3;
 const TICKER_COPIES_MAX = 24;
+
+type TickerDragSample = { t: number; x: number };
+
+function tickerFingerVelocityPxMs(samples: TickerDragSample[]): number {
+  if (samples.length < 2) return 0;
+  const now = performance.now();
+  let i = 0;
+  while (
+    i < samples.length &&
+    now - samples[i]!.t > TICKER_INERTIA_SAMPLE_MS
+  ) {
+    i += 1;
+  }
+  const a = samples[i];
+  const b = samples[samples.length - 1];
+  if (!a || !b || b.t <= a.t) return 0;
+  return ((b.x - a.x) / (b.t - a.t)) * TICKER_INERTIA_BOOST;
+}
 
 function formatGiamChip(loaiGiam: CongKhaiItem["loaiGiam"], giaTri: number): string {
   if (loaiGiam === "phan_tram") return `Giảm ${giaTri}%`;
@@ -72,8 +95,24 @@ function SanVoucherChip({
         {formatGiamChip(v.loaiGiam, v.giaTri)}
       </span>
       <span className="ch-san-voucher-chip-meta">
-        <span className="ch-san-voucher-chip-shop">
-          {v.tenCuaHang?.trim() || "Shop"}
+        <span className="ch-san-voucher-chip-shop-row">
+          <span className="ch-san-voucher-chip-avatar" aria-hidden>
+            {v.shopAvatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={v.shopAvatarUrl}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                draggable={false}
+              />
+            ) : (
+              (v.tenCuaHang?.trim() || "Shop").charAt(0).toUpperCase()
+            )}
+          </span>
+          <span className="ch-san-voucher-chip-shop">
+            {v.tenCuaHang?.trim() || "Shop"}
+          </span>
         </span>
         <span className="ch-san-voucher-chip-ma">{v.ma}</span>
       </span>
@@ -103,6 +142,7 @@ export function CuaHangSanVoucher() {
     startY: number;
     startScroll: number;
     active: boolean;
+    samples: TickerDragSample[];
   } | null>(null);
   const tickerSuppressClickRef = useRef(false);
   const [tickerDragging, setTickerDragging] = useState(false);
@@ -119,6 +159,7 @@ export function CuaHangSanVoucher() {
   const tickerLastTsRef = useRef<number | null>(null);
   const tickerSpeedRef = useRef(TICKER_SPEED_DEFAULT);
   const tickerEaseStartRef = useRef<number | null>(null);
+  const tickerInertiaRef = useRef<{ velocity: number } | null>(null);
   const tickerReducedMotionRef = useRef(false);
   const tickerResumeTimersRef = useRef(
     new Map<string, ReturnType<typeof setTimeout>>(),
@@ -207,91 +248,143 @@ export function CuaHangSanVoucher() {
       tickerResumeTimersRef.current.delete("drag");
     }
     tickerHoldReasonsRef.current.delete("drag");
+    tickerInertiaRef.current = null;
     tickerEaseStartRef.current = 0;
   }, []);
 
-  const onTickerPointerDown = useCallback(
-    (e: ReactPointerEvent<HTMLDivElement>) => {
-      if (e.pointerType === "mouse" && e.button !== 0) return;
+  const beginTickerDrag = useCallback(
+    (clientX: number, clientY: number, pointerId: number) => {
       const resumeTimer = tickerResumeTimersRef.current.get("drag");
       if (resumeTimer) {
         clearTimeout(resumeTimer);
         tickerResumeTimersRef.current.delete("drag");
       }
+      tickerInertiaRef.current = null;
       tickerEaseStartRef.current = null;
       tickerHoldReasonsRef.current.add("drag");
       tickerDragRef.current = {
-        pointerId: e.pointerId,
-        startX: e.clientX,
-        startY: e.clientY,
+        pointerId,
+        startX: clientX,
+        startY: clientY,
         startScroll: tickerPosRef.current,
         active: false,
+        samples: [{ t: performance.now(), x: clientX }],
       };
     },
     [],
   );
 
-  const onTickerPointerMove = useCallback(
-    (e: ReactPointerEvent<HTMLDivElement>) => {
+  const applyTickerDragMove = useCallback(
+    (
+      clientX: number,
+      clientY: number,
+      pointerType: string,
+    ): "ignore" | "vertical" | "horizontal" => {
       const drag = tickerDragRef.current;
-      if (!drag || drag.pointerId !== e.pointerId) return;
-      const dx = e.clientX - drag.startX;
-      const dy = e.clientY - drag.startY;
+      if (!drag) return "ignore";
+      const dx = clientX - drag.startX;
+      const dy = clientY - drag.startY;
       if (!drag.active) {
-        if (Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
-        if (e.pointerType !== "mouse" && Math.abs(dy) >= Math.abs(dx)) {
+        if (Math.abs(dx) < 3 && Math.abs(dy) < 3) return "ignore";
+        if (pointerType !== "mouse" && Math.abs(dy) >= Math.abs(dx)) {
           tickerDragRef.current = null;
           abortTickerDragHold();
-          return;
+          return "vertical";
         }
-        if (Math.abs(dx) < 3) return;
+        if (Math.abs(dx) < 3) return "ignore";
         drag.active = true;
         setTickerDragging(true);
+      }
+      const now = performance.now();
+      drag.samples.push({ t: now, x: clientX });
+      if (drag.samples.length > TICKER_INERTIA_SAMPLES_MAX) {
+        drag.samples.splice(0, drag.samples.length - TICKER_INERTIA_SAMPLES_MAX);
+      }
+      writeTickerPos(drag.startScroll - dx);
+      normalizeTickerLoop();
+      return "horizontal";
+    },
+    [abortTickerDragHold, normalizeTickerLoop, writeTickerPos],
+  );
+
+  const endTickerDrag = useCallback((el?: HTMLDivElement | null) => {
+    const drag = tickerDragRef.current;
+    if (!drag) return;
+    tickerDragRef.current = null;
+    if (el?.hasPointerCapture?.(drag.pointerId)) {
+      try {
+        el.releasePointerCapture(drag.pointerId);
+      } catch {
+        /* ignore */
+      }
+    }
+    if (drag.active) tickerSuppressClickRef.current = true;
+    setTickerDragging(false);
+    const resumeTimer = tickerResumeTimersRef.current.get("drag");
+    if (resumeTimer) {
+      clearTimeout(resumeTimer);
+      tickerResumeTimersRef.current.delete("drag");
+    }
+    tickerHoldReasonsRef.current.delete("drag");
+
+    const fingerV = drag.active ? tickerFingerVelocityPxMs(drag.samples) : 0;
+    const posV = -fingerV;
+    if (
+      drag.active &&
+      !tickerReducedMotionRef.current &&
+      Math.abs(posV) >= TICKER_INERTIA_MIN_PX_MS
+    ) {
+      tickerInertiaRef.current = { velocity: posV };
+      tickerEaseStartRef.current = null;
+    } else {
+      tickerInertiaRef.current = null;
+      tickerEaseStartRef.current = 0;
+    }
+  }, []);
+
+  const onTickerPointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      beginTickerDrag(e.clientX, e.clientY, e.pointerId);
+      if (e.pointerType === "mouse") {
         try {
           e.currentTarget.setPointerCapture(e.pointerId);
         } catch {
           /* ignore */
         }
       }
-      writeTickerPos(drag.startScroll - dx);
-      normalizeTickerLoop();
-      e.preventDefault();
     },
-    [abortTickerDragHold, normalizeTickerLoop, writeTickerPos],
+    [beginTickerDrag],
+  );
+
+  const onTickerPointerMove = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      const drag = tickerDragRef.current;
+      if (!drag || drag.pointerId !== e.pointerId) return;
+      if (applyTickerDragMove(e.clientX, e.clientY, e.pointerType) === "horizontal") {
+        e.preventDefault();
+      }
+    },
+    [applyTickerDragMove],
   );
 
   const finishTickerDrag = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       const drag = tickerDragRef.current;
       if (!drag || drag.pointerId !== e.pointerId) return;
-      tickerDragRef.current = null;
-      if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
-        try {
-          e.currentTarget.releasePointerCapture(e.pointerId);
-        } catch {
-          /* ignore */
-        }
-      }
-      if (drag.active) tickerSuppressClickRef.current = true;
-      setTickerDragging(false);
-      const resumeTimer = tickerResumeTimersRef.current.get("drag");
-      if (resumeTimer) {
-        clearTimeout(resumeTimer);
-        tickerResumeTimersRef.current.delete("drag");
-      }
-      tickerHoldReasonsRef.current.delete("drag");
-      tickerEaseStartRef.current = 0;
+      endTickerDrag(e.currentTarget);
     },
-    [],
+    [endTickerDrag],
   );
 
   const onTickerLostPointerCapture = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (e.pointerType !== "mouse") return;
       const drag = tickerDragRef.current;
       if (!drag || drag.pointerId !== e.pointerId) return;
-      finishTickerDrag(e);
+      endTickerDrag(e.currentTarget);
     },
-    [finishTickerDrag],
+    [endTickerDrag],
   );
 
   const onTickerClickCapture = useCallback(
@@ -303,6 +396,44 @@ export function CuaHangSanVoucher() {
     },
     [],
   );
+
+  useEffect(() => {
+    const el = tickerScrollRef.current;
+    if (!el) return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const t = e.touches[0]!;
+      beginTickerDrag(t.clientX, t.clientY, t.identifier);
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!tickerDragRef.current) return;
+      if (e.touches.length !== 1) return;
+      const t = e.touches[0]!;
+      if (applyTickerDragMove(t.clientX, t.clientY, "touch") === "horizontal") {
+        e.preventDefault();
+      }
+    };
+
+    const onTouchEnd = () => {
+      endTickerDrag(el);
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, {
+      passive: false,
+      capture: true,
+    });
+    el.addEventListener("touchend", onTouchEnd);
+    el.addEventListener("touchcancel", onTouchEnd);
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove, true);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, [applyTickerDragMove, beginTickerDrag, endTickerDrag]);
 
   const loadSan = useCallback(async () => {
     const res = await fetch("/api/shop/vouchers/public", { cache: "no-store" });
@@ -461,6 +592,7 @@ export function CuaHangSanVoucher() {
         tickerRafRef.current = null;
       }
       tickerLastTsRef.current = null;
+      tickerInertiaRef.current = null;
       if (track) track.style.willChange = "";
     };
 
@@ -473,6 +605,24 @@ export function CuaHangSanVoucher() {
       let dt = ts - last;
       if (dt > TICKER_DT_MAX_MS) dt = TICKER_DT_MAX_MS;
       if (dt <= 0) return;
+
+      const inertia = tickerInertiaRef.current;
+      if (inertia) {
+        inertia.velocity *= Math.pow(TICKER_INERTIA_DECEL, dt);
+        writeTickerPos(tickerPosRef.current + inertia.velocity * dt);
+        normalizeTickerLoop();
+        const cruisePxMs = tickerSpeedRef.current / 1000;
+        const v = inertia.velocity;
+        if (v > 0 && v <= Math.max(cruisePxMs * 1.15, TICKER_INERTIA_MIN_PX_MS)) {
+          tickerInertiaRef.current = null;
+          tickerEaseStartRef.current = null;
+        } else if (v <= 0 && Math.abs(v) < TICKER_INERTIA_MIN_PX_MS) {
+          tickerInertiaRef.current = null;
+          tickerEaseStartRef.current = 0;
+        }
+        return;
+      }
+
       let speed = tickerSpeedRef.current;
       let easeStart = tickerEaseStartRef.current;
       if (easeStart != null) {
@@ -520,6 +670,7 @@ export function CuaHangSanVoucher() {
       e.preventDefault();
       holdReasons.add("user-scroll");
       scheduleTickerHoldClear("user-scroll");
+      tickerInertiaRef.current = null;
       tickerEaseStartRef.current = null;
       let pos = tickerPosRef.current + e.deltaX;
       const oneSet = tickerSetWidthRef.current;
@@ -565,7 +716,14 @@ export function CuaHangSanVoucher() {
       holdReasons.delete("drag");
       holdReasons.delete("user-scroll");
     };
-  }, [loading, san.length, scheduleTickerHoldClear, tickerLoop, writeTickerPos]);
+  }, [
+    loading,
+    san.length,
+    scheduleTickerHoldClear,
+    tickerLoop,
+    writeTickerPos,
+    normalizeTickerLoop,
+  ]);
 
   useEffect(() => {
     const resumeTimers = tickerResumeTimersRef.current;

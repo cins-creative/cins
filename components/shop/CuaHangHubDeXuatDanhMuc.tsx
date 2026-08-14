@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import type { ShopNhom } from "@/lib/shop/types";
+import { useShopReadyGate } from "@/lib/shop/use-shop-ready-gate";
 
 type DanhMucOpt = {
   id: string;
@@ -23,6 +24,7 @@ type Props = {
 };
 
 export function CuaHangHubDeXuatDanhMuc({ searchQuery }: Props) {
+  const { enabled: canDeXuat, loading: gateLoading } = useShopReadyGate();
   const [open, setOpen] = useState(false);
   const [auth, setAuth] = useState<"loading" | "guest" | "seller" | "empty">(
     "loading",
@@ -143,6 +145,8 @@ export function CuaHangHubDeXuatDanhMuc({ searchQuery }: Props) {
       setBusy(false);
     }
   }
+
+  if (gateLoading || !canDeXuat) return null;
 
   if (!open) {
     return (

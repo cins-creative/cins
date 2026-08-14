@@ -42,7 +42,7 @@ function tabHref(tab: AdminGiaoDichTab, page?: number): string {
   if (tab !== "don") params.set("tab", tab);
   if (page != null && page > 1) params.set("page", String(page));
   const qs = params.toString();
-  return qs ? `/admin/transactions?${qs}` : "/admin/transactions";
+  return qs ? `/admin/giao-dich?${qs}` : "/admin/giao-dich";
 }
 
 function UserCell({
