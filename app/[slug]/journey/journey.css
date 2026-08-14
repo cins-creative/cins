@@ -6515,17 +6515,19 @@ button.j-m-card-hit {
   margin-left: auto;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: flex-end;
-  gap: 8px;
-  flex-shrink: 1;
+  gap: 6px;
+  flex-shrink: 0;
   min-width: 0;
-  max-width: 100%;
+  align-self: center;
 }
 .j-bf-toolbar .badge-row {
   margin: 0;
-  flex: 0 1 auto;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
   min-width: 0;
+  align-self: center;
 }
 .j-bf-toolbar .j-m-menu,
 .j-bf-toolbar .jcard-date-menu {
@@ -6534,11 +6536,20 @@ button.j-m-card-hit {
   right: auto;
   z-index: 10;
   flex: 0 0 auto;
+  align-self: center;
 }
-.j-bf-toolbar .jcard-date-menu .j-m-menu-btn {
+.j-bf-toolbar .jcard-date-menu .j-m-menu-btn,
+.j-bf-toolbar .jcard-date-menu .j-m-menu-btn:hover,
+.j-bf-toolbar .jcard-date-menu .j-m-menu-btn[aria-expanded="true"] {
   width: 28px;
   height: 28px;
+  background: transparent;
+  border-color: transparent;
   box-shadow: none;
+}
+.j-bf-toolbar .jcard-date-menu .j-m-menu-btn:hover,
+.j-bf-toolbar .jcard-date-menu .j-m-menu-btn[aria-expanded="true"] {
+  color: var(--cins-blue);
 }
 /* Popover toolbar khung bookmark — phải trên card xổ (z-index 20). */
 .j-bookmark-frame:has(.j-bf-toolbar .j-m-menu-btn[aria-expanded="true"]) .j-bookmark-frame-head,
@@ -14733,10 +14744,18 @@ select.j-edit-input {
   z-index: 10;
   flex: 0 0 auto;
 }
-.jcard-datebar .jcard-date-menu .j-m-menu-btn {
+.jcard-datebar .jcard-date-menu .j-m-menu-btn,
+.jcard-datebar .jcard-date-menu .j-m-menu-btn:hover,
+.jcard-datebar .jcard-date-menu .j-m-menu-btn[aria-expanded="true"] {
   width: 28px;
   height: 28px;
+  background: transparent;
+  border-color: transparent;
   box-shadow: none;
+}
+.jcard-datebar .jcard-date-menu .j-m-menu-btn:hover,
+.jcard-datebar .jcard-date-menu .j-m-menu-btn[aria-expanded="true"] {
+  color: var(--cins-blue);
 }
 
 /* Góc trên-phải card: menu "..." của người xem. */
@@ -15296,7 +15315,13 @@ select.j-edit-input {
    ======================================================== */
 :root[data-theme="dark"] .jcard-viewer-menu .j-m-menu-btn,
 :root[data-theme="dark"] .jcard-viewer-menu .j-m-menu-btn:hover,
-:root[data-theme="dark"] .jcard-viewer-menu .j-m-menu-btn[aria-expanded="true"] {
+:root[data-theme="dark"] .jcard-viewer-menu .j-m-menu-btn[aria-expanded="true"],
+:root[data-theme="dark"] .jcard-datebar .jcard-date-menu .j-m-menu-btn,
+:root[data-theme="dark"] .jcard-datebar .jcard-date-menu .j-m-menu-btn:hover,
+:root[data-theme="dark"] .jcard-datebar .jcard-date-menu .j-m-menu-btn[aria-expanded="true"],
+:root[data-theme="dark"] .j-bf-toolbar .jcard-date-menu .j-m-menu-btn,
+:root[data-theme="dark"] .j-bf-toolbar .jcard-date-menu .j-m-menu-btn:hover,
+:root[data-theme="dark"] .j-bf-toolbar .jcard-date-menu .j-m-menu-btn[aria-expanded="true"] {
   background: transparent;
   border-color: transparent;
 }
