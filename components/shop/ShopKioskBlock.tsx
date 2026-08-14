@@ -24,6 +24,11 @@ import { createPortal } from "react-dom";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { ShopCatalogThumbPlaceholder } from "@/components/shop/ShopCatalogThumbPlaceholder";
 import {
+  ShopImageDecoy,
+  ShopImageProtect,
+} from "@/components/shop/ShopImageProtect";
+import { shopProtectWatermarkText } from "@/lib/shop/image-protect";
+import {
   GIO_CHUNG_CHANGED_EVENT,
   notifyGioChungAdded,
 } from "@/components/shop/ShopGioChungButton";
@@ -469,6 +474,11 @@ export function ShopKioskBlock({
     Boolean(viewerProfileId) &&
     Boolean(sellerUserId) &&
     viewerProfileId === sellerUserId;
+  const protectProductImg = !isOwner;
+  const productWmText = shopProtectWatermarkText({
+    shopTen: sellerName,
+    ownerSlug: sellerSlug,
+  });
   const cartLocked = previewOnly || isOwner;
 
   useEffect(() => {
@@ -1076,13 +1086,19 @@ export function ShopKioskBlock({
             >
               <X size={20} strokeWidth={2} aria-hidden />
             </button>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={preview.src}
-              alt={preview.name}
-              className="shop-kiosk-preview-img"
+            <div
+              className="shop-kiosk-preview-stage"
               onClick={(e) => e.stopPropagation()}
-            />
+            >
+              <ShopImageProtect
+                src={preview.src}
+                alt={preview.name}
+                protect={protectProductImg}
+                watermarkText={protectProductImg ? productWmText : null}
+                fit="contain"
+                imgClassName="shop-kiosk-preview-img"
+              />
+            </div>
             {preview.name ? (
               <p className="shop-kiosk-preview-caption">{preview.name}</p>
             ) : null}
@@ -1215,8 +1231,14 @@ export function ShopKioskBlock({
                                   aria-label={`Xem ảnh ${it.tenSanPham}`}
                                 >
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img src={it.anhUrl} alt="" loading="lazy" />
+                                  <img
+                                    src={it.anhUrl}
+                                    alt=""
+                                    loading="lazy"
+                                    draggable={false}
+                                  />
                                   {lowStockBadge}
+                                  {protectProductImg ? <ShopImageDecoy /> : null}
                                 </button>
                               ) : (
                                 <div className="shop-kiosk-catalog-thumb is-empty">
@@ -1388,6 +1410,7 @@ export function ShopKioskBlock({
                         data-shop-thumb-fit={fit}
                         draggable={false}
                       />
+                      {protectProductImg ? <ShopImageDecoy /> : null}
                     </button>
                   );
                 }),

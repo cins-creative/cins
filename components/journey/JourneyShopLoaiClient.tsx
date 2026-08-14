@@ -40,8 +40,15 @@ import {
   GIO_CHUNG_CHANGED_EVENT,
   notifyGioChungAdded,
 } from "@/components/shop/ShopGioChungButton";
+import { ShopImageLightbox } from "@/components/shop/ShopImageLightbox";
+import {
+  ShopImageDecoy,
+  ShopImageProtect,
+  ShopImageWatermark,
+} from "@/components/shop/ShopImageProtect";
 import { ShopTamDongOverlay } from "@/components/shop/ShopTamDongOverlay";
 import { ShopComboLoaiHint } from "@/components/shop/ShopComboLoaiHint";
+import { shopProtectWatermarkText } from "@/lib/shop/image-protect";
 import { ShareLinkMenu } from "@/components/social/ShareLinkMenu";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
 import { warmOgImageCache } from "@/lib/journey/og-image-url";
@@ -800,6 +807,9 @@ export function JourneyShopLoaiClient({
     idx: number;
     outgoing: { url: string; dir: 1 | -1 } | null;
   }>({ url: null, idx: 0, outgoing: null });
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+  const lightboxOpenRef = useRef(false);
+  lightboxOpenRef.current = lightboxIdx != null;
 
   const pauseGalleryAuto = useCallback((ms = 8000) => {
     galleryAutoPauseUntilRef.current = Date.now() + ms;
@@ -898,6 +908,7 @@ export function JourneyShopLoaiClient({
     const id = window.setInterval(() => {
       if (document.hidden) return;
       if (galleryHoverRef.current) return;
+      if (lightboxOpenRef.current) return;
       if (Date.now() < galleryAutoPauseUntilRef.current) return;
       setGalleryIdx((i) => {
         const len = galleryItems.length;
@@ -925,7 +936,6 @@ export function JourneyShopLoaiClient({
 
   const onGalleryPointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
-      if (galleryItems.length <= 1) return;
       if (activeGallery?.kind === "video") return;
       if ((e.target as Element | null)?.closest?.(".j-shop-loai-gallery-dot")) {
         return;
@@ -935,7 +945,9 @@ export function JourneyShopLoaiClient({
         y: e.clientY,
         id: e.pointerId,
       };
-      e.currentTarget.setPointerCapture(e.pointerId);
+      if (galleryItems.length > 1) {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      }
     },
     [galleryItems.length, activeGallery?.kind],
   );
@@ -948,18 +960,30 @@ export function JourneyShopLoaiClient({
         e.currentTarget.releasePointerCapture(e.pointerId);
       }
       if (!start || start.id !== e.pointerId) return;
-      if (galleryItems.length <= 1) return;
       const dx = e.clientX - start.x;
       const dy = e.clientY - start.y;
-      if (Math.abs(dx) < 48 || Math.abs(dx) <= Math.abs(dy)) return;
-      pauseGalleryAuto();
-      if (dx < 0) {
-        setGalleryIdx((i) => Math.min(galleryItems.length - 1, i + 1));
-      } else {
-        setGalleryIdx((i) => Math.max(0, i - 1));
+      if (
+        galleryItems.length > 1 &&
+        Math.abs(dx) >= 48 &&
+        Math.abs(dx) > Math.abs(dy)
+      ) {
+        pauseGalleryAuto();
+        if (dx < 0) {
+          setGalleryIdx((i) => Math.min(galleryItems.length - 1, i + 1));
+        } else {
+          setGalleryIdx((i) => Math.max(0, i - 1));
+        }
+        return;
       }
+      if (Math.abs(dx) > 28 || Math.abs(dy) > 28) return;
+      if (activeGallery?.kind !== "image") return;
+      const urls = galleryItems
+        .filter((item) => item.kind === "image")
+        .map((item) => item.url);
+      const at = urls.indexOf(activeGallery.url);
+      setLightboxIdx(at >= 0 ? at : 0);
     },
-    [galleryItems.length, pauseGalleryAuto],
+    [galleryItems, activeGallery, pauseGalleryAuto],
   );
 
   const onGalleryPointerCancel = useCallback(
@@ -1288,6 +1312,15 @@ export function JourneyShopLoaiClient({
 
   const moTaBlocks = detail.moTa ? parseShopNhomMoTa(detail.moTa) : [];
   const shopClosed = isShopTamDongActive(shop);
+  /** Trang loại = mặt tiền khách: luôn decoy + chữ. Ảnh sạch chỉ ở Kho. */
+  const protectProductImg = true;
+  const productWmText = shopProtectWatermarkText({
+    shopTen: shop?.ten,
+    ownerSlug,
+  });
+  const lightboxUrls = galleryItems
+    .filter((item) => item.kind === "image")
+    .map((item) => item.url);
 
   return (
     <section className="j-shop" aria-label={detail.nhan}>
@@ -1315,7 +1348,7 @@ export function JourneyShopLoaiClient({
       >
         <div className="j-shop-loai-gallery-col">
           <div
-            className={`j-shop-loai-gallery${galleryItems.length > 1 ? " is-swipeable" : ""}`}
+            className={`j-shop-loai-gallery${galleryItems.length > 1 ? " is-swipeable" : ""}${activeGallery?.kind === "image" ? " is-zoomable" : ""}`}
             role={galleryItems.length > 1 ? "region" : undefined}
             aria-roledescription={
               galleryItems.length > 1 ? "carousel" : undefined
@@ -1353,6 +1386,7 @@ export function JourneyShopLoaiClient({
                     src={galleryOutgoing.url}
                     alt=""
                     aria-hidden
+                    draggable={false}
                   />
                 ) : null}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1367,6 +1401,7 @@ export function JourneyShopLoaiClient({
                   }`}
                   src={galleryUrl}
                   alt=""
+                  draggable={false}
                 />
               </>
             ) : (
@@ -1379,8 +1414,13 @@ export function JourneyShopLoaiClient({
                 src={detail.overlayAnhUrl}
                 alt=""
                 aria-hidden
+                draggable={false}
               />
             ) : null}
+            {protectProductImg && galleryUrl ? (
+              <ShopImageWatermark text={productWmText} />
+            ) : null}
+            {protectProductImg && galleryUrl ? <ShopImageDecoy /> : null}
             {galleryItems.length > 1 ? (
               <div
                 className="j-shop-loai-gallery-dots"
@@ -1418,16 +1458,22 @@ export function JourneyShopLoaiClient({
                 >
                   {item.kind === "video" ? (
                     item.thumbUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={item.thumbUrl} alt="" />
+                      <ShopImageProtect
+                        src={item.thumbUrl}
+                        alt=""
+                        protect={protectProductImg}
+                      />
                     ) : (
                       <span className="j-shop-loai-gallery-thumb-video" aria-hidden>
                         ▶
                       </span>
                     )
                   ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.url} alt="" />
+                    <ShopImageProtect
+                      src={item.url}
+                      alt=""
+                      protect={protectProductImg}
+                    />
                   )}
                 </button>
               ))}
@@ -1543,8 +1589,12 @@ export function JourneyShopLoaiClient({
                   >
                     <span className="j-shop-loai-chip-media" aria-hidden>
                       {thumb ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={thumb} alt="" loading="lazy" />
+                        <ShopImageProtect
+                          src={thumb}
+                          alt=""
+                          protect={protectProductImg}
+                          loading="lazy"
+                        />
                       ) : (
                         <span className="j-shop-loai-chip-ph" />
                       )}
@@ -1701,8 +1751,12 @@ export function JourneyShopLoaiClient({
                   >
                     <span className="j-shop-loai-more-media" aria-hidden>
                       {card.anhUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={card.anhUrl} alt="" loading="lazy" />
+                        <ShopImageProtect
+                          src={card.anhUrl}
+                          alt=""
+                          protect={protectProductImg}
+                          loading="lazy"
+                        />
                       ) : (
                         <span className="j-shop-loai-more-ph" />
                       )}
@@ -1981,6 +2035,16 @@ export function JourneyShopLoaiClient({
       ) : null}
       </div>
     </div>
+    {lightboxIdx != null && lightboxUrls[lightboxIdx] ? (
+      <ShopImageLightbox
+        images={lightboxUrls}
+        index={lightboxIdx}
+        watermarkText={productWmText}
+        protect={protectProductImg}
+        onClose={() => setLightboxIdx(null)}
+        onIndexChange={setLightboxIdx}
+      />
+    ) : null}
     </section>
   );
 }

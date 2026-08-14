@@ -97,7 +97,12 @@ export function CuaHangListCard({
               <li key={item.id} className="ch-list-card-hang-item">
                 <div className="ch-list-card-hang-thumb" aria-hidden>
                   {item.anhUrl ? (
-                    <ChListingImg src={item.anhUrl} variant="thumbnail" />
+                    <ChListingImg
+                      src={item.anhUrl}
+                      variant="thumbnail"
+                      fit={item.anhThumbFit}
+                      protect
+                    />
                   ) : (
                     <span>{item.ten.charAt(0).toUpperCase()}</span>
                   )}

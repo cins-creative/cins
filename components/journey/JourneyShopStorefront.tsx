@@ -26,6 +26,7 @@ import {
   GIO_CHUNG_CHANGED_EVENT,
   notifyGioChungAdded,
 } from "@/components/shop/ShopGioChungButton";
+import { ShopImageProtect } from "@/components/shop/ShopImageProtect";
 import { ShopStorefrontComboStrip } from "@/components/shop/ShopStorefrontComboStrip";
 import { ShopTamDongOverlay } from "@/components/shop/ShopTamDongOverlay";
 import {
@@ -112,12 +113,14 @@ function TypeCard({
   ownerSlug,
   shopSlug,
   featureChrome = false,
+  protect = true,
 }: {
   card: ShopStorefrontNhomCard;
   ownerSlug: string;
   shopSlug: string;
   /** Hiển thị viền/badge Feature — chỉ block «Các mặt hàng phổ biến». */
   featureChrome?: boolean;
+  protect?: boolean;
 }) {
   const giaLabel =
     card.giaMacDinh != null
@@ -138,8 +141,12 @@ function TypeCard({
     >
       <span className="j-shop-sf-card-media" aria-hidden>
         {card.anhUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={card.anhUrl} alt="" loading="lazy" />
+          <ShopImageProtect
+            src={card.anhUrl}
+            alt=""
+            protect={protect}
+            loading="lazy"
+          />
         ) : (
           <span className="j-shop-sf-card-ph" />
         )}
@@ -194,6 +201,7 @@ function ItemCard({
   qty,
   onQtyChange,
   featured = false,
+  protect = true,
 }: {
   item: ShopStorefrontItem;
   ownerSlug: string;
@@ -202,6 +210,7 @@ function ItemCard({
   qty: number;
   onQtyChange: (item: ShopStorefrontItem, next: number) => void;
   featured?: boolean;
+  protect?: boolean;
 }) {
   const nhomId = item.idNhom?.trim() || SHOP_STOREFRONT_KHAC_SLUG;
   const href = shopLoaiMauHref(ownerSlug, shopSlug, nhomId, item.sanPhamId);
@@ -240,8 +249,12 @@ function ItemCard({
       <Link href={href} className="j-shop-sf-card-media-link">
         <span className="j-shop-sf-card-media" aria-hidden>
           {item.anhUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={item.anhUrl} alt="" loading="lazy" />
+            <ShopImageProtect
+              src={item.anhUrl}
+              alt=""
+              protect={protect}
+              loading="lazy"
+            />
           ) : (
             <span className="j-shop-sf-card-ph" />
           )}
@@ -956,6 +969,7 @@ export function JourneyShopStorefront({
                         ownerSlug={ownerSlug}
                         shopSlug={shopSlug}
                         featureChrome
+                        protect={!isOwner}
                       />
                     </li>
                   ))}
@@ -995,6 +1009,7 @@ export function JourneyShopStorefront({
                         }
                         onQtyChange={patchQty}
                         featured
+                        protect={!isOwner}
                       />
                     </li>
                   ))}
@@ -1022,6 +1037,7 @@ export function JourneyShopStorefront({
                             : 0
                         }
                         onQtyChange={patchQty}
+                        protect={!isOwner}
                       />
                     </li>
                   ))}
@@ -1042,6 +1058,7 @@ export function JourneyShopStorefront({
                         card={card}
                         ownerSlug={ownerSlug}
                         shopSlug={shopSlug}
+                        protect={!isOwner}
                       />
                     </li>
                   ))}
