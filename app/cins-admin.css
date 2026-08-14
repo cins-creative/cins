@@ -7082,12 +7082,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 8px 10px;
   min-height: 28px;
   margin-bottom: 10px;
 }
 
-.cins-admin .admin-qtv-locked-note {
+.cins-admin .admin-qtv-locked-note,
+.cins-admin .admin-qtv-hint {
   margin: 0;
   font-size: 12px;
   color: var(--fg-3);
@@ -7097,10 +7099,14 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  margin-left: auto;
 }
 
 .cins-admin .admin-qtv-bulk button,
 .cins-admin .admin-qtv-panel-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 4px 8px;
   border: 1px solid var(--border);
   border-radius: 7px;
@@ -7109,6 +7115,7 @@
   font-size: 11px;
   font-weight: 650;
   cursor: pointer;
+  user-select: none;
 }
 
 .cins-admin .admin-qtv-bulk button:hover,
@@ -7118,9 +7125,14 @@
 }
 
 .cins-admin .admin-qtv-bulk button:disabled,
-.cins-admin .admin-qtv-panel-all:disabled {
+.cins-admin .admin-qtv-panel-all:has(input:disabled) {
   opacity: 0.55;
   cursor: wait;
+}
+
+.cins-admin .admin-qtv-panel-all input {
+  margin: 0;
+  accent-color: var(--cins-blue);
 }
 
 .cins-admin .admin-qtv-grid {
@@ -7170,10 +7182,30 @@
   border-radius: 7px;
   cursor: pointer;
   color: var(--fg-3);
+  user-select: none;
 }
 
 .cins-admin .admin-qtv-row:hover {
   background: color-mix(in srgb, var(--fg-1) 5%, transparent);
+}
+
+.cins-admin .admin-qtv-row.is-picked {
+  background: var(--cins-blue-soft);
+  color: var(--fg-1);
+}
+
+.cins-admin .admin-qtv-pick-hit {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  outline: none;
+}
+
+.cins-admin .admin-qtv-pick-hit:focus-visible {
+  border-radius: 6px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cins-blue) 45%, transparent);
 }
 
 .cins-admin .admin-qtv-row-label {
@@ -7184,12 +7216,28 @@
   line-height: 1.3;
 }
 
-.cins-admin .admin-qtv-row input {
-  position: absolute;
-  opacity: 0;
-  width: 1px;
-  height: 1px;
+.cins-admin .admin-qtv-pick {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--cins-blue);
   pointer-events: none;
+}
+
+.cins-admin .admin-qtv-switch-hit {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.cins-admin .admin-qtv-switch-hit:disabled {
+  cursor: default;
 }
 
 .cins-admin .admin-qtv-switch {
@@ -7235,7 +7283,7 @@
   background: transparent;
 }
 
-.cins-admin .admin-qtv-row:has(input:focus-visible) .admin-qtv-switch {
+.cins-admin .admin-qtv-switch-hit:focus-visible .admin-qtv-switch {
   outline: 2px solid color-mix(in srgb, var(--cins-blue) 55%, transparent);
   outline-offset: 2px;
 }
@@ -10283,6 +10331,10 @@
 
 :root[data-theme="dark"] .cins-admin .admin-qtv-switch {
   background: color-mix(in srgb, var(--fg-1) 18%, var(--bg-surface));
+}
+
+:root[data-theme="dark"] .cins-admin .admin-qtv-row.is-picked {
+  background: color-mix(in srgb, var(--cins-blue) 22%, var(--bg-surface));
 }
 
 :root[data-theme="dark"] .cins-admin .admin-nguoi-dung-role-select:focus-visible {

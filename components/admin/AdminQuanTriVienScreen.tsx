@@ -2,10 +2,43 @@
 
 import { ChevronDown, Loader2, Search, Shield } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 
 import type { AdminNavTabDto, AdminStaffRow } from "@/lib/admin/quan-tri-vien-types";
 import type { SystemRole } from "@/lib/auth/system-role";
+
+function nextTabSelection(
+  prev: string[],
+  key: string,
+  index: number,
+  orderedKeys: readonly string[],
+  shiftKey: boolean,
+  ctrlKey: boolean,
+  lastIndex: number | null,
+): string[] {
+  if (shiftKey && lastIndex != null) {
+    const a = Math.min(lastIndex, index);
+    const b = Math.max(lastIndex, index);
+    const next = new Set(prev);
+    for (let i = a; i <= b; i++) {
+      const item = orderedKeys[i];
+      if (item) next.add(item);
+    }
+    return [...next];
+  }
+  if (ctrlKey) {
+    return prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key];
+  }
+  if (prev.length === 1 && prev[0] === key) return [];
+  return [key];
+}
 
 const ROLE_FILTERS: { id: "all" | Exclude<SystemRole, "thanh_vien">; label: string }[] =
   [
@@ -61,6 +94,9 @@ export function AdminQuanTriVienScreen() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+  const lastSelectIndexRef = useRef<number | null>(null);
+  const sweepingRef = useRef(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -110,6 +146,32 @@ export function AdminQuanTriVienScreen() {
     }
     return groups;
   }, [tabs]);
+
+  const orderedKeys = useMemo(() => tabs.map((tab) => tab.key), [tabs]);
+  const selectedSet = useMemo(() => new Set(selectedKeys), [selectedKeys]);
+  const tabIndexByKey = useMemo(() => {
+    const map = new Map<string, number>();
+    orderedKeys.forEach((key, index) => map.set(key, index));
+    return map;
+  }, [orderedKeys]);
+
+  useEffect(() => {
+    setSelectedKeys([]);
+    lastSelectIndexRef.current = null;
+    sweepingRef.current = false;
+  }, [openId]);
+
+  useEffect(() => {
+    function endSweep() {
+      sweepingRef.current = false;
+    }
+    window.addEventListener("pointerup", endSweep);
+    window.addEventListener("pointercancel", endSweep);
+    return () => {
+      window.removeEventListener("pointerup", endSweep);
+      window.removeEventListener("pointercancel", endSweep);
+    };
+  }, []);
 
   async function saveTabAn(row: AdminStaffRow, nextTabAn: string[]) {
     if (!row.canEditTabs) return;
@@ -165,6 +227,53 @@ export function AdminQuanTriVienScreen() {
 
   function handleSetAll(row: AdminStaffRow, visible: boolean) {
     void saveTabAn(row, visible ? [] : tabs.map((tab) => tab.key));
+  }
+
+  function applySelect(key: string, index: number, shiftKey: boolean, ctrlKey: boolean) {
+    setSelectedKeys((prev) =>
+      nextTabSelection(
+        prev,
+        key,
+        index,
+        orderedKeys,
+        shiftKey,
+        ctrlKey,
+        lastSelectIndexRef.current,
+      ),
+    );
+    if (!shiftKey) lastSelectIndexRef.current = index;
+  }
+
+  function handleRowPointerDown(
+    event: ReactPointerEvent<HTMLDivElement>,
+    key: string,
+    index: number,
+    canEdit: boolean,
+  ) {
+    if (!canEdit || event.button !== 0) return;
+    if ((event.target as HTMLElement).closest(".admin-qtv-switch-hit")) return;
+    event.preventDefault();
+    sweepingRef.current = true;
+    applySelect(key, index, event.shiftKey, event.ctrlKey || event.metaKey);
+  }
+
+  function handleRowPointerEnter(key: string, index: number, canEdit: boolean) {
+    if (!canEdit || !sweepingRef.current) return;
+    const anchor = lastSelectIndexRef.current ?? index;
+    setSelectedKeys((prev) =>
+      nextTabSelection(prev, key, index, orderedKeys, true, false, anchor),
+    );
+  }
+
+  function toggleSectionSelect(sectionKeys: string[]) {
+    setSelectedKeys((prev) => {
+      const allOn = sectionKeys.every((key) => prev.includes(key));
+      if (allOn) return prev.filter((key) => !sectionKeys.includes(key));
+      return [...new Set([...prev, ...sectionKeys])];
+    });
+    const lastKey = sectionKeys[sectionKeys.length - 1];
+    lastSelectIndexRef.current =
+      lastKey != null ? (tabIndexByKey.get(lastKey) ?? null) : null;
   }
 
   return (
@@ -279,75 +388,177 @@ export function AdminQuanTriVienScreen() {
                               : "Chỉ Admin tối cao được sửa tab của Admin."}
                           </p>
                         ) : (
-                          <div className="admin-qtv-bulk">
-                            <button
-                              type="button"
-                              disabled={savingId === row.id}
-                              onClick={() => handleSetAll(row, true)}
-                            >
-                              Hiện tất cả
-                            </button>
-                            <button
-                              type="button"
-                              disabled={savingId === row.id}
-                              onClick={() => handleSetAll(row, false)}
-                            >
-                              Ẩn tất cả
-                            </button>
-                          </div>
+                          <>
+                            <p className="admin-qtv-hint">
+                              {selectedKeys.length > 0
+                                ? `${selectedKeys.length} tab đã chọn`
+                                : "Shift chọn dải · Ctrl chọn thêm · kéo để quét"}
+                            </p>
+                            <div className="admin-qtv-bulk">
+                              {selectedKeys.length > 0 ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    disabled={savingId === row.id}
+                                    onClick={() =>
+                                      handleSetSection(row, selectedKeys, true)
+                                    }
+                                  >
+                                    Hiện đã chọn
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={savingId === row.id}
+                                    onClick={() =>
+                                      handleSetSection(row, selectedKeys, false)
+                                    }
+                                  >
+                                    Ẩn đã chọn
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={savingId === row.id}
+                                    onClick={() => {
+                                      setSelectedKeys([]);
+                                      lastSelectIndexRef.current = null;
+                                    }}
+                                  >
+                                    Bỏ chọn
+                                  </button>
+                                </>
+                              ) : null}
+                              <button
+                                type="button"
+                                disabled={savingId === row.id}
+                                onClick={() => handleSetAll(row, true)}
+                              >
+                                Hiện tất cả
+                              </button>
+                              <button
+                                type="button"
+                                disabled={savingId === row.id}
+                                onClick={() => handleSetAll(row, false)}
+                              >
+                                Ẩn tất cả
+                              </button>
+                            </div>
+                          </>
                         )}
                       </div>
                       <div className="admin-qtv-grid">
                         {tabsBySection.map((group) => {
-                          const sectionOn = group.tabs.every(
-                            (tab) => !row.tabAn.includes(tab.key),
-                          );
+                          const sectionKeys = group.tabs.map((tab) => tab.key);
+                          const sectionAll =
+                            sectionKeys.length > 0 &&
+                            sectionKeys.every((key) => selectedSet.has(key));
+                          const sectionSome =
+                            sectionKeys.some((key) => selectedSet.has(key)) &&
+                            !sectionAll;
                           return (
                             <section key={group.section} className="admin-qtv-panel">
                               <header className="admin-qtv-panel-head">
                                 <h3>{group.section}</h3>
                                 {row.canEditTabs ? (
-                                  <button
-                                    type="button"
-                                    className="admin-qtv-panel-all"
-                                    disabled={savingId === row.id}
-                                    onClick={() =>
-                                      handleSetSection(
-                                        row,
-                                        group.tabs.map((tab) => tab.key),
-                                        !sectionOn,
-                                      )
-                                    }
-                                  >
-                                    {sectionOn ? "Ẩn nhóm" : "Hiện nhóm"}
-                                  </button>
+                                  <label className="admin-qtv-panel-all">
+                                    <input
+                                      type="checkbox"
+                                      checked={sectionAll}
+                                      disabled={savingId === row.id}
+                                      ref={(el) => {
+                                        if (el) el.indeterminate = sectionSome;
+                                      }}
+                                      onChange={() => toggleSectionSelect(sectionKeys)}
+                                    />
+                                    Chọn tất cả
+                                  </label>
                                 ) : null}
                               </header>
                               <ul className="admin-qtv-rows">
                                 {group.tabs.map((tab) => {
                                   const visible = !row.tabAn.includes(tab.key);
+                                  const picked = selectedSet.has(tab.key);
+                                  const index = tabIndexByKey.get(tab.key) ?? 0;
                                   return (
                                     <li key={tab.key}>
-                                      <label
+                                      <div
                                         className={`admin-qtv-row${visible ? " is-on" : ""}${
-                                          row.canEditTabs ? "" : " is-locked"
-                                        }`}
+                                          picked ? " is-picked" : ""
+                                        }${row.canEditTabs ? "" : " is-locked"}`}
+                                        onPointerEnter={() =>
+                                          handleRowPointerEnter(
+                                            tab.key,
+                                            index,
+                                            row.canEditTabs && savingId !== row.id,
+                                          )
+                                        }
                                       >
-                                        <span className="admin-qtv-row-label">
-                                          {tab.label}
-                                        </span>
-                                        <input
-                                          type="checkbox"
-                                          checked={visible}
+                                        <div
+                                          className="admin-qtv-pick-hit"
+                                          role="checkbox"
+                                          aria-checked={picked}
+                                          aria-label={`Chọn ${tab.label}`}
+                                          tabIndex={row.canEditTabs ? 0 : -1}
+                                          onPointerDown={(event) =>
+                                            handleRowPointerDown(
+                                              event,
+                                              tab.key,
+                                              index,
+                                              row.canEditTabs && savingId !== row.id,
+                                            )
+                                          }
+                                          onKeyDown={(event) => {
+                                            if (
+                                              !row.canEditTabs ||
+                                              savingId === row.id
+                                            ) {
+                                              return;
+                                            }
+                                            if (
+                                              event.key !== " " &&
+                                              event.key !== "Enter"
+                                            ) {
+                                              return;
+                                            }
+                                            event.preventDefault();
+                                            applySelect(
+                                              tab.key,
+                                              index,
+                                              event.shiftKey,
+                                              event.ctrlKey || event.metaKey,
+                                            );
+                                          }}
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            className="admin-qtv-pick"
+                                            checked={picked}
+                                            disabled={
+                                              !row.canEditTabs || savingId === row.id
+                                            }
+                                            tabIndex={-1}
+                                            aria-hidden
+                                            readOnly
+                                          />
+                                          <span className="admin-qtv-row-label">
+                                            {tab.label}
+                                          </span>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          className="admin-qtv-switch-hit"
+                                          role="switch"
+                                          aria-checked={visible}
+                                          aria-label={`${visible ? "Ẩn" : "Hiện"} ${tab.label}`}
                                           disabled={
                                             !row.canEditTabs || savingId === row.id
                                           }
-                                          onChange={(e) =>
-                                            handleToggle(row, tab.key, e.target.checked)
+                                          onClick={() =>
+                                            handleToggle(row, tab.key, !visible)
                                           }
-                                        />
-                                        <span className="admin-qtv-switch" aria-hidden />
-                                      </label>
+                                        >
+                                          <span className="admin-qtv-switch" aria-hidden />
+                                        </button>
+                                      </div>
                                     </li>
                                   );
                                 })}
