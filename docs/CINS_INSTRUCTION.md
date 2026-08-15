@@ -68,6 +68,8 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 
 ## Thay đổi lớn gần đây (tóm tắt — chi tiết ở DECISIONS)
 
+**Pivot MXH+shop — gom tag + siết org (2026-08-15, draft):** Ngừng thư viện ngành. Tag một lens. Org đầu tư: CSĐT + Studio. Đại học đóng băng VN. Phân bổ lệch: bài *người* toàn cục; `truong_dai_hoc` không hữu cơ ra World. **Chưa code.** Plan: [`PLAN_gom_tag_va_org.md`](./PLAN_gom_tag_va_org.md). Chờ chốt §8.
+
 **Analytics scale P0–P3 (2026-08-13):** DEFAULT partition + cron lease; insight/rollup prune `tao_luc`; unique `social_da_xem`; feed đọc da_xem + `social_dem_doi_tuong`. Plan: `PLAN_analytics_scale.md`. Xem DECISIONS LOG.
 
 **Đo lường tiếp cận (2026-08-09 · code 2026-08-13):** Insight riêng tư (k-anon 5, không vanity, không đo chat); `phien_id` hash trên đơn; báo cáo gắn phiên + tiếp cận loại trục 1. Cron `POST /api/noi-bo/social/cron`. Xem DECISIONS A23 + LOG.
