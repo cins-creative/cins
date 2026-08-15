@@ -33,7 +33,7 @@ Plan này **đồng ý hướng**, nhưng **không gộp mù** mọi `loai_bai_v
 | Shop | Catalog, đơn P2P, Kho, Phân loại (fandom) | — | — |
 | Org | `co_so_dao_tao` · `studio` (`doanh_nghiep` đã ẩn → studio) | `truong_dai_hoc` (VN, read-only dần) | Schema trường, URL cũ |
 | Tag | Một entity page, một ô gắn tag | Hub thư viện `/careers` `/majors` `/articles?loai=` | DROP enum |
-| Cộng đồng | **Giữ** như MXH scoped (xem §8.1) | Không seed thêm nếu chưa có cohort | Xóa `cong_dong` |
+| Cộng đồng | **Giữ** như MXH scoped (xem §2.5 · P1) | Không seed thêm nếu chưa có cohort | Xóa `cong_dong` |
 
 ### 2.2 Tag = một thứ; loại cũ = nhãn phụ (không phải thư viện)
 
