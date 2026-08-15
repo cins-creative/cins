@@ -20,7 +20,6 @@ import { ChatReplyComposeBar } from "@/components/cins/ChatReplyComposeBar";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
 import { importGifToCloudflare } from "@/lib/gif/client";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
-import { MsIcon } from "@/components/cins/MsIcon";
 import { useChatRoomMessageActions } from "@/components/cins/useChatRoomMessageActions";
 import { InboxContactRoleBadge } from "@/components/truong/InboxContactRoleBadge";
 import { avatarBg, avatarHueFromSeed } from "@/lib/chat/avatar";
@@ -1172,7 +1171,7 @@ function ThreadDetail({
             disabled={sending}
             onClick={() => setStickerPickerOpen((open) => !open)}
           >
-            <MsIcon name="comedy_mask" className="cins-chat-attach-meme-icon" />
+            <span className="cins-chat-attach-meme-icon" aria-hidden />
           </button>
           <button
             type="button"

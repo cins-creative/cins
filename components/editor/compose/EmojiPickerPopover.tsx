@@ -15,6 +15,8 @@ type Props = {
   anchorRef: RefObject<HTMLElement | null>;
   /** Mặc định dưới neo; `top-end` mở lên và neo góc phải (nút góc dưới ô mô tả). */
   placement?: "bottom" | "top-end";
+  /** Chat giữ panel mở để chèn nhiều emoji. Mô tả bài: đóng sau 1 lần chọn. */
+  closeOnPick?: boolean;
 };
 
 export function EmojiPickerPopover({
@@ -23,6 +25,7 @@ export function EmojiPickerPopover({
   onPick,
   anchorRef,
   placement = "bottom",
+  closeOnPick = true,
 }: Props) {
   const panelId = useId();
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -57,6 +60,7 @@ export function EmojiPickerPopover({
       className={`ed-emoji-popover${placement === "top-end" ? " ed-emoji-popover--top-end" : ""}`}
       role="dialog"
       aria-label="Chèn emoji"
+      onMouseDown={(e) => e.preventDefault()}
     >
       <div className="ed-emoji-tabs" role="tablist">
         {EMOJI_GROUPS.map((g) => (
@@ -82,7 +86,7 @@ export function EmojiPickerPopover({
             aria-label={em}
             onClick={() => {
               onPick(em);
-              onClose();
+              if (closeOnPick) onClose();
             }}
           >
             {em}

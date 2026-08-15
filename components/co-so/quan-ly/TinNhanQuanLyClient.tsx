@@ -14,7 +14,6 @@ import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems
 import { ChatReplyComposeBar } from "@/components/cins/ChatReplyComposeBar";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
 import { importGifToCloudflare } from "@/lib/gif/client";
-import { MsIcon } from "@/components/cins/MsIcon";
 import { useChatRoomMessageActions } from "@/components/cins/useChatRoomMessageActions";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import {
@@ -1478,7 +1477,7 @@ function RoomComposeDetail({
             disabled={sending}
             onClick={() => setStickerPickerOpen((o) => !o)}
           >
-            <MsIcon name="comedy_mask" className="cins-chat-attach-meme-icon" />
+            <span className="cins-chat-attach-meme-icon" aria-hidden />
           </button>
           <button
             type="button"

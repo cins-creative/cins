@@ -33,7 +33,6 @@ import type { ChatMessageActionHandlers } from "@/components/cins/ChatMessageAct
 import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems";
 import { ChatReplyComposeBar } from "@/components/cins/ChatReplyComposeBar";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
-import { MsIcon } from "@/components/cins/MsIcon";
 import { importGifToCloudflare } from "@/lib/gif/client";
 
 const PhongHocMeeting = dynamic(
@@ -2685,7 +2684,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                 aria-expanded={stickerPickerOpen}
                 onClick={() => setStickerPickerOpen((open) => !open)}
               >
-                <MsIcon name="comedy_mask" className="cins-chat-attach-meme-icon" />
+                <span className="cins-chat-attach-meme-icon" aria-hidden />
               </button>
               <textarea
                 ref={inputRef}

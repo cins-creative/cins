@@ -650,13 +650,13 @@ export function CinsChatProvider({
 
   const closeChat = useCallback(
     (nextHref?: string) => {
-      setOpen(false);
-      setLaunch(null);
-      setShellFill(false);
       void refreshUnread();
 
       const dest = nextHref?.trim();
       if (dest) {
+        setOpen(false);
+        setLaunch(null);
+        setShellFill(false);
         /* Một lần nav — tránh history.back()/replace("/") đua với push profile. */
         if (chatHistoryPushedRef.current) {
           chatHistoryPushedRef.current = false;
@@ -672,15 +672,23 @@ export function CinsChatProvider({
       }
 
       if (chatHistoryPushedRef.current) {
+        setOpen(false);
+        setLaunch(null);
+        setShellFill(false);
         ignoreChatPopRef.current = true;
         chatHistoryPushedRef.current = false;
         window.history.back();
         return;
       }
-      /* Hard load `/chat` — rời route thật. */
+      /* Hard `/chat` (gõ URL / refresh / tab mới) — về trang chủ, overlay giữ đến khi unload. */
       if (isChatPagePath(window.location.pathname)) {
-        router.replace("/");
+        window.location.assign("/");
+        return;
       }
+
+      setOpen(false);
+      setLaunch(null);
+      setShellFill(false);
     },
     [refreshUnread, router],
   );

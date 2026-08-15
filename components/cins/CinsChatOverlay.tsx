@@ -6,18 +6,19 @@ import {
   CalendarDays,
   ChevronDown,
   ChevronLeft,
+  ChevronRight,
   Frame,
   MessageSquareQuote,
-  PanelRightOpen,
-  Pin,
+  Phone,
   PictureInPicture2,
+  Pin,
   PinOff,
   Plus,
   Search,
-  Send,
-  Settings2,
+  SmilePlus,
   Building2,
   Users,
+  Video,
   X,
   Minimize2,
 } from "lucide-react";
@@ -37,6 +38,7 @@ import {
 import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import { CinsChatListBrand } from "@/components/cins/CinsChatListBrand";
 
 const PhongHocMeeting = dynamic(
   () =>
@@ -63,8 +65,9 @@ import {
   filterChatAtMembers,
   isChatAtMentionAll,
 } from "@/components/cins/ChatAtMentionMenu";
-import { ChatCallModeMenu } from "@/components/cins/ChatCallModeMenu";
 import { ChatComposeToolsMenu } from "@/components/cins/ChatComposeToolsMenu";
+import { EmojiPickerPopover } from "@/components/editor/compose/EmojiPickerPopover";
+import { insertAt } from "@/lib/editor/textarea-format";
 import type { MediaCallMode } from "@/lib/media/call-mode";
 import { ChatGroupAvatar } from "@/components/cins/ChatGroupAvatar";
 import { ChatGroupManageModal } from "@/components/cins/ChatGroupManageModal";
@@ -74,7 +77,6 @@ import { ChatMessageThreadItems } from "@/components/cins/ChatMessageThreadItems
 import { ChatRoomMocsPanel } from "@/components/cins/ChatRoomWorkspacePanels";
 import { ChatQuanLyHocVienPanel } from "@/components/cins/ChatQuanLyHocVienPanel";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
-import { MsIcon } from "@/components/cins/MsIcon";
 import { importGifToCloudflare } from "@/lib/gif/client";
 import { ChatReplyComposeBar } from "@/components/cins/ChatReplyComposeBar";
 import {
@@ -728,6 +730,51 @@ function ChatThreadRow({
     />
   ) : null;
 
+  const projectToggleButton =
+    isProjectParent && onToggleProjects ? (
+      <button
+        type="button"
+        className={`cins-chat-project-toggle${projectsExpanded ? " is-expanded" : ""}${thread.isOrgHub ? " is-org-hub-toggle" : ""}`}
+        aria-expanded={projectsExpanded}
+        title={
+          projectsExpanded
+            ? `Thu gọn ${activeProjectCount} ${childUnitLabel}`
+            : `Xổ ${activeProjectCount} ${childUnitLabel}`
+        }
+        aria-label={
+          projectsExpanded
+            ? `Thu gọn ${activeProjectCount} ${childUnitLabel}`
+            : `Xổ ${activeProjectCount} ${childUnitLabel}`
+        }
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggleProjects();
+        }}
+      >
+        <span className="cins-chat-project-toggle-count" aria-hidden>
+          {thread.isOrgHub ? (
+            <>
+              <span className="cins-chat-project-toggle-num">
+                {activeProjectCount}
+              </span>
+              <span className="cins-chat-project-toggle-unit">
+                {childUnitLabel}
+              </span>
+            </>
+          ) : (
+            <>
+              {activeProjectCount} {childUnitLabel}
+            </>
+          )}
+          <ChevronDown
+            size={10}
+            strokeWidth={2.6}
+            className="cins-chat-project-toggle-chevron"
+          />
+        </span>
+      </button>
+    ) : null;
+
   return (
     <li
       className={`cins-chat-thread-item${thread.isSelf ? " is-self-item" : ""}${isListPinned ? " is-list-pinned" : ""}${isMenuOpen ? " is-menu-open" : ""}${isMuted ? " is-muted" : ""}${isProjectChild ? " is-project-child" : ""}${isProjectParent ? " is-project-parent" : ""}${isProjectParent && projectsExpanded ? " is-projects-expanded" : ""}${isShareTarget ? " is-share-target" : ""}`}
@@ -866,6 +913,7 @@ function ChatThreadRow({
                       <span className="cins-chat-unread">{thread.unread}</span>
                     ) : null}
                   </span>
+                  {projectToggleButton}
                 </span>
               </span>
             </>
@@ -941,58 +989,7 @@ function ChatThreadRow({
             </>
           )}
         </button>
-        {isProjectParent && onToggleProjects ? (
-          <div className="cins-chat-thread-aside">
-            {canShowMenu ? (
-              <ChatThreadRowMenu
-                open={isMenuOpen}
-                onOpenChange={onMenuOpenChange}
-                actions={menuActions}
-              />
-            ) : null}
-            <button
-              type="button"
-              className={`cins-chat-project-toggle${projectsExpanded ? " is-expanded" : ""}${thread.isOrgHub ? " is-org-hub-toggle" : ""}`}
-              aria-expanded={projectsExpanded}
-              title={
-                projectsExpanded
-                  ? `Thu gọn ${activeProjectCount} ${childUnitLabel}`
-                  : `Xổ ${activeProjectCount} ${childUnitLabel}`
-              }
-              aria-label={
-                projectsExpanded
-                  ? `Thu gọn ${activeProjectCount} ${childUnitLabel}`
-                  : `Xổ ${activeProjectCount} ${childUnitLabel}`
-              }
-              onClick={(event) => {
-                event.stopPropagation();
-                onToggleProjects();
-              }}
-            >
-              <span className="cins-chat-project-toggle-count" aria-hidden>
-                {thread.isOrgHub ? (
-                  <>
-                    <span className="cins-chat-project-toggle-num">
-                      {activeProjectCount}
-                    </span>
-                    <span className="cins-chat-project-toggle-unit">
-                      {childUnitLabel}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    {activeProjectCount} {childUnitLabel}
-                  </>
-                )}
-                <ChevronDown
-                  size={10}
-                  strokeWidth={2.6}
-                  className="cins-chat-project-toggle-chevron"
-                />
-              </span>
-            </button>
-          </div>
-        ) : canShowMenu ? (
+        {canShowMenu ? (
           <ChatThreadRowMenu
             open={isMenuOpen}
             onOpenChange={onMenuOpenChange}
@@ -1087,11 +1084,16 @@ export function CinsChatOverlay({
   /** Tab cuối khi panel đang mở — dùng khi bấm "Mở rộng" lại sau khi đóng. */
   const lastSidePanelRef = useRef<ChatSidePanel>("mocs");
   const hideConvoForMobileCanvas = mobileNarrow && sidePanel === "canvas";
+  const chatMainRef = useRef<HTMLDivElement>(null);
+  const sidePanelRef = useRef(sidePanel);
+  sidePanelRef.current = sidePanel;
   const [composeToolsOpen, setComposeToolsOpen] = useState(false);
   const [mocFormOpenKey, setMocFormOpenKey] = useState(0);
   const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
   const [forwardTarget, setForwardTarget] = useState<ChatMessage | null>(null);
   const [stickerPickerOpen, setStickerPickerOpen] = useState(false);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const emojiBtnRef = useRef<HTMLButtonElement>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingDraft, setEditingDraft] = useState("");
   const [pinnedByRoom, setPinnedByRoom] = useState<Record<string, ChatMessage[]>>({});
@@ -1240,8 +1242,21 @@ export function CinsChatOverlay({
   }, [canvasNotice]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  /** clientHeight khung tin — dùng neo đáy khi bàn phím ảo đổi chiều cao. */
+  const messagesBoxHeightRef = useRef<number | null>(null);
   const chatRootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [composeInputFocused, setComposeInputFocused] = useState(false);
+  const syncComposeInputHeight = useCallback(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, []);
+
+  useEffect(() => {
+    syncComposeInputHeight();
+  }, [draft, syncComposeInputHeight]);
   const groupAvatarInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoFileInputRef = useRef<HTMLInputElement>(null);
@@ -1749,14 +1764,13 @@ export function CinsChatOverlay({
   }, [banHangBat, khachHangTagsLoaded]);
 
   useEffect(() => {
+    if (loadingThreads) return;
     const currentHasContent =
       activeTab === "mua_ban" ? showMuaBanTab : viewsWithContent[activeTab];
     if (currentHasContent) return;
-    const fallback = CHAT_THREAD_VIEW_ORDER.find((v) =>
-      v === "mua_ban" ? showMuaBanTab : viewsWithContent[v],
-    );
-    if (fallback && fallback !== activeTab) setActiveTab(fallback);
-  }, [viewsWithContent, showMuaBanTab, activeTab]);
+    /* Vào chat mặc định Bạn bè — không nhảy sang tab khác chỉ vì tab đó có hội thoại. */
+    if (activeTab !== "ban_be") setActiveTab("ban_be");
+  }, [loadingThreads, viewsWithContent, showMuaBanTab, activeTab]);
 
   useEffect(() => {
     if (visibleMuaBanSubs.length === 0) return;
@@ -1914,11 +1928,6 @@ export function CinsChatOverlay({
     [],
   );
 
-  const totalUnread = useMemo(
-    () => threads.reduce((sum, t) => sum + t.unread, 0),
-    [threads],
-  );
-
   useEffect(() => {
     setPortalReady(true);
   }, []);
@@ -1995,6 +2004,7 @@ export function CinsChatOverlay({
   useEffect(() => {
     setComposeToolsOpen(false);
     setMembersPopoverOpen(false);
+    setEmojiPickerOpen(false);
   }, [activeId]);
 
   useEffect(() => {
@@ -2437,34 +2447,75 @@ export function CinsChatOverlay({
     };
   }, [shareDropMode]);
 
-  /** Mobile keyboard — neo overlay theo visualViewport để không đẩy mất header/tin. */
+  /**
+   * Mobile keyboard: Chrome dùng env(keyboard-inset-height) (khớp animation native).
+   * iOS không có VirtualKeyboard API → neo visualViewport.
+   * ResizeObserver neo scroll đáy cùng frame với đổi chiều cao — tránh giật
+   * vì scrollToBottom delay 50/300ms lệch nhịp bàn phím.
+   */
   useEffect(() => {
     if (!portalReady) return;
     const root = chatRootRef.current;
     if (!root) return;
 
+    const vk = (navigator as Navigator & {
+      virtualKeyboard?: { overlaysContent: boolean };
+    }).virtualKeyboard;
+    if (vk) vk.overlaysContent = true;
+
+    const pinMessagesToKeyboard = () => {
+      const el = messagesContainerRef.current;
+      if (!el) {
+        messagesBoxHeightRef.current = null;
+        return;
+      }
+      const next = el.clientHeight;
+      const prev = messagesBoxHeightRef.current;
+      messagesBoxHeightRef.current = next;
+      if (prev == null) return;
+      const delta = prev - next;
+      if (Math.abs(delta) < 0.5) return;
+      const fromBottom = el.scrollHeight - el.scrollTop - prev;
+      if (fromBottom < 96) {
+        el.scrollTop += delta;
+      }
+    };
+
     const syncVisualViewport = () => {
       const vv = window.visualViewport;
-      const height = Math.round(vv?.height ?? window.innerHeight);
-      const offsetTop = Math.round(vv?.offsetTop ?? 0);
-      root.style.setProperty("--cins-chat-vv-height", `${height}px`);
-      root.style.setProperty("--cins-chat-vv-top", `${offsetTop}px`);
+      const height = vv?.height ?? window.innerHeight;
+      const offsetTop = Math.max(0, vv?.offsetTop ?? 0);
       const layoutH = window.innerHeight;
-      root.classList.toggle("is-vv-shrunk", height < layoutH - 60);
+      const shrunk = height < layoutH - 60;
+      /* Chrome + VirtualKeyboard: để CSS env() animate, không ghi px. */
+      if (!vk && shrunk) {
+        root.style.setProperty("--cins-chat-vv-height", `${height}px`);
+        root.style.setProperty("--cins-chat-vv-top", `${offsetTop}px`);
+      } else {
+        root.style.removeProperty("--cins-chat-vv-height");
+        root.style.removeProperty("--cins-chat-vv-top");
+      }
+      root.classList.toggle("is-vv-shrunk", shrunk);
     };
 
     syncVisualViewport();
+    pinMessagesToKeyboard();
+
     const vv = window.visualViewport;
     vv?.addEventListener("resize", syncVisualViewport);
     vv?.addEventListener("scroll", syncVisualViewport);
-    window.addEventListener("resize", syncVisualViewport);
+    const ro = new ResizeObserver(pinMessagesToKeyboard);
+    ro.observe(root);
+
     return () => {
       vv?.removeEventListener("resize", syncVisualViewport);
       vv?.removeEventListener("scroll", syncVisualViewport);
-      window.removeEventListener("resize", syncVisualViewport);
+      ro.disconnect();
+      if (vk) vk.overlaysContent = false;
       root.classList.remove("is-vv-shrunk");
       root.style.removeProperty("--cins-chat-vv-height");
       root.style.removeProperty("--cins-chat-vv-top");
+      messagesBoxHeightRef.current = null;
     };
   }, [portalReady]);
 
@@ -3113,6 +3164,64 @@ export function CinsChatOverlay({
   const toggleExpandPanel = useCallback(() => {
     setSidePanel((cur) => (cur ? null : lastSidePanelRef.current));
   }, []);
+
+  useEffect(() => {
+    const root = chatMainRef.current;
+    if (!root) return;
+
+    const SWIPE_MIN_DX = 56;
+    const SWIPE_MAX_DY = 48;
+    const IGNORE =
+      "a, button, input, textarea, select, [role='menu'], .cins-chat-compose, .cins-chat-compose-tools-panel";
+
+    type Track = { x: number; y: number };
+    let track: Track | null = null;
+
+    const canSwipe = () => window.matchMedia("(max-width: 767.98px)").matches;
+
+    const onStart = (e: TouchEvent) => {
+      if (!canSwipe() || e.touches.length !== 1) {
+        track = null;
+        return;
+      }
+      const el = e.target;
+      if (el instanceof Element && el.closest(IGNORE)) {
+        track = null;
+        return;
+      }
+      const t = e.touches[0];
+      track = { x: t.clientX, y: t.clientY };
+    };
+
+    const onEnd = (e: TouchEvent) => {
+      if (!track || e.changedTouches.length !== 1) {
+        track = null;
+        return;
+      }
+      const t = e.changedTouches[0];
+      const dx = t.clientX - track.x;
+      const dy = t.clientY - track.y;
+      track = null;
+      if (!canSwipe()) return;
+      if (Math.abs(dy) > SWIPE_MAX_DY) return;
+      if (Math.abs(dx) < SWIPE_MIN_DX) return;
+      if (Math.abs(dx) < Math.abs(dy) * 1.2) return;
+
+      if (sidePanelRef.current) {
+        if (dx > 0) setSidePanel(null);
+        return;
+      }
+      /* Vuốt phải → trái: mở panel mốc / workspace. */
+      if (dx < 0) toggleExpandPanel();
+    };
+
+    root.addEventListener("touchstart", onStart, { passive: true });
+    root.addEventListener("touchend", onEnd, { passive: true });
+    return () => {
+      root.removeEventListener("touchstart", onStart);
+      root.removeEventListener("touchend", onEnd);
+    };
+  }, [toggleExpandPanel]);
 
   const selectSidePanelTab = useCallback((panel: ChatSidePanel) => {
     setSidePanel(panel);
@@ -4460,6 +4569,22 @@ export function CinsChatOverlay({
     [atMentionTrigger, draft],
   );
 
+  const insertComposeEmoji = useCallback(
+    (emoji: string) => {
+      const ta = inputRef.current;
+      const idx = ta?.selectionStart ?? draft.length;
+      const result = insertAt(draft, idx, emoji);
+      setDraft(result.value);
+      requestAnimationFrame(() => {
+        const el = inputRef.current;
+        if (!el) return;
+        el.focus();
+        el.setSelectionRange(result.selectionStart, result.selectionEnd);
+      });
+    },
+    [draft],
+  );
+
   const toggleOrgInboxExpand = useCallback((orgId: string) => {
     setExpandedOrgInboxId((prev) => (prev === orgId ? null : orgId));
   }, []);
@@ -4646,18 +4771,14 @@ export function CinsChatOverlay({
         <aside
           className={`cins-chat-list${mobileShowThread && !shareDropMode ? " is-hidden-mobile" : ""}`}
         >
+          <div className="cins-chat-list-chrome">
           {shareDropMode ? (
             <p className="cins-chat-share-drop-hint" role="status">
               Thả vào một hội thoại để gửi
             </p>
           ) : null}
           <header className="cins-chat-list-head">
-            <div>
-              <h2 className="cins-chat-title">Tin nhắn</h2>
-              {totalUnread > 0 ? (
-                <p className="cins-chat-subtitle">{totalUnread} chưa đọc</p>
-              ) : null}
-            </div>
+            <CinsChatListBrand />
             <div className="cins-chat-list-head-actions">
               <button
                 type="button"
@@ -4857,6 +4978,7 @@ export function CinsChatOverlay({
               })}
             </div>
           ) : null}
+          </div>
 
           <div
             className="cins-chat-threads"
@@ -4957,6 +5079,7 @@ export function CinsChatOverlay({
         </aside>
 
         <div
+          ref={chatMainRef}
           className={`cins-chat-main${mobileShowThread ? " is-visible-mobile" : ""}${hideConvoForMobileCanvas ? " is-canvas-mobile-focus" : ""}`}
         >
           {active && !hideConvoForMobileCanvas ? (
@@ -5002,32 +5125,54 @@ export function CinsChatOverlay({
               />
             )}
             <div className="cins-chat-convo-meta">
-              <span className="cins-chat-convo-title">
-                <strong>{active.name}</strong>
-                {active.isGroup ? (
+              {active.isGroup &&
+              active.isGroupAdmin &&
+              active.roomId &&
+              !isPendingRoomId(active.roomId) ? (
+                <button
+                  type="button"
+                  className="cins-chat-convo-title"
+                  aria-label="Quản lý nhóm"
+                  title="Quản lý nhóm"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleManageGroup(active);
+                  }}
+                >
+                  <strong>{active.name}</strong>
+                </button>
+              ) : (
+                <span className="cins-chat-convo-title">
+                  <strong>{active.name}</strong>
+                  {!active.isGroup && active.kind === "org" ? (
+                    <ChatKindPill thread={active} />
+                  ) : null}
+                </span>
+              )}
+              {active.isGroup ? (
+                <div className="cins-chat-convo-submeta">
                   <span className="cins-chat-kind-pill is-group">
                     {active.parentRoomId ? "Project" : "Nhóm"}
                   </span>
-                ) : active.kind === "org" ? (
-                  <ChatKindPill thread={active} />
-                ) : null}
-              </span>
-              {active.isGroup && active.memberCount ? (
-                <div className="cins-chat-convo-members-wrap">
-                  <button
-                    type="button"
-                    className="cins-chat-convo-members-btn"
-                    aria-expanded={membersPopoverOpen}
-                    aria-haspopup="dialog"
-                    onClick={() => setMembersPopoverOpen((v) => !v)}
-                  >
-                    {active.memberCount} thành viên
-                  </button>
-                  <ChatGroupMembersPopover
-                    open={membersPopoverOpen}
-                    members={activeAtMembers}
-                    onClose={() => setMembersPopoverOpen(false)}
-                  />
+                  {active.memberCount ? (
+                    <div className="cins-chat-convo-members-wrap">
+                      <button
+                        type="button"
+                        className="cins-chat-convo-members-btn"
+                        aria-expanded={membersPopoverOpen}
+                        aria-haspopup="dialog"
+                        onClick={() => setMembersPopoverOpen((v) => !v)}
+                      >
+                        {active.memberCount} thành viên
+                      </button>
+                      <ChatGroupMembersPopover
+                        open={membersPopoverOpen}
+                        members={activeAtMembers}
+                        onClose={() => setMembersPopoverOpen(false)}
+                      />
+                    </div>
+                  ) : null}
                 </div>
               ) : active.isOrgStaffInbox && active.orgTen ? (
                 <span title={active.viewerOrgVaiTroLabel ?? undefined}>
@@ -5063,24 +5208,39 @@ export function CinsChatOverlay({
                   onDeleteTag={deleteKhachHangTag}
                 />
               ) : null}
-              {active.isGroup &&
-              active.isGroupAdmin &&
-              active.roomId &&
-              !isPendingRoomId(active.roomId) ? (
-                <button
-                  type="button"
-                  className="cins-chat-icon-btn"
-                  aria-label="Quản lý nhóm"
-                  title="Quản lý nhóm"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleManageGroup(active);
-                  }}
-                  onMouseDown={(e) => e.stopPropagation()}
-                >
-                  <Settings2 size={18} strokeWidth={1.9} />
-                </button>
+              {canJoinPhongHoc ? (
+                <>
+                  <button
+                    type="button"
+                    className="cins-chat-icon-btn"
+                    aria-label="Gọi thoại"
+                    title="Gọi thoại"
+                    disabled={phongHocBusy}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      void joinPhongHoc("audio");
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    <Phone size={18} strokeWidth={1.9} aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    className="cins-chat-icon-btn"
+                    aria-label="Gọi video"
+                    title="Gọi video"
+                    disabled={phongHocBusy}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      void joinPhongHoc("video");
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    <Video size={18} strokeWidth={1.9} aria-hidden />
+                  </button>
+                </>
               ) : null}
               {active.roomId && !isPendingRoomId(active.roomId) ? (
                 <button
@@ -5121,21 +5281,10 @@ export function CinsChatOverlay({
                   />
                 </button>
               ) : null}
-              <button
-                type="button"
-                className={`cins-chat-icon-btn${sidePanel ? " is-active" : ""}`}
-                aria-label="Mở rộng"
-                aria-pressed={Boolean(sidePanel)}
-                aria-expanded={Boolean(sidePanel)}
-                title="Mở rộng"
-                onClick={toggleExpandPanel}
-              >
-                <PanelRightOpen size={16} strokeWidth={1.8} aria-hidden />
-              </button>
               {!sidePanel ? (
                 <button
                   type="button"
-                  className="cins-chat-icon-btn"
+                  className="cins-chat-icon-btn cins-chat-close-desktop"
                   aria-label="Đóng"
                   title="Đóng"
                   onClick={() => onClose()}
@@ -5498,7 +5647,9 @@ export function CinsChatOverlay({
                 }}
               />
             ) : null}
-            <div className="cins-chat-compose-row">
+            <div
+              className={`cins-chat-compose-row${composeInputFocused ? " is-compose-focus" : ""}`}
+            >
             <div className="cins-chat-input-wrap">
               {atMentionTrigger && active.isGroup ? (
                 <ChatAtMentionMenu
@@ -5536,9 +5687,23 @@ export function CinsChatOverlay({
                   e.target.value = "";
                 }}
               />
+              <button
+                type="button"
+                className="cins-chat-compose-icon-expand"
+                aria-label="Mở công cụ đính kèm"
+                tabIndex={composeInputFocused ? 0 : -1}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setComposeInputFocused(false)}
+              >
+                <ChevronRight size={18} strokeWidth={2.25} aria-hidden />
+              </button>
+              <div className="cins-chat-compose-icon-cluster">
               <ChatComposeToolsMenu
                 open={composeToolsOpen}
-                onOpenChange={setComposeToolsOpen}
+                onOpenChange={(open) => {
+                  setComposeToolsOpen(open);
+                  if (open) setEmojiPickerOpen(false);
+                }}
                 disabled={connecting || isPendingRoom || lopFrozen}
                 canAddMoc={Boolean(
                   active.roomId &&
@@ -5547,16 +5712,13 @@ export function CinsChatOverlay({
                 onAddMoc={handleComposeAddMoc}
                 onAttachImage={() => fileInputRef.current?.click()}
                 onAttachVideo={() => videoFileInputRef.current?.click()}
+                onShareScreen={
+                  canJoinPhongHoc
+                    ? () => void joinPhongHoc("screen")
+                    : undefined
+                }
                 onCreatePoll={handleCreatePoll}
               />
-              {canJoinPhongHoc ? (
-                <ChatCallModeMenu
-                  disabled={
-                    phongHocBusy || connecting || isPendingRoom || lopFrozen
-                  }
-                  onSelect={(mode) => void joinPhongHoc(mode)}
-                />
-              ) : null}
               <button
                 type="button"
                 className="cins-chat-attach cins-chat-attach-meme"
@@ -5564,10 +5726,14 @@ export function CinsChatOverlay({
                 aria-label="Meme của tôi"
                 aria-expanded={stickerPickerOpen}
                 disabled={connecting || isPendingRoom || lopFrozen}
-                onClick={() => setStickerPickerOpen((open) => !open)}
+                onClick={() => {
+                  setStickerPickerOpen((open) => !open);
+                  setEmojiPickerOpen(false);
+                }}
               >
-                <MsIcon name="comedy_mask" className="cins-chat-attach-meme-icon" />
+                <span className="cins-chat-attach-meme-icon" aria-hidden />
               </button>
+              </div>
               <textarea
                 ref={inputRef}
                 rows={1}
@@ -5575,7 +5741,10 @@ export function CinsChatOverlay({
                 disabled={connecting || isPendingRoom || lopFrozen}
                 onChange={(e) => {
                   setDraft(e.target.value);
-                  requestAnimationFrame(() => syncAtMentionFromTextarea());
+                  requestAnimationFrame(() => {
+                    syncComposeInputHeight();
+                    syncAtMentionFromTextarea();
+                  });
                 }}
                 onSelect={() => syncAtMentionFromTextarea()}
                 onClick={() => syncAtMentionFromTextarea()}
@@ -5587,15 +5756,19 @@ export function CinsChatOverlay({
                       : "Soạn tin..."
                 }
                 onFocus={() => {
-                  // Tránh browser đẩy cả overlay; giữ khung theo visualViewport.
+                  setComposeInputFocused(true);
+                  setComposeToolsOpen(false);
+                  setStickerPickerOpen(false);
+                  const box = messagesContainerRef.current;
+                  if (box) messagesBoxHeightRef.current = box.clientHeight;
                   window.scrollTo(0, 0);
+                }}
+                onBlur={() => {
                   window.setTimeout(() => {
-                    window.scrollTo(0, 0);
-                    scrollMessagesToBottom("auto");
-                  }, 50);
-                  window.setTimeout(() => {
-                    scrollMessagesToBottom("auto");
-                  }, 300);
+                    if (inputRef.current !== document.activeElement) {
+                      setComposeInputFocused(false);
+                    }
+                  }, 0);
                 }}
                 onPaste={handleComposePaste}
                 onKeyDown={(e) => {
@@ -5637,6 +5810,35 @@ export function CinsChatOverlay({
                   }
                 }}
               />
+              <div
+                className={`cins-chat-emoji-wrap${emojiPickerOpen ? " is-open" : ""}`}
+              >
+                <button
+                  ref={emojiBtnRef}
+                  type="button"
+                  className="cins-chat-attach cins-chat-attach-emoji"
+                  title="Chèn emoji"
+                  aria-label="Chèn emoji"
+                  aria-expanded={emojiPickerOpen}
+                  disabled={connecting || isPendingRoom || lopFrozen}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    setEmojiPickerOpen((open) => !open);
+                    setComposeToolsOpen(false);
+                    setStickerPickerOpen(false);
+                  }}
+                >
+                  <SmilePlus size={20} strokeWidth={2.25} aria-hidden />
+                </button>
+                <EmojiPickerPopover
+                  open={emojiPickerOpen}
+                  onClose={() => setEmojiPickerOpen(false)}
+                  onPick={insertComposeEmoji}
+                  anchorRef={emojiBtnRef}
+                  placement="top-end"
+                  closeOnPick={false}
+                />
+              </div>
             </div>
             <button
               type="button"
@@ -5645,7 +5847,7 @@ export function CinsChatOverlay({
               disabled={!canSend}
               onClick={() => void sendMessage()}
             >
-              <Send size={16} strokeWidth={2} aria-hidden />
+              <span className="cins-chat-send-icon" aria-hidden />
             </button>
             </div>
           </footer>
@@ -5745,7 +5947,7 @@ export function CinsChatOverlay({
                           <button
                             type="button"
                             className="cins-chat-org-inbox-quan-ly-btn"
-                            title={`Vào trang quản lý tin nhắn ${node.orgTen}`}
+                            title={`Quản lý tin nhắn ${node.orgTen}`}
                             onClick={() =>
                               handleOpenOrgQuanLy(
                                 node.quanLyKind!,
@@ -5754,7 +5956,7 @@ export function CinsChatOverlay({
                               )
                             }
                           >
-                            Vào trang quản lý tin nhắn {node.orgTen}
+                            Quản lý tin nhắn {node.orgTen}
                           </button>
                         ) : null}
                       </div>

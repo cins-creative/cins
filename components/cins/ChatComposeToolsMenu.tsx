@@ -5,10 +5,12 @@ import {
   CalendarPlus,
   Image as ImageIcon,
   Loader2,
+  MonitorUp,
   Plus,
   Video as VideoIcon,
   X,
 } from "lucide-react";
+import { isCompactCallViewport } from "@/lib/media/call-constraints";
 import {
   useEffect,
   useId,
@@ -25,6 +27,7 @@ type Props = {
   onAddMoc: () => void;
   onAttachImage: () => void;
   onAttachVideo: () => void;
+  onShareScreen?: () => void;
   onCreatePoll: (input: {
     question: string;
     options: string[];
@@ -39,15 +42,25 @@ export function ChatComposeToolsMenu({
   onAddMoc,
   onAttachImage,
   onAttachVideo,
+  onShareScreen,
   onCreatePoll,
 }: Props) {
   const menuId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<"menu" | "poll">("menu");
+  const [allowScreen, setAllowScreen] = useState(() => !isCompactCallViewport());
   const [question, setQuestion] = useState("");
   const [options, setOptions] = useState(["", ""]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  useEffect(() => {
+    const sync = () => setAllowScreen(!isCompactCallViewport());
+    sync();
+    const mq = window.matchMedia("(max-width: 1024px)");
+    mq.addEventListener?.("change", sync);
+    return () => mq.removeEventListener?.("change", sync);
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -60,7 +73,7 @@ export function ChatComposeToolsMenu({
 
   useEffect(() => {
     if (!open) return;
-    const onDoc = (event: MouseEvent) => {
+    const onDoc = (event: Event) => {
       const t = event.target;
       if (!(t instanceof Node)) return;
       if (rootRef.current?.contains(t)) return;
@@ -70,9 +83,11 @@ export function ChatComposeToolsMenu({
       if (event.key === "Escape") onOpenChange(false);
     };
     document.addEventListener("mousedown", onDoc);
+    document.addEventListener("touchstart", onDoc);
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("touchstart", onDoc);
       document.removeEventListener("keydown", onKey);
     };
   }, [open, onOpenChange]);
@@ -170,6 +185,23 @@ export function ChatComposeToolsMenu({
                   </em>
                 </span>
               </button>
+              {onShareScreen && allowScreen ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="cins-chat-compose-tools-item"
+                  onClick={() => {
+                    onOpenChange(false);
+                    onShareScreen();
+                  }}
+                >
+                  <MonitorUp size={16} strokeWidth={1.9} aria-hidden />
+                  <span>
+                    <strong>Chia sẻ màn hình</strong>
+                    <em>Desktop web — chọn cửa sổ / tab</em>
+                  </span>
+                </button>
+              ) : null}
               <button
                 type="button"
                 role="menuitem"

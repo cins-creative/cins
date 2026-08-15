@@ -173,6 +173,17 @@ export function ChatMessageMobileChrome({
       event.stopPropagation();
       handlers.onForward?.(msg);
       onClose();
+      /* Chặn click/pointerup còn lại — tránh đóng picker vừa mở (ghost tap). */
+      const blockThrough = (ev: Event) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+      };
+      document.addEventListener("click", blockThrough, true);
+      document.addEventListener("pointerup", blockThrough, true);
+      window.setTimeout(() => {
+        document.removeEventListener("click", blockThrough, true);
+        document.removeEventListener("pointerup", blockThrough, true);
+      }, 400);
     },
     [handlers, msg, onClose],
   );
@@ -185,14 +196,10 @@ export function ChatMessageMobileChrome({
   const isText = msg.kind !== "media" && !msg.imageId;
   const canAddToCanvas =
     Boolean(handlers.onAddToCanvas) && canAddMessageToCanvas(msg);
-  /* Tin chữ (không canvas): đưa «Chuyển tiếp» ra ô Khác trên lưới. */
-  const promoteForward = forwardable && !canAddToCanvas;
-  const morePin = recallable;
   const moreEdit = editable && isText;
-  const moreForward = forwardable && !promoteForward;
   const moreCanvas = canAddToCanvas;
-  const hasMoreItems = morePin || moreEdit || moreForward || moreCanvas;
-  const showMorePanel = hasMoreItems && (promoteForward || moreOpen);
+  const hasMoreItems = true;
+  const showMorePanel = moreOpen;
 
   return createPortal(
     <div
@@ -260,32 +267,7 @@ export function ChatMessageMobileChrome({
             <Copy size={22} strokeWidth={1.8} aria-hidden />
             <span>Sao chép</span>
           </button>
-          {recallable ? (
-            <button
-              type="button"
-              className="cins-chat-msg-sheet-btn is-danger"
-              onClick={() => {
-                handlers.onRecall(msg);
-                onClose();
-              }}
-            >
-              <Trash2 size={22} strokeWidth={1.8} aria-hidden />
-              <span>Thu hồi</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="cins-chat-msg-sheet-btn"
-              onClick={() => {
-                handlers.onPin(msg, !msg.pinned);
-                onClose();
-              }}
-            >
-              <Pin size={22} strokeWidth={1.8} aria-hidden />
-              <span>{msg.pinned ? "Bỏ ghim" : "Ghim"}</span>
-            </button>
-          )}
-          {promoteForward ? (
+          {forwardable ? (
             <button
               type="button"
               className="cins-chat-msg-sheet-btn"
@@ -294,7 +276,8 @@ export function ChatMessageMobileChrome({
               <Forward size={22} strokeWidth={1.8} aria-hidden />
               <span>Chuyển tiếp</span>
             </button>
-          ) : hasMoreItems ? (
+          ) : null}
+          {hasMoreItems ? (
             <button
               type="button"
               className="cins-chat-msg-sheet-btn"
@@ -309,29 +292,17 @@ export function ChatMessageMobileChrome({
 
         {showMorePanel ? (
           <div className="cins-chat-msg-sheet-more" role="menu">
-            {morePin ? (
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  handlers.onPin(msg, !msg.pinned);
-                  onClose();
-                }}
-              >
-                <Pin size={16} aria-hidden />
-                {msg.pinned ? "Bỏ ghim" : "Ghim"}
-              </button>
-            ) : null}
-            {moreForward ? (
-              <button
-                type="button"
-                role="menuitem"
-                onPointerDown={startForward}
-              >
-                <Forward size={16} aria-hidden />
-                Chuyển tiếp
-              </button>
-            ) : null}
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                handlers.onPin(msg, !msg.pinned);
+                onClose();
+              }}
+            >
+              <Pin size={16} aria-hidden />
+              {msg.pinned ? "Bỏ ghim" : "Ghim"}
+            </button>
             {moreEdit ? (
               <button
                 type="button"
@@ -356,6 +327,20 @@ export function ChatMessageMobileChrome({
               >
                 <Frame size={16} aria-hidden />
                 Thêm vào canvas
+              </button>
+            ) : null}
+            {recallable ? (
+              <button
+                type="button"
+                role="menuitem"
+                className="is-danger"
+                onClick={() => {
+                  handlers.onRecall(msg);
+                  onClose();
+                }}
+              >
+                <Trash2 size={16} aria-hidden />
+                Thu hồi
               </button>
             ) : null}
           </div>

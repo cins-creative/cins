@@ -1,7 +1,7 @@
 "use client";
 
 import { Forward, Loader2, Search, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
@@ -34,10 +34,17 @@ export function ChatForwardPicker({
   const [loading, setLoading] = useState(() => !getCachedThreads()?.threads?.length);
   const [sendingRoomId, setSendingRoomId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const mountedAtRef = useRef(Date.now());
 
   useEffect(() => {
     setPortalReady(true);
+    mountedAtRef.current = Date.now();
   }, []);
+
+  const guardedClose = () => {
+    if (Date.now() - mountedAtRef.current < 400) return;
+    onClose();
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -108,7 +115,7 @@ export function ChatForwardPicker({
         type="button"
         className="cins-chat-group-modal-backdrop"
         aria-label="Đóng"
-        onClick={onClose}
+        onClick={guardedClose}
       />
       <div
         className="cins-chat-group-modal cins-chat-forward-modal"

@@ -158,6 +158,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  appearance: none;
+  -webkit-appearance: none;
   width: 100%;
   min-width: 0;
   min-height: var(--wj-feed-header-h, 58px);
@@ -165,6 +167,7 @@
   font-size: 12px;
   font-weight: 500;
   font-family: inherit;
+  line-height: 0;
   color: var(--ink1, #050505);
   background: transparent;
   border: 0;
@@ -173,6 +176,14 @@
   position: relative;
   opacity: 1;
   transition: color 0.18s var(--ease);
+  text-decoration: none;
+}
+
+/* Link «Cửa hàng»: thắng `.cins-journey-page a { color: inherit }` → cùng ink1 với button. */
+.world-journey-home a.wj-vt-btn,
+.world-journey-home a.wj-vt-btn:link,
+.world-journey-home a.wj-vt-btn:visited {
+  color: var(--ink1, #050505);
   text-decoration: none;
 }
 
