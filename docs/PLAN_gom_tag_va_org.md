@@ -79,7 +79,38 @@ O6 (phân nhóm keyword/phan_mem theo nghề) — **đóng / không làm**. Gom 
 
 **Không gộp trường thành CSĐT.** Khác model: trường = ngành + điểm + tuyển sinh; CSĐT = khóa/lớp/học phí. Gộp schema = nợ lớn, không giúp MXH/shop.
 
-### 2.4 Cộng đồng — không gộp vào “chỉ 2 org”
+### 2.4 Phân bổ lệch: người toàn cục · trường ĐH chỉ VN
+
+User (2026-08-15): *bài user nước khác được lên Journey VN; trường ĐH VN không phân bổ ra thế giới.*
+
+**Đúng luật.** Khớp L18 (bài *người*) + L21 (org siết hơn user) + đóng băng đại học. Không cần i18n / cột `quoc_gia` để hiểu nguyên tắc.
+
+| Nguồn | Lên Journey / World VN | Lên “thế giới” (viewer ngoài VN, hoặc pool chung khi chưa có locale) |
+|---|---|---|
+| Cột mốc **user** (mọi nước) | Có — theo L18 (`feature` mọi người; `public` follow/bạn) | Có — cùng một pool người |
+| `org_bai_dang` **studio / CSĐT** | Có — L21 (đủ follow = đầy đủ; chưa follow = gợi ý / chèn tỉ lệ) | Có — đây là 2 loại org portable |
+| `org_bai_dang` **`truong_dai_hoc`** | Hữu cơ: chỉ viewer VN (hoặc surface VN: guest home, `/university`) | **Không** — không Khám phá, không Gallery World, không `goi_y_theo_doi`, không L21 #3 |
+| User VN đăng đồ án / “học tại ĐH X” | Có — đó là bài *người* + attribution (L21 #2) | Có — không phải kênh trường |
+
+**Follow ≠ phân bổ.** Ai (kể cả ngoài VN) chủ động theo dõi một trường vẫn thấy bài trong tab **Đang theo dõi**. Cấm là *discovery hữu cơ*, không cắt subscription.
+
+**Hiện trạng code (lệch luật này):**
+
+- Một World pool, **không** có `quoc_gia` trên user. `tinh_thanh` chỉ gắn org.
+- `fetchWorldJourneyOrgBaiDangMilestones` lấy **mọi** `org_bai_dang` `da_dang` — không lọc `loai_to_chuc` → trường đã vào feed giữa của mọi người.
+- Gallery World: `fetchOrgBaiDangVisualRows` gồm `truong_dai_hoc` + `co_so_dao_tao`.
+- Gợi ý org: persona `hoc`/`day` ưu tiên trường.
+
+**Cách làm, không đợi locale:**
+
+1. **Bây giờ (một pool):** loại `truong_dai_hoc` khỏi Khám phá / Gallery World / gợi ý / chèn L21 #3. Giữ tab theo dõi + trang `/university` + (nếu P3/P5 giữ) module guest VN.
+2. **Khi có locale viewer** (site, IP, hoặc cột sau này — **không** ALTER trong phase này): nới lại hữu cơ trường **chỉ** cho viewer VN. User nước khác vẫn chảy vào pool người VN.
+
+**Không** áp hàng rào này cho CSĐT/studio. **Không** chặn bài user vì họ “thuộc” trường.
+
+Rủi ro ngược: Journey VN đầy bài ngoại ngữ. Chấp nhận ở phase MXH; L18 đã siết `public`. Lọc ngôn ngữ / locale feed = brief khác, không lẫn pivot tag/org.
+
+### 2.5 Cộng đồng — không gộp vào “chỉ 2 org”
 
 User nói “org chỉ giữ 2 dạng”. **Push-back:** `cong_dong` là bề mặt **MXH** (feed scoped, flair, chế độ phòng L27), tồn tại mọi nước, không phải thư viện ngành, không phải kênh đại học.
 
@@ -223,6 +254,7 @@ Chỉ làm sau khi user chốt §2 + §8. **Một phase / một brief.**
 | **P3** | Guest home: bỏ luôn khối nghề (8 card) hay giữ như “tag nổi”? | **Bỏ** — home = Journey/shop/CSĐT | User chốt |
 | **P4** | `/find-courses` còn trỏ `/majors`? | Đổi sang khóa CSĐT only; bỏ hàng ngành ĐH | User chốt |
 | **P5** | Trường đã public: noindex hay để SEO VN? | **Index giữ** (đã có URL); không noindex hàng loạt | User chốt nếu muốn “biến mất Google” |
+| **P6** | Trường ĐH có được hữu cơ trên World của *user VN* không, hay chỉ follow + trang trường? | **Một pool hiện tại: loại khỏi World hữu cơ cho mọi viewer** (kể cả VN). Khi có locale: nới lại cho viewer VN. Follow luôn giữ. | User chốt “cắt hết World” vs “còn World cho người VN” |
 
 Security: không đổi RLS. Ẩn UI ≠ xóa quyền service_role. Không public thêm field trường.
 
