@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import {
   type ChangeEvent,
+  type CSSProperties,
   type ReactElement,
   createContext,
   useCallback,
@@ -1587,49 +1588,10 @@ export function CinsChatOverlay({
     }));
   }, []);
 
-  const filtered = useMemo(() => {
+  const filteredByView = useMemo(() => {
     const q = query.trim().toLowerCase();
-    // «Gửi riêng cho tôi» — chỉ tab bạn bè; không lọc sub-filter/ẩn, luôn đầu danh sách.
-    const selfThread =
-      activeTab === "ban_be"
-        ? threads.find((t) => t.isSelf && threadMatchesQuery(t, q))
-        : undefined;
-    const list = threads.filter((t) => {
-      if (t.isSelf) return false;
-      if (activeTab === "mua_ban") {
-        // Chỉ DM cá nhân↔cá nhân — loại inbox tư vấn org / lớp.
-        if (
-          t.isOrgAdvisory ||
-          t.isOrgStaffInbox ||
-          t.orgId ||
-          t.lopHocId ||
-          t.isGroup
-        ) {
-          return false;
-        }
-        if (muaBanSub === "khach_hang") {
-          if (!t.isKhachHang) return false;
-          if (hiddenRoomIds.includes(t.roomId)) return false;
-          if (khachHangTagFilter.length > 0) {
-            const ids = t.khachHangTagIds ?? [];
-            // OR: khớp bất kỳ thẻ đang lọc
-            if (!khachHangTagFilter.some((id) => ids.includes(id))) return false;
-          }
-          return threadMatchesQuery(t, q);
-        }
-        // mua_hang
-        if (!t.isMuaHang) return false;
-        if (hiddenRoomIds.includes(t.roomId)) return false;
-        return threadMatchesQuery(t, q);
-      }
-      if (t.group !== activeTab) return false;
-      if (hiddenRoomIds.includes(t.roomId)) return false;
-      /* Tab Tổ chức: không còn sub-filter — gom nhóm trong UI. */
-      return threadMatchesQuery(t, q);
-    });
-
-    if (activeTab === "mua_ban") {
-      const sorted = [...list].sort((a, b) => {
+    const sortPinned = (list: ChatThread[]) =>
+      [...list].sort((a, b) => {
         const aIdx = pinnedListRoomIds.indexOf(a.roomId);
         const bIdx = pinnedListRoomIds.indexOf(b.roomId);
         const aPinned = aIdx >= 0;
@@ -1638,34 +1600,69 @@ export function CinsChatOverlay({
         if (aPinned && bPinned && aIdx !== bIdx) return aIdx - bIdx;
         return new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime();
       });
-      return sorted;
+
+    const build = (view: ChatThreadView): ChatThread[] => {
+      // «Gửi riêng cho tôi» — chỉ tab bạn bè; không lọc sub-filter/ẩn, luôn đầu danh sách.
+      const selfThread =
+        view === "ban_be"
+          ? threads.find((t) => t.isSelf && threadMatchesQuery(t, q))
+          : undefined;
+      const list = threads.filter((t) => {
+        if (t.isSelf) return false;
+        if (view === "mua_ban") {
+          // Chỉ DM cá nhân↔cá nhân — loại inbox tư vấn org / lớp.
+          if (
+            t.isOrgAdvisory ||
+            t.isOrgStaffInbox ||
+            t.orgId ||
+            t.lopHocId ||
+            t.isGroup
+          ) {
+            return false;
+          }
+          if (muaBanSub === "khach_hang") {
+            if (!t.isKhachHang) return false;
+            if (hiddenRoomIds.includes(t.roomId)) return false;
+            if (khachHangTagFilter.length > 0) {
+              const ids = t.khachHangTagIds ?? [];
+              // OR: khớp bất kỳ thẻ đang lọc
+              if (!khachHangTagFilter.some((id) => ids.includes(id))) {
+                return false;
+              }
+            }
+            return threadMatchesQuery(t, q);
+          }
+          // mua_hang
+          if (!t.isMuaHang) return false;
+          if (hiddenRoomIds.includes(t.roomId)) return false;
+          return threadMatchesQuery(t, q);
+        }
+        if (t.group !== view) return false;
+        if (hiddenRoomIds.includes(t.roomId)) return false;
+        /* Tab Tổ chức: không còn sub-filter — gom nhóm trong UI. */
+        return threadMatchesQuery(t, q);
+      });
+
+      const sorted = sortPinned(list);
+      /* Tab Tổ chức / Mua bán: giữ flat — gom nhóm + nest trong UI section. */
+      if (view === "to_chuc" || view === "mua_ban") return sorted;
+
+      const nested = nestGroupThreads(
+        sorted,
+        // Đang tìm kiếm → hiện hết project khớp query
+        q ? undefined : { expandedParentIds: expandedProjectParentIds },
+      );
+      return selfThread ? [selfThread, ...nested] : nested;
+    };
+
+    const result = {} as Record<ChatThreadView, ChatThread[]>;
+    for (const view of CHAT_THREAD_VIEW_ORDER) {
+      result[view] = build(view);
     }
-
-    const sorted = [...list].sort((a, b) => {
-      const aIdx = pinnedListRoomIds.indexOf(a.roomId);
-      const bIdx = pinnedListRoomIds.indexOf(b.roomId);
-      const aPinned = aIdx >= 0;
-      const bPinned = bIdx >= 0;
-      if (aPinned !== bPinned) return aPinned ? -1 : 1;
-      if (aPinned && bPinned && aIdx !== bIdx) return aIdx - bIdx;
-      return new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime();
-    });
-
-    /* Tab Tổ chức: giữ flat — gom nhóm + nest trong UI section. */
-    if (activeTab === "to_chuc") {
-      return sorted;
-    }
-
-    const nested = nestGroupThreads(
-      sorted,
-      // Đang tìm kiếm → hiện hết project khớp query
-      q ? undefined : { expandedParentIds: expandedProjectParentIds },
-    );
-    return selfThread ? [selfThread, ...nested] : nested;
+    return result;
   }, [
     threads,
     query,
-    activeTab,
     muaBanSub,
     khachHangTagFilter,
     pinnedListRoomIds,
@@ -1673,12 +1670,10 @@ export function CinsChatOverlay({
     expandedProjectParentIds,
   ]);
 
-  const toChucGrouped = useMemo(() => {
-    if (activeTab !== "to_chuc") {
-      return { nhanVoi: [] as ChatThread[], cuaToi: [] as ToChucOrgNode[] };
-    }
-    return groupToChucThreads(filtered);
-  }, [activeTab, filtered]);
+  const toChucGrouped = useMemo(
+    () => groupToChucThreads(filteredByView.to_chuc),
+    [filteredByView.to_chuc],
+  );
 
   const handleOpenOrgQuanLy = useCallback(
     (
@@ -4632,7 +4627,10 @@ export function CinsChatOverlay({
     ? undefined
     : { expandedParentIds: expandedProjectParentIds };
 
-  const renderThreadRow = (thread: ChatThread) => {
+  const renderThreadRow = (
+    thread: ChatThread,
+    view: ChatThreadView = activeTab,
+  ) => {
     const projectCount = thread.parentRoomId
       ? 0
       : (projectCountByParent.get(thread.roomId) ?? 0);
@@ -4670,10 +4668,10 @@ export function CinsChatOverlay({
         shareDropActive={shareDropMode}
         onShareDrop={handleShareDrop}
         khachHangListMode={
-          activeTab === "mua_ban" && muaBanSub === "khach_hang"
+          view === "mua_ban" && muaBanSub === "khach_hang"
         }
         muaHangListMode={
-          activeTab === "mua_ban" && muaBanSub === "mua_hang"
+          view === "mua_ban" && muaBanSub === "mua_hang"
         }
         khachHangTags={khachHangTags}
       />
@@ -4687,7 +4685,7 @@ export function CinsChatOverlay({
    */
   const renderToChucOrgEntries = (node: ToChucOrgNode) => {
     const nestedRooms = nestGroupThreads(node.rooms, toChucNestExpandedIds);
-    return nestedRooms.map((thread) => renderThreadRow(thread));
+    return nestedRooms.map((thread) => renderThreadRow(thread, "to_chuc"));
   };
 
   /**
@@ -4744,6 +4742,117 @@ export function CinsChatOverlay({
     );
   };
 
+  const handleThreadListDragOver = shareDropMode
+    ? (event: ReactDragEvent<HTMLDivElement>) => {
+        // Auto-scroll danh sách khi kéo sát mép trên/dưới.
+        const el = event.currentTarget;
+        const rect = el.getBoundingClientRect();
+        const zone = 48;
+        if (event.clientY < rect.top + zone) {
+          el.scrollTop -= 12;
+        } else if (event.clientY > rect.bottom - zone) {
+          el.scrollTop += 12;
+        }
+      }
+    : undefined;
+
+  const renderThreadPanelBody = (view: ChatThreadView) => {
+    if (loadingThreads) {
+      return <p className="cins-chat-threads-empty">Đang tải hội thoại…</p>;
+    }
+    if (loadError) {
+      return <p className="cins-chat-threads-empty">{loadError}</p>;
+    }
+    if (view === "to_chuc") {
+      if (!toChucHasThreads) {
+        return (
+          <p className="cins-chat-threads-empty">
+            {query.trim()
+              ? "Không tìm thấy hội thoại phù hợp."
+              : "Chưa có hội thoại tổ chức."}
+          </p>
+        );
+      }
+      return (
+        <>
+          {toChucGrouped.cuaToi.length > 0 ? (
+            <section
+              className="cins-chat-thread-section"
+              aria-label="Tổ chức của tôi"
+            >
+              <div className="cins-chat-thread-section-head">
+                <h3 className="cins-chat-thread-section-title">
+                  Tổ chức của tôi
+                </h3>
+                <OrgNotifySettingsMenu
+                  orgs={toChucGrouped.cuaToi
+                    .filter((n) => n.canManageNotify)
+                    .map((n) => ({
+                      orgId: n.orgId,
+                      orgTen: n.orgTen,
+                    }))}
+                />
+              </div>
+              <ul role="list">
+                {renderOrgInboxEntry()}
+                {toChucGrouped.cuaToi.flatMap((node) =>
+                  renderToChucOrgEntries(node),
+                )}
+              </ul>
+            </section>
+          ) : null}
+          {toChucGrouped.nhanVoi.length > 0 ? (
+            <section
+              className="cins-chat-thread-section"
+              aria-label="Nhắn với tổ chức"
+            >
+              <h3 className="cins-chat-thread-section-title">
+                Nhắn với tổ chức
+              </h3>
+              <ul role="list">
+                {nestGroupThreads(
+                  toChucGrouped.nhanVoi,
+                  toChucNestExpandedIds,
+                ).map((thread) => renderThreadRow(thread, "to_chuc"))}
+              </ul>
+            </section>
+          ) : null}
+        </>
+      );
+    }
+    const list = filteredByView[view] ?? [];
+    if (list.length > 0) {
+      return (
+        <ul role="list">
+          {list.map((thread) => renderThreadRow(thread, view))}
+        </ul>
+      );
+    }
+    return (
+      <p className="cins-chat-threads-empty">
+        {query.trim()
+          ? "Không tìm thấy hội thoại phù hợp."
+          : view === "mua_ban" && muaBanSub === "khach_hang"
+            ? khachHangTagFilter.length > 0
+              ? "Không có khách nào khớp thẻ đã chọn."
+              : "Chưa có khách hàng nào trong chat."
+            : view === "mua_ban" && muaBanSub === "mua_hang"
+              ? "Chưa có hội thoại với shop đã mua."
+              : "Chưa có hội thoại trong nhóm này."}
+      </p>
+    );
+  };
+
+  const activeTabIndex = Math.max(0, visibleThreadViews.indexOf(activeTab));
+  const threadTabVars = {
+    "--cins-chat-tab-i": String(activeTabIndex),
+    "--cins-chat-tab-n": String(Math.max(1, visibleThreadViews.length)),
+  } as CSSProperties;
+  const showMuaBanChromeExtra =
+    visibleThreadViews.includes("mua_ban") &&
+    (visibleMuaBanSubs.length > 1 ||
+      (muaBanSub === "khach_hang" && khachHangTags.length > 0));
+
   const panel = (
     <div
       ref={chatRootRef}
@@ -4770,6 +4879,7 @@ export function CinsChatOverlay({
       >
         <aside
           className={`cins-chat-list${mobileShowThread && !shareDropMode ? " is-hidden-mobile" : ""}`}
+          style={threadTabVars}
         >
           <div className="cins-chat-list-chrome">
           {shareDropMode ? (
@@ -4865,6 +4975,7 @@ export function CinsChatOverlay({
             role="tablist"
             aria-label="Nhóm hội thoại"
           >
+            <span className="cins-chat-thread-tab-pill" aria-hidden />
             {visibleThreadViews.map((view) => {
               const unread = tabUnread.views[view];
               const unreadLabel = formatUnreadTabCount(unread);
@@ -4903,7 +5014,14 @@ export function CinsChatOverlay({
           </div>
           ) : null}
 
-          {activeTab === "mua_ban" && visibleMuaBanSubs.length > 1 ? (
+          {showMuaBanChromeExtra ? (
+            <div
+              className={`cins-chat-list-chrome-extra${activeTab === "mua_ban" ? " is-open" : ""}`}
+              aria-hidden={activeTab !== "mua_ban"}
+              inert={activeTab === "mua_ban" ? undefined : true}
+            >
+              <div className="cins-chat-list-chrome-extra-inner">
+          {visibleMuaBanSubs.length > 1 ? (
             <div
               className="cins-chat-muaban-subs"
               role="tablist"
@@ -4941,8 +5059,7 @@ export function CinsChatOverlay({
             </div>
           ) : null}
 
-          {activeTab === "mua_ban" &&
-          muaBanSub === "khach_hang" &&
+          {muaBanSub === "khach_hang" &&
           khachHangTags.length > 0 ? (
             <div
               className="cins-chat-khach-filters"
@@ -4978,103 +5095,33 @@ export function CinsChatOverlay({
               })}
             </div>
           ) : null}
+              </div>
+            </div>
+          ) : null}
           </div>
 
-          <div
-            className="cins-chat-threads"
-            role="tabpanel"
-            id={`cins-chat-tabpanel-${activeTab}`}
-            aria-labelledby={`cins-chat-tab-${activeTab}`}
-            onDragOver={
-              shareDropMode
-                ? (event) => {
-                    // Auto-scroll danh sách khi kéo sát mép trên/dưới.
-                    const el = event.currentTarget;
-                    const rect = el.getBoundingClientRect();
-                    const zone = 48;
-                    if (event.clientY < rect.top + zone) {
-                      el.scrollTop -= 12;
-                    } else if (event.clientY > rect.bottom - zone) {
-                      el.scrollTop += 12;
+          <div className="cins-chat-threads-viewport">
+            <div className="cins-chat-threads-track">
+              {visibleThreadViews.map((view) => {
+                const isActivePanel = view === activeTab;
+                return (
+                  <div
+                    key={view}
+                    className="cins-chat-threads"
+                    role="tabpanel"
+                    id={`cins-chat-tabpanel-${view}`}
+                    aria-labelledby={`cins-chat-tab-${view}`}
+                    aria-hidden={!isActivePanel}
+                    inert={isActivePanel ? undefined : true}
+                    onDragOver={
+                      isActivePanel ? handleThreadListDragOver : undefined
                     }
-                  }
-                : undefined
-            }
-          >
-            {loadingThreads ? (
-              <p className="cins-chat-threads-empty">Đang tải hội thoại…</p>
-            ) : loadError ? (
-              <p className="cins-chat-threads-empty">{loadError}</p>
-            ) : activeTab === "to_chuc" ? (
-              toChucHasThreads ? (
-                <>
-                  {toChucGrouped.cuaToi.length > 0 ? (
-                    <section
-                      className="cins-chat-thread-section"
-                      aria-label="Tổ chức của tôi"
-                    >
-                      <div className="cins-chat-thread-section-head">
-                        <h3 className="cins-chat-thread-section-title">
-                          Tổ chức của tôi
-                        </h3>
-                        <OrgNotifySettingsMenu
-                          orgs={toChucGrouped.cuaToi
-                            .filter((n) => n.canManageNotify)
-                            .map((n) => ({
-                              orgId: n.orgId,
-                              orgTen: n.orgTen,
-                            }))}
-                        />
-                      </div>
-                      <ul role="list">
-                        {renderOrgInboxEntry()}
-                        {toChucGrouped.cuaToi.flatMap((node) =>
-                          renderToChucOrgEntries(node),
-                        )}
-                      </ul>
-                    </section>
-                  ) : null}
-                  {toChucGrouped.nhanVoi.length > 0 ? (
-                    <section
-                      className="cins-chat-thread-section"
-                      aria-label="Nhắn với tổ chức"
-                    >
-                      <h3 className="cins-chat-thread-section-title">
-                        Nhắn với tổ chức
-                      </h3>
-                      <ul role="list">
-                        {nestGroupThreads(
-                          toChucGrouped.nhanVoi,
-                          toChucNestExpandedIds,
-                        ).map((thread) => renderThreadRow(thread))}
-                      </ul>
-                    </section>
-                  ) : null}
-                </>
-              ) : (
-                <p className="cins-chat-threads-empty">
-                  {query.trim()
-                    ? "Không tìm thấy hội thoại phù hợp."
-                    : "Chưa có hội thoại tổ chức."}
-                </p>
-              )
-            ) : filtered.length > 0 ? (
-              <ul role="list">
-                {filtered.map((thread) => renderThreadRow(thread))}
-              </ul>
-            ) : (
-              <p className="cins-chat-threads-empty">
-                {query.trim()
-                  ? "Không tìm thấy hội thoại phù hợp."
-                  : activeTab === "mua_ban" && muaBanSub === "khach_hang"
-                      ? khachHangTagFilter.length > 0
-                        ? "Không có khách nào khớp thẻ đã chọn."
-                        : "Chưa có khách hàng nào trong chat."
-                      : activeTab === "mua_ban" && muaBanSub === "mua_hang"
-                        ? "Chưa có hội thoại với shop đã mua."
-                        : "Chưa có hội thoại trong nhóm này."}
-              </p>
-            )}
+                  >
+                    {renderThreadPanelBody(view)}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </aside>
 

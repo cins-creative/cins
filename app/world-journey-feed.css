@@ -801,8 +801,68 @@
   min-width: 0;
 }
 
-.world-journey-home .wj-feed > .cins-feed-composer-row {
+.world-journey-home .wj-feed > .cins-feed-composer-row,
+.world-journey-home .wj-feed-pane .cins-feed-composer-row {
   margin: 0;
+}
+
+/* Pan tab: composer + nội dung trượt ngang cùng nhịp. */
+.wj-feed:has(.wj-feed-pane--exit) {
+  overflow-x: clip;
+}
+
+.wj-feed-panes {
+  --wj-tab-pan-ms: 420ms;
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  overflow-x: clip;
+}
+
+.wj-feed-pane--live {
+  position: relative;
+  z-index: 2;
+}
+
+.wj-feed-pane--enter {
+  animation: wj-feed-pane-in var(--wj-tab-pan-ms) var(--ease, cubic-bezier(0.2, 0.7, 0.3, 1)) both;
+}
+
+.wj-feed-pane--exit {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  max-height: 100dvh;
+  overflow: hidden;
+  z-index: 1;
+  pointer-events: none;
+  animation: wj-feed-pane-out var(--wj-tab-pan-ms) var(--ease, cubic-bezier(0.2, 0.7, 0.3, 1)) both;
+}
+
+@keyframes wj-feed-pane-in {
+  from {
+    transform: translate3d(calc(var(--wj-pan-dir, 1) * 100%), 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes wj-feed-pane-out {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(calc(var(--wj-pan-dir, 1) * -100%), 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wj-feed-pane--enter,
+  .wj-feed-pane--exit {
+    animation: none;
+  }
 }
 
 .world-journey-home .wj-feed > .j-pending-confirmations {
@@ -812,7 +872,8 @@
   margin-bottom: 0;
 }
 
-.world-journey-home .wj-feed > .cins-feed-composer-row .wj-composer {
+.world-journey-home .wj-feed > .cins-feed-composer-row .wj-composer,
+.world-journey-home .wj-feed-pane .cins-feed-composer-row .wj-composer {
   padding: 8px 12px;
   border-radius: var(--r-lg);
 }
@@ -4124,10 +4185,14 @@
     grid-row: 1;
   }
 
-  /* view-grid: bỏ cột aside (1199px rule specificity cao hơn — nếu không ghi đè feed chỉ ~290px). */
+  /* view-grid gắn trên .world-journey-home, không trên .wj-shell.
+     Selector cũ `.wj-shell.view-grid` không khớp → padding 16px L/R (rule desktop)
+     làm header thụt khi đổi tab Gallery/Video. */
+  .world-journey-home.view-grid .wj-shell,
   .world-journey-home .wj-shell.view-grid {
     grid-template-columns: 1fr;
     max-width: none;
+    width: 100%;
     margin: 0;
     padding: 0 0 40px;
     gap: 0;
@@ -4214,8 +4279,13 @@
     gap: var(--wj-feed-gap);
   }
 
-  .world-journey-home .wj-feed-header {
+  .world-journey-home .wj-feed-header,
+  .world-journey-home.view-grid .wj-feed > .wj-feed-header {
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
     padding: 0;
+    box-sizing: border-box;
   }
 
   .world-journey-home .wj-feed .wj-feed-timeline.j-timeline {
@@ -4321,7 +4391,8 @@
     margin-inline: 0;
   }
 
-  .world-journey-home .wj-feed > .cins-feed-composer-row .wj-composer {
+  .world-journey-home .wj-feed > .cins-feed-composer-row .wj-composer,
+  .world-journey-home .wj-feed-pane .cins-feed-composer-row .wj-composer {
     padding: 8px 12px;
     border-radius: 0;
     border-left: none;

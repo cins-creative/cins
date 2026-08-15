@@ -1331,14 +1331,14 @@
 
 .cins-post-view .post-rail-author {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 6px;
 }
 
 .cins-post-view .post-rail-author-tools {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 2px;
   flex-shrink: 0;
 }
@@ -1350,7 +1350,7 @@
   justify-content: center;
   width: 28px;
   height: 28px;
-  margin: -2px -6px 0 0;
+  margin: 0 -6px 0 0;
   padding: 0;
   border: none;
   border-radius: 0;
@@ -1375,6 +1375,16 @@
   display: flex;
   width: 100%;
   min-width: 0;
+}
+
+.cins-post-view .post-rail-author-link > .j-user-pop-wrap {
+  flex: 0 0 auto;
+}
+
+.cins-post-view .post-rail-author-copy .j-user-pop-wrap,
+.cins-post-view .post-rail-author-copy .j-user-pop-trigger {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .cins-post-view .post-rail-author-link {
@@ -5474,6 +5484,10 @@
     order: 1;
     border-top: none;
     padding-inline: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 22;
+    background: var(--bg-surface, #fff);
   }
 
   .cins-post-view.post-canvas--split:not(.post-canvas--media) .post-rail-blk--tags,
@@ -5637,6 +5651,10 @@
   .cins-post-view .post-rail-blk--author {
     order: 2;
     border-top: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 22;
+    background: var(--bg-surface, #fff);
   }
 
   .cins-post-view .post-rail-blk--tags,
@@ -5730,6 +5748,19 @@
     height: 34px;
     padding: 0 6px;
     border-radius: 9px;
+  }
+
+  /* Actions dính đáy — menu mở lên, không tràn khỏi sheet. */
+  .cins-post-view .post-rail-blk--actions .post-byline-share {
+    top: auto;
+    bottom: calc(100% + 6px);
+    right: 8px;
+    left: auto;
+    max-height: min(320px, calc(100dvh - 140px));
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
   }
 
   .cins-post-view .post-rail-blk--actions .post-byline-actions--vertical {

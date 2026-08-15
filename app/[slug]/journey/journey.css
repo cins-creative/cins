@@ -10884,6 +10884,9 @@ select.j-edit-input {
   .j-post-overlay .j-post-sheet:has(.post-canvas--split) .post-rail-blk--author {
     order: 1;
     width: 100%;
+    position: sticky;
+    top: 0;
+    z-index: 22;
     background: var(--bg-surface, #fff);
     border-bottom: 1px solid var(--border);
   }
@@ -10990,6 +10993,27 @@ select.j-edit-input {
     height: 34px;
     padding: 0 6px;
     border-radius: 9px;
+  }
+
+  .j-post-overlay
+    .j-post-sheet:has(.post-canvas--split)
+    .post-rail-blk--actions
+    .post-byline-share {
+    top: auto;
+    bottom: calc(100% + 6px);
+    right: 8px;
+    left: auto;
+    max-height: min(320px, calc(100dvh - 140px));
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  .j-post-overlay
+    .j-post-sheet:has(.post-canvas--split)
+    .post-rail-blk--actions:has(.post-byline-share-wrap.is-open) {
+    z-index: 24;
   }
 
   .j-post-overlay .j-post-sheet:has(.post-canvas--split) .post-rail-blk--comments {

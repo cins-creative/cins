@@ -141,6 +141,11 @@
   background: rgba(255, 255, 255, 0.16);
 }
 
+.cins-chat-list-chrome .cins-chat-thread-tab-pill {
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-xs);
+}
+
 .cins-chat-list-chrome .cins-chat-thread-tab {
   color: rgba(255, 255, 255, 0.78);
 }
@@ -150,7 +155,7 @@
 }
 
 .cins-chat-list-chrome .cins-chat-thread-tab.is-active {
-  background: var(--bg-surface);
+  background: transparent;
   color: var(--ink-display);
 }
 
@@ -250,10 +255,14 @@
 }
 
 .cins-chat-thread-tabs {
+  --cins-chat-tab-gap: 6px;
+  --cins-chat-tab-pad-x: 4px;
+  position: relative;
+  isolation: isolate;
   display: flex;
-  gap: 6px;
+  gap: var(--cins-chat-tab-gap);
   margin: 0 14px 10px;
-  padding: 6px 4px 4px;
+  padding: 6px var(--cins-chat-tab-pad-x) 4px;
   border-radius: var(--radius-pill);
   background: rgba(0, 0, 0, 0.05);
   overflow-x: auto;
@@ -263,6 +272,49 @@
 
 .cins-chat-thread-tabs::-webkit-scrollbar {
   display: none;
+}
+
+.cins-chat-thread-tab-pill {
+  position: absolute;
+  z-index: 0;
+  top: 6px;
+  left: var(--cins-chat-tab-pad-x);
+  height: 34px;
+  width: calc(
+    (100% - (2 * var(--cins-chat-tab-pad-x)) - (var(--cins-chat-tab-n, 1) - 1) *
+        var(--cins-chat-tab-gap)) / var(--cins-chat-tab-n, 1)
+  );
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-xs);
+  transform: translate3d(
+    calc(var(--cins-chat-tab-i, 0) * (100% + var(--cins-chat-tab-gap))),
+    0,
+    0
+  );
+  transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.cins-chat-list-chrome-extra {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 380ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cins-chat-list-chrome-extra.is-open {
+  grid-template-rows: 1fr;
+}
+
+.cins-chat-list-chrome-extra-inner {
+  overflow: hidden;
+  min-height: 0;
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.cins-chat-list-chrome-extra.is-open .cins-chat-list-chrome-extra-inner {
+  opacity: 1;
 }
 
 .cins-chat-muaban-subs {
@@ -292,10 +344,8 @@
   white-space: nowrap;
   cursor: pointer;
   overflow: visible;
-  transition:
-    background 160ms ease,
-    color 160ms ease,
-    box-shadow 160ms ease;
+  z-index: 1;
+  transition: color 380ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .cins-chat-thread-tab-label {
@@ -309,9 +359,8 @@
 }
 
 .cins-chat-thread-tab.is-active {
-  background: var(--bg-surface);
+  background: transparent;
   color: var(--ink-display);
-  box-shadow: var(--shadow-xs);
 }
 
 /* Badge góc — không chiếm chỗ ngang (tab ~71px từng bị cắt số) */
@@ -367,21 +416,56 @@
   color: var(--ink-display);
 }
 
+.cins-chat-threads-viewport {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--bg-surface);
+}
+
+.cins-chat-threads-track {
+  display: flex;
+  height: 100%;
+  transform: translate3d(calc(var(--cins-chat-tab-i, 0) * -100%), 0, 0);
+  transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
 .cins-chat-threads {
   margin: 0;
   padding: 4px 8px 12px;
   overflow: auto;
-  flex: 1 1 auto;
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
   min-height: 0;
   background: var(--bg-surface);
   border-radius: 0;
   scrollbar-width: none;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
 .cins-chat-threads::-webkit-scrollbar {
   width: 0;
   height: 0;
   display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cins-chat-thread-tab-pill,
+  .cins-chat-threads-track,
+  .cins-chat-list-chrome-extra,
+  .cins-chat-list-chrome-extra-inner,
+  .cins-chat-thread-tab {
+    transition: none;
+  }
+
+  .cins-chat-threads-track {
+    will-change: auto;
+  }
 }
 
 .cins-chat-threads ul {
@@ -12679,10 +12763,21 @@ button.cins-chat-project-card-mark:hover {
 
 /* Trạng thái active phải nổi lên trên nền tối (bg-surface trùng list) */
 :root[data-theme="dark"] .cins-chat-thread.is-active,
-:root[data-theme="dark"] .cins-chat-thread-tab.is-active,
 :root[data-theme="dark"] .cins-chat-muaban-sub.is-active,
 :root[data-theme="dark"] .cins-chat-side-tab.is-active {
   background: var(--neutral-200);
+}
+
+:root[data-theme="dark"] .cins-chat-thread-tab.is-active {
+  background: transparent;
+}
+
+:root[data-theme="dark"] .cins-chat-thread-tab-pill {
+  background: var(--neutral-200);
+}
+
+:root[data-theme="dark"] .cins-chat-list-chrome .cins-chat-thread-tab-pill {
+  background: var(--bg-surface);
 }
 
 /* Group row: vẫn để nền trên row — không đè lên button */

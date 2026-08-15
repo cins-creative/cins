@@ -20,6 +20,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
 } from "react";
@@ -50,6 +51,7 @@ import {
   WORLD_JOURNEY_FIRST_IMPRESSION_CAP,
   WORLD_JOURNEY_GALLERY_PAGE_SIZE,
   WORLD_JOURNEY_OWN_PUBLISH_PIN_MS,
+  WORLD_JOURNEY_TAB_PAN_MS,
   WORLD_JOURNEY_VIDEO_LISTING_PAGE_SIZE,
 } from "@/lib/cins/worldJourneyFeedConstants";
 import {
@@ -129,6 +131,46 @@ const FEED_NAV_TABS: ReadonlyArray<FeedNavTab> = [
   { kind: "view", id: "shop", label: "Giỏ hàng", icon: ShoppingBag },
   { kind: "link", href: "/shopping", label: "Cửa hàng", icon: Store },
 ];
+
+const SURFACE_PANE_ORDER: readonly FeedSurfaceView[] = [
+  "journey",
+  "gallery",
+  "video",
+  "shop",
+];
+
+type SurfacePaneSnapshot = {
+  view: FeedSurfaceView;
+  milestones: MilestoneItem[];
+  galleryRows: GalleryMainItem[];
+  galleryMore: boolean;
+  galleryOffset: number;
+  filterLoading: boolean;
+  dir: 1 | -1;
+};
+
+function surfacePaneIndex(view: FeedSurfaceView): number {
+  const i = SURFACE_PANE_ORDER.indexOf(view);
+  return i < 0 ? 0 : i;
+}
+
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+function connectionSaveData(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const conn = (
+    navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string };
+    }
+  ).connection;
+  if (conn?.saveData) return true;
+  return conn?.effectiveType === "slow-2g" || conn?.effectiveType === "2g";
+}
 
 function parseFeedSurfaceView(raw: string | null): FeedSurfaceView | null {
   if (!raw) return null;
@@ -537,6 +579,25 @@ export function WorldJourneyFeed({
   const galleryInflightRef = useRef<
     Map<string, Promise<GalleryCacheEntry | null>>
   >(new Map());
+  /** Inflight dedupe prefetch timeline journey/shop. */
+  const feedInflightRef = useRef<
+    Map<string, Promise<{
+      milestones: MilestoneItem[];
+      hasMore: boolean;
+      nextOffset: number;
+    } | null>>
+  >(new Map());
+  const [exitPane, setExitPane] = useState<SurfacePaneSnapshot | null>(null);
+  const paneSnapshotRef = useRef<{
+    view: FeedSurfaceView;
+    milestones: MilestoneItem[];
+    galleryRows: GalleryMainItem[];
+    galleryMore: boolean;
+    galleryOffset: number;
+    filterLoading: boolean;
+  } | null>(null);
+  const activeLinhVucSlugRef = useRef(activeLinhVucSlug);
+  activeLinhVucSlugRef.current = activeLinhVucSlug;
 
   useEffect(() => {
     hasMoreRef.current = hasMore;
@@ -607,6 +668,93 @@ export function WorldJourneyFeed({
     [],
   );
 
+  const loadTimelinePage = useCallback(
+    async (
+      view: "journey" | "shop",
+      opts?: { force?: boolean },
+    ): Promise<{
+      milestones: MilestoneItem[];
+      hasMore: boolean;
+      nextOffset: number;
+    } | null> => {
+      if (!opts?.force && timelineCacheRef.current[view]?.milestones.length) {
+        return timelineCacheRef.current[view] ?? null;
+      }
+      const inflightKey = `${view}|${activeFilterRef.current}|${feedSourceRef.current}|${activeLinhVucSlugRef.current ?? ""}`;
+      const inflight = feedInflightRef.current.get(inflightKey);
+      if (inflight) return inflight;
+
+      const promise = (async () => {
+        try {
+          const qs = buildWorldJourneyFeedQuery({
+            offset: 0,
+            limit: WORLD_JOURNEY_FEED_PAGE_SIZE,
+            filter: activeFilterRef.current,
+            source: feedSourceRef.current,
+            linhVuc: activeLinhVucSlugRef.current,
+            shopOnly: view === "shop",
+          });
+          const res = await fetch(`/api/world-journey/feed?${qs}`);
+          if (!res.ok) return null;
+          const data = (await res.json()) as {
+            milestones: MilestoneItem[];
+            hasMore: boolean;
+            nextOffset: number;
+          };
+          timelineCacheRef.current[view] = data;
+          return data;
+        } catch {
+          return null;
+        } finally {
+          feedInflightRef.current.delete(inflightKey);
+        }
+      })();
+
+      feedInflightRef.current.set(inflightKey, promise);
+      return promise;
+    },
+    [],
+  );
+
+  const prefetchSurface = useCallback(
+    async (view: FeedSurfaceView) => {
+      if (view === "gallery") {
+        const cacheKey = gallerySurfaceCacheKey(
+          "gallery",
+          activeFilterRef.current,
+          feedSourceRef.current,
+        );
+        if (galleryCacheRef.current[cacheKey]?.items.length) return;
+        const qs = buildWorldJourneyFeedQuery({
+          offset: 0,
+          limit: WORLD_JOURNEY_GALLERY_PAGE_SIZE,
+          filter: activeFilterRef.current,
+          source: feedSourceRef.current,
+        });
+        await loadGalleryPage(cacheKey, qs);
+        return;
+      }
+      if (view === "video") {
+        const cacheKey = gallerySurfaceCacheKey("video", "video", "all");
+        if (galleryCacheHasStreamVideos(galleryCacheRef.current[cacheKey])) {
+          return;
+        }
+        const qs = buildWorldJourneyFeedQuery({
+          offset: 0,
+          limit: WORLD_JOURNEY_VIDEO_LISTING_PAGE_SIZE,
+          filter: "video",
+          source: "all",
+        });
+        await loadGalleryPage(cacheKey, qs);
+        return;
+      }
+      if (view === "shop" || view === "journey") {
+        await loadTimelinePage(view);
+      }
+    },
+    [loadGalleryPage, loadTimelinePage],
+  );
+
   const reloadFromTop = useCallback(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
     setRefreshNonce((n) => n + 1);
@@ -667,6 +815,25 @@ export function WorldJourneyFeed({
           hasMore: galleryMore,
           nextOffset: galleryOffset,
         };
+      }
+      const snap = paneSnapshotRef.current;
+      const skipPan =
+        prefersReducedMotion() || Boolean(playingVideoIdRef.current);
+      if (!skipPan && snap) {
+        window.scrollTo(0, 0);
+        const dir: 1 | -1 =
+          surfacePaneIndex(next) > surfacePaneIndex(prev) ? 1 : -1;
+        setExitPane({
+          view: prev,
+          milestones: snap.milestones,
+          galleryRows: snap.galleryRows,
+          galleryMore: snap.galleryMore,
+          galleryOffset: snap.galleryOffset,
+          filterLoading: false,
+          dir,
+        });
+      } else {
+        setExitPane(null);
       }
       if (next === "journey" || next === "shop") {
         const cached = timelineCacheRef.current[next];
@@ -1183,7 +1350,6 @@ export function WorldJourneyFeed({
 
     const epoch = ++filterQueryEpochRef.current;
     let cancelled = false;
-    const shopOnly = surfaceView === "shop";
     const isTimeline = surfaceView === "journey" || surfaceView === "shop";
     const isGallerySurface = surfaceView === "gallery";
     const isVideoSurface = surfaceView === "video";
@@ -1233,35 +1399,18 @@ export function WorldJourneyFeed({
         }
 
         if (!isTimeline) return;
+        if (surfaceView !== "journey" && surfaceView !== "shop") return;
 
-        const feedQs = buildWorldJourneyFeedQuery({
-          offset: 0,
-          limit: WORLD_JOURNEY_FEED_PAGE_SIZE,
-          filter: activeFilter,
-          source: feedSource,
-          linhVuc: activeLinhVucSlug,
-          shopOnly,
+        const feedData = await loadTimelinePage(surfaceView, {
+          force: hadTimelineCache,
         });
-        const feedRes = await fetch(`/api/world-journey/feed?${feedQs}`);
-        if (!feedRes.ok) throw new Error("filter fetch failed");
-        const feedData = (await feedRes.json()) as {
-          milestones: MilestoneItem[];
-          hasMore: boolean;
-          nextOffset: number;
-        };
         if (cancelled || epoch !== filterQueryEpochRef.current) return;
+        if (!feedData) throw new Error("filter fetch failed");
         setFeedMilestones(feedData.milestones);
         hasMoreRef.current = feedData.hasMore;
         nextOffsetRef.current = feedData.nextOffset;
         setHasMore(feedData.hasMore);
         setNextOffset(feedData.nextOffset);
-        if (surfaceView === "journey" || surfaceView === "shop") {
-          timelineCacheRef.current[surfaceView] = {
-            milestones: feedData.milestones,
-            hasMore: feedData.hasMore,
-            nextOffset: feedData.nextOffset,
-          };
-        }
       } catch {
         if (!cancelled && epoch === filterQueryEpochRef.current) {
           setLoadError(true);
@@ -1285,29 +1434,31 @@ export function WorldJourneyFeed({
     refreshNonce,
     surfaceView,
     loadGalleryPage,
+    loadTimelinePage,
   ]);
 
-  /** Prefetch gallery khi đang journey (idle) — lần click tab đầu ấm hơn. */
+  /** Prefetch tab lân cận khi idle — đổi tab không chờ query trang đầu. */
   useEffect(() => {
-    if (surfaceView !== "journey") return;
-    const cacheKey = gallerySurfaceCacheKey(
-      "gallery",
-      activeFilter,
-      feedSource,
+    if (playingVideoId) return;
+    if (connectionSaveData()) return;
+
+    const idx = surfacePaneIndex(surfaceView);
+    const others = SURFACE_PANE_ORDER.filter((view) => view !== surfaceView);
+    others.sort(
+      (a, b) =>
+        Math.abs(surfacePaneIndex(a) - idx) -
+        Math.abs(surfacePaneIndex(b) - idx),
     );
-    if (galleryCacheRef.current[cacheKey]?.items.length) return;
 
     let cancelled = false;
     const run = () => {
-      if (cancelled) return;
-      if (galleryCacheRef.current[cacheKey]?.items.length) return;
-      const qs = buildWorldJourneyFeedQuery({
-        offset: 0,
-        limit: WORLD_JOURNEY_GALLERY_PAGE_SIZE,
-        filter: activeFilter,
-        source: feedSource,
-      });
-      void loadGalleryPage(cacheKey, qs);
+      if (cancelled || document.hidden) return;
+      void (async () => {
+        for (const view of others) {
+          if (cancelled || document.hidden) return;
+          await prefetchSurface(view);
+        }
+      })();
     };
 
     let idleId: number | undefined;
@@ -1336,7 +1487,23 @@ export function WorldJourneyFeed({
       if (idleId != null && typeof cic === "function") cic(idleId);
       if (timeoutId != null) clearTimeout(timeoutId);
     };
-  }, [surfaceView, activeFilter, feedSource, loadGalleryPage]);
+  }, [
+    surfaceView,
+    activeFilter,
+    feedSource,
+    activeLinhVucSlug,
+    playingVideoId,
+    prefetchSurface,
+  ]);
+
+  useEffect(() => {
+    if (!exitPane) return;
+    const t = window.setTimeout(
+      () => setExitPane(null),
+      WORLD_JOURNEY_TAB_PAN_MS,
+    );
+    return () => window.clearTimeout(t);
+  }, [exitPane, surfaceView]);
 
   /* Ổn định reference cho timeline: object/arrow mới mỗi render sẽ khiến
      IntersectionObserver bên trong bị hủy & tạo lại → prefetch ngừng ngẫu nhiên. */
@@ -1372,10 +1539,190 @@ export function WorldJourneyFeed({
   const isVideoListing = isVideo && !playingVideoId;
   const isTimelineFeed =
     surfaceView === "journey" || surfaceView === "shop";
-  const isShopFeed = surfaceView === "shop";
-  /** Searching full-page chỉ khi chưa có ô — revalidate giữ lưới. */
-  const showGallerySearching =
-    filterLoading && galleryRows.length === 0;
+
+  paneSnapshotRef.current = {
+    view: surfaceView,
+    milestones: visibleMilestones,
+    galleryRows,
+    galleryMore,
+    galleryOffset,
+    filterLoading,
+  };
+
+  const renderSurfaceBody = (model: {
+    view: FeedSurfaceView;
+    milestones: MilestoneItem[];
+    galleryRows: GalleryMainItem[];
+    galleryMore: boolean;
+    galleryOffset: number;
+    filterLoading: boolean;
+    interactive: boolean;
+  }) => {
+    const paneGallery = model.view === "gallery";
+    const paneVideo = model.view === "video";
+    const paneTimeline = model.view === "journey" || model.view === "shop";
+    const paneShop = model.view === "shop";
+    const showGallerySearching =
+      model.filterLoading && model.galleryRows.length === 0;
+    const showFeedSearching =
+      model.filterLoading && model.milestones.length === 0;
+
+    return (
+      <>
+        {paneTimeline ? (
+          <CinsFeedComposer
+            ownerSlug={sidebarProfile.slug}
+            ownerName={sidebarProfile.tenHienThi}
+            avatarUrl={sidebarProfile.avatarUrl}
+            layout="feed"
+          />
+        ) : null}
+
+        {paneVideo ? (
+          showGallerySearching ? (
+            <WorldJourneyFilterSearching surface="gallery" />
+          ) : (
+            <div
+              className={
+                "wj-video-feed-host" +
+                (model.filterLoading && model.galleryRows.length > 0
+                  ? " wj-gallery-revalidating"
+                  : "")
+              }
+              aria-busy={model.filterLoading || undefined}
+            >
+              <WorldJourneyVideoListing
+                key={
+                  model.interactive
+                    ? videoEndpoint
+                    : `${videoEndpoint}:exit`
+                }
+                initialItems={model.galleryRows}
+                hasMore={model.interactive ? galleryMore : model.galleryMore}
+                nextOffset={
+                  model.interactive ? galleryOffset : model.galleryOffset
+                }
+                endpoint={videoEndpoint}
+                onOpenVideo={
+                  model.interactive ? openVideoPlayer : () => undefined
+                }
+              />
+            </div>
+          )
+        ) : paneGallery ? (
+          showGallerySearching ? (
+            <WorldJourneyFilterSearching surface="gallery" />
+          ) : model.galleryRows.length === 0 && !model.galleryMore ? (
+            <div className="wj-feed-empty">
+              <LayoutGrid size={22} strokeWidth={1.8} aria-hidden />
+              {activeFilter !== "all" || feedSource !== "all" ? (
+                <>
+                  <b>Không có ô khớp bộ lọc</b>
+                  <p>Thử «Tất cả» hoặc «Tất cả nhúng», hoặc đổi lọc nguồn.</p>
+                </>
+              ) : (
+                <>
+                  <b>Gallery đang trống</b>
+                  <p>
+                    Dự án <strong>Nổi bật</strong> /{" "}
+                    <strong>Công khai</strong> có media, bài cộng đồng, và{" "}
+                    <strong>Showcase</strong> studio sẽ hiện ở đây.
+                  </p>
+                </>
+              )}
+            </div>
+          ) : (
+            <div
+              className={
+                model.filterLoading ? "wj-gallery-revalidating" : undefined
+              }
+              aria-busy={model.filterLoading || undefined}
+            >
+              <JourneyGalleryGridView
+                key={
+                  model.interactive
+                    ? galleryEndpoint
+                    : `${galleryEndpoint}:exit`
+                }
+                hideToolbar
+                sourceFilter={feedSource}
+                initialItems={model.galleryRows}
+                totalCount={model.galleryRows.length}
+                scrollLoad={
+                  model.interactive
+                    ? {
+                        ownerSlug: sidebarProfile.slug,
+                        hasMore: galleryMore,
+                        nextOffset: galleryOffset,
+                        endpoint: galleryEndpoint,
+                      }
+                    : undefined
+                }
+              />
+            </div>
+          )
+        ) : paneTimeline ? (
+          showFeedSearching ? (
+            <WorldJourneyFilterSearching surface="feed" />
+          ) : model.milestones.length === 0 ? (
+            <div className="wj-feed-empty">
+              {paneShop ? (
+                <ShoppingBag size={22} strokeWidth={1.8} aria-hidden />
+              ) : (
+                <Sparkles size={22} strokeWidth={1.8} aria-hidden />
+              )}
+              {paneShop ? (
+                <>
+                  <b>Chưa có bài gắn giỏ hàng</b>
+                  <p>
+                    Các bài đăng có sản phẩm mua ngay trên CINs sẽ hiện ở
+                    đây.
+                  </p>
+                </>
+              ) : activeFilter !== "all" ||
+                activeLinhVucSlug ||
+                feedSource !== "all" ? (
+                <>
+                  <b>Không có bài khớp bộ lọc</b>
+                  <p>
+                    Thử «Tất cả», «Tất cả nhúng», hoặc đổi lọc nguồn nội dung.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <b>Feed đang trống</b>
+                  <p>
+                    Theo dõi vài người hoặc tổ chức, hoặc khám phá bài{" "}
+                    <strong>Công khai</strong> / <strong>Nổi bật</strong> từ
+                    cộng đồng — tất cả sẽ hiện ở đây.
+                  </p>
+                </>
+              )}
+            </div>
+          ) : (
+            <WorldJourneyFeedTimeline
+              milestones={model.milestones}
+              viewerProfileId={viewerProfileId}
+              feedPromos={paneShop ? undefined : feedPromos}
+              scrollLoad={model.interactive ? scrollLoad : null}
+              loadingMore={model.interactive ? loadingMore : false}
+              loadError={model.interactive ? loadError : false}
+              onLoadMore={model.interactive ? handleLoadMore : () => undefined}
+            />
+          )
+        ) : null}
+
+        {paneTimeline &&
+        model.milestones.length > 0 &&
+        model.interactive &&
+        !hasMore ? (
+          <div className="wj-feed-end">
+            <b>Đã hết nội dung mới</b>
+          </div>
+        ) : null}
+      </>
+    );
+  };
 
   return (
     <div
@@ -1460,150 +1807,71 @@ export function WorldJourneyFeed({
           </header>
 
           {pendingConfirmations}
-          {!isGallery && isTimelineFeed ? (
-            <CinsFeedComposer
-              ownerSlug={sidebarProfile.slug}
-              ownerName={sidebarProfile.tenHienThi}
-              avatarUrl={sidebarProfile.avatarUrl}
-              layout="feed"
-            />
-          ) : null}
-
-          {isVideo ? (
-            showGallerySearching ? (
-              <WorldJourneyFilterSearching surface="gallery" />
-            ) : (
-              <div
-                className={
-                  "wj-video-feed-host" +
-                  (filterLoading && galleryRows.length > 0
-                    ? " wj-gallery-revalidating"
-                    : "")
-                }
-                aria-busy={filterLoading || undefined}
-              >
-                {isVideoPlaying ? (
-                  <WorldJourneyVideoFeed
-                    key={`${videoEndpoint}:${playingVideoId}`}
-                    initialItems={galleryRows}
-                    hasMore={galleryMore}
-                    nextOffset={galleryOffset}
-                    endpoint={videoEndpoint}
-                    startItemId={playingVideoId}
-                    onClose={closeVideoPlayer}
-                  />
-                ) : (
-                  <WorldJourneyVideoListing
-                    key={videoEndpoint}
-                    initialItems={galleryRows}
-                    hasMore={galleryMore}
-                    nextOffset={galleryOffset}
-                    endpoint={videoEndpoint}
-                    onOpenVideo={openVideoPlayer}
-                  />
-                )}
-              </div>
-            )
-          ) : isGallery ? (
-            showGallerySearching ? (
-              <WorldJourneyFilterSearching surface="gallery" />
-            ) : galleryRows.length === 0 && !galleryMore ? (
-              <div className="wj-feed-empty">
-                <LayoutGrid size={22} strokeWidth={1.8} aria-hidden />
-                {activeFilter !== "all" || feedSource !== "all" ? (
-                  <>
-                    <b>Không có ô khớp bộ lọc</b>
-                    <p>Thử «Tất cả» hoặc «Tất cả nhúng», hoặc đổi lọc nguồn.</p>
-                  </>
-                ) : (
-                  <>
-                    <b>Gallery đang trống</b>
-                    <p>
-                      Dự án <strong>Nổi bật</strong> /{" "}
-                      <strong>Công khai</strong> có media, bài cộng đồng, và{" "}
-                      <strong>Showcase</strong> studio sẽ hiện ở đây.
-                    </p>
-                  </>
-                )}
-              </div>
-            ) : (
-              <div
-                className={
-                  filterLoading ? "wj-gallery-revalidating" : undefined
-                }
-                aria-busy={filterLoading || undefined}
-              >
-                <JourneyGalleryGridView
-                  key={galleryEndpoint}
-                  hideToolbar
-                  sourceFilter={feedSource}
-                  initialItems={galleryRows}
-                  totalCount={galleryRows.length}
-                  scrollLoad={{
-                    ownerSlug: sidebarProfile.slug,
-                    hasMore: galleryMore,
-                    nextOffset: galleryOffset,
-                    endpoint: galleryEndpoint,
-                  }}
-                />
-              </div>
-            )
-          ) : isTimelineFeed ? (
-            filterLoading ? (
-              <WorldJourneyFilterSearching surface="feed" />
-            ) : visibleMilestones.length === 0 ? (
-              <div className="wj-feed-empty">
-                {isShopFeed ? (
-                  <ShoppingBag size={22} strokeWidth={1.8} aria-hidden />
-                ) : (
-                  <Sparkles size={22} strokeWidth={1.8} aria-hidden />
-                )}
-                {isShopFeed ? (
-                  <>
-                    <b>Chưa có bài gắn giỏ hàng</b>
-                    <p>
-                      Các bài đăng có sản phẩm mua ngay trên CINs sẽ hiện ở
-                      đây.
-                    </p>
-                  </>
-                ) : activeFilter !== "all" ||
-                  activeLinhVucSlug ||
-                  feedSource !== "all" ? (
-                  <>
-                    <b>Không có bài khớp bộ lọc</b>
-                    <p>
-                      Thử «Tất cả», «Tất cả nhúng», hoặc đổi lọc nguồn nội dung.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <b>Feed đang trống</b>
-                    <p>
-                      Theo dõi vài người hoặc tổ chức, hoặc khám phá bài{" "}
-                      <strong>Công khai</strong> / <strong>Nổi bật</strong> từ
-                      cộng đồng — tất cả sẽ hiện ở đây.
-                    </p>
-                  </>
-                )}
-              </div>
-            ) : (
-              <WorldJourneyFeedTimeline
-                milestones={visibleMilestones}
-                viewerProfileId={viewerProfileId}
-                feedPromos={isShopFeed ? undefined : feedPromos}
-                scrollLoad={scrollLoad}
-                loadingMore={loadingMore}
-                loadError={loadError}
-                onLoadMore={handleLoadMore}
+          {isVideoPlaying ? (
+            <div
+              className={
+                "wj-video-feed-host" +
+                (filterLoading && galleryRows.length > 0
+                  ? " wj-gallery-revalidating"
+                  : "")
+              }
+              aria-busy={filterLoading || undefined}
+            >
+              <WorldJourneyVideoFeed
+                key={`${videoEndpoint}:${playingVideoId}`}
+                initialItems={galleryRows}
+                hasMore={galleryMore}
+                nextOffset={galleryOffset}
+                endpoint={videoEndpoint}
+                startItemId={playingVideoId}
+                onClose={closeVideoPlayer}
               />
-            )
-          ) : null}
-
-          {isTimelineFeed && visibleMilestones.length > 0 && !hasMore ? (
-            <div className="wj-feed-end">
-              <b>Đã hết nội dung mới</b>
             </div>
-          ) : null}
+          ) : (
+            <div
+              className="wj-feed-panes"
+              style={
+                {
+                  "--wj-pan-dir": exitPane?.dir ?? 1,
+                } as CSSProperties
+              }
+            >
+              {exitPane ? (
+                <div
+                  className="wj-feed-pane wj-feed-pane--exit"
+                  data-view={exitPane.view}
+                  aria-hidden
+                >
+                  {renderSurfaceBody({
+                    view: exitPane.view,
+                    milestones: exitPane.milestones,
+                    galleryRows: exitPane.galleryRows,
+                    galleryMore: exitPane.galleryMore,
+                    galleryOffset: exitPane.galleryOffset,
+                    filterLoading: exitPane.filterLoading,
+                    interactive: false,
+                  })}
+                </div>
+              ) : null}
+              <div
+                className={
+                  "wj-feed-pane wj-feed-pane--live" +
+                  (exitPane ? " wj-feed-pane--enter" : "")
+                }
+                data-view={surfaceView}
+              >
+                {renderSurfaceBody({
+                  view: surfaceView,
+                  milestones: visibleMilestones,
+                  galleryRows,
+                  galleryMore,
+                  galleryOffset,
+                  filterLoading,
+                  interactive: true,
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {rightAside ?? <WorldJourneyGuestRightAside />}

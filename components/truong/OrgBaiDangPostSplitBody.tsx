@@ -1,7 +1,7 @@
 "use client";
 
 import { Award, CalendarDays, FileText, GraduationCap, Megaphone, Package, X, type LucideIcon } from "lucide-react";
-import { useContext, useMemo, useState } from "react";
+import { useCallback, useContext, useMemo, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
 import { JourneyCommentLink } from "@/components/journey/JourneyCommentLink";
@@ -146,35 +146,53 @@ export function OrgBaiDangPostSplitBody({
   const loaiLabel = loaiOptionLabel(loaiConfig, loaiValue);
   const LoaiIcon = LOAI_ICON_BY_VALUE[loaiValue] ?? Megaphone;
 
-  const authorBody = (
-    <>
-      <span className="post-rail-avatar" aria-hidden>
-        {avatarUrl ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img src={avatarUrl} alt="" />
-        ) : (
-          ownerInitial
-        )}
-      </span>
-      <span className="post-rail-author-copy">
-        <span className="post-rail-author-top">
-          <strong>{owner?.ten?.trim() || "Tổ chức"}</strong>
-          <span className="post-rail-author-sub">
-            {dateLabel && post.tao_luc ? (
-              <time className="post-rail-date" dateTime={post.tao_luc}>
-                {dateLabel}
-              </time>
-            ) : null}
-            <span className="post-rail-meta-icons" aria-label={loaiLabel}>
-              <span className="post-rail-meta-ico" title={loaiLabel}>
-                <LoaiIcon size={12} strokeWidth={2} aria-hidden />
-              </span>
-            </span>
-          </span>
-        </span>
-      </span>
-    </>
+  const scrollSheetToTop = useCallback(() => {
+    const overlay = document.querySelector(".j-post-overlay");
+    if (overlay instanceof HTMLElement && overlay.scrollHeight > overlay.clientHeight) {
+      overlay.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    const sheet = document.querySelector(".j-post-sheet");
+    if (sheet instanceof HTMLElement) {
+      sheet.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    document
+      .querySelector(".post-view-content-inner")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+  const onAuthorChromeClick = useCallback(
+    (event: ReactMouseEvent<HTMLElement>) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (
+        target.closest(
+          ".j-user-pop-trigger, .post-rail-close, .post-rail-avatar, .post-rail-author-name",
+        )
+      ) {
+        return;
+      }
+      event.preventDefault();
+      scrollSheetToTop();
+    },
+    [scrollSheetToTop],
   );
+
+  const wrapOrgPopover = (node: ReactNode) => {
+    const slug = owner?.slug?.trim();
+    if (!slug) return node;
+    return (
+      <JourneyOrgPopover
+        slug={slug}
+        orgKind={orgKind}
+        fallbackName={owner?.ten}
+        fallbackAvatarUrl={avatarUrl}
+      >
+        {node}
+      </JourneyOrgPopover>
+    );
+  };
 
   const actionsRail = contentOnly ? null : (
     <div className="jcard-actions post-rail-actions">
@@ -235,18 +253,51 @@ export function OrgBaiDangPostSplitBody({
           <div className="post-rail-scroll">
             <div className="post-rail-blk post-rail-blk--author">
               <div className="post-rail-author">
-                {owner?.slug?.trim() ? (
-                  <JourneyOrgPopover
-                    slug={owner.slug.trim()}
-                    orgKind={orgKind}
-                    fallbackName={owner.ten}
-                    fallbackAvatarUrl={avatarUrl}
-                  >
-                    <span className="post-rail-author-link">{authorBody}</span>
-                  </JourneyOrgPopover>
-                ) : (
-                  <span className="post-rail-author-link">{authorBody}</span>
-                )}
+                <div
+                  className="post-rail-author-link"
+                  onClick={onAuthorChromeClick}
+                >
+                  {wrapOrgPopover(
+                    <span className="post-rail-avatar" aria-hidden>
+                      {avatarUrl ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={avatarUrl} alt="" />
+                      ) : (
+                        ownerInitial
+                      )}
+                    </span>,
+                  )}
+                  <span className="post-rail-author-copy">
+                    <span className="post-rail-author-top">
+                      {wrapOrgPopover(
+                        <strong className="post-rail-author-name">
+                          {owner?.ten?.trim() || "Tổ chức"}
+                        </strong>,
+                      )}
+                      <span className="post-rail-author-sub">
+                        {dateLabel && post.tao_luc ? (
+                          <time
+                            className="post-rail-date"
+                            dateTime={post.tao_luc}
+                          >
+                            {dateLabel}
+                          </time>
+                        ) : null}
+                        <span
+                          className="post-rail-meta-icons"
+                          aria-label={loaiLabel}
+                        >
+                          <span
+                            className="post-rail-meta-ico"
+                            title={loaiLabel}
+                          >
+                            <LoaiIcon size={12} strokeWidth={2} aria-hidden />
+                          </span>
+                        </span>
+                      </span>
+                    </span>
+                  </span>
+                </div>
                 {onClose ? (
                   <div className="post-rail-author-tools">
                     <button

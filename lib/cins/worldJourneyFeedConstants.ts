@@ -19,6 +19,9 @@ export const WORLD_JOURNEY_GALLERY_WIDE_POOL = 240;
 /** Reels / video surface — ít item mỗi trang (full-bleed snap). */
 export const WORLD_JOURNEY_VIDEO_PAGE_SIZE = 8;
 
+/** Pan tab World Journey (composer + body). Khớp `--wj-tab-pan-ms` trong CSS. */
+export const WORLD_JOURNEY_TAB_PAN_MS = 420;
+
 /** Listing masonry tab Video — ~4 cột × vài hàng trước khi cuộn tải thêm. */
 export const WORLD_JOURNEY_VIDEO_LISTING_PAGE_SIZE = 24;
 
