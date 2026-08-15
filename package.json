@@ -56,6 +56,7 @@
     "migrate:shop-don-yeu-cau-huy": "node scripts/run-shop-don-yeu-cau-huy-migration.mjs",
     "migrate:shop-combo-voucher": "node scripts/run-shop-combo-voucher-migration.mjs",
     "test:shop-uu-dai": "node --experimental-strip-types --test lib/shop/uu-dai.test.ts",
+    "test:admin-danh-muc": "node --experimental-strip-types --test lib/admin/shop-danh-muc-api.test.ts",
     "gen:phuong-xa": "node scripts/gen-phuong-xa.mjs",
     "migrate:shop-nhom": "node scripts/run-shop-nhom-migration.mjs",
     "migrate:shop-nhom-storefront-v2": "node scripts/run-shop-nhom-storefront-v2-migration.mjs",

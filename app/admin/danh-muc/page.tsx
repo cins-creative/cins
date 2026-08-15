@@ -1,6 +1,7 @@
 import { AdminShopDanhMucScreen } from "@/components/admin/AdminShopDanhMucScreen";
 import { listShopDanhMucForAdmin } from "@/lib/admin/shop-danh-muc-server";
 import { renderAdminPage } from "@/lib/admin/admin-page";
+import { listHangChoDanhMuc } from "@/lib/shop/danh-muc-dong-gop";
 
 import "./danh-muc-admin.css";
 
@@ -8,8 +9,13 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminShopDanhMucPage() {
   try {
-    const rows = await listShopDanhMucForAdmin({ nganhHang: "merch" });
-    return renderAdminPage(<AdminShopDanhMucScreen initialRows={rows} />);
+    const [rows, hangCho] = await Promise.all([
+      listShopDanhMucForAdmin({ nganhHang: "merch" }),
+      listHangChoDanhMuc().catch(() => ({ alias: [], yeuCau: [] })),
+    ]);
+    return renderAdminPage(
+      <AdminShopDanhMucScreen initialRows={rows} initialHangCho={hangCho} />,
+    );
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Không tải được danh mục hàng.";

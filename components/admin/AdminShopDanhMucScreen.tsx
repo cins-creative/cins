@@ -12,6 +12,11 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AdminSlideOver } from "@/components/admin/AdminSlideOver";
+import {
+  ADMIN_SHOP_DANH_MUC_API,
+  ADMIN_SHOP_DANH_MUC_HANG_CHO_API,
+  adminShopDanhMucItemApi,
+} from "@/lib/admin/shop-danh-muc-api";
 import type { AdminShopDanhMucRow } from "@/lib/admin/shop-danh-muc-server";
 import { parseTenNhomMoi } from "@/lib/shop/danh-muc-yeu-cau-text";
 
@@ -127,11 +132,20 @@ function formFromYeuCau(
   };
 }
 
-type Props = {
-  initialRows: AdminShopDanhMucRow[];
+type HangChoPayload = {
+  alias: HangChoAlias[];
+  yeuCau: HangChoYeuCau[];
 };
 
-export function AdminShopDanhMucScreen({ initialRows }: Props) {
+type Props = {
+  initialRows: AdminShopDanhMucRow[];
+  initialHangCho?: HangChoPayload;
+};
+
+export function AdminShopDanhMucScreen({
+  initialRows,
+  initialHangCho,
+}: Props) {
   const [rows, setRows] = useState(initialRows);
   const [q, setQ] = useState("");
   const [filterTt, setFilterTt] = useState<"all" | "la" | "cha" | "an">("all");
@@ -139,8 +153,12 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [aliasCho, setAliasCho] = useState<HangChoAlias[]>([]);
-  const [yeuCauCho, setYeuCauCho] = useState<HangChoYeuCau[]>([]);
+  const [aliasCho, setAliasCho] = useState<HangChoAlias[]>(
+    initialHangCho?.alias ?? [],
+  );
+  const [yeuCauCho, setYeuCauCho] = useState<HangChoYeuCau[]>(
+    initialHangCho?.yeuCau ?? [],
+  );
   const [mergeQuery, setMergeQuery] = useState("");
   const [mergeTargetId, setMergeTargetId] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<AdminShopDanhMucRow | null>(
@@ -150,6 +168,11 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
   useEffect(() => {
     setRows(initialRows);
   }, [initialRows]);
+
+  useEffect(() => {
+    setAliasCho(initialHangCho?.alias ?? []);
+    setYeuCauCho(initialHangCho?.yeuCau ?? []);
+  }, [initialHangCho]);
 
   useEffect(() => {
     if (panel.mode === "create") setForm(emptyForm());
@@ -299,18 +322,23 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
 
   const refreshHangCho = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/shop/catalog/queue");
+      const res = await fetch(ADMIN_SHOP_DANH_MUC_HANG_CHO_API, {
+        cache: "no-store",
+      });
       const json = (await res.json().catch(() => null)) as {
         ok?: boolean;
         alias?: HangChoAlias[];
         yeuCau?: HangChoYeuCau[];
+        error?: string;
       } | null;
       if (res.ok && json?.ok) {
         setAliasCho(json.alias ?? []);
         setYeuCauCho(json.yeuCau ?? []);
+        return;
       }
+      setErr(json?.error ?? "Không tải được hàng chờ danh mục.");
     } catch {
-      /* ignore */
+      setErr("Không tải được hàng chờ danh mục.");
     }
   }, []);
 
@@ -321,7 +349,7 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
   const refresh = useCallback(async () => {
     setErr(null);
     try {
-      const res = await fetch("/api/admin/shop/catalog?nganhHang=merch");
+      const res = await fetch(`${ADMIN_SHOP_DANH_MUC_API}?nganhHang=merch`);
       const json = (await res.json().catch(() => null)) as {
         ok?: boolean;
         rows?: AdminShopDanhMucRow[];
@@ -342,7 +370,7 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
     if (selected !== NEW_CAP_CHA) return selected || null;
     const tenCha = form.chaTen.trim();
     if (!tenCha) throw new Error("Nhập tên cấp cha mới.");
-    const res = await fetch("/api/admin/shop/catalog", {
+    const res = await fetch(ADMIN_SHOP_DANH_MUC_API, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -389,7 +417,7 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
         ...(idCha !== undefined ? { idCha } : {}),
       };
       if (panel.mode === "create") {
-        const res = await fetch("/api/admin/shop/catalog", {
+        const res = await fetch(ADMIN_SHOP_DANH_MUC_API, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ...payload, nganhHang: "merch" }),
@@ -414,7 +442,7 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
 
       if (panel.mode === "edit") {
         const res = await fetch(
-          `/api/admin/shop/catalog/${encodeURIComponent(panel.row.id)}`,
+          adminShopDanhMucItemApi(panel.row.id),
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
@@ -461,7 +489,7 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
     setErr(null);
     try {
       const res = await fetch(
-        `/api/admin/shop/catalog/${encodeURIComponent(deleteTarget.id)}`,
+        adminShopDanhMucItemApi(deleteTarget.id),
         { method: "DELETE" },
       );
       const json = (await res.json().catch(() => null)) as {
@@ -494,7 +522,7 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
     const thuTu = Number.parseInt(form.thuTu, 10);
     try {
       const idCha = await createCapChaIfNeeded();
-      const res = await fetch("/api/admin/shop/catalog/queue", {
+      const res = await fetch(ADMIN_SHOP_DANH_MUC_HANG_CHO_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -539,7 +567,7 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
     setBusy(true);
     setErr(null);
     try {
-      const res = await fetch("/api/admin/shop/catalog/queue", {
+      const res = await fetch(ADMIN_SHOP_DANH_MUC_HANG_CHO_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -573,7 +601,7 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
     setErr(null);
     try {
       const res = await fetch(
-        `/api/admin/shop/catalog/${encodeURIComponent(row.id)}`,
+        adminShopDanhMucItemApi(row.id),
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -603,7 +631,7 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
     setBusy(true);
     setErr(null);
     try {
-      const res = await fetch("/api/admin/shop/catalog/queue", {
+      const res = await fetch(ADMIN_SHOP_DANH_MUC_HANG_CHO_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -632,7 +660,7 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
     setBusy(true);
     setErr(null);
     try {
-      const res = await fetch("/api/admin/shop/catalog/queue", {
+      const res = await fetch(ADMIN_SHOP_DANH_MUC_HANG_CHO_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
