@@ -586,7 +586,7 @@ export function ThongTinDuAnSlides({
                       <TtdaIcon>
                         <Lock size={10} strokeWidth={1.6} />
                       </TtdaIcon>
-                      cins.vn/nghe-nghiep
+                      cins.vn/community
                     </span>
                   </div>
                   <div className="shot">
@@ -594,8 +594,8 @@ export function ThongTinDuAnSlides({
                       <TtdaIcon>
                         <ImageIcon size={24} strokeWidth={1.6} />
                       </TtdaIcon>
-                      <b>Ảnh trang Khám phá nghề</b>
-                      <span>danh sách 280+ vị trí nghề theo lĩnh vực</span>
+                      <b>Ảnh trang cộng đồng</b>
+                      <span>nhóm theo lĩnh vực — Game, Phim, Thiết kế…</span>
                     </div>
                   </div>
                 </div>
@@ -603,7 +603,7 @@ export function ThongTinDuAnSlides({
                   <TtdaIcon>
                     <Compass size={12} strokeWidth={1.6} />
                   </TtdaIcon>
-                  Khám phá nghề — cửa vào của học sinh
+                  Cộng đồng theo lĩnh vực — cửa vào của học sinh
                 </p>
                 <div className="mkt">
                   <div className="m">

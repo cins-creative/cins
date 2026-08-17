@@ -52,6 +52,18 @@ const nextConfig: NextConfig = {
         destination: "/terms",
         permanent: true,
       },
+      /* Hub thư viện nghề gỡ khỏi nav — exact /careers → trang chủ. Giữ /careers/:slug. */
+      {
+        source: "/careers",
+        destination: "/",
+        permanent: true,
+      },
+      /* phan_mem đã gộp vào keyword — URL cũ /software/[slug] → /keyword/[slug] */
+      {
+        source: "/software/:slug",
+        destination: "/keyword/:slug",
+        permanent: true,
+      },
     ];
   },
   /** Client video env — Cloudflare Stream / R2 chat video. */

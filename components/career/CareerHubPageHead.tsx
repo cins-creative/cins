@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { NGHE_NGHIEP_HUB_PATH } from "@/lib/cins/hubPaths";
 import type { LinhVucRow } from "@/lib/career/types";
 
 type TabKey = "nghe" | "nganh-hoc";
@@ -30,7 +29,7 @@ export function CareerHubPageHead({
     <div className="hn-page-head">
       <div className="hn-page-head-inner">
         <nav className="hn-crumbs" aria-label="Breadcrumb">
-          <Link href={NGHE_NGHIEP_HUB_PATH}>Hướng nghiệp</Link>
+          <Link href="/">Trang chủ</Link>
           <span className="hn-crumbs-sep" aria-hidden>
             ›
           </span>

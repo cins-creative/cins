@@ -2340,6 +2340,19 @@ a.j-main-gallery-item:focus-visible,
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+button.j-main-gallery-info-title {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+}
 .j-main-gallery-info-excerpt {
   font-size: 12px;
   line-height: 1.4;
@@ -13547,6 +13560,7 @@ select.j-edit-input {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
   margin: 10px 0 0;
   padding: 12px 14px;
   border: 1px solid color-mix(in srgb, var(--cins-blue, #1f74c9) 28%, #e2e8f0);
@@ -13576,6 +13590,35 @@ select.j-edit-input {
 .j-billing-pin-meta strong {
   color: var(--j-text, #0f172a);
   font-weight: 650;
+}
+.j-billing-pin-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.j-billing-pin-dismiss {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--j-muted, #64748b);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.j-billing-pin-dismiss:hover {
+  color: var(--j-text, #0f172a);
+  background: color-mix(in srgb, var(--j-text, #0f172a) 6%, transparent);
+}
+.j-billing-pin-dismiss:focus-visible {
+  outline: 2px solid var(--cins-blue, #1f74c9);
+  outline-offset: 2px;
 }
 .j-billing-pin-cta {
   flex-shrink: 0;
@@ -13611,6 +13654,13 @@ select.j-edit-input {
 }
 :root[data-theme="dark"] .j-billing-pin-meta {
   color: var(--j-muted, #94a3b8);
+}
+:root[data-theme="dark"] .j-billing-pin-dismiss {
+  color: var(--j-muted, #94a3b8);
+}
+:root[data-theme="dark"] .j-billing-pin-dismiss:hover {
+  color: var(--j-text, #e2e8f0);
+  background: color-mix(in srgb, var(--j-text, #e2e8f0) 8%, transparent);
 }
 
 .j-pending-confirmations {

@@ -1,9 +1,6 @@
 "use server";
 
-import {
-  extractNgheRoleShort,
-  formatNgheRoleLabel,
-} from "@/lib/articles/nghe-role-label";
+import { extractNgheRoleShort } from "@/lib/articles/nghe-role-label";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import type { CoAuthorNgheRoleOption } from "@/lib/editor/coauthor-role-types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -46,11 +43,11 @@ function rowToOption(row: NgheRoleRow): CoAuthorNgheRoleOption {
     roleShort,
     roleEng,
     linhVucTen,
-    roleLabel: formatNgheRoleLabel(linhVucTen, roleShort),
+    roleLabel: roleShort,
   };
 }
 
-/** Danh sách nghề published cho picker vai trò đồng tác giả (có lĩnh vực). */
+/** Danh sách nghề published — gợi ý tên vai trò (lưu TEXT trần, không mint tag). */
 export async function loadCoAuthorNgheRoleOptions(): Promise<
   CoAuthorNgheRoleOption[]
 > {

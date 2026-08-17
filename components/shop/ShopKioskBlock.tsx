@@ -25,7 +25,7 @@ import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { ShopCatalogThumbPlaceholder } from "@/components/shop/ShopCatalogThumbPlaceholder";
 import {
   ShopImageDecoy,
-  ShopImageProtect,
+  ShopImageWatermark,
 } from "@/components/shop/ShopImageProtect";
 import { shopProtectWatermarkText } from "@/lib/shop/image-protect";
 import {
@@ -1163,14 +1163,17 @@ export function ShopKioskBlock({
               className="shop-kiosk-preview-stage"
               onClick={(e) => e.stopPropagation()}
             >
-              <ShopImageProtect
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 src={preview.src}
                 alt={preview.name}
-                protect={protectProductImg}
-                watermarkText={protectProductImg ? productWmText : null}
-                fit="contain"
-                imgClassName="shop-kiosk-preview-img"
+                className="shop-kiosk-preview-img"
+                draggable={false}
               />
+              {protectProductImg ? (
+                <ShopImageWatermark text={productWmText} />
+              ) : null}
+              {protectProductImg ? <ShopImageDecoy /> : null}
             </div>
             {preview.name ? (
               <p className="shop-kiosk-preview-caption">{preview.name}</p>

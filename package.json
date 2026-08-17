@@ -77,6 +77,7 @@
     "migrate:shop-danh-muc": "node scripts/run-shop-danh-muc-migration.mjs",
     "migrate:shop-danh-muc-rev3": "node scripts/run-shop-danh-muc-rev3-migration.mjs",
     "migrate:fandom-entity": "node scripts/run-fandom-entity-migration.mjs",
+    "migrate:phan-mem-to-keyword": "node scripts/run-phan-mem-to-keyword-migration.mjs",
     "backfill:fandom-entity": "node scripts/backfill-fandom-entity.mjs",
     "soft-map:shop-taxonomy": "node scripts/soft-map-shop-taxonomy.mjs",
     "migrate:autopilot": "node scripts/run-autopilot-giai-doan-1-migration.mjs",

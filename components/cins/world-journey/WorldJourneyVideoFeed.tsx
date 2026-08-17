@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  ChevronDown,
   ChevronLeft,
+  ChevronUp,
   Clapperboard,
   Play,
 } from "lucide-react";
@@ -22,7 +24,12 @@ import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButto
 import { JourneyCommentLink } from "@/components/journey/JourneyCommentLink";
 import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
 import { PostShareMenu } from "@/components/journey/PostActionsRail";
-import { WORLD_JOURNEY_VIDEO_PAGE_SIZE } from "@/lib/cins/worldJourneyFeedConstants";
+import {
+  WORLD_JOURNEY_TAB_PAN_MS,
+  WORLD_JOURNEY_VIDEO_LISTING_PAGE_SIZE,
+  WORLD_JOURNEY_VIDEO_PAGE_SIZE,
+} from "@/lib/cins/worldJourneyFeedConstants";
+import { replaceVideoPlayUrl } from "@/lib/cins/worldJourneyVideoUrl";
 import {
   buildStreamIframeUrl,
   buildStreamThumbnailAtTime,
@@ -476,213 +483,216 @@ function ReelSlide({
         } as CSSProperties
       }
     >
-      <article className="wj-reel-slide" data-active={active || undefined}>
-        <div className="wj-reel-media">
-          {item.videoProcessing ? (
-            <VideoProcessingPlaceholder />
-          ) : iframeSrc ? (
-            <iframe
-              ref={iframeRef}
-              key={uid}
-              className="wj-reel-iframe"
-              src={iframeSrc}
-              title={item.label || "Video"}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerPolicy="strict-origin-when-cross-origin"
-              allowFullScreen
-              tabIndex={active ? 0 : -1}
-              aria-hidden={active ? undefined : true}
-            />
-          ) : poster ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img className="wj-reel-poster" src={poster} alt="" />
-          ) : (
-            <div className="wj-reel-poster-fallback" aria-hidden>
-              <Clapperboard size={40} strokeWidth={1.6} />
+      <div className="wj-reel-frame">
+        <div className="wj-reel-main">
+          <article className="wj-reel-slide" data-active={active || undefined}>
+            <div className="wj-reel-media">
+              {item.videoProcessing ? (
+                <VideoProcessingPlaceholder />
+              ) : iframeSrc ? (
+                <iframe
+                  ref={iframeRef}
+                  key={uid}
+                  className="wj-reel-iframe"
+                  src={iframeSrc}
+                  title={item.label || "Video"}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  allowFullScreen
+                  tabIndex={-1}
+                  aria-hidden={active ? undefined : true}
+                />
+              ) : poster ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="wj-reel-poster" src={poster} alt="" />
+              ) : (
+                <div className="wj-reel-poster-fallback" aria-hidden>
+                  <Clapperboard size={40} strokeWidth={1.6} />
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {iframeSrc && !item.videoProcessing ? (
-          <button
-            type="button"
-            className="wj-reel-tap"
-            aria-label={paused ? "Phát video" : "Tạm dừng"}
-            onClick={(e) => {
-              e.stopPropagation();
-              togglePlayback();
-            }}
-          />
-        ) : null}
+            {iframeSrc && !item.videoProcessing ? (
+              <button
+                type="button"
+                className="wj-reel-tap"
+                aria-label={paused ? "Phát video" : "Tạm dừng"}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  togglePlayback();
+                }}
+              />
+            ) : null}
 
-        {active && paused && !scrubbing ? (
-          <div className="wj-reel-pause-badge" aria-hidden>
-            <Play size={28} strokeWidth={2.2} fill="currentColor" />
-          </div>
-        ) : null}
+            {active && paused && !scrubbing ? (
+              <div className="wj-reel-pause-badge" aria-hidden>
+                <Play size={28} strokeWidth={2.2} fill="currentColor" />
+              </div>
+            ) : null}
+          </article>
 
-        <div className="wj-reel-meta">
-          <div className="wj-reel-author">
-            {authorHref ? (
-              <Link
-                href={authorHref}
-                className="wj-reel-av"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {item.authorAvatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.authorAvatarUrl} alt="" />
-                ) : (
-                  <span>
-                    {(item.authorName ?? "?").slice(0, 1).toUpperCase()}
-                  </span>
-                )}
-              </Link>
-            ) : (
-              <span className="wj-reel-av">
-                {(item.authorName ?? "?").slice(0, 1).toUpperCase()}
-              </span>
-            )}
-            <div className="wj-reel-author-text">
+          {iframeSrc && !item.videoProcessing ? (
+            <div
+              className={
+                "wj-reel-timeline" + (scrubbing ? " is-scrubbing" : "")
+              }
+              role="slider"
+              aria-label="Timeline video"
+              aria-valuemin={0}
+              aria-valuemax={Math.round(duration) || 0}
+              aria-valuenow={Math.round(currentTime)}
+              aria-valuetext={`${formatReelTime(currentTime)} / ${formatReelTime(duration)}`}
+              tabIndex={active ? 0 : -1}
+              onPointerDown={onTimelinePointerDown}
+              onPointerMove={onTimelinePointerMove}
+              onPointerUp={onTimelinePointerUp}
+              onPointerCancel={onTimelinePointerUp}
+              onKeyDown={(e) => {
+                if (!duration) return;
+                if (e.key === "ArrowRight") {
+                  e.preventDefault();
+                  seekToRatio((currentTime + 2) / duration);
+                } else if (e.key === "ArrowLeft") {
+                  e.preventDefault();
+                  seekToRatio((currentTime - 2) / duration);
+                } else if (e.key === "Home") {
+                  e.preventDefault();
+                  seekToRatio(0);
+                } else if (e.key === "End") {
+                  e.preventDefault();
+                  seekToRatio(1);
+                } else if (e.key === " " || e.key === "Enter") {
+                  e.preventDefault();
+                  togglePlayback();
+                }
+              }}
+            >
+              {scrubbing && previewThumb ? (
+                <div
+                  className="wj-reel-scrub-preview"
+                  style={{
+                    left: `${Math.min(86, Math.max(14, progress))}%`,
+                  }}
+                  aria-hidden
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={previewThumb} alt="" />
+                  <span>{formatReelTime(currentTime)}</span>
+                </div>
+              ) : null}
+              <div className="wj-reel-timeline-track">
+                <div
+                  className="wj-reel-timeline-fill"
+                  style={{ width: `${progress}%` }}
+                />
+                <span
+                  className="wj-reel-timeline-knob"
+                  style={{ left: `${progress}%` }}
+                />
+              </div>
+              {!scrubbing && paused ? (
+                <span className="wj-reel-timeline-time">
+                  {formatReelTime(currentTime)}
+                  {duration > 0 ? ` / ${formatReelTime(duration)}` : ""}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+
+          <div className="wj-reel-meta">
+            <div className="wj-reel-author">
               {authorHref ? (
                 <Link
                   href={authorHref}
-                  className="wj-reel-name"
+                  className="wj-reel-av"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {item.authorName || "Người dùng"}
+                  {item.authorAvatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={item.authorAvatarUrl} alt="" />
+                  ) : (
+                    <span>
+                      {(item.authorName ?? "?").slice(0, 1).toUpperCase()}
+                    </span>
+                  )}
                 </Link>
               ) : (
-                <span className="wj-reel-name">
-                  {item.authorName || "Người dùng"}
+                <span className="wj-reel-av">
+                  {(item.authorName ?? "?").slice(0, 1).toUpperCase()}
                 </span>
               )}
-              {item.orgKicker ? (
-                <span className="wj-reel-kicker">{item.orgKicker}</span>
+              <div className="wj-reel-author-text">
+                {authorHref ? (
+                  <Link
+                    href={authorHref}
+                    className="wj-reel-name"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {item.authorName || "Người dùng"}
+                  </Link>
+                ) : (
+                  <span className="wj-reel-name">
+                    {item.authorName || "Người dùng"}
+                  </span>
+                )}
+                {item.orgKicker ? (
+                  <span className="wj-reel-kicker">{item.orgKicker}</span>
+                ) : null}
+              </div>
+              {authorHref ? (
+                <Link
+                  href={authorHref}
+                  className="wj-reel-follow"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Theo dõi
+                </Link>
               ) : null}
             </div>
-            {authorHref ? (
-              <Link
-                href={authorHref}
-                className="wj-reel-follow"
-                onClick={(e) => e.stopPropagation()}
-              >
-                Theo dõi
-              </Link>
-            ) : null}
+            {caption ? <p className="wj-reel-caption">{caption}</p> : null}
           </div>
-          {caption ? <p className="wj-reel-caption">{caption}</p> : null}
         </div>
 
-        {iframeSrc && !item.videoProcessing ? (
-          <div
-            className={
-              "wj-reel-timeline" + (scrubbing ? " is-scrubbing" : "")
-            }
-            role="slider"
-            aria-label="Timeline video"
-            aria-valuemin={0}
-            aria-valuemax={Math.round(duration) || 0}
-            aria-valuenow={Math.round(currentTime)}
-            aria-valuetext={`${formatReelTime(currentTime)} / ${formatReelTime(duration)}`}
-            tabIndex={active ? 0 : -1}
-            onPointerDown={onTimelinePointerDown}
-            onPointerMove={onTimelinePointerMove}
-            onPointerUp={onTimelinePointerUp}
-            onPointerCancel={onTimelinePointerUp}
-            onKeyDown={(e) => {
-              if (!duration) return;
-              if (e.key === "ArrowRight" || e.key === "ArrowUp") {
-                e.preventDefault();
-                seekToRatio((currentTime + 2) / duration);
-              } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
-                e.preventDefault();
-                seekToRatio((currentTime - 2) / duration);
-              } else if (e.key === "Home") {
-                e.preventDefault();
-                seekToRatio(0);
-              } else if (e.key === "End") {
-                e.preventDefault();
-                seekToRatio(1);
-              } else if (e.key === " " || e.key === "Enter") {
-                e.preventDefault();
-                togglePlayback();
-              }
-            }}
-          >
-            {scrubbing && previewThumb ? (
-              <div
-                className="wj-reel-scrub-preview"
-                style={{
-                  left: `${Math.min(86, Math.max(14, progress))}%`,
-                }}
-                aria-hidden
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={previewThumb} alt="" />
-                <span>{formatReelTime(currentTime)}</span>
-              </div>
-            ) : null}
-            <div className="wj-reel-timeline-track">
-              <div
-                className="wj-reel-timeline-fill"
-                style={{ width: `${progress}%` }}
+        <div
+          className="wj-reel-rail jcard-actions"
+          aria-label="Tương tác"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {target ? (
+            <>
+              <JourneyLikeButton
+                milestoneId={target.id}
+                loaiDoiTuong={target.loai}
+                showCount
+                disableActorsReveal
               />
-              <span
-                className="wj-reel-timeline-knob"
-                style={{ left: `${progress}%` }}
+              <JourneyCommentLink
+                commentCount={null}
+                idDoiTuong={target.id}
+                loaiDoiTuong={target.loai}
+                href={sharePath ?? undefined}
+                sharePath={sharePath}
+                shareTitle={shareTitle}
+                disableActorsReveal
               />
-            </div>
-            {!scrubbing && paused ? (
-              <span className="wj-reel-timeline-time">
-                {formatReelTime(currentTime)}
-                {duration > 0 ? ` / ${formatReelTime(duration)}` : ""}
-              </span>
-            ) : null}
-          </div>
-        ) : null}
-      </article>
-
-      {/* Cùng bộ nút timeline: Thích · BL · Lưu · Share (không dislike ở chế độ video) */}
-      <div
-        className="wj-reel-rail jcard-actions"
-        aria-label="Tương tác"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {target ? (
-          <>
-            <JourneyLikeButton
-              milestoneId={target.id}
-              loaiDoiTuong={target.loai}
-              showCount
-              disableActorsReveal
-            />
-            <JourneyCommentLink
-              commentCount={null}
-              idDoiTuong={target.id}
-              loaiDoiTuong={target.loai}
-              href={sharePath ?? undefined}
+              <JourneyBookmarkButton
+                milestoneId={target.id}
+                title={shareTitle}
+                loaiDoiTuong={target.loai}
+                showCount
+                disableActorsReveal
+              />
+            </>
+          ) : null}
+          {sharePath ? (
+            <PostShareMenu
               sharePath={sharePath}
               shareTitle={shareTitle}
-              disableActorsReveal
+              className="jcard-share wj-reel-share"
+              buttonClassName="share-btn"
             />
-            <JourneyBookmarkButton
-              milestoneId={target.id}
-              title={shareTitle}
-              loaiDoiTuong={target.loai}
-              showCount
-              disableActorsReveal
-            />
-          </>
-        ) : null}
-        {sharePath ? (
-          <PostShareMenu
-            sharePath={sharePath}
-            shareTitle={shareTitle}
-            className="jcard-share wj-reel-share"
-            buttonClassName="share-btn"
-          />
-        ) : null}
+          ) : null}
+        </div>
       </div>
     </div>
   );
@@ -698,7 +708,7 @@ async function fetchVideoPage(
 } | null> {
   const url = new URL(endpoint, window.location.origin);
   url.searchParams.set("offset", String(offset));
-  url.searchParams.set("limit", String(WORLD_JOURNEY_VIDEO_PAGE_SIZE));
+  url.searchParams.set("limit", String(WORLD_JOURNEY_VIDEO_LISTING_PAGE_SIZE));
   if (!url.searchParams.get("filter")) {
     url.searchParams.set("filter", "video");
   }
@@ -731,8 +741,20 @@ function pickStartId(
   return items[0]?.id ?? null;
 }
 
+function seedPlaylist(
+  initial: readonly GalleryMainItem[],
+  startItemId?: string | null,
+): GalleryMainItem[] {
+  const stream = initial.filter(isStreamVideoItem);
+  if (!startItemId) return stream;
+  const head = stream.find((item) => item.id === startItemId);
+  if (!head) return stream;
+  return [head, ...stream.filter((item) => item.id !== startItemId)];
+}
+
 /**
  * Surface Video (Reels) — chỉ Cloudflare Stream upload, UI kiểu Facebook.
+ * Mount mới mỗi lần click listing (`key=startId`); playlist đã xếp clip chọn lên đầu.
  */
 export function WorldJourneyVideoFeed({
   initialItems = [],
@@ -743,42 +765,38 @@ export function WorldJourneyVideoFeed({
   onClose,
 }: Props) {
   const [items, setItems] = useState<GalleryMainItem[]>(() =>
-    initialItems.filter(isStreamVideoItem),
+    seedPlaylist(initialItems, startItemId),
   );
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [offset, setOffset] = useState(initialOffset);
   const [loading, setLoading] = useState(false);
   const [bootstrapping, setBootstrapping] = useState(
-    () => initialItems.filter(isStreamVideoItem).length === 0,
+    () => seedPlaylist(initialItems, startItemId).length === 0,
   );
   const [activeId, setActiveId] = useState<string | null>(() =>
-    pickStartId(initialItems.filter(isStreamVideoItem), startItemId),
+    pickStartId(seedPlaylist(initialItems, startItemId), startItemId),
   );
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const sentinelRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
-  const didScrollStartRef = useRef(false);
-  const [snapReady, setSnapReady] = useState(() => !startItemId);
-  const snapReadyRef = useRef(snapReady);
-  snapReadyRef.current = snapReady;
+  const [opened, setOpened] = useState(
+    () => seedPlaylist(initialItems, startItemId).length > 0,
+  );
 
   const activeIndex = useMemo(() => {
     if (!activeId) return 0;
     const idx = items.findIndex((item) => item.id === activeId);
     return idx >= 0 ? idx : 0;
   }, [activeId, items]);
+  const activeIndexRef = useRef(activeIndex);
+  activeIndexRef.current = activeIndex;
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+  const hasMoreRef = useRef(hasMore);
+  hasMoreRef.current = hasMore;
 
   useEffect(() => {
-    const seeded = initialItems.filter(isStreamVideoItem);
-    setItems(seeded);
-    setHasMore(initialHasMore);
-    setOffset(initialOffset);
-    setActiveId(pickStartId(seeded, startItemId));
-
-    if (seeded.length > 0) {
-      setBootstrapping(false);
-      return;
-    }
+    /* Chỉ bootstrap khi session chưa có clip (deep link). Không sync lại từ listing. */
+    if (items.length > 0) return;
 
     let cancelled = false;
     loadingRef.current = true;
@@ -788,10 +806,12 @@ export function WorldJourneyVideoFeed({
       try {
         const page = await fetchVideoPage(endpoint, 0);
         if (cancelled || !page) return;
-        setItems(page.items);
+        const seeded = seedPlaylist(page.items, startItemId);
+        setItems(seeded);
         setHasMore(page.hasMore);
         setOffset(page.nextOffset);
-        setActiveId(pickStartId(page.items, startItemId));
+        setActiveId(pickStartId(seeded, startItemId));
+        setOpened(seeded.length > 0);
       } finally {
         if (!cancelled) {
           loadingRef.current = false;
@@ -805,7 +825,9 @@ export function WorldJourneyVideoFeed({
       cancelled = true;
       loadingRef.current = false;
     };
-  }, [initialItems, initialHasMore, initialOffset, endpoint, startItemId]);
+    // Mount-once — key=startId ở parent.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [endpoint, startItemId]);
 
   const loadMore = useCallback(async () => {
     if (loadingRef.current || !hasMore) return;
@@ -825,6 +847,40 @@ export function WorldJourneyVideoFeed({
       setLoading(false);
     }
   }, [endpoint, hasMore, offset]);
+
+  const goBy = useCallback(
+    (dir: -1 | 1) => {
+      const list = itemsRef.current;
+      const next = activeIndexRef.current + dir;
+      if (next < 0) return;
+      if (next >= list.length) {
+        if (hasMoreRef.current) void loadMore();
+        return;
+      }
+      const id = list[next]?.id;
+      if (!id) return;
+      setActiveId(id);
+      replaceVideoPlayUrl(id);
+    },
+    [loadMore],
+  );
+  const goByRef = useRef(goBy);
+  goByRef.current = goBy;
+
+  useLayoutEffect(() => {
+    const root = scrollerRef.current;
+    if (!root || typeof ResizeObserver === "undefined") return;
+    const sync = () => {
+      const h = root.clientHeight;
+      if (h > 0) {
+        root.style.setProperty("--wj-reel-slide-h", `${h}px`);
+      }
+    };
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(root);
+    return () => ro.disconnect();
+  }, [items.length]);
 
   /* Prefetch trang API sớm: giữ ≥2 trang trong buffer + khi gần hết list. */
   useEffect(() => {
@@ -850,78 +906,131 @@ export function WorldJourneyVideoFeed({
     }
   }, [activeIndex, items]);
 
+  const pinnedStartRef = useRef(false);
+  /* Deep link: clip chưa có trong trang đầu → tải tiếp, rồi xếp lên đầu một lần. */
   useEffect(() => {
-    const root = scrollerRef.current;
-    if (!root) return;
-    const slides = root.querySelectorAll<HTMLElement>(".wj-reel-snap");
-    if (slides.length === 0) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        let best: { id: string; ratio: number } | null = null;
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue;
-          const id = (entry.target as HTMLElement).dataset.reelId;
-          if (!id) continue;
-          if (!best || entry.intersectionRatio > best.ratio) {
-            best = { id, ratio: entry.intersectionRatio };
-          }
-        }
-        if (!snapReadyRef.current) return;
-        if (best && best.ratio >= 0.7) setActiveId(best.id);
-      },
-      { root, threshold: [0.55, 0.75, 0.9] },
-    );
-    slides.forEach((el) => io.observe(el));
-    return () => io.disconnect();
-  }, [items]);
-
-  useEffect(() => {
-    const root = scrollerRef.current;
-    const sentinel = sentinelRef.current;
-    if (!root || !sentinel || !hasMore) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) void loadMore();
-      },
-      { root, rootMargin: "600px 0px" },
-    );
-    io.observe(sentinel);
-    return () => io.disconnect();
-  }, [hasMore, loadMore]);
-
-  useEffect(() => {
-    didScrollStartRef.current = false;
-    setSnapReady(!startItemId);
-  }, [startItemId]);
-
-  useLayoutEffect(() => {
     if (!startItemId) {
-      setSnapReady(true);
+      setOpened(true);
       return;
     }
-    const root = scrollerRef.current;
-    if (!root) return;
-    const el = root.querySelector<HTMLElement>(
-      `[data-reel-id="${CSS.escape(startItemId)}"]`,
-    );
-    if (!el) return;
-    el.scrollIntoView({ block: "start" });
-    didScrollStartRef.current = true;
-    setActiveId(startItemId);
-    setSnapReady(true);
-  }, [items.length, startItemId]);
+    const idx = items.findIndex((item) => item.id === startItemId);
+    if (idx < 0) {
+      if (!hasMore || loadingRef.current || bootstrapping) return;
+      void loadMore();
+      return;
+    }
+    if (idx > 0 && !pinnedStartRef.current) {
+      pinnedStartRef.current = true;
+      setItems((prev) => seedPlaylist(prev, startItemId));
+      setActiveId(startItemId);
+    } else {
+      pinnedStartRef.current = true;
+    }
+    setOpened(true);
+  }, [startItemId, items, hasMore, bootstrapping, loadMore]);
 
   useEffect(() => {
-    if (!onClose) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        if (!onClose) return;
         e.preventDefault();
         onClose();
+        return;
+      }
+      const t = e.target;
+      if (
+        t instanceof HTMLElement &&
+        t.closest(".wj-reel-timeline, input, textarea, [contenteditable='true']")
+      ) {
+        return;
+      }
+      if (e.key === "ArrowDown" || e.key === "PageDown" || e.key === "j") {
+        e.preventDefault();
+        goByRef.current(1);
+      } else if (e.key === "ArrowUp" || e.key === "PageUp" || e.key === "k") {
+        e.preventDefault();
+        goByRef.current(-1);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  useEffect(() => {
+    const root = scrollerRef.current;
+    if (!root) return;
+    let locked = false;
+    let acc = 0;
+    let unlockTimer = 0;
+    const panLock = WORLD_JOURNEY_TAB_PAN_MS + 80;
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
+      e.preventDefault();
+      if (locked) return;
+      acc += e.deltaY;
+      if (Math.abs(acc) < 48) return;
+      const dir: -1 | 1 = acc > 0 ? 1 : -1;
+      acc = 0;
+      locked = true;
+      goByRef.current(dir);
+      window.clearTimeout(unlockTimer);
+      unlockTimer = window.setTimeout(() => {
+        locked = false;
+      }, panLock);
+    };
+
+    let startY = 0;
+    let startX = 0;
+    let tracking = false;
+    const ignoreSwipe = (t: EventTarget | null) =>
+      t instanceof Element &&
+      Boolean(
+        t.closest(
+          ".wj-reel-timeline, .wj-reel-rail, .wj-reel-meta, .wj-reel-nav, .wj-reel-back",
+        ),
+      );
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      if (ignoreSwipe(e.target)) return;
+      tracking = true;
+      startY = e.clientY;
+      startX = e.clientX;
+    };
+    const onPointerUp = (e: PointerEvent) => {
+      if (!tracking) return;
+      tracking = false;
+      if (locked) return;
+      const dy = e.clientY - startY;
+      const dx = e.clientX - startX;
+      if (Math.abs(dy) < 56 || Math.abs(dy) < Math.abs(dx) * 1.15) return;
+      locked = true;
+      const blockClick = (ev: Event) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+      };
+      root.addEventListener("click", blockClick, { capture: true, once: true });
+      goByRef.current(dy < 0 ? 1 : -1);
+      window.clearTimeout(unlockTimer);
+      unlockTimer = window.setTimeout(() => {
+        locked = false;
+      }, panLock);
+    };
+    const onPointerCancel = () => {
+      tracking = false;
+    };
+
+    root.addEventListener("wheel", onWheel, { passive: false });
+    root.addEventListener("pointerdown", onPointerDown);
+    root.addEventListener("pointerup", onPointerUp);
+    root.addEventListener("pointercancel", onPointerCancel);
+    return () => {
+      root.removeEventListener("wheel", onWheel);
+      root.removeEventListener("pointerdown", onPointerDown);
+      root.removeEventListener("pointerup", onPointerUp);
+      root.removeEventListener("pointercancel", onPointerCancel);
+      window.clearTimeout(unlockTimer);
+    };
+  }, [items.length]);
 
   if (items.length === 0) {
     const empty = (
@@ -965,25 +1074,53 @@ export function WorldJourneyVideoFeed({
           <ChevronLeft size={28} strokeWidth={2.2} aria-hidden />
         </button>
       ) : null}
+      <div className="wj-reel-nav">
+        <button
+          type="button"
+          className="wj-reel-nav-btn"
+          aria-label="Video trước"
+          disabled={activeIndex <= 0}
+          onClick={() => goBy(-1)}
+        >
+          <ChevronUp size={22} strokeWidth={2.4} aria-hidden />
+        </button>
+        <button
+          type="button"
+          className="wj-reel-nav-btn"
+          aria-label="Video tiếp theo"
+          disabled={activeIndex >= items.length - 1 && !hasMore}
+          onClick={() => goBy(1)}
+        >
+          <ChevronDown size={22} strokeWidth={2.4} aria-hidden />
+        </button>
+      </div>
       <div className="wj-video-feed" ref={scrollerRef} aria-label="Video">
-        {items.map((item, index) => {
-          const active = activeId === item.id;
-          const preload =
-            !active &&
-            index > activeIndex &&
-            index <= activeIndex + REEL_IFRAME_PRELOAD;
-          return (
-            <div key={item.id} className="wj-reel-snap" data-reel-id={item.id}>
-              <ReelSlide
-                item={item}
-                active={active}
-                preload={preload}
-                canPlay={active && snapReady}
-              />
-            </div>
-          );
-        })}
-        <div ref={sentinelRef} className="wj-reel-sentinel" aria-hidden />
+        <div
+          className="wj-reel-track"
+          style={
+            {
+              "--wj-reel-i": String(activeIndex),
+            } as CSSProperties
+          }
+        >
+          {items.map((item, index) => {
+            const active = activeId === item.id;
+            const preload =
+              !active &&
+              index > activeIndex &&
+              index <= activeIndex + REEL_IFRAME_PRELOAD;
+            return (
+              <div key={item.id} className="wj-reel-snap" data-reel-id={item.id}>
+                <ReelSlide
+                  item={item}
+                  active={active}
+                  preload={preload}
+                  canPlay={active && opened}
+                />
+              </div>
+            );
+          })}
+        </div>
         {loading ? (
           <div className="wj-reel-loading" role="status">
             Đang tải thêm…

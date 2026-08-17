@@ -41,6 +41,15 @@
 
 ## LOG — quyết định đã chốt
 
+### Tag ngầm + gỡ thư viện nghề (2026-08-16)
+
+- **Chốt:** CINs = MXH + Shop + CSĐT, không encyclopedia nghề. Compose `#` / `TagInput`: không chip loại; list tên + `so_nguoi_tagged`; tạo mới luôn `keyword`. Shop «Tạo phân loại» vẫn `fandom`; trường «Thêm môn» vẫn `mon_hoc`.
+- **Vai trò cộng sự:** `content_tac_pham_tac_gia.vai_tro` TEXT. Custom «Vợ» không mint `loai=nghe`. Picker không hiện chip lĩnh vực; lưu `"Director"` không `"Hoạt hình - Director"`.
+- **Nav:** gỡ «Khám phá nghề». 308 exact `/careers` → `/`. `/careers?tab=nganh-hoc` → `/majors`; `/careers?linh_vuc=` → `/community`. Giữ `/careers/[slug]` (lens ẩn, `noindex`, không sitemap) và `/majors`.
+- **Copy:** guest home không còn thống kê «X nghề»; metadata site không bán encyclopedia nghề.
+- **DB:** không ALTER enum; `phan_mem` còn 0 hàng (đã gộp keyword trước đó). Không gỡ `chk_nghe_phai_co_linh_vuc`.
+- *Hệ quả:* `EditorTagMenu` · `TagInput` · `CoAuthorRoleInput` · `mainNav.ts` · `next.config.ts` · `middleware.ts` · `GuestHomeView` · `AuthorRoleTooltip`. Plan: `PLAN_tag_ngam_go_thu_vien.md`.
+
 ### Admin — tab Quản trị viên + thấy/ẩn tab sidebar (2026-08-14)
 
 - **Chốt:** `/admin/quan-tri-vien` (Users) lọc user có vai trò hệ thống. Phân quyền **chỉ thấy / không thấy** tab sidebar — không chia thao tác chi tiết.

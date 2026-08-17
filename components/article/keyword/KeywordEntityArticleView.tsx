@@ -150,7 +150,7 @@ export async function KeywordEntityArticleView({
           />
         }
         canonicalEmpty={canonicalEmpty}
-        entityKindLabel="Khái niệm"
+        entityKindLabel="Thẻ"
         isLoggedIn={isLoggedIn}
         loginNext={slugPath}
         discussion={

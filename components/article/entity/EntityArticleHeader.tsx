@@ -12,8 +12,8 @@ export type EntityBadgeKind =
   | "fandom";
 
 const BADGE: Record<EntityBadgeKind, { className: string; label: string }> = {
-  keyword: { className: "is-keyword", label: "Khái niệm" },
-  phan_mem: { className: "is-phan-mem", label: "Phần mềm" },
+  keyword: { className: "is-keyword", label: "Thẻ" },
+  phan_mem: { className: "is-phan-mem", label: "Thẻ" },
   mon_hoc: { className: "is-mon-hoc", label: "Môn học" },
   nghe: { className: "is-nghe", label: "Nghề nghiệp" },
   fandom: { className: "is-fandom", label: "Phân loại" },

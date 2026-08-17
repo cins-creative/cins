@@ -39,7 +39,8 @@ export async function listPublishedArticlesForSitemap(): Promise<
       const loai = String(row.loai_bai_viet ?? "").trim() as LoaiBaiViet;
       if (!slug || !loai) continue;
       // `linh_vuc` chưa có surface public riêng — bỏ khỏi sitemap.
-      if (loai === "linh_vuc") continue;
+      // Hub nghề đã gỡ — chi tiết `/careers/[slug]` noindex, không đưa sitemap.
+      if (loai === "linh_vuc" || loai === "nghe") continue;
 
       const path = articlePublicHref(loai, slug);
       const capNhat = row.cap_nhat_luc

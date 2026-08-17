@@ -9,18 +9,20 @@
 
 ## 1. Bản chất sản phẩm
 
-CINS là **mạng xã hội chuyên môn** cho ngành sáng tạo Việt Nam — portfolio đa định dạng, timeline, chat, follow-feed, và tri thức canonical do cộng đồng đóng góp. Không phải job board, Behance thuần tham khảo, feed thuật toán toàn cục, hay LMS.
+CINS là **mạng xã hội chuyên môn** cho ngành sáng tạo Việt Nam — portfolio đa định dạng, timeline, chat, follow-feed, **Shop** và **CSĐT**. Không phải encyclopedia nghề, job board thuần, Behance thuần tham khảo, feed thuật toán toàn cục, hay LMS.
 
-**Ba tầng core:**
+**Ba tầng core (đã thu hẹp Canonical + hub thư viện):**
 - **Portfolio / Journey** — nơi user sống và sáng tạo. Tác phẩm đa định dạng (ảnh, video, 3D/Sketchfab, Rive, Figma, text…). Xem **Lưới** (visual-first) hoặc **Dòng thời gian** (MXH). Chat, follow, like, bình luận có context. *Hook acquisition & retention.*
-- **Entity lens** — trang tag/nghề/phần mềm… gom tác phẩm + người + thảo luận theo chủ đề. Không sở hữu nội dung — query trên Journey. *Khám phá theo chuyên môn.*
-- **Canonical knowledge** — nội dung chính đã duyệt trên entity (prose/HTML), do cộng đồng đóng góp bản thảo song song, curator promote. *Giá trị dài hạn, authority, SEO.*
+- **Entity lens** — click thẻ trên bài → trang gom người + tác phẩm (`/keyword/[slug]`, `/fandom/[slug]`, môn…). Không sở hữu nội dung — query trên Journey. *Khám phá theo chuyên môn, không catalog «120+ vị trí».* Hub `/careers` 308 → `/`; chi tiết `/careers/[slug]` giữ tạm.
+- **Canonical knowledge** — prose đã duyệt trên entity khi curator cần (ngành/môn…), không bắt buộc encyclopedia mọi tag. *Authority / SEO khi có nội dung chốt.*
 
-**Journey là nơi tích lũy & kết nối. Entity là nơi khám phá theo chủ đề. Canonical là nơi tri thức được chốt.**
+**Journey là nơi tích lũy & kết nối. Entity là lens vận hành (shop fandom, môn CSĐT/trường, thẻ trên bài). Canonical không còn là hub thư viện nghề.**
+
+Tag gắn bài: user thấy **tên + số người**. `loai_bai_viet` là dấu đóng hệ thống theo chỗ tạo — compose luôn `keyword`; shop «Tạo phân loại» = `fandom`; trường «Thêm môn» = `mon_hoc`. Vai trò cộng sự (`content_tac_pham_tac_gia.vai_tro`) là **TEXT tự do**, không mint `loai=nghe`.
 
 CINs = **đơn vị quy hoạch hạ tầng** (domain, schema section, curator, embed registry) — cộng đồng xây nội dung bên trong khung đó. Mở rộng domain theo thời gian: Game, Phim, (sau) Y tế, Khoa học…
 
-Kết nối giữa người có chuyên môn là giá trị cốt lõi; **phân bổ nội dung là động cơ tăng trưởng**. Kết nối đi qua **entity và quan hệ thật** (tag / nghề / trường / kết bạn / **theo dõi**). Gallery/follow-feed phân bổ tác phẩm public từ người & org được theo dõi — kênh reach chính, sắp theo thời gian thực; **World Timeline** sort theo hệ điểm bài (DECISIONS L30), không engagement-rank toàn cục.
+Kết nối giữa người có chuyên môn là giá trị cốt lõi; **phân bổ nội dung là động cơ tăng trưởng**. Kết nối đi qua **entity và quan hệ thật** (tag / trường / kết bạn / **theo dõi**). Gallery/follow-feed phân bổ tác phẩm public từ người & org được theo dõi — kênh reach chính, sắp theo thời gian thực; **World Timeline** sort theo hệ điểm bài (DECISIONS L30), không engagement-rank toàn cục.
 
 ---
 

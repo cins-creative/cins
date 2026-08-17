@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         error:
-          "loai phải là keyword, phan_mem, mon_hoc, nghe hoặc fandom.",
+          "loai phải là keyword, mon_hoc, nghe hoặc fandom.",
       },
       { status: 400 },
     );

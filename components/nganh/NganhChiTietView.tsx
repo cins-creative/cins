@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Users } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { NGHE_NGHIEP_HUB_PATH } from "@/lib/cins/hubPaths";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import type { CongDongOrgCategoryPreview } from "@/lib/cong-dong/categories";
 
@@ -144,8 +143,6 @@ export function NganhChiTietView({
           <div>
             <nav className="nct-breadcrumb" aria-label="Breadcrumb">
               <Link href="/">Trang chủ</Link>
-              <span>/</span>
-              <Link href={NGHE_NGHIEP_HUB_PATH}>Hướng nghiệp</Link>
               <span>/</span>
               <Link href="/majors">Ngành đào tạo</Link>
               <span>/</span>

@@ -257,6 +257,302 @@
   font-size: 13px;
 }
 
+.cins-admin .dm-admin-queue-tree-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--fg-3);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.cins-admin .dm-admin-queue-tree-line em {
+  color: var(--fg-1);
+  font-style: normal;
+  font-weight: 700;
+}
+
+.cins-admin .dm-admin-queue-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cins-admin .dm-admin-queue-thumbs li,
+.cins-admin .dm-admin-queue-thumbs img,
+.cins-admin .dm-admin-queue-thumbs span {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--neutral-100);
+}
+
+.cins-admin .dm-admin-queue-thumbs img {
+  display: block;
+}
+
+.cins-admin .dm-admin-queue-who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--fg-2);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.cins-admin .dm-admin-queue-who img,
+.cins-admin .dm-admin-queue-who span[aria-hidden] {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  object-fit: cover;
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue);
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 800;
+  flex: 0 0 auto;
+}
+
+.cins-admin .dm-admin-queue-who a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.cins-admin .dm-admin-queue-who a:hover {
+  text-decoration: underline;
+}
+
+.cins-admin .dm-admin-review {
+  container-type: inline-size;
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.cins-admin .dm-admin-review-block {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cins-admin .dm-admin-review-dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.cins-admin .dm-admin-review-dl > div {
+  display: grid;
+  grid-template-columns: minmax(88px, 120px) minmax(0, 1fr);
+  gap: 8px 12px;
+  align-items: baseline;
+}
+
+.cins-admin .dm-admin-review-dl dt {
+  color: var(--fg-4);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.cins-admin .dm-admin-review-dl dd {
+  margin: 0;
+  color: var(--fg-2);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.cins-admin .dm-admin-review-tree {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--neutral-50, #fafafa) 70%, var(--bg-surface));
+}
+
+.cins-admin .dm-admin-review-tree-cha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--fg-1);
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.cins-admin .dm-admin-review-tree-cha.is-new {
+  color: var(--cins-blue-dark);
+}
+
+.cins-admin .dm-admin-review-tree-cha code {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--neutral-100);
+  color: var(--fg-3);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.cins-admin .dm-admin-review-tree ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0 0 0 14px;
+  list-style: none;
+  border-left: 2px solid var(--border);
+}
+
+.cins-admin .dm-admin-review-tree li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  color: var(--fg-2);
+  font-size: 13px;
+}
+
+.cins-admin .dm-admin-review-tree li small {
+  color: var(--fg-4);
+  font-size: 11px;
+}
+
+.cins-admin .dm-admin-review-tree li em {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 750;
+  color: var(--cins-blue);
+}
+
+.cins-admin .dm-admin-review-tree li.is-gan {
+  background: color-mix(in srgb, var(--cins-blue) 8%, var(--bg-surface));
+}
+
+.cins-admin .dm-admin-review-tree li.is-de-xuat {
+  border: 1px dashed color-mix(in srgb, var(--danger) 40%, var(--border));
+  background: color-mix(in srgb, var(--danger) 6%, var(--bg-surface));
+  font-weight: 700;
+}
+
+.cins-admin .dm-admin-review-tree li.is-de-xuat em {
+  color: var(--danger);
+}
+
+.cins-admin .dm-admin-review-tree li.is-more {
+  color: var(--fg-4);
+  font-size: 12px;
+}
+
+.cins-admin .dm-admin-review-who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cins-admin .dm-admin-review-who img,
+.cins-admin .dm-admin-review-who > span[aria-hidden] {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  object-fit: cover;
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue);
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 800;
+  flex: 0 0 auto;
+}
+
+.cins-admin .dm-admin-review-who > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cins-admin .dm-admin-review-who a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--fg-1);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.cins-admin .dm-admin-review-who a:hover {
+  text-decoration: underline;
+}
+
+.cins-admin .dm-admin-review-who > div a + a {
+  color: var(--cins-blue);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.cins-admin .dm-admin-review-nhom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+  margin: 0;
+  color: var(--fg-1);
+  font-size: 14px;
+}
+
+.cins-admin .dm-admin-review-nhom span {
+  color: var(--fg-4);
+  font-size: 12px;
+}
+
+.cins-admin .dm-admin-review-mau {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cins-admin .dm-admin-review-mau a,
+.cins-admin .dm-admin-review-mau li {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.cins-admin .dm-admin-review-mau img,
+.cins-admin .dm-admin-review-mau span[aria-hidden] {
+  aspect-ratio: 1;
+  width: 100%;
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--neutral-100);
+}
+
+.cins-admin .dm-admin-review-mau em {
+  overflow: hidden;
+  color: var(--fg-3);
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .cins-admin .dm-admin-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -758,6 +1054,11 @@
   .cins-admin .dm-admin-form-row,
   .cins-admin .dm-admin-form-row--meta {
     grid-template-columns: 1fr;
+  }
+
+  .cins-admin .dm-admin-review-dl > div {
+    grid-template-columns: 1fr;
+    gap: 2px;
   }
 }
 

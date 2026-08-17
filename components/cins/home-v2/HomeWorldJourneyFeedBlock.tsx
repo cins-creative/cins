@@ -40,6 +40,8 @@ type Props = {
   includeVideo?: boolean;
   includeShopFeed?: boolean;
   editingLayout?: boolean;
+  initialView?: string;
+  initialPlayId?: string;
 };
 
 /**
@@ -54,6 +56,8 @@ export async function HomeWorldJourneyFeedBlock({
   includeVideo = false,
   includeShopFeed = false,
   editingLayout = false,
+  initialView,
+  initialPlayId,
 }: Props) {
   const profile = session.profile;
   if (!profile?.slug) return null;
@@ -186,6 +190,8 @@ export async function HomeWorldJourneyFeedBlock({
       galleryItems={galleryPage.items}
       galleryHasMore={galleryPage.hasMore}
       galleryNextOffset={galleryPage.nextOffset}
+      initialView={initialView}
+      initialPlayId={initialPlayId}
       capabilities={capabilityList}
     />
   );

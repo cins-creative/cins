@@ -28,13 +28,13 @@ function validateTagInput(input: CreateTagInput): string | null {
     return `Tên tag tối đa ${MAX_TAG_LEN} ký tự.`;
   }
   if (!isCreatableTagLoai(input.loai)) {
-    return "loai chỉ được keyword, phan_mem, mon_hoc, nghe hoặc fandom.";
+    return "loai chỉ được keyword, mon_hoc, nghe hoặc fandom.";
   }
   return null;
 }
 
 /**
- * Tạo tag keyword/phan_mem/mon_hoc/nghe/fandom — không qua article_de_xuat.
+ * Tạo tag keyword/mon_hoc/nghe/fandom — không qua article_de_xuat.
  * Dedup exact trước; AI gen tom_tat async sau khi INSERT.
  */
 export async function createTag(

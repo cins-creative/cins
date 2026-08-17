@@ -21,21 +21,14 @@ type SearchParams = Promise<{
   q?: string;
 }>;
 
-export async function generateMetadata({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}): Promise<Metadata> {
-  const sp = await searchParams;
-  const hasQuery = Boolean(sp.q?.trim());
-
+export async function generateMetadata(): Promise<Metadata> {
   return buildPublicPageMetadata({
     path: NGHE_NGHIEP_HUB_PATH,
     title: HUB_TITLE,
     description: HUB_DESCRIPTION,
     ogImagePath: `${NGHE_NGHIEP_HUB_PATH}/opengraph-image`,
     ogType: "website",
-    noIndex: hasQuery,
+    noIndex: true,
   });
 }
 

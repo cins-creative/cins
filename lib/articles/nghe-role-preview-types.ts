@@ -5,7 +5,7 @@ export type NgheRolePreview = {
   roleShort: string;
   /** Tên lĩnh vực (`linh_vuc.ten`) của bài nghề. */
   linhVucTen: string | null;
-  /** Hiển thị: `{linhVucTen} - {roleShort}` hoặc chỉ `roleShort`. */
+  /** Hiển thị = `roleShort` (không prefix lĩnh vực). */
   roleLabel: string;
   tomTat: string | null;
   thumbUrl: string | null;

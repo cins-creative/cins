@@ -33,14 +33,9 @@ const FIELD = {
     placeholder: "Gắn vị trí công việc…",
   },
   phanMem: {
-    loai: "phan_mem",
-    label: "Phần mềm",
-    placeholder: "Gắn phần mềm liên quan…",
-  },
-  phanMemPeer: {
-    loai: "phan_mem",
-    label: "Phần mềm tương tự",
-    placeholder: "Gắn phần mềm tương tự…",
+    loai: "keyword",
+    label: "Thẻ",
+    placeholder: "Gắn thẻ liên quan…",
   },
   monHoc: {
     loai: "mon_hoc",
@@ -60,17 +55,17 @@ export function relatedFieldsForLoaiBaiViet(
 ): ContribRelatedField[] {
   switch (loaiBaiViet) {
     case "nghe":
-      return [FIELD.nganh, FIELD.phanMem, FIELD.nghe, FIELD.keyword];
+      return [FIELD.nganh, FIELD.nghe, FIELD.keyword];
     case "nganh_dao_tao":
       return [FIELD.monHoc];
     case "mon_hoc":
       return [FIELD.nganh, FIELD.phanMem];
     case "keyword":
-      return [FIELD.ngheJobs, FIELD.phanMem, FIELD.keywordPeer];
+      return [FIELD.ngheJobs, FIELD.keywordPeer];
     case "phan_mem":
-      return [FIELD.ngheJobs, FIELD.keyword, FIELD.phanMemPeer];
+      return [FIELD.ngheJobs, FIELD.keyword];
     case "fandom":
-      return [FIELD.keyword, FIELD.phanMem, FIELD.fandom];
+      return [FIELD.keyword, FIELD.fandom];
     default:
       return [FIELD.nganh, FIELD.keyword, FIELD.nghe];
   }

@@ -14,7 +14,7 @@ type Props = {
   max?: number;
 };
 
-/** Chọn vị trí công việc của chính mình trong tác phẩm — tối đa {@link max}. */
+/** Chọn vai trò của mình trên tác phẩm — tối đa {@link max}. */
 export function CoAuthorPositionPicker({
   value,
   onChange,
@@ -63,10 +63,10 @@ export function CoAuthorPositionPicker({
           value={search}
           onChange={setSearch}
           options={options}
-          onSelect={(option) => addPosition(option.roleLabel)}
+          onSelect={(option) => addPosition(option.roleShort)}
           onAddCustom={(label) => addPosition(label)}
-          ariaLabel="Chọn vị trí công việc của bạn"
-          placeholder="Tìm vị trí công việc của bạn"
+          ariaLabel="Vai trò trên tác phẩm"
+          placeholder="Vai trò trên tác phẩm"
         />
       )}
     </div>

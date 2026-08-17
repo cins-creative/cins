@@ -145,7 +145,10 @@
 }
 
 .tag-input-item {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
   width: 100%;
   padding: 8px 10px;
   border: none;
@@ -197,8 +200,8 @@
 
 .tag-input-item-loai {
   flex-shrink: 0;
-  align-self: flex-start;
-  margin-top: 1px;
+  align-self: center;
+  margin-top: 0;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
@@ -251,6 +254,14 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
+}
+
+.tag-input-item-meta {
+  flex-shrink: 0;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .tag-input-item-label {

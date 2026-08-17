@@ -2,7 +2,6 @@ import type { MetadataRoute } from "next";
 
 import {
   NGANH_HOC_HUB_PATH,
-  NGHE_NGHIEP_HUB_PATH,
   TIM_KHOA_HOC_HUB_PATH,
   TO_CHUC_HUB_PATH,
 } from "@/lib/cins/hubPaths";
@@ -15,7 +14,6 @@ const STATIC_HUBS: ReadonlyArray<{
   priority: number;
 }> = [
   { path: "/", changeFrequency: "daily", priority: 1 },
-  { path: NGHE_NGHIEP_HUB_PATH, changeFrequency: "weekly", priority: 0.9 },
   { path: NGANH_HOC_HUB_PATH, changeFrequency: "weekly", priority: 0.9 },
   { path: TO_CHUC_HUB_PATH, changeFrequency: "weekly", priority: 0.8 },
   { path: TIM_KHOA_HOC_HUB_PATH, changeFrequency: "weekly", priority: 0.8 },

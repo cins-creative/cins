@@ -3,14 +3,8 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 
 import { getCoverUrl } from "@/lib/articles/cover";
-import {
-  countNgheArticlesForHub,
-  fetchRecentTacPhamGallery,
-  listNgheArticlesForHub,
-} from "@/lib/articles/queries";
-import { mapNgheArticlesToHubItems } from "@/lib/career/articleMappers";
+import { fetchRecentTacPhamGallery } from "@/lib/articles/queries";
 import { listLinhVucForHub } from "@/lib/career/queries";
-import type { NgheNghiepHubItem } from "@/lib/career/types";
 import { loadUpcomingEventsForHome } from "@/lib/cong-dong/events";
 import { congDongBannerImageUrl } from "@/lib/cong-dong/images";
 import type { CongDongEvent } from "@/lib/cong-dong/types";
@@ -25,7 +19,6 @@ import { listTruongDaiHoc } from "@/lib/truong/queries";
 import type { TruongListItem } from "@/lib/truong/types";
 
 /** Số item hiển thị trên trang chủ khách — fetch đúng chừng này, không kéo dư. */
-const HOME_CAREER_LIMIT = 8;
 const HOME_MAJOR_LIMIT = 6;
 const HOME_SCHOOL_LIMIT = 6;
 const HOME_EVENT_LIMIT = 4;
@@ -42,7 +35,6 @@ const GUEST_HOME_CACHE_TAG = "guest-home";
 const GUEST_HOME_REVALIDATE_SECONDS = 300;
 
 export type GuestHomeStats = {
-  nghe: number;
   nganh: number;
   truong: number;
   coSo: number;
@@ -72,7 +64,6 @@ export type GuestHomeLinhVuc = {
 export type GuestHomeData = {
   stats: GuestHomeStats;
   linhVucs: GuestHomeLinhVuc[];
-  careers: NgheNghiepHubItem[];
   majors: NganhHubItem[];
   schools: TruongListItem[];
   courses: KhoaHocGoiYItem[];
@@ -89,31 +80,25 @@ function pickSchools(items: TruongListItem[], limit: number): TruongListItem[] {
 async function loadGuestHomeDataUncached(): Promise<GuestHomeData> {
   const [
     truong,
-    ngheResult,
     nganhResult,
     linhVucsRaw,
     eventsRaw,
     courses,
     worksRaw,
-    ngheCount,
     nganhCount,
     coSoCount,
   ] = await Promise.all([
     listTruongDaiHoc(),
-    listNgheArticlesForHub({ limit: HOME_CAREER_LIMIT }),
     listNganhArticlesForHub({ limit: HOME_MAJOR_LIMIT }),
     listLinhVucForHub(),
     loadUpcomingEventsForHome([], HOME_EVENT_LIMIT),
     loadKhoaHocGoiY(HOME_COURSE_LIMIT),
     fetchRecentTacPhamGallery(HOME_WORK_LIMIT),
-    countNgheArticlesForHub(),
     countNganhArticlesForHub(),
     countCoSoDaoTao(),
   ]);
 
-  const ngheRows = ngheResult.ok ? ngheResult.items : [];
   const nganhRows = nganhResult.ok ? nganhResult.items : [];
-  const careers = mapNgheArticlesToHubItems(ngheRows);
   const majors = nganhRows;
 
   const linhVucs: GuestHomeLinhVuc[] = linhVucsRaw
@@ -141,14 +126,12 @@ async function loadGuestHomeDataUncached(): Promise<GuestHomeData> {
 
   return {
     stats: {
-      nghe: ngheCount,
       nganh: nganhCount,
       truong: truong.length,
       coSo: coSoCount,
       linhVuc: linhVucs.length,
     },
     linhVucs,
-    careers,
     majors,
     schools: pickSchools(truong, HOME_SCHOOL_LIMIT),
     courses,
@@ -159,6 +142,6 @@ async function loadGuestHomeDataUncached(): Promise<GuestHomeData> {
 
 export const loadGuestHomeData = unstable_cache(
   loadGuestHomeDataUncached,
-  ["guest-home-data"],
+  ["guest-home-data-v2"],
   { revalidate: GUEST_HOME_REVALIDATE_SECONDS, tags: [GUEST_HOME_CACHE_TAG] },
 );

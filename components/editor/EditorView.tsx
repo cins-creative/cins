@@ -67,6 +67,7 @@ import {
 import {
   type ArticleTagRef,
 } from "@/lib/editor/article-tag";
+import { prefetchTagSuggestIndex } from "@/lib/tag/suggest-index-client";
 import {
   getAtHashTrigger,
   replaceAtHashTrigger,
@@ -1016,6 +1017,10 @@ export function EditorView({
   const [embedPickerOpen, setEmbedPickerOpen] = useState(false);
   const activeRiveFile = initialRiveFile ?? pickedRiveFile;
   const activeLottieFile = initialLottieFile ?? pickedLottieFile;
+
+  useEffect(() => {
+    prefetchTagSuggestIndex();
+  }, []);
 
   useEffect(() => {
     if (embedPlatformProp) setEmbedPlatform(embedPlatformProp);
@@ -6347,18 +6352,28 @@ function EditorComposeMetaChips({
     <div className="meta-chips ed-compose-meta-chips" aria-label="Cộng sự và thẻ">
       {collaborators.map((c) => {
         const name = c.tenHienThi || c.slug;
+        const role = (c.vaiTro ?? "").trim();
         const avatarUrl = getAvatarUrl(c.avatarId ?? null);
         return (
           <span key={c.idNguoiDung} className="meta-chip meta-chip-coauthor">
-            <span className="ed-coauthor-avatar" aria-hidden>
+            <span className="meta-chip-coauthor-avatar" aria-hidden>
               {avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={avatarUrl} alt="" />
+                <img src={avatarUrl} alt="" width={20} height={20} />
               ) : (
                 name.slice(0, 1).toUpperCase()
               )}
             </span>
-            <span className="meta-chip-name">{name}</span>
+            <span className="meta-chip-coauthor-copy">
+              <span className="meta-chip-name" title={name}>
+                {name}
+              </span>
+              {role ? (
+                <span className="meta-chip-coauthor-role" title={role}>
+                  {role}
+                </span>
+              ) : null}
+            </span>
             <button
               type="button"
               className="meta-chip-x"

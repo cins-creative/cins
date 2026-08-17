@@ -1,87 +1,65 @@
-import Link from "next/link";
-
-import { LoginActions } from "@/app/login/LoginActions";
-
-import "@/app/login/login.css";
-import "@/app/guest-home.css";
-import "./guest-home-login.css";
-
-const PERKS = [
-  { label: "Journey", desc: "Lưu lại hành trình sáng tạo của bạn" },
-  { label: "Verify", desc: "Xác thực từ tổ chức uy tín" },
-  { label: "Khám phá", desc: "Gợi ý ngành nghề" },
-] as const;
-
-export type GuestHomeLoginPanelProps = {
-  initialError?: string | null;
-  autoIntent?: "login" | "register" | null;
-  resumeAfterRedirect?: boolean;
-  returnPath?: string | null;
-};
-
-/** Panel đăng nhập embed trên home guest — đồng bộ CINs design tokens. */
-export function GuestHomeLoginPanel({
-  initialError = null,
-  autoIntent = null,
-  resumeAfterRedirect = false,
-  returnPath = null,
-}: GuestHomeLoginPanelProps = {}) {
-  return (
-    <section
-      className="gh-login-panel"
-      id="home-login"
-      aria-label="Đăng nhập C.INS"
-    >
-      <header className="gh-login-head">
-        <p className="gh-eyebrow">tài khoản miễn phí</p>
-        <h2 className="gh-login-title">
-          Xây dựng hành trình sáng tạo của bạn
-        </h2>
-        <p className="gh-login-lead">
-          Đăng ký trong 30 giây — lưu portfolio, đăng ký open day và nhận gợi ý
-          ngành phù hợp.
-        </p>
-      </header>
-
-      {initialError ? (
-        <div className="cins-login-banner cins-login-banner--err" role="alert">
-          <span className="cins-login-banner-dot" aria-hidden />
-          <div>
-            <strong>Đăng nhập chưa hoàn tất.</strong>
-            <p>{initialError}</p>
-          </div>
-        </div>
-      ) : null}
-
-      <LoginActions
-        initialError={initialError}
-        autoIntent={autoIntent}
-        resumeAfterRedirect={resumeAfterRedirect}
-        returnPath={returnPath}
-        showRememberedAccount={false}
-        googleLoginAfterPassword
-        className="hg-login-actions"
-      />
-
-      <ul className="gh-login-perks" aria-label="Lợi ích tài khoản CINs">
-        {PERKS.map((item) => (
-          <li key={item.label}>
-            <span className="gh-login-perk-ico" aria-hidden>
-              ✦
-            </span>
-            <span className="gh-login-perk-copy">
-              <strong>{item.label}</strong>
-              <span>{item.desc}</span>
-            </span>
-          </li>
-        ))}
-      </ul>
-
-      <p className="gh-login-fineprint">
-        Tiếp tục đồng nghĩa đồng ý{" "}
-        <Link href="/dieu-khoan">Điều khoản</Link> &amp;{" "}
-        <Link href="/chinh-sach-rieng-tu">Bảo mật</Link>
-      </p>
-    </section>
-  );
-}
+import Link from "next/link";
+
+import { LoginActions } from "@/app/login/LoginActions";
+
+import "@/app/login/login.css";
+import "@/app/guest-home.css";
+import "./guest-home-login.css";
+
+export type GuestHomeLoginPanelProps = {
+  initialError?: string | null;
+  autoIntent?: "login" | "register" | null;
+  resumeAfterRedirect?: boolean;
+  returnPath?: string | null;
+};
+
+/** Panel đăng nhập embed trên home guest — đồng bộ CINs design tokens. */
+export function GuestHomeLoginPanel({
+  initialError = null,
+  autoIntent = null,
+  resumeAfterRedirect = false,
+  returnPath = null,
+}: GuestHomeLoginPanelProps = {}) {
+  return (
+    <section
+      className="gh-login-panel"
+      id="home-login"
+      aria-label="Đăng nhập C.INS"
+    >
+      <Link href="/" className="gh-login-brand" aria-label="Về trang chủ C.INS">
+        <img
+          src="/assets/logo-cins-wide.svg"
+          alt="C.INS"
+          className="gh-login-brand-img"
+        />
+      </Link>
+
+      {initialError ? (
+        <div className="cins-login-banner cins-login-banner--err" role="alert">
+          <span className="cins-login-banner-dot" aria-hidden />
+          <div>
+            <strong>Đăng nhập chưa hoàn tất.</strong>
+            <p>{initialError}</p>
+          </div>
+        </div>
+      ) : null}
+
+      <LoginActions
+        initialError={initialError}
+        autoIntent={autoIntent}
+        resumeAfterRedirect={resumeAfterRedirect}
+        returnPath={returnPath}
+        showRememberedAccount={false}
+        googleLoginAfterPassword
+        className="hg-login-actions"
+      />
+
+      <p className="gh-login-fineprint">
+        Tiếp tục đồng nghĩa đồng ý{" "}
+        <Link href="/dieu-khoan">Điều khoản</Link> &amp;{" "}
+        <Link href="/chinh-sach-rieng-tu">Bảo mật</Link>
+      </p>
+    </section>
+  );
+}
+

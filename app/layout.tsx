@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteOrigin),
   title: "CINs — Khám phá ngành sáng tạo thị giác tại Việt Nam",
   description:
-    "120+ vị trí nghề · 38 trường đại học · Lộ trình 4 bước. Tìm ra đúng nghề trước khi chọn ngành.",
+    "Mạng xã hội chuyên môn ngành sáng tạo Việt Nam — portfolio, cộng đồng, khóa học, cửa hàng và cơ sở đào tạo.",
   icons: {
     icon: [
       { url: "/assets/logo-cins-icon.svg", type: "image/svg+xml" },
@@ -51,13 +51,13 @@ export const metadata: Metadata = {
     url: "/",
     title: "CINs — Khám phá ngành sáng tạo thị giác tại Việt Nam",
     description:
-      "Khám phá nghề, ngành đào tạo, trường học, khóa học và sự kiện ngành sáng tạo thị giác — dữ liệu thật trên CINs.",
+      "Mạng xã hội chuyên môn ngành sáng tạo Việt Nam — portfolio, cộng đồng, khóa học, cửa hàng và cơ sở đào tạo.",
   },
   twitter: {
     card: "summary_large_image",
     title: "CINs — Khám phá ngành sáng tạo thị giác tại Việt Nam",
     description:
-      "Khám phá nghề, ngành đào tạo, trường học, khóa học và sự kiện ngành sáng tạo thị giác — dữ liệu thật trên CINs.",
+      "Mạng xã hội chuyên môn ngành sáng tạo Việt Nam — portfolio, cộng đồng, khóa học, cửa hàng và cơ sở đào tạo.",
   },
 };
 

@@ -65,6 +65,9 @@ type Props = {
   feedPromos?: FeedPromoVariant[];
   /** Stream promos sau — không chặn paint feed. */
   feedPromosPromise?: Promise<FeedPromoVariant[]>;
+  initialView?: string;
+  initialPlayId?: string;
+  feedPromosPromise?: Promise<FeedPromoVariant[]>;
   editingLayout?: boolean;
   layoutPersona: Persona;
   layoutGiaiDoan?: GiaiDoan | null;
@@ -140,6 +143,8 @@ export function HomeWorldJourneyClient({
   pendingConfirmations,
   feedPromos: feedPromosProp,
   feedPromosPromise,
+  initialView,
+  initialPlayId,
   editingLayout = false,
   layoutPersona,
   layoutGiaiDoan = null,
@@ -269,7 +274,7 @@ export function HomeWorldJourneyClient({
         exitEditing={exitEditing}
         capabilities={layoutDraft.capabilities}
       >
-        <div className={editing ? "ha-home-editing" : undefined}>
+        <div className={editing ? "ha-home-editing cins-home-feed-root" : "cins-home-feed-root"}>
           <HomeEditToolbar />
           <WorldJourneyFeed
             sidebarProfile={sidebarProfile}
@@ -282,6 +287,8 @@ export function HomeWorldJourneyClient({
             galleryItems={galleryItems}
             galleryHasMore={galleryHasMore}
             galleryNextOffset={galleryNextOffset}
+            initialView={initialView}
+            initialPlayId={initialPlayId}
             leftAside={<HomeEditableColumn side="left" />}
             rightAside={<HomeEditableColumn side="right" />}
             pendingConfirmations={

@@ -1,8 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
+import {
+  isBillingJourneyPinHidden,
+  readBillingPinHideCookieFromDocument,
+  writeBillingJourneyPinHideCookie,
+} from "@/lib/billing/journey-pin-hide";
 import type { BillingJourneyPin } from "@/lib/billing/types";
 
 type Props = {
@@ -10,6 +15,8 @@ type Props = {
   initialPin?: BillingJourneyPin | null;
   /** Khi không có initialPin: fetch hub (owner đang xem Journey của mình). */
   fetchIfNeeded?: boolean;
+  /** Owner đang xem Journey của mình — khoá cookie ẩn ghim. */
+  viewerProfileId?: string | null;
 };
 
 function fmtVnd(n: number): string {
@@ -48,24 +55,37 @@ function pinFromHubJson(json: {
 export function JourneyBillingPinBanner({
   initialPin = null,
   fetchIfNeeded = false,
+  viewerProfileId = null,
 }: Props) {
   const [pin, setPin] = useState<BillingJourneyPin | null>(initialPin);
+  const [hidden, setHidden] = useState(() =>
+    Boolean(
+      viewerProfileId &&
+        isBillingJourneyPinHidden(
+          readBillingPinHideCookieFromDocument(),
+          viewerProfileId,
+        ),
+    ),
+  );
+  const hiddenRef = useRef(hidden);
+  hiddenRef.current = hidden;
 
   useEffect(() => {
+    if (hidden) return;
     setPin(initialPin ?? null);
-  }, [initialPin]);
+  }, [initialPin, hidden]);
 
   useEffect(() => {
-    if (!fetchIfNeeded || initialPin != null) return;
+    if (!fetchIfNeeded || initialPin != null || hidden) return;
     let cancelled = false;
     void (async () => {
       try {
         const res = await fetch("/api/account/billing", {
           cache: "no-store",
         });
-        if (!res.ok || cancelled) return;
+        if (!res.ok || cancelled || hiddenRef.current) return;
         const json = (await res.json()) as Parameters<typeof pinFromHubJson>[0];
-        if (!cancelled) setPin(pinFromHubJson(json));
+        if (!cancelled && !hiddenRef.current) setPin(pinFromHubJson(json));
       } catch {
         /* im lặng — không chặn Journey */
       }
@@ -73,9 +93,16 @@ export function JourneyBillingPinBanner({
     return () => {
       cancelled = true;
     };
-  }, [fetchIfNeeded, initialPin]);
+  }, [fetchIfNeeded, initialPin, hidden]);
 
-  if (!pin || pin.tongNoVnd <= 0) return null;
+  const hidePin = useCallback(() => {
+    if (viewerProfileId) writeBillingJourneyPinHideCookie(viewerProfileId);
+    hiddenRef.current = true;
+    setHidden(true);
+    setPin(null);
+  }, [viewerProfileId]);
+
+  if (hidden || !pin || pin.tongNoVnd <= 0) return null;
 
   const han = fmtHan(pin.hanTraGanNhat);
   const soKy =
@@ -99,9 +126,18 @@ export function JourneyBillingPinBanner({
           ) : null}
         </p>
       </div>
-      <Link href="/account/billing" className="j-billing-pin-cta">
-        Thanh toán
-      </Link>
+      <div className="j-billing-pin-actions">
+        <button
+          type="button"
+          className="j-billing-pin-dismiss"
+          onClick={hidePin}
+        >
+          Không hiển thị lại
+        </button>
+        <Link href="/account/billing" className="j-billing-pin-cta">
+          Thanh toán
+        </Link>
+      </div>
     </aside>
   );
 }

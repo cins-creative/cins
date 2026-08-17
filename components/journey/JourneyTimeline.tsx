@@ -592,6 +592,7 @@ export function JourneyTimeline({
         <JourneyBillingPinBanner
           initialPin={billingPin ?? null}
           fetchIfNeeded={billingPin === undefined}
+          viewerProfileId={viewerProfileId}
         />
       ) : null}
 

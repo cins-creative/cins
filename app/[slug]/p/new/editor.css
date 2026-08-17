@@ -4725,6 +4725,87 @@
   gap: 4px 10px;
 }
 
+/* Compose coauthor: identity chip (avatar + name), not the old blue tag pill */
+.cins-editor-page .ed-compose-meta-chips .meta-chip.meta-chip-coauthor {
+  height: 28px;
+  max-width: min(240px, 100%);
+  padding: 2px 2px 2px 3px;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--bg-page);
+  color: var(--ink-display);
+  font-weight: 500;
+  cursor: default;
+}
+
+.cins-editor-page .ed-compose-meta-chips .meta-chip-coauthor-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  overflow: hidden;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue-dark);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 0 0 1px var(--bg-surface);
+}
+
+.cins-editor-page .ed-compose-meta-chips .meta-chip-coauthor-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cins-editor-page .ed-compose-meta-chips .meta-chip-coauthor-copy {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.cins-editor-page .ed-compose-meta-chips .meta-chip-coauthor .meta-chip-name {
+  flex: 1 1 auto;
+  padding: 0;
+  color: var(--ink-display);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cins-editor-page .ed-compose-meta-chips .meta-chip-coauthor-role {
+  flex: 0 1 auto;
+  max-width: 42%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.cins-editor-page .ed-compose-meta-chips .meta-chip-coauthor .meta-chip-x {
+  width: 22px;
+  height: 22px;
+  color: var(--ink-muted);
+  font-size: 15px;
+  opacity: 0.7;
+}
+
+.cins-editor-page .ed-compose-meta-chips .meta-chip-coauthor .meta-chip-x:hover,
+.cins-editor-page .ed-compose-meta-chips .meta-chip-coauthor .meta-chip-x:focus-visible {
+  opacity: 1;
+  color: var(--ink-display);
+  background: color-mix(in srgb, var(--ink-display) 8%, transparent);
+}
+
 /* Compose tag chips: plain #hashtag, no pill background */
 .cins-editor-page .ed-compose-meta-chips .meta-chip.meta-chip-tag {
   height: auto;
@@ -5871,6 +5952,18 @@
   background: var(--bg-surface);
   border-color: var(--border-strong);
   color: var(--ink-muted);
+}
+
+:root[data-theme="dark"] .cins-editor-page .ed-compose-meta-chips .meta-chip.meta-chip-coauthor {
+  background: var(--neutral-100);
+  border-color: var(--border);
+  color: var(--ink-display);
+}
+
+:root[data-theme="dark"] .cins-editor-page .ed-compose-meta-chips .meta-chip-coauthor-avatar {
+  background: color-mix(in srgb, var(--cins-blue) 22%, var(--neutral-100));
+  color: var(--cins-blue);
+  box-shadow: 0 0 0 1px var(--bg-surface);
 }
 
 /* ─── Compose preview panel (Journey / Gallery / Masonry) ───────── */

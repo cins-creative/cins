@@ -55,27 +55,76 @@ function buildNguCanh(moc: MocNotifyRow, suKien: ChatMocNoticeSuKien) {
   };
 }
 
-async function removeMocRemindNotice(
-  admin: ReturnType<typeof createServiceRoleClient>,
-  remindMessageId: string | null,
-): Promise<string | null> {
-  if (!remindMessageId) return null;
-  const { error } = await admin
-    .from("chat_tin_nhan")
-    .delete()
-    .eq("id", remindMessageId);
-  if (error) {
-    console.error("[chat-moc-notify] remove remind failed", error.message);
-    return null;
+function pointerIdsExcept(
+  moc: Pick<
+    MocNotifyRow,
+    "id_tin_tao" | "id_tin_nhac_truoc" | "id_tin_den_han"
+  >,
+  keepMessageId?: string | null,
+): string[] {
+  const ids: string[] = [];
+  for (const id of [moc.id_tin_tao, moc.id_tin_nhac_truoc, moc.id_tin_den_han]) {
+    if (id && id !== keepMessageId) ids.push(id);
   }
-  return remindMessageId;
+  return ids;
+}
+
+async function deleteMocNoticeMessages(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  ids: string[],
+): Promise<string[]> {
+  const unique = [...new Set(ids)];
+  if (!unique.length) return [];
+  const { error } = await admin.from("chat_tin_nhan").delete().in("id", unique);
+  if (error) {
+    console.error("[chat-moc-notify] remove older notices failed", error.message);
+    return [];
+  }
+  return unique;
+}
+
+/** Xóa tin nhắc giai đoạn cũ của cùng mốc — chỉ giữ `keepMessageId`. */
+async function removeOlderMocNotices(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  moc: Pick<
+    MocNotifyRow,
+    | "id"
+    | "id_phong"
+    | "id_tin_tao"
+    | "id_tin_nhac_truoc"
+    | "id_tin_den_han"
+  >,
+  keepMessageId: string,
+): Promise<string[]> {
+  const ids = pointerIdsExcept(moc, keepMessageId);
+
+  const { data: extras } = await admin
+    .from("chat_tin_nhan")
+    .select("id")
+    .eq("id_phong", moc.id_phong)
+    .eq("loai_tin", "system")
+    .contains("ngu_canh", { loai: "moc", id: moc.id })
+    .neq("id", keepMessageId)
+    .limit(40);
+
+  for (const row of extras ?? []) {
+    if (row.id) ids.push(row.id);
+  }
+
+  const removed = await deleteMocNoticeMessages(admin, ids);
+  if (removed.includes(moc.id_tin_tao ?? "")) moc.id_tin_tao = null;
+  if (removed.includes(moc.id_tin_nhac_truoc ?? "")) {
+    moc.id_tin_nhac_truoc = null;
+  }
+  if (removed.includes(moc.id_tin_den_han ?? "")) moc.id_tin_den_han = null;
+  return removed;
 }
 
 async function insertMocNoticeMessage(
   moc: MocNotifyRow,
   suKien: ChatMocNoticeSuKien,
   viewerId: string,
-): Promise<{ message: ChatMessage; removedMessageId: string | null } | null> {
+): Promise<{ message: ChatMessage; removedMessageIds: string[] } | null> {
   const col = columnForSuKien(suKien);
   if (moc[col]) return null;
 
@@ -113,16 +162,12 @@ async function insertMocNoticeMessage(
     return null;
   }
 
-  let removedMessageId: string | null = null;
-  if (suKien === "den_han") {
-    removedMessageId = await removeMocRemindNotice(
-      admin,
-      moc.id_tin_nhac_truoc,
-    );
-    if (removedMessageId) {
-      moc.id_tin_nhac_truoc = null;
-    }
-  }
+  moc[col] = message.id;
+  const removedMessageIds = await removeOlderMocNotices(
+    admin,
+    moc,
+    message.id,
+  );
 
   await admin
     .from("chat_phong")
@@ -131,7 +176,7 @@ async function insertMocNoticeMessage(
 
   return {
     message: mapMessageFromRow(message, viewerId),
-    removedMessageId,
+    removedMessageIds,
   };
 }
 
@@ -170,20 +215,29 @@ export async function tickDueMocNotices(input?: {
   const viewerId = input?.viewerId ?? "";
   const removedMessageIds: string[] = [];
 
-  // Dọn tin «Nhắc nhở» còn sót khi đã có «Đến hạn».
+  // Dọn tin giai đoạn cũ còn sót (Mốc mới / Nhắc nhở) khi đã có tin mới hơn.
   let staleQuery = admin
     .from("chat_moc")
-    .select("id, id_tin_nhac_truoc")
-    .not("id_tin_den_han", "is", null)
-    .not("id_tin_nhac_truoc", "is", null)
+    .select("id, id_phong, id_tin_tao, id_tin_nhac_truoc, id_tin_den_han")
+    .or("id_tin_nhac_truoc.not.is.null,id_tin_den_han.not.is.null")
     .limit(80);
   if (input?.roomId) staleQuery = staleQuery.eq("id_phong", input.roomId);
   const { data: stale } = await staleQuery.returns<
-    Array<{ id: string; id_tin_nhac_truoc: string }>
+    Array<{
+      id: string;
+      id_phong: string;
+      id_tin_tao: string | null;
+      id_tin_nhac_truoc: string | null;
+      id_tin_den_han: string | null;
+    }>
   >();
   for (const row of stale ?? []) {
-    const removed = await removeMocRemindNotice(admin, row.id_tin_nhac_truoc);
-    if (removed) removedMessageIds.push(removed);
+    const keepId = row.id_tin_den_han ?? row.id_tin_nhac_truoc;
+    if (!keepId) continue;
+    const older = pointerIdsExcept(row, keepId);
+    if (!older.length) continue;
+    const removed = await deleteMocNoticeMessages(admin, older);
+    removedMessageIds.push(...removed);
   }
 
   let query = admin
@@ -224,6 +278,9 @@ export async function tickDueMocNotices(input?: {
         messages.push(result.message);
         fired += 1;
         moc.id_tin_nhac_truoc = result.message.id;
+        if (result.removedMessageIds.length) {
+          removedMessageIds.push(...result.removedMessageIds);
+        }
       }
     }
 
@@ -239,8 +296,8 @@ export async function tickDueMocNotices(input?: {
         messages.push(result.message);
         fired += 1;
         moc.id_tin_den_han = result.message.id;
-        if (result.removedMessageId) {
-          removedMessageIds.push(result.removedMessageId);
+        if (result.removedMessageIds.length) {
+          removedMessageIds.push(...result.removedMessageIds);
         }
 
         const nguon = normalizeMocNguon(moc.nguon);

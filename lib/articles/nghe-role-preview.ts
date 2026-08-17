@@ -3,10 +3,7 @@ import "server-only";
 import { cache } from "react";
 
 import { resolveHubArticleThumbSync } from "@/lib/bai-viet/thumbnail";
-import {
-  formatNgheRoleLabel,
-  parseStoredCoAuthorRole,
-} from "@/lib/articles/nghe-role-label";
+import { parseStoredCoAuthorRole } from "@/lib/articles/nghe-role-label";
 import type { NgheRolePreview } from "@/lib/articles/nghe-role-preview-types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { hasSupabaseEnv } from "@/lib/supabase/server";
@@ -218,7 +215,7 @@ function rowToPreview(row: NgheRoleRow, roleTitle: string): NgheRolePreview {
     tieuDe,
     roleShort,
     linhVucTen,
-    roleLabel: formatNgheRoleLabel(linhVucTen, roleShort),
+    roleLabel: roleShort,
     tomTat: row.tom_tat?.trim() || null,
     thumbUrl: resolveHubArticleThumbSync(row),
   };

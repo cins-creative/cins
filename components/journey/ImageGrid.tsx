@@ -106,6 +106,8 @@ type Props = {
   };
   /** Preset album (justified mặc định). */
   albumLayoutMode?: AlbumLayoutMode;
+  /** Thay lightbox — vd. mở Reels video trên World Journey. */
+  onOpenOverride?: () => void;
 };
 
 const ALBUM_SLOT_MIME = "application/x-cins-album-slot";
@@ -122,6 +124,7 @@ type CellProps = {
   showOverlay: boolean;
   remaining: number;
   onOpen: (index: number) => void;
+  openAsVideo?: boolean;
   /** Style bổ sung cho ô (justified: flex-grow + aspect-ratio; masonry: aspect-ratio). */
   style?: CSSProperties;
   /** Báo tỉ lệ intrinsic lên grid — đồng bộ hàng justified khi metadata width/height sai. */
@@ -153,6 +156,7 @@ function ImageGridCell({
   showOverlay,
   remaining,
   onOpen,
+  openAsVideo = false,
   style,
   onNaturalAspect,
   composeSlotActions,
@@ -324,9 +328,11 @@ function ImageGridCell({
         ? {
             type: "button" as const,
             "aria-label":
-              showOverlay
-                ? `Xem thêm ${remaining} ảnh, bắt đầu từ ảnh ${slotIndex + 1}`
-                : `Xem ảnh ${slotIndex + 1}`,
+              openAsVideo
+                ? "Xem video"
+                : showOverlay
+                  ? `Xem thêm ${remaining} ảnh, bắt đầu từ ảnh ${slotIndex + 1}`
+                  : `Xem ảnh ${slotIndex + 1}`,
             onClick: (e: MouseEvent) => {
               e.stopPropagation();
               onOpen(slotIndex);
@@ -471,6 +477,7 @@ export function ImageGrid({
   suppressLightbox = false,
   composeSlotActions,
   albumLayoutMode = DEFAULT_ALBUM_LAYOUT_MODE,
+  onOpenOverride,
 }: Props) {
   const [internalLightboxIndex, setInternalLightboxIndex] = useState<number | null>(
     null,
@@ -488,7 +495,7 @@ export function ImageGrid({
     ? onLightboxIndexChange
     : setInternalLightboxIndex;
 
-  const lightboxEnabled = !readOnly || timelineLightbox;
+  const lightboxEnabled = Boolean(onOpenOverride) || !readOnly || timelineLightbox;
 
   const imagesAspectKey = useMemo(
     () => images.map((img) => img.id).join("|"),
@@ -516,10 +523,14 @@ export function ImageGrid({
 
   const openLightbox = useCallback(
     (index: number) => {
+      if (onOpenOverride) {
+        onOpenOverride();
+        return;
+      }
       if (!lightboxEnabled) return;
       setLightboxIndex(index + lightboxIndexOffset);
     },
-    [lightboxEnabled, lightboxIndexOffset, setLightboxIndex],
+    [onOpenOverride, lightboxEnabled, lightboxIndexOffset, setLightboxIndex],
   );
 
   const closeLightbox = useCallback(() => {
@@ -571,6 +582,7 @@ export function ImageGrid({
         showOverlay={opts?.overlay ?? false}
         remaining={opts?.remaining ?? 0}
         onOpen={openLightbox}
+        openAsVideo={Boolean(onOpenOverride)}
         style={opts?.style}
         onNaturalAspect={reportNaturalAspect}
         composeSlotActions={composeSlotActions}

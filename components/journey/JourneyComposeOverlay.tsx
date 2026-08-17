@@ -28,6 +28,7 @@ import {
   resolveEditComposeIntent,
   resolveEditEmbedComposeMeta,
 } from "@/lib/journey/post-media";
+import { prefetchTagSuggestIndex } from "@/lib/tag/suggest-index-client";
 
 const EditorViewLazy = dynamic(
   () =>
@@ -194,6 +195,16 @@ export function JourneyComposeOverlay({
       document.body.style.overflow = prev;
     };
   }, []);
+
+  useEffect(() => {
+    if (
+      compose.kind === "milestone" ||
+      compose.kind === "milestone-edit"
+    ) {
+      return;
+    }
+    prefetchTagSuggestIndex();
+  }, [compose.kind]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

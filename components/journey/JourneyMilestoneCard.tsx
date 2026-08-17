@@ -37,6 +37,8 @@ import { JourneyOwnCoAuthorRoleEditor } from "@/components/journey/JourneyOwnCoA
 import { JourneyBookmarkListingCard } from "@/components/journey/JourneyBookmarkListingCard";
 import { BatDauHocMilestoneCard } from "@/components/journey/BatDauHocMilestonePanel";
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
+import { useWorldJourneyOpenFeedVideo } from "@/components/cins/world-journey/WorldJourneyOpenFeedVideoContext";
+import { streamUidFromBlocks } from "@/lib/journey/video-embed";
 import {
   parseBatDauHocAutoBody,
   parseBatDauHocAutoTitle,
@@ -473,6 +475,8 @@ export function JourneyMilestoneCard({
   showJourneyPin = false,
 }: Props) {
   const { adminSeedingEdit } = useJourneyCompose();
+  const openFeedVideo = useWorldJourneyOpenFeedVideo();
+  const openFeedVideoAtRef = useRef(0);
   const canActAsPostOwner = isOwner || adminSeedingEdit;  const {
     variant,
     type,
@@ -510,6 +514,16 @@ export function JourneyMilestoneCard({
     membershipPending,
     feedSuggestion = false,
   } = milestone;
+
+  const onOpenStreamVideo =
+    openFeedVideo && streamUidFromBlocks(noiDungBlocks)
+      ? () => {
+          const now = Date.now();
+          if (now - openFeedVideoAtRef.current < 400) return;
+          openFeedVideoAtRef.current = now;
+          openFeedVideo(milestone);
+        }
+      : undefined;
 
   const articleTagsKey = articleTags.map((t) => t.id).join("\0");
   const [liveArticleTags, setLiveArticleTags] = useState<ArticleTagRef[]>(() => [
@@ -2570,6 +2584,7 @@ export function JourneyMilestoneCard({
               photoGridImages={photoGridImages}
               contentKind={cardContentKind}
               compactMediaPreview={useFeedCompactMedia}
+              onOpenStreamVideo={onOpenStreamVideo}
               readMoreHref={cardReadMoreHref}
               hasLinkedPost={Boolean(postSlug)}
               captionExpandMode={

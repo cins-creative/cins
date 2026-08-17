@@ -33,9 +33,8 @@ type Props = {
 };
 
 function loaiLabel(loai: EntityLoai): string {
-  if (loai === "phan_mem") return "Phần mềm";
   if (loai === "mon_hoc") return "Môn học";
-  return "Khái niệm";
+  return "Thẻ";
 }
 
 function loaiBadgeClass(loai: EntityLoai): string {

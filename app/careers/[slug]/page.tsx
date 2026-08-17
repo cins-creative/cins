@@ -78,6 +78,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description,
     ogImagePath,
     ogType: "article",
+    noIndex: true,
   });
 }
 

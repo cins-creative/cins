@@ -27,8 +27,8 @@ export type ArticleTagRef = {
 
 export const LOAI_BAI_VIET_LABEL: Record<string, string> = {
   nghe: "Nghề",
-  keyword: "Khái niệm",
-  phan_mem: "Phần mềm",
+  keyword: "Thẻ",
+  phan_mem: "Thẻ",
   mon_hoc: "Môn học",
   blog: "Blog",
   event: "Sự kiện",

@@ -1,5 +1,4 @@
 import type { ArticleBaiViet } from "@/lib/articles/types";
-import { NGHE_NGHIEP_HUB_PATH } from "@/lib/cins/hubPaths";
 import {
   articleJsonLd,
   breadcrumbJsonLd,
@@ -39,7 +38,7 @@ export function NgheSeoJsonLd({
       occupationalCategory: linhVuc,
     }),
     breadcrumbJsonLd([
-      { name: "Khám phá nghề", path: NGHE_NGHIEP_HUB_PATH },
+      { name: "CINs", path: "/" },
       { name, path: slugPath },
     ]),
   ];

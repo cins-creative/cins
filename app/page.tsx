@@ -15,11 +15,11 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "CINs — Khám phá ngành sáng tạo thị giác tại Việt Nam",
   description:
-    "Khám phá nghề, ngành đào tạo, trường học, khóa học và sự kiện ngành sáng tạo thị giác — dữ liệu thật trên CINs.",
+    "Mạng xã hội chuyên môn ngành sáng tạo Việt Nam — portfolio, cộng đồng, khóa học, cửa hàng và cơ sở đào tạo.",
   alternates: { canonical: "/" },
 };
 
-type SearchParams = Promise<{ view?: string; "tuy-chinh"?: string }>;
+type SearchParams = Promise<{ view?: string; play?: string; "tuy-chinh"?: string }>;
 
 export default async function Home({
   searchParams,
@@ -46,6 +46,8 @@ export default async function Home({
               includeVideo={includeVideo}
               includeShopFeed={includeShopFeed}
               editingLayout={editingLayout}
+              initialView={sp.view}
+              initialPlayId={sp.play}
             />
           </Suspense>
         </AuthGateRoot>

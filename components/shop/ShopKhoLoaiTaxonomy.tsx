@@ -25,7 +25,7 @@ import {
 } from "@/components/tag/useTagSuggestSearch";
 import { articlePublicHref } from "@/lib/articles/article-href";
 import {
-  fetchTagSuggestIndex,
+  loadTagSuggestIndexClient,
   titlesMatchQuery,
 } from "@/lib/tag/suggest-index-client";
 import type { ShopNhom } from "@/lib/shop/types";
@@ -808,7 +808,7 @@ function FandomTaxSelect({
     if (!open) return;
     let cancelled = false;
     void (async () => {
-      const rows = await fetchTagSuggestIndex();
+      const rows = await loadTagSuggestIndexClient();
       if (cancelled) return;
       const fandoms = rows
         .filter((r) => r.loai_bai_viet === "fandom")

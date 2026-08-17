@@ -48,12 +48,12 @@ type BaiGroup = {
 };
 
 const LOAI_LABEL: Record<string, string> = {
-  keyword: "Khái niệm",
+  keyword: "Thẻ",
   nghe: "Nghề",
   nganh: "Ngành",
   nganh_dao_tao: "Ngành",
   mon_hoc: "Môn học",
-  phan_mem: "Phần mềm",
+  phan_mem: "Thẻ",
   blog: "Blog",
 };
 

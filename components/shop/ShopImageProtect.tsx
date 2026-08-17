@@ -28,18 +28,23 @@ type ProtectProps = {
 
 export function ShopImageDecoy({ className }: { className?: string }) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
+    <span
       className={
         className
-          ? `shop-img-protect-decoy ${className}`
-          : "shop-img-protect-decoy"
+          ? `shop-img-protect-decoy-hit ${className}`
+          : "shop-img-protect-decoy-hit"
       }
-      src={SHOP_DECOY_SRC}
-      alt=""
       aria-hidden
-      draggable={false}
-    />
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        className="shop-img-protect-decoy"
+        src={SHOP_DECOY_SRC}
+        alt=""
+        aria-hidden
+        draggable={false}
+      />
+    </span>
   );
 }
 

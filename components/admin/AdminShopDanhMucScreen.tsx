@@ -4,16 +4,25 @@ import {
   AlertTriangle,
   ArrowRight,
   Clock3,
+  ExternalLink,
   FolderTree,
   RefreshCw,
   Search,
   ShieldAlert,
 } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { AdminSlideOver } from "@/components/admin/AdminSlideOver";
 import type { AdminShopDanhMucRow } from "@/lib/admin/shop-danh-muc-server";
-import { parseTenNhomMoi } from "@/lib/shop/danh-muc-yeu-cau-text";
+import { formatRelativeTimeVi } from "@/lib/articles/format";
+import { getNameInitials } from "@/lib/journey/profile";
+import {
+  hangChoHanhDongLabel,
+  parseTenNhomMoi,
+  tomTatHangChoDeXuat,
+  type HangChoDeXuatTomTat,
+} from "@/lib/shop/danh-muc-yeu-cau-text";
 
 type HangChoAlias = {
   tuKhoa: string;
@@ -33,11 +42,22 @@ type HangChoYeuCau = {
   tenDanhMucGanNhat: string | null;
   ganNhatLaCha?: boolean;
   soShopCungCum: number;
+  taoLuc?: string;
+  nguoiDeXuat?: {
+    ten: string;
+    slug: string;
+    avatarUrl: string | null;
+  } | null;
+  hangHref?: string | null;
+  nhomAnhUrl?: string | null;
+  soMau?: number;
+  mau?: Array<{ id: string; ten: string; anhUrl: string | null }>;
 };
 
 type Panel =
   | { mode: "closed" }
   | { mode: "create" }
+  | { mode: "reviewFromQueue"; yeuCau: HangChoYeuCau }
   | { mode: "createFromQueue"; yeuCau: HangChoYeuCau }
   | { mode: "mergeFromQueue"; yeuCau: HangChoYeuCau }
   | { mode: "edit"; row: AdminShopDanhMucRow };
@@ -87,16 +107,44 @@ function formFromRow(row: AdminShopDanhMucRow): FormState {
   };
 }
 
-function ganNhatHangChoLabel(y: HangChoYeuCau): {
-  label: string;
-  ten: string;
-} | null {
-  const tenNhomMoi = parseTenNhomMoi(y.moTa);
-  if (tenNhomMoi) return { label: "Đề xuất nhóm mới: ", ten: tenNhomMoi };
-  if (!y.tenDanhMucGanNhat) return null;
+function cayGoiYHangCho(
+  y: HangChoYeuCau,
+  catalog: AdminShopDanhMucRow[],
+): {
+  tomTat: HangChoDeXuatTomTat;
+  cha: AdminShopDanhMucRow | null;
+  laGan: AdminShopDanhMucRow | null;
+  anhEm: AdminShopDanhMucRow[];
+} {
+  const raw = tomTatHangChoDeXuat(y);
+  const gan = y.idDanhMucGanNhat
+    ? (catalog.find((r) => r.id === y.idDanhMucGanNhat) ?? null)
+    : null;
+  const laGan = y.ganNhatLaCha ? null : gan;
+  const cha = raw.taoChaMoi
+    ? null
+    : y.ganNhatLaCha
+      ? gan
+      : gan?.idCha
+        ? (catalog.find((r) => r.id === gan.idCha) ?? null)
+        : null;
+  const anhEm = cha
+    ? catalog
+        .filter(
+          (r) =>
+            r.idCha === cha.id && r.trangThai === "hien" && r.slug !== "khac",
+        )
+        .sort((a, b) => a.thuTu - b.thuTu || a.ten.localeCompare(b.ten, "vi"))
+    : [];
   return {
-    label: y.ganNhatLaCha ? "Cấp cha gợi ý: " : "Gần lá: ",
-    ten: y.tenDanhMucGanNhat,
+    tomTat: {
+      ...raw,
+      tenCha: raw.tenCha ?? cha?.ten ?? null,
+      tenLaGan: raw.tenLaGan ?? laGan?.ten ?? null,
+    },
+    cha,
+    laGan,
+    anhEm,
   };
 }
 
@@ -299,18 +347,21 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
 
   const refreshHangCho = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/shop/catalog/queue");
+      const res = await fetch("/api/admin/shop/danh-muc/hang-cho");
       const json = (await res.json().catch(() => null)) as {
         ok?: boolean;
         alias?: HangChoAlias[];
         yeuCau?: HangChoYeuCau[];
+        error?: string;
       } | null;
       if (res.ok && json?.ok) {
         setAliasCho(json.alias ?? []);
         setYeuCauCho(json.yeuCau ?? []);
+        return;
       }
+      setErr(json?.error ?? "Không tải được hàng chờ danh mục.");
     } catch {
-      /* ignore */
+      setErr("Không tải được hàng chờ danh mục.");
     }
   }, []);
 
@@ -321,7 +372,7 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
   const refresh = useCallback(async () => {
     setErr(null);
     try {
-      const res = await fetch("/api/admin/shop/catalog?nganhHang=merch");
+      const res = await fetch("/api/admin/shop/danh-muc?nganhHang=merch");
       const json = (await res.json().catch(() => null)) as {
         ok?: boolean;
         rows?: AdminShopDanhMucRow[];
@@ -342,7 +393,7 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
     if (selected !== NEW_CAP_CHA) return selected || null;
     const tenCha = form.chaTen.trim();
     if (!tenCha) throw new Error("Nhập tên cấp cha mới.");
-    const res = await fetch("/api/admin/shop/catalog", {
+    const res = await fetch("/api/admin/shop/danh-muc", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -389,7 +440,7 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
         ...(idCha !== undefined ? { idCha } : {}),
       };
       if (panel.mode === "create") {
-        const res = await fetch("/api/admin/shop/catalog", {
+        const res = await fetch("/api/admin/shop/danh-muc", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ...payload, nganhHang: "merch" }),
@@ -414,7 +465,7 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
 
       if (panel.mode === "edit") {
         const res = await fetch(
-          `/api/admin/shop/catalog/${encodeURIComponent(panel.row.id)}`,
+          `/api/admin/shop/danh-muc/${encodeURIComponent(panel.row.id)}`,
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
@@ -461,7 +512,7 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
     setErr(null);
     try {
       const res = await fetch(
-        `/api/admin/shop/catalog/${encodeURIComponent(deleteTarget.id)}`,
+        `/api/admin/shop/danh-muc/${encodeURIComponent(deleteTarget.id)}`,
         { method: "DELETE" },
       );
       const json = (await res.json().catch(() => null)) as {
@@ -494,7 +545,7 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
     const thuTu = Number.parseInt(form.thuTu, 10);
     try {
       const idCha = await createCapChaIfNeeded();
-      const res = await fetch("/api/admin/shop/catalog/queue", {
+      const res = await fetch("/api/admin/shop/danh-muc/hang-cho", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -539,7 +590,7 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
     setBusy(true);
     setErr(null);
     try {
-      const res = await fetch("/api/admin/shop/catalog/queue", {
+      const res = await fetch("/api/admin/shop/danh-muc/hang-cho", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -573,7 +624,7 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
     setErr(null);
     try {
       const res = await fetch(
-        `/api/admin/shop/catalog/${encodeURIComponent(row.id)}`,
+        `/api/admin/shop/danh-muc/${encodeURIComponent(row.id)}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -603,7 +654,7 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
     setBusy(true);
     setErr(null);
     try {
-      const res = await fetch("/api/admin/shop/catalog/queue", {
+      const res = await fetch("/api/admin/shop/danh-muc/hang-cho", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -632,7 +683,7 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
     setBusy(true);
     setErr(null);
     try {
-      const res = await fetch("/api/admin/shop/catalog/queue", {
+      const res = await fetch("/api/admin/shop/danh-muc/hang-cho", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -650,6 +701,7 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
         return;
       }
       await refreshHangCho();
+      setPanel({ mode: "closed" });
     } catch {
       setErr("Lỗi mạng — thử lại.");
     } finally {
@@ -812,33 +864,95 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
               {yeuCauCho.length > 0 ? (
                 <ul className="dm-admin-queue-list">
                   {yeuCauCho.map((y) => {
-                    const ganMeta = ganNhatHangChoLabel(y);
+                    const cay = cayGoiYHangCho(y, rows);
+                    const deXuat = cay.tomTat;
+                    const nguoi = y.nguoiDeXuat ?? null;
+                    const thumbs = (y.mau ?? []).slice(0, 4);
                     return (
                     <li key={y.id}>
                       <article className="dm-admin-queue-card">
                         <div className="dm-admin-queue-card-main">
-                          <p className="dm-admin-queue-card-title">
-                            <strong>{y.nhanNhom ?? y.tuKhoaChuan}</strong>
+                          <p className="dm-admin-tree-kicker">
+                            {hangChoHanhDongLabel(deXuat.hanhDong)}
+                            {y.taoLuc
+                              ? ` · ${formatRelativeTimeVi(y.taoLuc)}`
+                              : ""}
                           </p>
-                          {ganMeta ? (
-                            <div className="dm-admin-queue-card-meta">
-                              {ganMeta.label}
-                              <strong>{ganMeta.ten}</strong>
-                            </div>
-                          ) : null}
-                          {y.moTa ? (
-                            <p className="dm-admin-queue-card-desc">{y.moTa}</p>
+                          <p className="dm-admin-queue-card-title">
+                            <strong>{deXuat.tenLa}</strong>
+                          </p>
+                          <p className="dm-admin-queue-tree-line">
+                            {deXuat.taoChaMoi
+                              ? `Nhóm mới «${deXuat.tenCha}»`
+                              : (deXuat.tenCha ?? "Chưa rõ nhóm")}
+                            <ArrowRight
+                              size={14}
+                              className="dm-admin-queue-card-arrow"
+                              aria-hidden
+                            />
+                            <em>{deXuat.tenLa}</em>
+                          </p>
+                          {thumbs.length > 0 ? (
+                            <ul className="dm-admin-queue-thumbs">
+                              {thumbs.map((m) => (
+                                <li key={m.id}>
+                                  {m.anhUrl ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img src={m.anhUrl} alt="" />
+                                  ) : (
+                                    <span aria-hidden />
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
                           ) : null}
                           <div className="dm-admin-queue-card-meta">
+                            {y.nhanNhom ? (
+                              <span>
+                                Loại hàng: <strong>{y.nhanNhom}</strong>
+                              </span>
+                            ) : null}
+                            {typeof y.soMau === "number" && y.soMau > 0 ? (
+                              <span>
+                                <strong>{y.soMau}</strong> mẫu
+                              </span>
+                            ) : null}
                             <span>
                               <strong>{y.soShopCungCum}</strong> shop cùng cụm
                             </span>
                           </div>
+                          {nguoi ? (
+                            <p className="dm-admin-queue-who">
+                              {nguoi.avatarUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={nguoi.avatarUrl} alt="" />
+                              ) : (
+                                <span aria-hidden>
+                                  {getNameInitials(nguoi.ten, nguoi.slug)}
+                                </span>
+                              )}
+                              {nguoi.slug ? (
+                                <Link href={`/${nguoi.slug}`}>{nguoi.ten}</Link>
+                              ) : (
+                                <span>{nguoi.ten}</span>
+                              )}
+                            </p>
+                          ) : null}
                         </div>
                         <div className="dm-admin-queue-card-actions">
                           <button
                             type="button"
                             className="btn btn-primary btn-sm"
+                            disabled={busy}
+                            onClick={() =>
+                              setPanel({ mode: "reviewFromQueue", yeuCau: y })
+                            }
+                          >
+                            Xem kỹ
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
                             disabled={busy}
                             onClick={() =>
                               setPanel({ mode: "createFromQueue", yeuCau: y })
@@ -855,14 +969,6 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
                             }
                           >
                             Gộp vào…
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-sm"
-                            disabled={busy}
-                            onClick={() => void xuLyYeuCau(y.id)}
-                          >
-                            Từ chối
                           </button>
                         </div>
                       </article>
@@ -1072,15 +1178,19 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
 
       <AdminSlideOver
         open={panel.mode !== "closed"}
-        wide={panel.mode === "mergeFromQueue"}
+        wide={
+          panel.mode === "mergeFromQueue" || panel.mode === "reviewFromQueue"
+        }
         title={
           panel.mode === "create"
             ? "Thêm danh mục"
-            : panel.mode === "createFromQueue"
-              ? "Tạo danh mục từ yêu cầu"
-              : panel.mode === "mergeFromQueue"
-                ? "Gộp vào danh mục lá"
-                : "Sửa danh mục"
+            : panel.mode === "reviewFromQueue"
+              ? "Duyệt đề xuất danh mục"
+              : panel.mode === "createFromQueue"
+                ? "Tạo danh mục từ yêu cầu"
+                : panel.mode === "mergeFromQueue"
+                  ? "Gộp vào danh mục lá"
+                  : "Sửa danh mục"
         }
         onClose={() =>
           !busy && !deleteTarget && setPanel({ mode: "closed" })
@@ -1096,6 +1206,15 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
               >
                 Xóa
               </button>
+            ) : panel.mode === "reviewFromQueue" ? (
+              <button
+                type="button"
+                className="btn btn-danger"
+                disabled={busy}
+                onClick={() => void xuLyYeuCau(panel.yeuCau.id)}
+              >
+                Từ chối
+              </button>
             ) : null}
             <button
               type="button"
@@ -1103,7 +1222,7 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
               disabled={busy}
               onClick={() => setPanel({ mode: "closed" })}
             >
-              Hủy
+              {panel.mode === "reviewFromQueue" ? "Đóng" : "Hủy"}
             </button>
             {panel.mode === "mergeFromQueue" ? (
               <>
@@ -1142,6 +1261,35 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
               >
                 {busy ? "Đang tạo…" : "Tạo & gắn loại"}
               </button>
+            ) : panel.mode === "reviewFromQueue" ? (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  disabled={busy}
+                  onClick={() =>
+                    setPanel({
+                      mode: "mergeFromQueue",
+                      yeuCau: panel.yeuCau,
+                    })
+                  }
+                >
+                  Gộp vào…
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={busy}
+                  onClick={() =>
+                    setPanel({
+                      mode: "createFromQueue",
+                      yeuCau: panel.yeuCau,
+                    })
+                  }
+                >
+                  Tạo mục
+                </button>
+              </>
             ) : (
               <button
                 type="button"
@@ -1159,7 +1307,13 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
           </>
         }
       >
-        {panel.mode === "mergeFromQueue" ? (
+        {panel.mode === "reviewFromQueue" ? (
+          <HangChoReviewBody
+            yeuCau={panel.yeuCau}
+            catalog={rows}
+            err={err}
+          />
+        ) : panel.mode === "mergeFromQueue" ? (
           <div className="admin-edit-form dm-admin-merge-form">
             {err ? (
               <p className="dm-admin-msg" role="alert">
@@ -1267,10 +1421,12 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
               <div className="dm-admin-form-banner">
                 <p className="dm-admin-tree-kicker">Từ yêu cầu thiếu</p>
                 <strong>
-                  {panel.yeuCau.nhanNhom ?? panel.yeuCau.tuKhoaChuan}
+                  {tomTatHangChoDeXuat(panel.yeuCau).tenLa}
                 </strong>
                 <p>
-                  Tạo lá rồi gắn cả cụm. Seller không tạo được mục — chỉ admin.
+                  Tạo lá rồi gắn loại «
+                  {panel.yeuCau.nhanNhom ?? panel.yeuCau.tuKhoaChuan}». Seller
+                  không tạo được mục — chỉ admin.
                 </p>
               </div>
             ) : panel.mode === "edit" ? (
@@ -1652,5 +1808,191 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
         </div>
       ) : null}
     </>
+  );
+}
+
+function HangChoReviewBody({
+  yeuCau,
+  catalog,
+  err,
+}: {
+  yeuCau: HangChoYeuCau;
+  catalog: AdminShopDanhMucRow[];
+  err: string | null;
+}) {
+  const cay = cayGoiYHangCho(yeuCau, catalog);
+  const deXuat = cay.tomTat;
+  const nguoi = yeuCau.nguoiDeXuat ?? null;
+  const mau = yeuCau.mau ?? [];
+  const anhEmHien = cay.anhEm.slice(0, 8);
+  const anhEmCon = cay.anhEm.length - anhEmHien.length;
+
+  return (
+    <div className="dm-admin-review">
+      {err ? (
+        <p className="dm-admin-msg" role="alert">
+          {err}
+        </p>
+      ) : null}
+
+      <section className="dm-admin-review-block">
+        <p className="dm-admin-tree-kicker">Đề xuất</p>
+        <dl className="dm-admin-review-dl">
+          <div>
+            <dt>Tên lá</dt>
+            <dd>
+              <strong>{deXuat.tenLa}</strong>
+            </dd>
+          </div>
+          <div>
+            <dt>Hành động</dt>
+            <dd>{hangChoHanhDongLabel(deXuat.hanhDong)}</dd>
+          </div>
+          <div>
+            <dt>Cấp cha</dt>
+            <dd>
+              {deXuat.taoChaMoi
+                ? `Tạo mới «${deXuat.tenCha}»`
+                : (deXuat.tenCha ?? "Chưa rõ — cần chọn khi tạo")}
+            </dd>
+          </div>
+          {deXuat.tenLaGan ? (
+            <div>
+              <dt>Gần lá</dt>
+              <dd>{deXuat.tenLaGan}</dd>
+            </div>
+          ) : null}
+          <div>
+            <dt>Cụm</dt>
+            <dd>
+              {yeuCau.soShopCungCum} shop cùng từ khóa
+              {yeuCau.taoLuc
+                ? ` · gửi ${formatRelativeTimeVi(yeuCau.taoLuc)}`
+                : ""}
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <section className="dm-admin-review-block">
+        <p className="dm-admin-tree-kicker">Cây hiện tại</p>
+        <div className="dm-admin-review-tree">
+          <p
+            className={`dm-admin-review-tree-cha${deXuat.taoChaMoi ? " is-new" : ""}`}
+          >
+            {deXuat.taoChaMoi
+              ? `Nhóm mới · ${deXuat.tenCha}`
+              : cay.cha
+                ? cay.cha.ten
+                : "Không nhóm"}
+            {cay.cha ? <code>{cay.cha.slug}</code> : null}
+          </p>
+          <ul>
+            {anhEmHien.map((leaf) => (
+              <li
+                key={leaf.id}
+                className={
+                  cay.laGan?.id === leaf.id ? "is-gan" : undefined
+                }
+              >
+                <span>{leaf.ten}</span>
+                {cay.laGan?.id === leaf.id ? (
+                  <em>gần nhất</em>
+                ) : (
+                  <small>{leaf.soNhom} loại</small>
+                )}
+              </li>
+            ))}
+            {anhEmCon > 0 ? (
+              <li className="is-more">+{anhEmCon} lá khác</li>
+            ) : null}
+            <li className="is-de-xuat">
+              <span>{deXuat.tenLa}</span>
+              <em>đề xuất</em>
+            </li>
+          </ul>
+        </div>
+        <p className="dm-admin-form-help">
+          Lá nhận loại hàng. Cấp cha chỉ gom nhóm — không gắn loại, không lên
+          chip hub.
+        </p>
+      </section>
+
+      <section className="dm-admin-review-block">
+        <p className="dm-admin-tree-kicker">Người đề xuất</p>
+        {nguoi ? (
+          <div className="dm-admin-review-who">
+            {nguoi.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={nguoi.avatarUrl} alt="" />
+            ) : (
+              <span aria-hidden>
+                {getNameInitials(nguoi.ten, nguoi.slug)}
+              </span>
+            )}
+            <div>
+              {nguoi.slug ? (
+                <Link href={`/${nguoi.slug}`}>{nguoi.ten}</Link>
+              ) : (
+                <strong>{nguoi.ten}</strong>
+              )}
+              {yeuCau.hangHref ? (
+                <Link href={yeuCau.hangHref} target="_blank" rel="noreferrer">
+                  Xem loại trên shop
+                  <ExternalLink size={12} aria-hidden />
+                </Link>
+              ) : null}
+            </div>
+          </div>
+        ) : (
+          <p className="dm-admin-form-help">Không tải được hồ sơ seller.</p>
+        )}
+      </section>
+
+      <section className="dm-admin-review-block">
+        <p className="dm-admin-tree-kicker">Hàng cần gắn</p>
+        <p className="dm-admin-review-nhom">
+          <strong>{yeuCau.nhanNhom ?? deXuat.tenLa}</strong>
+          {typeof yeuCau.soMau === "number" ? (
+            <span>{yeuCau.soMau} mẫu</span>
+          ) : null}
+        </p>
+        {mau.length > 0 ? (
+          <ul className="dm-admin-review-mau">
+            {mau.map((m) => {
+              const href = yeuCau.hangHref
+                ? `${yeuCau.hangHref}?variant=${encodeURIComponent(m.id)}`
+                : null;
+              const inner = (
+                <>
+                  {m.anhUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={m.anhUrl} alt="" />
+                  ) : (
+                    <span aria-hidden />
+                  )}
+                  <em>{m.ten}</em>
+                </>
+              );
+              return (
+                <li key={m.id}>
+                  {href ? (
+                    <Link href={href} target="_blank" rel="noreferrer">
+                      {inner}
+                    </Link>
+                  ) : (
+                    inner
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="dm-admin-form-help">
+            Loại này chưa có mẫu — vẫn gắn được sau khi tạo/gộp danh mục.
+          </p>
+        )}
+      </section>
+    </div>
   );
 }

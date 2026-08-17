@@ -29,6 +29,67 @@ export function moTaDeXuatDanhMuc(opts: {
   return parts.join(" ").slice(0, 500);
 }
 
+export type HangChoDeXuatTomTat = {
+  tenLa: string;
+  tenCha: string | null;
+  taoChaMoi: boolean;
+  tenLaGan: string | null;
+  hanhDong: "tao_la" | "gan_la" | "tao_cha";
+};
+
+/** Tách đề xuất khỏi đoạn `mo_ta` tự sinh — admin đọc cấu trúc, không đọc văn. */
+export function tomTatHangChoDeXuat(opts: {
+  tuKhoaChuan: string;
+  moTa: string;
+  tenDanhMucGanNhat: string | null;
+  ganNhatLaCha?: boolean;
+}): HangChoDeXuatTomTat {
+  const tenLa = opts.tuKhoaChuan.trim() || "danh mục mới";
+  const tenChaMoi = parseTenNhomMoi(opts.moTa);
+  if (tenChaMoi) {
+    return {
+      tenLa,
+      tenCha: tenChaMoi,
+      taoChaMoi: true,
+      tenLaGan: null,
+      hanhDong: "tao_cha",
+    };
+  }
+  if (opts.ganNhatLaCha && opts.tenDanhMucGanNhat) {
+    return {
+      tenLa,
+      tenCha: opts.tenDanhMucGanNhat,
+      taoChaMoi: false,
+      tenLaGan: null,
+      hanhDong: "tao_la",
+    };
+  }
+  if (opts.tenDanhMucGanNhat) {
+    return {
+      tenLa,
+      tenCha: null,
+      taoChaMoi: false,
+      tenLaGan: opts.tenDanhMucGanNhat,
+      hanhDong: "gan_la",
+    };
+  }
+  return {
+    tenLa,
+    tenCha: null,
+    taoChaMoi: false,
+    tenLaGan: null,
+    hanhDong: "tao_la",
+  };
+}
+
+export function hangChoHanhDongLabel(
+  hanhDong: HangChoDeXuatTomTat["hanhDong"],
+): string {
+  if (hanhDong === "tao_cha") return "Tạo cấp cha + lá mới";
+  if (hanhDong === "gan_la") return "Gần một lá có sẵn";
+  return "Tạo lá mới";
+}
+
 export function matchParentByTen(
   parents: Array<{ id: string; ten: string }>,
   ten: string,

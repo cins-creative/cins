@@ -3,7 +3,7 @@ import { Compass, SearchX } from "lucide-react";
 
 import {
   NGANH_HOC_HUB_PATH,
-  NGHE_NGHIEP_HUB_PATH,
+  TIM_KHOA_HOC_HUB_PATH,
   TO_CHUC_HUB_PATH,
 } from "@/lib/cins/hubPaths";
 
@@ -35,10 +35,10 @@ export function TimKiemEmptyState({ hasQuery }: { hasQuery: boolean }) {
       </p>
       <ul className="tk-empty-links">
         <li>
-          <Link href={NGHE_NGHIEP_HUB_PATH}>Khám phá nghề</Link>
+          <Link href={NGANH_HOC_HUB_PATH}>Ngành học</Link>
         </li>
         <li>
-          <Link href={NGANH_HOC_HUB_PATH}>Ngành học</Link>
+          <Link href={TIM_KHOA_HOC_HUB_PATH}>Tìm khoá học</Link>
         </li>
         <li>
           <Link href={TO_CHUC_HUB_PATH}>Tổ chức</Link>

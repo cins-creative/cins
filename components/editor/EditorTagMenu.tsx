@@ -8,7 +8,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type MouseEvent as ReactMouseEvent,
 } from "react";
 import { createPortal } from "react-dom";
 
@@ -19,15 +18,13 @@ import type { AtHashTrigger } from "@/lib/editor/use-at-hash-trigger";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import type { CoAuthorDraft } from "@/lib/social/types";
 import {
-  CREATABLE_TAG_LOAI,
-  type CreatableTagLoai,
+  COMPOSE_VISIBLE_TAG_LOAI_SET,
 } from "@/lib/tag/tag-loai";
 
 import { TagSuggestionLabel } from "@/components/tag/TagSuggestionLabel";
 import { TagSuggestionMeta } from "@/components/tag/TagSuggestionMeta";
 import {
   useTagSuggestSearch,
-  type LoaiFilter,
   type TagSuggestRow,
 } from "@/components/tag/useTagSuggestSearch";
 import "@/components/tag/tag-input.css";
@@ -48,30 +45,6 @@ type SearchUser = {
 type TagMenuItem =
   | { kind: "suggestion"; tag: TagSuggestRow }
   | { kind: "create"; label: string };
-
-const LOAI_FILTER_OPTIONS: { id: LoaiFilter; label: string }[] = [
-  { id: "all", label: "Tất cả" },
-  { id: "keyword", label: "Khái niệm" },
-  { id: "phan_mem", label: "Phần mềm" },
-  { id: "mon_hoc", label: "Môn học" },
-  { id: "nganh_dao_tao", label: "Ngành" },
-  { id: "nghe", label: "Nghề nghiệp" },
-  { id: "fandom", label: "Phân loại" },
-];
-
-const CREATE_LOAI_LABEL: Record<CreatableTagLoai, string> = {
-  keyword: "Khái niệm",
-  phan_mem: "Phần mềm",
-  mon_hoc: "Môn học",
-  nghe: "Vị trí công việc",
-  fandom: "Phân loại",
-};
-
-function creatableLoaiForFilter(loaiFilter: LoaiFilter): CreatableTagLoai[] {
-  return CREATABLE_TAG_LOAI.filter(
-    (loai) => loaiFilter === "all" || loaiFilter === loai,
-  );
-}
 
 export type EditorTagMenuPick =
   | { kind: "user"; user: CoAuthorDraft }
@@ -121,11 +94,8 @@ export function EditorTagMenu({
 
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<SearchUser[]>([]);
-  const [loaiFilter, setLoaiFilter] = useState<LoaiFilter>("all");
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [pickingCreateLoai, setPickingCreateLoai] = useState(false);
-  const [createLoaiIdx, setCreateLoaiIdx] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const creatingRef = useRef(false);
   const [pos, setPos] = useState<{ top: number; left: number }>(() =>
@@ -133,22 +103,20 @@ export function EditorTagMenu({
   );
 
   const query = trigger.query.trim();
-  const createLoaiOptions = useMemo(
-    () => creatableLoaiForFilter(loaiFilter),
-    [loaiFilter],
-  );
 
   const {
     exactMatch,
     suggestions,
+    browse,
     refining,
     loading: tagLoading,
     hasExactSuggestion,
     ensureIndex,
   } = useTagSuggestSearch({
-    enabled: mode === "tag" && Boolean(query),
+    enabled: mode === "tag",
     query: trigger.query,
-    loaiFilter,
+    loaiFilter: "all",
+    allowLoai: COMPOSE_VISIBLE_TAG_LOAI_SET,
     excludeIds: existingTagIds,
   });
 
@@ -159,11 +127,9 @@ export function EditorTagMenu({
   useEffect(() => {
     if (mode === "tag") {
       setActiveIndex(0);
-      setPickingCreateLoai(false);
-      setCreateLoaiIdx(0);
       setCreateError(null);
     }
-  }, [mode, query, loaiFilter]);
+  }, [mode, query]);
 
   /* ── Vị trí: theo caret, cập nhật khi resize/scroll ──────────────── */
   const updatePos = useCallback(() => {
@@ -189,12 +155,11 @@ export function EditorTagMenu({
     loading,
     users,
     suggestions,
+    browse,
     exactMatch,
-    loaiFilter,
     query,
     tagLoading,
     refining,
-    pickingCreateLoai,
   ]);
 
   /* ── @ mode: tìm cộng sự ─────────────────────────────────────────── */
@@ -252,28 +217,26 @@ export function EditorTagMenu({
 
   const exactVisible =
     mode === "tag" &&
+    Boolean(query) &&
     exactMatch &&
     !existingTagIds.has(exactMatch.id) &&
-    (loaiFilter === "all" || exactMatch.loai_bai_viet === loaiFilter);
+    COMPOSE_VISIBLE_TAG_LOAI_SET.has(exactMatch.loai_bai_viet);
 
   const tagMenuItems = useMemo((): TagMenuItem[] => {
-    if (mode !== "tag" || !query || exactMatch) return [];
+    if (mode !== "tag") return [];
+    if (!query) {
+      return browse.map((tag) => ({ kind: "suggestion" as const, tag }));
+    }
+    if (exactMatch) return [];
     const items: TagMenuItem[] = suggestions.map((tag) => ({
       kind: "suggestion" as const,
       tag,
     }));
-    if (!hasExactSuggestion && createLoaiOptions.length > 0) {
+    if (!hasExactSuggestion) {
       items.push({ kind: "create", label: query });
     }
     return items;
-  }, [
-    mode,
-    query,
-    exactMatch,
-    suggestions,
-    hasExactSuggestion,
-    createLoaiOptions.length,
-  ]);
+  }, [mode, query, exactMatch, suggestions, browse, hasExactSuggestion]);
 
   /* ── Pick handlers ───────────────────────────────────────────────── */
   const pickUser = useCallback(
@@ -308,77 +271,53 @@ export function EditorTagMenu({
     [onPick],
   );
 
-  const createTag = useCallback(
-    async (loai: CreatableTagLoai) => {
-      if (!query || creatingRef.current) return;
-      creatingRef.current = true;
-      setCreating(true);
-      setCreateError(null);
-      try {
-        const res = await fetch("/api/tag", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ten: query, loai }),
-        });
-        const json = (await res.json().catch(() => null)) as
-          | { id?: string; error?: string }
-          | null;
-        if (!res.ok || !json?.id) {
-          setCreateError(
-            json?.error?.trim() ||
-              (res.status === 401
-                ? "Cần đăng nhập để tạo thẻ."
-                : "Không tạo được thẻ. Thử lại."),
-          );
-          return;
-        }
-        onPick({
-          kind: "tag",
-          tag: {
-            id: json.id,
-            slug: "",
-            tieu_de: query,
-            loai_bai_viet: loai,
-            da_verify: false,
-          },
-        });
-      } catch {
-        setCreateError("Không tạo được thẻ. Thử lại.");
-      } finally {
-        creatingRef.current = false;
-        setCreating(false);
+  const createTag = useCallback(async () => {
+    if (!query || creatingRef.current) return;
+    creatingRef.current = true;
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const res = await fetch("/api/tag", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ten: query, loai: "keyword" }),
+      });
+      const json = (await res.json().catch(() => null)) as
+        | { id?: string; error?: string }
+        | null;
+      if (!res.ok || !json?.id) {
+        setCreateError(
+          json?.error?.trim() ||
+            (res.status === 401
+              ? "Cần đăng nhập để tạo thẻ."
+              : "Không tạo được thẻ. Thử lại."),
+        );
+        return;
       }
-    },
-    [query, onPick],
-  );
-
-  /** Chọn ngay trên mousedown — tránh mất click khi menu/textarea race blur. */
-  const pickCreateLoaiMouseDown = useCallback(
-    (event: ReactMouseEvent, loai: CreatableTagLoai) => {
-      if (event.button !== 0) return;
-      event.preventDefault();
-      event.stopPropagation();
-      void createTag(loai);
-    },
-    [createTag],
-  );
-
-  const beginCreate = useCallback(() => {
-    if (createLoaiOptions.length === 0) return;
-    if (createLoaiOptions.length === 1) {
-      void createTag(createLoaiOptions[0]!);
-      return;
+      onPick({
+        kind: "tag",
+        tag: {
+          id: json.id,
+          slug: "",
+          tieu_de: query,
+          loai_bai_viet: "keyword",
+          da_verify: false,
+        },
+      });
+    } catch {
+      setCreateError("Không tạo được thẻ. Thử lại.");
+    } finally {
+      creatingRef.current = false;
+      setCreating(false);
     }
-    setPickingCreateLoai(true);
-    setCreateLoaiIdx(0);
-  }, [createLoaiOptions, createTag]);
+  }, [query, onPick]);
 
   const pickTagMenuItem = useCallback(
     (item: TagMenuItem) => {
       if (item.kind === "suggestion") pickExistingTag(item.tag);
-      else beginCreate();
+      else void createTag();
     },
-    [pickExistingTag, beginCreate],
+    [pickExistingTag, createTag],
   );
 
   /* ── Keyboard nav ────────────────────────────────────────────────── */
@@ -397,33 +336,8 @@ export function EditorTagMenu({
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        if (pickingCreateLoai) {
-          setPickingCreateLoai(false);
-          return;
-        }
         onClose();
         return;
-      }
-      if (pickingCreateLoai && createLoaiOptions.length > 0) {
-        if (event.key === "ArrowDown") {
-          event.preventDefault();
-          setCreateLoaiIdx((i) => (i + 1) % createLoaiOptions.length);
-          return;
-        }
-        if (event.key === "ArrowUp") {
-          event.preventDefault();
-          setCreateLoaiIdx(
-            (i) =>
-              (i - 1 + createLoaiOptions.length) % createLoaiOptions.length,
-          );
-          return;
-        }
-        if (event.key === "Enter") {
-          event.preventDefault();
-          const loai = createLoaiOptions[createLoaiIdx] ?? createLoaiOptions[0];
-          if (loai) void createTag(loai);
-          return;
-        }
       }
       if (navLength === 0) return;
       if (event.key === "ArrowDown") {
@@ -461,10 +375,6 @@ export function EditorTagMenu({
     pickUser,
     pickExistingTag,
     pickTagMenuItem,
-    pickingCreateLoai,
-    createLoaiOptions,
-    createLoaiIdx,
-    createTag,
   ]);
 
   /* ── Render: @ mode ──────────────────────────────────────────────── */
@@ -553,26 +463,7 @@ export function EditorTagMenu({
       }}
       onMouseDown={(e) => e.stopPropagation()}
     >
-      <div className="tag-input-filters" role="group" aria-label="Lọc loại thẻ">
-        {LOAI_FILTER_OPTIONS.map((opt) => (
-          <button
-            key={opt.id}
-            type="button"
-            className={`tag-input-filter${loaiFilter === opt.id ? " is-active" : ""}`}
-            aria-pressed={loaiFilter === opt.id}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => setLoaiFilter(opt.id)}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
-
-      {!query ? (
-        <div className="tag-input-empty">
-          Gõ để tìm khái niệm, phần mềm, môn học, ngành, nghề…
-        </div>
-      ) : showTagLoading ? (
+      {showTagLoading ? (
         <div className="tag-input-loading">
           <Loader2 size={14} className="ed-spin" aria-hidden /> Đang tìm…
         </div>
@@ -587,6 +478,12 @@ export function EditorTagMenu({
             </div>
           ) : null}
 
+          {createError ? (
+            <p className="tag-input-create-error" role="alert">
+              {createError}
+            </p>
+          ) : null}
+
           {exactVisible && exactMatch ? (
             <button
               type="button"
@@ -597,105 +494,62 @@ export function EditorTagMenu({
               onMouseEnter={() => setActiveIndex(0)}
               onClick={() => pickExistingTag(exactMatch)}
             >
-              <TagSuggestionLabel
-                tieu_de={exactMatch.tieu_de}
-                tieu_de_viet={exactMatch.tieu_de_viet}
-                tieu_de_eng={exactMatch.tieu_de_eng}
-              />
+              <TagSuggestionLabel tieu_de={exactMatch.tieu_de} />
               <TagSuggestionMeta
+                compose
                 loai={exactMatch.loai_bai_viet}
-                linhVucTen={exactMatch.linh_vuc_ten}
                 soNguoiTagged={exactMatch.so_nguoi_tagged}
                 soGan={exactMatch.so_gan}
               />
             </button>
-          ) : (
-            <>
-              {!showTagLoading && tagMenuItems.length === 0 ? (
-                <div className="tag-input-empty">
-                  Không thấy kết quả
-                  {loaiFilter !== "all"
-                    ? ` trong mục ${LOAI_FILTER_OPTIONS.find((o) => o.id === loaiFilter)?.label ?? ""}`
-                    : ""}
-                  .
-                </div>
-              ) : null}
-              {tagMenuItems.map((item, idx) => {
-                const navIdx = exactVisible ? idx + 1 : idx;
-                return item.kind === "suggestion" ? (
-                  <button
-                    key={item.tag.id}
-                    type="button"
-                    className={`tag-input-item${navIdx === activeIndex && !pickingCreateLoai ? " is-active" : ""}`}
-                    role="option"
-                    aria-selected={navIdx === activeIndex && !pickingCreateLoai}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onMouseEnter={() => setActiveIndex(navIdx)}
-                    onClick={() => pickTagMenuItem(item)}
-                  >
-                    <TagSuggestionLabel
-                      tieu_de={item.tag.tieu_de}
-                      tieu_de_viet={item.tag.tieu_de_viet}
-                      tieu_de_eng={item.tag.tieu_de_eng}
-                    />
-                    <TagSuggestionMeta
-                      loai={item.tag.loai_bai_viet}
-                      linhVucTen={item.tag.linh_vuc_ten}
-                      soNguoiTagged={item.tag.so_nguoi_tagged}
-                      soGan={item.tag.so_gan}
-                    />
-                  </button>
-                ) : pickingCreateLoai ? (
-                  <div
-                    key="create-picker"
-                    className="tag-input-create-picker"
-                    role="group"
-                    aria-label="Chọn nhóm thẻ mới"
-                  >
-                    <p className="tag-input-create-picker-q">
-                      Thẻ &ldquo;{item.label}&rdquo; thuộc nhóm nào?
-                    </p>
-                    {createError ? (
-                      <p className="tag-input-create-error" role="alert">
-                        {createError}
-                      </p>
-                    ) : null}
-                    {createLoaiOptions.map((loai, loaiIdx) => (
-                      <button
-                        key={loai}
-                        type="button"
-                        className={`tag-input-item tag-input-create-loai${loaiIdx === createLoaiIdx ? " is-active" : ""}`}
-                        role="option"
-                        aria-selected={loaiIdx === createLoaiIdx}
-                        disabled={creating}
-                        onMouseEnter={() => setCreateLoaiIdx(loaiIdx)}
-                        onMouseDown={(e) => pickCreateLoaiMouseDown(e, loai)}
-                      >
-                        {CREATE_LOAI_LABEL[loai]}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <button
-                    key="create"
-                    type="button"
-                    className={`tag-input-item tag-input-create${navIdx === activeIndex ? " is-active" : ""}`}
-                    role="option"
-                    aria-selected={navIdx === activeIndex}
-                    disabled={creating}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onMouseEnter={() => setActiveIndex(navIdx)}
-                    onClick={() => pickTagMenuItem(item)}
-                  >
-                    <Plus size={16} strokeWidth={2} aria-hidden />
-                    <span className="tag-input-item-label">
-                      Tạo thẻ mới &ldquo;{item.label}&rdquo;
-                    </span>
-                  </button>
-                );
-              })}
-            </>
-          )}
+          ) : null}
+
+          {!showTagLoading && tagMenuItems.length === 0 && !exactVisible ? (
+            <div className="tag-input-empty">
+              {query ? "Không thấy kết quả." : "Chưa có thẻ."}
+            </div>
+          ) : null}
+
+          {tagMenuItems.map((item, idx) => {
+            const navIdx = exactVisible ? idx + 1 : idx;
+            return item.kind === "suggestion" ? (
+              <button
+                key={item.tag.id}
+                type="button"
+                className={`tag-input-item${navIdx === activeIndex ? " is-active" : ""}`}
+                role="option"
+                aria-selected={navIdx === activeIndex}
+                onMouseDown={(e) => e.preventDefault()}
+                onMouseEnter={() => setActiveIndex(navIdx)}
+                onClick={() => pickTagMenuItem(item)}
+              >
+                <TagSuggestionLabel tieu_de={item.tag.tieu_de} />
+                <TagSuggestionMeta
+                  compose
+                  loai={item.tag.loai_bai_viet}
+                  soNguoiTagged={item.tag.so_nguoi_tagged}
+                  soGan={item.tag.so_gan}
+                />
+              </button>
+            ) : (
+              <button
+                key="create"
+                type="button"
+                className={`tag-input-item tag-input-create${navIdx === activeIndex ? " is-active" : ""}`}
+                role="option"
+                aria-selected={navIdx === activeIndex}
+                disabled={creating}
+                onMouseDown={(e) => e.preventDefault()}
+                onMouseEnter={() => setActiveIndex(navIdx)}
+                onClick={() => pickTagMenuItem(item)}
+              >
+                <Plus size={16} strokeWidth={2} aria-hidden />
+                <span className="tag-input-item-label">
+                  Tạo thẻ mới &ldquo;{item.label}&rdquo;
+                </span>
+              </button>
+            );
+          })}
         </>
       )}
     </div>,

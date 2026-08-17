@@ -17,6 +17,8 @@ type Props = {
   includeShopFeed?: boolean;
   /** `?tuy-chinh=1` — chế độ chỉnh sửa module sidebar (desktop). */
   editingLayout?: boolean;
+  initialView?: string;
+  initialPlayId?: string;
 };
 
 /**
@@ -28,6 +30,8 @@ export async function HomeWorldJourneyMain({
   includeVideo = false,
   includeShopFeed = false,
   editingLayout = false,
+  initialView,
+  initialPlayId,
 }: Props) {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile?.slug) return null;
@@ -46,6 +50,8 @@ export async function HomeWorldJourneyMain({
         includeVideo={includeVideo}
         includeShopFeed={includeShopFeed}
         editingLayout={editingLayout}
+        initialView={initialView}
+        initialPlayId={initialPlayId}
       />
     </Suspense>
   );

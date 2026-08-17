@@ -13,7 +13,7 @@ import {
   type MouseEvent,
 } from "react";
 
-import { isNgheNghiepHubPath, NGANH_HOC_HUB_PATH, NGHE_NGHIEP_HUB_PATH } from "@/lib/cins/hubPaths";
+import { NGANH_HOC_HUB_PATH } from "@/lib/cins/hubPaths";
 import { TIM_KIEM_PATH } from "@/lib/search/paths";
 import {
   clearRecentSearches,
@@ -32,17 +32,11 @@ export function CinsTopbarSearch() {
   const listId = useId();
 
   const isNganhHub = pathname.startsWith(NGANH_HOC_HUB_PATH);
-  const isNgheHub = isNgheNghiepHubPath(pathname);
   const isTimKiem = pathname.startsWith(TIM_KIEM_PATH);
 
-  const action = isNganhHub
-    ? NGANH_HOC_HUB_PATH
-    : isNgheHub
-      ? NGHE_NGHIEP_HUB_PATH
-      : TIM_KIEM_PATH;
+  const action = isNganhHub ? NGANH_HOC_HUB_PATH : TIM_KIEM_PATH;
 
   const q = sp.get("q") ?? "";
-  const linhVuc = sp.get("linh_vuc") ?? "";
   const nhom = sp.get("group") ?? "";
   const kind = sp.get("kind") ?? "";
 
@@ -90,11 +84,7 @@ export function CinsTopbarSearch() {
 
   const placeholder = "Tìm kiếm";
 
-  const ariaLabel = isNganhHub
-    ? "Tìm ngành học"
-    : isNgheHub
-      ? "Tìm vị trí công việc"
-      : "Tìm kiếm trên CINs";
+  const ariaLabel = isNganhHub ? "Tìm ngành học" : "Tìm kiếm trên CINs";
 
   function rememberAndClose(query: string) {
     const next = pushRecentSearch(query);
@@ -179,9 +169,6 @@ export function CinsTopbarSearch() {
         onClick={() => inputRef.current?.focus()}
       >
         {isNganhHub && nhom ? <input type="hidden" name="nhom" value={nhom} /> : null}
-        {isNgheHub && linhVuc ? (
-          <input type="hidden" name="linh_vuc" value={linhVuc} />
-        ) : null}
         {isTimKiem && kind && kind !== "all" ? (
           <input type="hidden" name="kind" value={kind} />
         ) : null}

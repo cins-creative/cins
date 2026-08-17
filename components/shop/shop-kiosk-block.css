@@ -183,7 +183,7 @@
   outline-offset: 2px;
 }
 
-.shop-kiosk-ticker-thumb-btn .shop-img-protect-decoy {
+.shop-kiosk-ticker-thumb-btn .shop-img-protect-decoy-hit {
   z-index: 2;
 }
 
@@ -558,12 +558,15 @@
 }
 
 .shop-kiosk-preview-stage {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
+  display: block;
+  line-height: 0;
   max-width: 100vw;
   max-height: 100dvh;
   cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .shop-kiosk-preview-img {
@@ -574,8 +577,18 @@
   object-fit: contain;
   border-radius: 0;
   box-shadow: none;
+  display: block;
+  pointer-events: none;
   cursor: default;
   animation: shop-kiosk-preview-img-in 220ms ease-out;
+}
+
+.shop-kiosk-preview-stage > .shop-img-protect-wm {
+  z-index: 3;
+}
+
+.shop-kiosk-preview-stage > .shop-img-protect-decoy-hit {
+  z-index: 2;
 }
 
 .shop-kiosk-preview-caption {
@@ -2263,7 +2276,7 @@ a.shop-kiosk-catalog-kicker-link:hover {
   background: transparent;
 }
 
-.shop-kiosk-catalog-thumb-btn .shop-img-protect-decoy {
+.shop-kiosk-catalog-thumb-btn .shop-img-protect-decoy-hit {
   z-index: 2;
 }
 

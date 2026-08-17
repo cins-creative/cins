@@ -1,5 +1,4 @@
 import type { LinhVucRow } from "@/lib/career/types";
-import { NGHE_NGHIEP_HUB_PATH } from "@/lib/cins/hubPaths";
 
 export type WjLinhVucAsideItem = {
   slug: string;
@@ -34,5 +33,5 @@ export function mapLinhVucForGuestAside(
 }
 
 export function linhVucHubHref(slug: string): string {
-  return `${NGHE_NGHIEP_HUB_PATH}?linh_vuc=${encodeURIComponent(slug.trim())}`;
+  return `/community?linh_vuc=${encodeURIComponent(slug.trim())}`;
 }

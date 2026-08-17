@@ -1,15 +1,14 @@
+import { createCachedResource } from "@/lib/client-cache";
+import { type TagLoaiFilter } from "@/lib/tag/tag-loai";
 import {
-  PICKABLE_TAG_LOAI,
-  type PickableTagLoai,
-} from "@/lib/tag/tag-loai";
-import {
+  TAG_BROWSE_MAX,
   TAG_SUGGEST_CACHE_KEY,
   TAG_SUGGEST_CACHE_TTL_MS,
   TAG_SUGGEST_MAX,
   type TagSuggestRow,
 } from "@/lib/tag/suggest-types";
 
-export type LoaiFilter = PickableTagLoai | "all";
+export type LoaiFilter = TagLoaiFilter;
 
 export type IndexedTagSuggest = TagSuggestRow & {
   _n: string;
@@ -18,6 +17,95 @@ export type IndexedTagSuggest = TagSuggestRow & {
 };
 
 type CacheEntry = { ts: number; rows: TagSuggestRow[] };
+
+function validateTagSuggestIndex(raw: unknown): TagSuggestRow[] | null {
+  if (!Array.isArray(raw) || raw.length === 0) return null;
+  for (const item of raw) {
+    if (item == null || typeof item !== "object") return null;
+    const row = item as Record<string, unknown>;
+    if (typeof row.id !== "string" || !row.id.trim()) return null;
+    if (typeof row.tieu_de !== "string") return null;
+  }
+  return raw as TagSuggestRow[];
+}
+
+export async function fetchTagSuggestIndex(): Promise<TagSuggestRow[]> {
+  const res = await fetch("/api/tag/index");
+  if (!res.ok) return [];
+  const json = (await res.json().catch(() => null)) as
+    | { rows?: TagSuggestRow[] }
+    | null;
+  return json?.rows ?? [];
+}
+
+const tagSuggestIndexCache = createCachedResource<TagSuggestRow[]>({
+  keyPrefix: "tag-suggest-index",
+  ttlMs: TAG_SUGGEST_CACHE_TTL_MS,
+  persist: "session",
+  validate: validateTagSuggestIndex,
+  fetcher: async () => {
+    const rows = await fetchTagSuggestIndex();
+    if (rows.length === 0) {
+      throw new Error("tag-suggest-index-empty");
+    }
+    return rows;
+  },
+});
+
+function readLegacyTagSuggestCache(): CacheEntry | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(TAG_SUGGEST_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CacheEntry;
+    if (
+      !parsed ||
+      typeof parsed.ts !== "number" ||
+      !Array.isArray(parsed.rows)
+    ) {
+      return null;
+    }
+    if (Date.now() - parsed.ts > TAG_SUGGEST_CACHE_TTL_MS) return null;
+    const rows = validateTagSuggestIndex(parsed.rows);
+    if (!rows) return null;
+    return { ts: parsed.ts, rows };
+  } catch {
+    return null;
+  }
+}
+
+function migrateLegacyTagSuggestCache(): TagSuggestRow[] | null {
+  const legacy = readLegacyTagSuggestCache();
+  if (!legacy?.rows.length) return null;
+  tagSuggestIndexCache.write(legacy.rows);
+  try {
+    window.sessionStorage.removeItem(TAG_SUGGEST_CACHE_KEY);
+  } catch {
+    /* quota / private mode */
+  }
+  return legacy.rows;
+}
+
+/** RAM / session — không đợi mạng nếu đã warm. */
+export function peekTagSuggestIndex(): TagSuggestRow[] | null {
+  return tagSuggestIndexCache.peek() ?? migrateLegacyTagSuggestCache();
+}
+
+/** Gọi khi mở trình soạn — inflight dedup với menu `#`. */
+export function prefetchTagSuggestIndex(): void {
+  if (typeof window === "undefined") return;
+  void peekTagSuggestIndex();
+  tagSuggestIndexCache.prefetch();
+}
+
+export async function loadTagSuggestIndexClient(): Promise<TagSuggestRow[]> {
+  const peeked = peekTagSuggestIndex();
+  try {
+    return await tagSuggestIndexCache.fetch();
+  } catch {
+    return peeked ?? [];
+  }
+}
 
 export function normalizeVi(s: string): string {
   return s
@@ -39,34 +127,14 @@ export function indexTagSuggestRows(
   }));
 }
 
-export function readTagSuggestCache(): CacheEntry | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.sessionStorage.getItem(TAG_SUGGEST_CACHE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as CacheEntry;
-    if (
-      !parsed ||
-      typeof parsed.ts !== "number" ||
-      !Array.isArray(parsed.rows)
-    ) {
-      return null;
-    }
-    if (Date.now() - parsed.ts > TAG_SUGGEST_CACHE_TTL_MS) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-export function writeTagSuggestCache(rows: TagSuggestRow[]) {
-  if (typeof window === "undefined") return;
-  try {
-    const entry: CacheEntry = { ts: Date.now(), rows };
-    window.sessionStorage.setItem(TAG_SUGGEST_CACHE_KEY, JSON.stringify(entry));
-  } catch {
-    /* sessionStorage quota / disabled */
-  }
+function rowMatchesLoai(
+  row: { loai_bai_viet: string },
+  loaiFilter: LoaiFilter,
+  allowLoai?: ReadonlySet<string>,
+): boolean {
+  if (allowLoai && !allowLoai.has(row.loai_bai_viet)) return false;
+  if (loaiFilter !== "all" && row.loai_bai_viet !== loaiFilter) return false;
+  return true;
 }
 
 function scoreMatch(query: string, row: IndexedTagSuggest): number {
@@ -81,46 +149,24 @@ function scoreMatch(query: string, row: IndexedTagSuggest): number {
     else if (q.includes(c)) best = Math.max(best, 0.55);
   }
   if (row.so_nguoi_tagged > 0) {
-    best += Math.min(0.12, row.so_nguoi_tagged * 0.004);
+    best += Math.min(0.08, row.so_nguoi_tagged * 0.003);
   }
   if (row.so_gan > 0) {
-    best += Math.min(0.1, row.so_gan * 0.002);
+    best += Math.min(0.28, row.so_gan * 0.01);
   }
+  if (row.loai_bai_viet === "keyword") best += 0.02;
   return best;
 }
 
-function pickDiverse(
-  rows: TagSuggestRow[],
-  scores: Map<string, number>,
-  max = TAG_SUGGEST_MAX,
-): TagSuggestRow[] {
-  const byLoai = new Map<PickableTagLoai, TagSuggestRow[]>();
-  const sorted = [...rows].sort(
-    (a, b) => (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0),
+/** Keyword gắn nhiều bài đứng trước — `so_gan` rồi số người. */
+function compareTagPopularity(a: TagSuggestRow, b: TagSuggestRow): number {
+  return (
+    (b.so_gan ?? 0) - (a.so_gan ?? 0) ||
+    (b.so_nguoi_tagged ?? 0) - (a.so_nguoi_tagged ?? 0) ||
+    Number(b.loai_bai_viet === "keyword") -
+      Number(a.loai_bai_viet === "keyword") ||
+    a.tieu_de.localeCompare(b.tieu_de, "vi")
   );
-  for (const row of sorted) {
-    const bucket = byLoai.get(row.loai_bai_viet) ?? [];
-    bucket.push(row);
-    byLoai.set(row.loai_bai_viet, bucket);
-  }
-
-  const out: TagSuggestRow[] = [];
-  const seen = new Set<string>();
-  let round = 0;
-  while (out.length < max) {
-    let added = false;
-    for (const loai of PICKABLE_TAG_LOAI) {
-      const item = byLoai.get(loai)?.[round];
-      if (!item || seen.has(item.id)) continue;
-      seen.add(item.id);
-      out.push(item);
-      added = true;
-      if (out.length >= max) break;
-    }
-    if (!added) break;
-    round++;
-  }
-  return out;
 }
 
 export function filterTagSuggestIndex(
@@ -130,6 +176,7 @@ export function filterTagSuggestIndex(
     loaiFilter: LoaiFilter;
     excludeIds: ReadonlySet<string>;
     max?: number;
+    allowLoai?: ReadonlySet<string>;
   },
 ): TagSuggestRow[] {
   const q = normalizeVi(query.trim());
@@ -138,19 +185,39 @@ export function filterTagSuggestIndex(
   const scored = index
     .filter((row) => {
       if (options.excludeIds.has(row.id)) return false;
-      if (options.loaiFilter !== "all" && row.loai_bai_viet !== options.loaiFilter) {
+      if (!rowMatchesLoai(row, options.loaiFilter, options.allowLoai)) {
         return false;
       }
       return scoreMatch(q, row) > 0;
     })
     .map((row) => ({ row, score: scoreMatch(q, row) }));
 
-  const scores = new Map(scored.map((s) => [s.row.id, s.score]));
-  return pickDiverse(
-    scored.map((s) => s.row),
-    scores,
-    options.max ?? TAG_SUGGEST_MAX,
-  );
+  return scored
+    .sort(
+      (a, b) => b.score - a.score || compareTagPopularity(a.row, b.row),
+    )
+    .slice(0, options.max ?? TAG_SUGGEST_MAX)
+    .map((s) => s.row);
+}
+
+/** List lúc mở menu (chưa gõ) — sort lượt gắn thẻ (`so_gan`). */
+export function browseTagSuggestIndex(
+  index: ReadonlyArray<IndexedTagSuggest>,
+  options: {
+    loaiFilter: LoaiFilter;
+    excludeIds: ReadonlySet<string>;
+    max?: number;
+    allowLoai?: ReadonlySet<string>;
+  },
+): TagSuggestRow[] {
+  const max = options.max ?? TAG_BROWSE_MAX;
+  return index
+    .filter((row) => {
+      if (options.excludeIds.has(row.id)) return false;
+      return rowMatchesLoai(row, options.loaiFilter, options.allowLoai);
+    })
+    .sort(compareTagPopularity)
+    .slice(0, max);
 }
 
 export function enrichTagSuggestRows(
@@ -172,15 +239,6 @@ export function enrichTagSuggestRows(
       slug: row.slug ?? cached.slug ?? null,
     };
   });
-}
-
-export async function fetchTagSuggestIndex(): Promise<TagSuggestRow[]> {
-  const res = await fetch("/api/tag/index");
-  if (!res.ok) return [];
-  const json = (await res.json().catch(() => null)) as
-    | { rows?: TagSuggestRow[] }
-    | null;
-  return json?.rows ?? [];
 }
 
 export function titlesMatchQuery(

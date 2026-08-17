@@ -21,7 +21,7 @@ import {
   linhVucHubHref,
   mapLinhVucForGuestAside,
 } from "@/lib/cins/worldJourneyGuestAside";
-import { NGHE_NGHIEP_HUB_PATH, TIM_KHOA_HOC_HUB_PATH } from "@/lib/cins/hubPaths";
+import { TIM_KHOA_HOC_HUB_PATH } from "@/lib/cins/hubPaths";
 import { truongDetailHref } from "@/lib/nganh/truong-shared";
 import { listCoSoDaoTaoForListing } from "@/lib/to-chuc/listing-queries";
 
@@ -34,7 +34,7 @@ export async function KhamPhaLinhVucModule(_props: { ctx: HomeModuleCtx }) {
     <ModuleCard
       icon={Compass}
       title="Lĩnh vực"
-      moreHref={NGHE_NGHIEP_HUB_PATH}
+      moreHref="/community"
       moreLabel="Xem thêm"
     >
       {linhVucs.map((lv) => (

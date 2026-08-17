@@ -18,6 +18,8 @@ import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 
 export type VideoListingOpenPayload = {
   id: string;
+  /** Ô vừa click — player dùng item này làm clip mở đầu, không lấy phần tử đầu listing. */
+  item: GalleryMainItem;
   items: GalleryMainItem[];
   hasMore: boolean;
   nextOffset: number;
@@ -146,6 +148,7 @@ export function WorldJourneyVideoListing({
                 onOpen={() =>
                   onOpenVideo({
                     id: item.id,
+                    item,
                     items,
                     hasMore,
                     nextOffset: offset,
@@ -197,44 +200,44 @@ function VideoListingTile({
   const viewLabel = `Xem video ${item.label}`;
 
   return (
-    <button
-      type="button"
-      className="j-main-gallery-item j-main-gallery-item--caption-below"
-      onClick={(e) => {
-        if (
-          e.target instanceof Element &&
-          e.target.closest(".j-user-pop-wrap")
-        ) {
-          return;
-        }
-        onOpen();
-      }}
-      aria-label={viewLabel}
-    >
-      <div
-        className="j-main-gallery-thumb"
-        style={{ aspectRatio: String(thumbAspect ?? 16 / 9) }}
+    <div className="j-main-gallery-item j-main-gallery-item--caption-below">
+      <button
+        type="button"
+        className="j-main-gallery-item-hit"
+        onClick={onOpen}
+        aria-label={viewLabel}
       >
-        <GalleryItemVisual
-          src={visualSrc}
-          sizes={GALLERY_GRID_IMAGE_SIZES}
-          width={item.width}
-          height={item.height}
-          alt={item.label}
-          isVideo
-          videoProcessing={item.videoProcessing}
-          videoPreviewSrc={item.videoPreviewSrc}
-        />
-        <GalleryVideoPlayBadge />
-      </div>
+        <div
+          className="j-main-gallery-thumb"
+          style={{ aspectRatio: String(thumbAspect ?? 16 / 9) }}
+        >
+          <GalleryItemVisual
+            src={visualSrc}
+            sizes={GALLERY_GRID_IMAGE_SIZES}
+            width={item.width}
+            height={item.height}
+            alt={item.label}
+            isVideo
+            videoProcessing={item.videoProcessing}
+            videoPreviewSrc={item.videoPreviewSrc}
+          />
+          <GalleryVideoPlayBadge />
+        </div>
+      </button>
       <span className="j-main-gallery-info-panel">
-        <strong className="j-main-gallery-info-title">{item.label}</strong>
+        <button
+          type="button"
+          className="j-main-gallery-info-title"
+          onClick={onOpen}
+        >
+          {item.label}
+        </button>
         <GalleryAuthorRow
           authorName={item.authorName}
           authorAvatarUrl={item.authorAvatarUrl}
           authorSlug={item.authorSlug}
         />
       </span>
-    </button>
+    </div>
   );
 }

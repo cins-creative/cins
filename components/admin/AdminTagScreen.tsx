@@ -25,8 +25,7 @@ import type {
 
 const LOAI_FILTERS: { id: AdminTagLoaiFilter; label: string }[] = [
   { id: "all", label: "Tất cả" },
-  { id: "keyword", label: "Khái niệm" },
-  { id: "phan_mem", label: "Phần mềm" },
+  { id: "keyword", label: "Thẻ" },
   { id: "fandom", label: "Phân loại" },
 ];
 
@@ -37,9 +36,8 @@ const SORT_OPTIONS: { id: AdminTagSort; label: string }[] = [
 ];
 
 function loaiLabel(loai: string): string {
-  if (loai === "phan_mem") return "Phần mềm";
   if (loai === "fandom") return "Phân loại";
-  return "Khái niệm";
+  return "Thẻ";
 }
 
 function loaiFilterCount(

@@ -39,6 +39,8 @@ type Props = {
   processing?: boolean;
   preview?: PreviewMedia | null;
   noiDungBlocks?: Block[] | null;
+  /** Thay phát inline — vd. mở Reels trên World Journey. */
+  onPlay?: () => void;
 };
 
 export function resolveVideoPoster(
@@ -63,6 +65,7 @@ export function JourneyCardVideo({
   processing,
   preview,
   noiDungBlocks,
+  onPlay,
 }: Props) {
   const [playing, setPlaying] = useState(false);
   const [iframeReady, setIframeReady] = useState(false);
@@ -214,6 +217,10 @@ export function JourneyCardVideo({
       aria-label={`Phát video: ${title}`}
       onClick={(e) => {
         e.stopPropagation();
+        if (onPlay) {
+          onPlay();
+          return;
+        }
         setPlaying(true);
       }}
       /* Kéo poster video → gửi URL video vào chat (desktop). */

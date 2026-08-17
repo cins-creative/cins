@@ -1,6 +1,12 @@
+import { cookies } from "next/headers";
+
 import { JourneyTimeline } from "@/components/journey/JourneyTimeline";
 import { listPendingDongGopFeedbackBanners } from "@/lib/article/dong-gop/notify-feedback";
 import { getBillingJourneyPin } from "@/lib/billing/journey-ghim";
+import {
+  BILLING_JOURNEY_PIN_HIDE_COOKIE,
+  isBillingJourneyPinHidden,
+} from "@/lib/billing/journey-pin-hide";
 import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
 import {
   getCachedMilestoneTimelinePage,
@@ -29,6 +35,13 @@ export async function JourneyTimelineSection({
   viewerProfileId,
   filterVisibility,
 }: Props) {
+  const hideBillingPin =
+    isOwner &&
+    isBillingJourneyPinHidden(
+      (await cookies()).get(BILLING_JOURNEY_PIN_HIDE_COOKIE)?.value,
+      viewerProfileId ?? ownerId,
+    );
+
   const [
     page,
     coAuthorPendingInvites,
@@ -59,7 +72,9 @@ export async function JourneyTimelineSection({
     isOwner && viewerProfileId
       ? listPendingDongGopFeedbackBanners(viewerProfileId)
       : Promise.resolve([]),
-    isOwner ? getBillingJourneyPin(ownerId) : Promise.resolve(null),
+    hideBillingPin || !isOwner
+      ? Promise.resolve(null)
+      : getBillingJourneyPin(ownerId),
   ]);
 
   return (

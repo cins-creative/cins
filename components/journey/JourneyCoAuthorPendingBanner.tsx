@@ -49,7 +49,7 @@ export function JourneyCoAuthorPendingBanner({
   );
   const [respondingId, setRespondingId] = useState<string | null>(null);
   const preloadInflight = useRef(new Set<string>());
-  /** Invite đang ở bước chọn vị trí công việc trước khi accept. */
+  /** Invite đang ở bước chọn vai trò trên tác phẩm trước khi accept. */
   const [pickingId, setPickingId] = useState<string | null>(null);
   const [pickedPositions, setPickedPositions] = useState<string[]>([]);
   const [roleOptions, setRoleOptions] = useState<CoAuthorNgheRoleOption[]>([]);
@@ -277,7 +277,7 @@ export function JourneyCoAuthorPendingBanner({
             {isPicking ? (
               <div className="j-coauthor-pending-pick">
                 <p className="j-coauthor-pending-pick-label">
-                  Chọn vị trí công việc của bạn trong dự án (tối đa 2):
+                  Vai trò của bạn trên tác phẩm (tối đa 2):
                 </p>
                 <CoAuthorPositionPicker
                   value={pickedPositions}

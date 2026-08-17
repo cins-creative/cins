@@ -4,17 +4,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { TagDedupMatch } from "@/lib/tag/dedup";
 import {
+  browseTagSuggestIndex,
   enrichTagSuggestRows,
-  fetchTagSuggestIndex,
   filterTagSuggestIndex,
   indexTagSuggestRows,
-  readTagSuggestCache,
+  loadTagSuggestIndexClient,
+  peekTagSuggestIndex,
   titlesMatchQuery,
-  writeTagSuggestCache,
   type IndexedTagSuggest,
   type LoaiFilter,
 } from "@/lib/tag/suggest-index-client";
 import {
+  TAG_BROWSE_MAX,
   TAG_SUGGEST_DEBOUNCE_MS,
   TAG_SUGGEST_MAX,
   type TagSuggestRow,
@@ -28,8 +29,12 @@ type Options = {
   query: string;
   loaiFilter: LoaiFilter;
   excludeIds: ReadonlySet<string>;
-  /** Giới hạn số gợi ý (mặc định TAG_SUGGEST_MAX). */
+  /** Giới hạn số gợi ý khi đang gõ (mặc định TAG_SUGGEST_MAX). */
   max?: number;
+  /** Giới hạn list lúc chưa gõ (mặc định TAG_BROWSE_MAX). */
+  browseMax?: number;
+  /** Thu hẹp loại (vd. compose: keyword + fandom). */
+  allowLoai?: ReadonlySet<string>;
 };
 
 export function useTagSuggestSearch({
@@ -38,6 +43,8 @@ export function useTagSuggestSearch({
   loaiFilter,
   excludeIds,
   max = TAG_SUGGEST_MAX,
+  browseMax = TAG_BROWSE_MAX,
+  allowLoai,
 }: Options) {
   const [index, setIndex] = useState<IndexedTagSuggest[] | null>(null);
   const [indexLoading, setIndexLoading] = useState(false);
@@ -57,22 +64,19 @@ export function useTagSuggestSearch({
   );
 
   const ensureIndex = useCallback(() => {
-    if (index || indexLoading) return;
-    setIndexLoading(true);
-
-    const cached = readTagSuggestCache();
-    if (cached) {
-      setIndex(indexTagSuggestRows(cached.rows));
+    const peeked = peekTagSuggestIndex();
+    if (peeked) {
+      setIndex((prev) => prev ?? indexTagSuggestRows(peeked));
     }
+    if (index || indexLoading) return;
+    if (!peeked) setIndexLoading(true);
 
     void (async () => {
       try {
-        const rows = await fetchTagSuggestIndex();
+        const rows = await loadTagSuggestIndexClient();
         if (rows.length > 0) {
-          writeTagSuggestCache(rows);
           setIndex(indexTagSuggestRows(rows));
         } else {
-          // Tránh kẹt loading mãi khi API fail/401/timeout (index === null).
           setIndex((prev) => prev ?? []);
         }
       } catch {
@@ -94,8 +98,19 @@ export function useTagSuggestSearch({
       loaiFilter,
       excludeIds,
       max,
+      allowLoai,
     });
-  }, [index, trimmed, loaiFilter, excludeIds, max]);
+  }, [index, trimmed, loaiFilter, excludeIds, max, allowLoai]);
+
+  const browse = useMemo(() => {
+    if (trimmed || !index) return [];
+    return browseTagSuggestIndex(index, {
+      loaiFilter,
+      excludeIds,
+      max: browseMax,
+      allowLoai,
+    });
+  }, [index, trimmed, loaiFilter, excludeIds, browseMax, allowLoai]);
 
   const suggestions = useMemo(() => {
     if (!serverSuggestions) return localSuggestions;
@@ -105,6 +120,7 @@ export function useTagSuggestSearch({
     for (const row of server) {
       if (seen.has(row.id)) continue;
       if (loaiFilter !== "all" && row.loai_bai_viet !== loaiFilter) continue;
+      if (allowLoai && !allowLoai.has(row.loai_bai_viet)) continue;
       if (excludeIds.has(row.id)) continue;
       seen.add(row.id);
       merged.push(row);
@@ -117,6 +133,7 @@ export function useTagSuggestSearch({
     loaiFilter,
     excludeIds,
     max,
+    allowLoai,
   ]);
 
   const runDedup = useCallback(
@@ -220,15 +237,17 @@ export function useTagSuggestSearch({
   );
 
   const loading =
-    Boolean(trimmed) &&
-    !exactMatch &&
-    suggestions.length === 0 &&
-    (refining || indexLoading || !index);
+    (!trimmed && !index && indexLoading) ||
+    (Boolean(trimmed) &&
+      !exactMatch &&
+      suggestions.length === 0 &&
+      (refining || indexLoading || !index));
 
   return {
     trimmed,
     exactMatch,
     suggestions,
+    browse,
     refining,
     loading,
     hasExactSuggestion,

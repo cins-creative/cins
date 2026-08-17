@@ -68,6 +68,8 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 
 ## Thay đổi lớn gần đây (tóm tắt — chi tiết ở DECISIONS)
 
+**Tag ngầm + gỡ thư viện nghề (2026-08-16):** Compose không chip loại, tạo `keyword`; vai trò TEXT không mint nghề; 308 `/careers` → `/`. Plan: `PLAN_tag_ngam_go_thu_vien.md`. Xem DECISIONS LOG + FOUNDATIONS §1.
+
 **Analytics scale P0–P3 (2026-08-13):** DEFAULT partition + cron lease; insight/rollup prune `tao_luc`; unique `social_da_xem`; feed đọc da_xem + `social_dem_doi_tuong`. Plan: `PLAN_analytics_scale.md`. Xem DECISIONS LOG.
 
 **Đo lường tiếp cận (2026-08-09 · code 2026-08-13):** Insight riêng tư (k-anon 5, không vanity, không đo chat); `phien_id` hash trên đơn; báo cáo gắn phiên + tiếp cận loại trục 1. Cron `POST /api/noi-bo/social/cron`. Xem DECISIONS A23 + LOG.

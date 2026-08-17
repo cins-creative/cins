@@ -79,16 +79,24 @@ function isProtectedPath(pathname: string): boolean {
   return false;
 }
 
-/** URL cũ `?tab=nganh-hoc` → `/majors` (giữ `q`, `group`) trước khi render trang. */
+/** URL cũ `?tab=nganh-hoc` → `/majors`; `?linh_vuc=` → `/community` (hub `/careers` đã gỡ). */
 function redirectLegacyNganhHubTab(request: NextRequest): NextResponse | null {
   const { pathname, searchParams } = request.nextUrl;
   if (pathname !== "/careers") return null;
-  if (searchParams.get("tab") !== "nganh-hoc") return null;
-
-  const url = request.nextUrl.clone();
-  url.pathname = "/majors";
-  url.searchParams.delete("tab");
-  return NextResponse.redirect(url, 308);
+  if (searchParams.get("tab") === "nganh-hoc") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/majors";
+    url.searchParams.delete("tab");
+    return NextResponse.redirect(url, 308);
+  }
+  const linhVuc = searchParams.get("linh_vuc")?.trim();
+  if (linhVuc) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/community";
+    url.searchParams.delete("tab");
+    return NextResponse.redirect(url, 308);
+  }
+  return null;
 }
 
 /**

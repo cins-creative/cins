@@ -1,10 +1,16 @@
 import "server-only";
 
+import { getAvatarUrl } from "@/lib/journey/profile";
+import {
+  shopLoaiHref,
+  shopSlugFromTen,
+} from "@/lib/shop/cua-hang-href";
 import {
   normalizeTaxonomyKeyword,
   suggestDanhMucFromTen,
 } from "@/lib/shop/danh-muc";
 import { parseTenNhomMoi } from "@/lib/shop/danh-muc-yeu-cau-text";
+import { shopImageUrl } from "@/lib/shop/settings";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 const STOPWORDS = new Set([
@@ -31,6 +37,7 @@ const STOPWORDS = new Set([
 
 const YEU_CAU_PER_DAY = 5;
 const ALIAS_PROMOTE_MIN_SHOP = 3;
+const HANG_CHO_MAU_MAX = 6;
 
 function tokensFromNhan(nhan: string): string[] {
   const q = normalizeTaxonomyKeyword(nhan);
@@ -258,6 +265,18 @@ export type AliasUngVienHangCho = {
   soNhom: number;
 };
 
+export type HangChoNguoiDeXuat = {
+  ten: string;
+  slug: string;
+  avatarUrl: string | null;
+};
+
+export type HangChoMau = {
+  id: string;
+  ten: string;
+  anhUrl: string | null;
+};
+
 export type YeuCauDanhMucHangCho = {
   id: string;
   idNhom: string;
@@ -271,6 +290,11 @@ export type YeuCauDanhMucHangCho = {
   trangThai: string;
   taoLuc: string;
   soShopCungCum: number;
+  nguoiDeXuat: HangChoNguoiDeXuat | null;
+  hangHref: string | null;
+  nhomAnhUrl: string | null;
+  soMau: number;
+  mau: HangChoMau[];
 };
 
 export async function listHangChoDanhMuc(): Promise<{
@@ -337,7 +361,7 @@ export async function listHangChoDanhMuc(): Promise<{
   const { data: ycRows, error: ycErr } = await admin
     .from("shop_danh_muc_yeu_cau")
     .select(
-      "id, id_nhom, tu_khoa_chuan, mo_ta, id_danh_muc_gan_nhat, cum, trang_thai, tao_luc",
+      "id, id_nhom, id_nguoi_dung, tu_khoa_chuan, mo_ta, id_danh_muc_gan_nhat, cum, trang_thai, tao_luc",
     )
     .eq("trang_thai", "moi")
     .order("tao_luc", { ascending: false })
@@ -346,6 +370,7 @@ export async function listHangChoDanhMuc(): Promise<{
       Array<{
         id: string;
         id_nhom: string;
+        id_nguoi_dung: string;
         tu_khoa_chuan: string;
         mo_ta: string;
         id_danh_muc_gan_nhat: string | null;
@@ -359,14 +384,90 @@ export async function listHangChoDanhMuc(): Promise<{
   }
 
   const nhomIds = [...new Set((ycRows ?? []).map((r) => r.id_nhom))];
+  const ownerIds = [
+    ...new Set((ycRows ?? []).map((r) => r.id_nguoi_dung).filter(Boolean)),
+  ];
   const nhanByNhom = new Map<string, string>();
+  const anhByNhom = new Map<string, string | null>();
   if (nhomIds.length > 0) {
     const { data: nhoms } = await admin
       .from("shop_nhom")
-      .select("id, nhan")
+      .select("id, nhan, anh_id")
       .in("id", nhomIds)
-      .returns<Array<{ id: string; nhan: string }>>();
-    for (const n of nhoms ?? []) nhanByNhom.set(n.id, n.nhan);
+      .returns<Array<{ id: string; nhan: string; anh_id: string | null }>>();
+    for (const n of nhoms ?? []) {
+      nhanByNhom.set(n.id, n.nhan);
+      anhByNhom.set(n.id, shopImageUrl(n.anh_id));
+    }
+  }
+
+  const nguoiById = new Map<string, HangChoNguoiDeXuat>();
+  const shopTenByOwner = new Map<string, string | null>();
+  if (ownerIds.length > 0) {
+    const [{ data: users }, { data: shops }] = await Promise.all([
+      admin
+        .from("user_nguoi_dung")
+        .select("id, ten_hien_thi, slug, avatar_id")
+        .in("id", ownerIds)
+        .returns<
+          Array<{
+            id: string;
+            ten_hien_thi: string | null;
+            slug: string | null;
+            avatar_id: string | null;
+          }>
+        >(),
+      admin
+        .from("shop_cua_hang")
+        .select("id_nguoi_dung, ten")
+        .in("id_nguoi_dung", ownerIds)
+        .eq("da_xoa", false)
+        .returns<Array<{ id_nguoi_dung: string; ten: string | null }>>(),
+    ]);
+    for (const u of users ?? []) {
+      const slug = u.slug?.trim() || "";
+      nguoiById.set(u.id, {
+        ten: u.ten_hien_thi?.trim() || slug || "Seller",
+        slug,
+        avatarUrl: getAvatarUrl(u.avatar_id),
+      });
+    }
+    for (const s of shops ?? []) {
+      shopTenByOwner.set(s.id_nguoi_dung, s.ten);
+    }
+  }
+
+  const mauByNhom = new Map<string, HangChoMau[]>();
+  const soMauByNhom = new Map<string, number>();
+  if (nhomIds.length > 0) {
+    const { data: mauRows } = await admin
+      .from("shop_san_pham")
+      .select("id, ten, anh_id, id_nhom")
+      .in("id_nhom", nhomIds)
+      .eq("da_xoa", false)
+      .order("tao_luc", { ascending: false })
+      .limit(Math.min(nhomIds.length * HANG_CHO_MAU_MAX, 240))
+      .returns<
+        Array<{
+          id: string;
+          ten: string;
+          anh_id: string | null;
+          id_nhom: string | null;
+        }>
+      >();
+    for (const row of mauRows ?? []) {
+      const nid = row.id_nhom?.trim();
+      if (!nid) continue;
+      soMauByNhom.set(nid, (soMauByNhom.get(nid) ?? 0) + 1);
+      const list = mauByNhom.get(nid) ?? [];
+      if (list.length >= HANG_CHO_MAU_MAX) continue;
+      list.push({
+        id: row.id,
+        ten: row.ten,
+        anhUrl: shopImageUrl(row.anh_id),
+      });
+      mauByNhom.set(nid, list);
+    }
   }
 
   const ganIds = [
@@ -414,24 +515,39 @@ export async function listHangChoDanhMuc(): Promise<{
     }
   }
 
-  const yeuCau: YeuCauDanhMucHangCho[] = (ycRows ?? []).map((r) => ({
-    id: r.id,
-    idNhom: r.id_nhom,
-    nhanNhom: nhanByNhom.get(r.id_nhom) ?? null,
-    tuKhoaChuan: r.tu_khoa_chuan,
-    moTa: r.mo_ta,
-    idDanhMucGanNhat: r.id_danh_muc_gan_nhat,
-    tenDanhMucGanNhat: r.id_danh_muc_gan_nhat
-      ? (tenGan.get(r.id_danh_muc_gan_nhat) ?? null)
-      : null,
-    ganNhatLaCha: r.id_danh_muc_gan_nhat
-      ? chaGan.has(r.id_danh_muc_gan_nhat)
-      : false,
-    cum: r.cum,
-    trangThai: r.trang_thai,
-    taoLuc: r.tao_luc,
-    soShopCungCum: shopByCum.get(r.cum)?.size ?? 1,
-  }));
+  const yeuCau: YeuCauDanhMucHangCho[] = (ycRows ?? []).map((r) => {
+    const nguoi = nguoiById.get(r.id_nguoi_dung) ?? null;
+    const shopSlug = nguoi?.slug
+      ? shopSlugFromTen(shopTenByOwner.get(r.id_nguoi_dung), nguoi.slug)
+      : "";
+    const hangHref =
+      nguoi?.slug && shopSlug
+        ? shopLoaiHref(nguoi.slug, shopSlug, r.id_nhom)
+        : null;
+    return {
+      id: r.id,
+      idNhom: r.id_nhom,
+      nhanNhom: nhanByNhom.get(r.id_nhom) ?? null,
+      tuKhoaChuan: r.tu_khoa_chuan,
+      moTa: r.mo_ta,
+      idDanhMucGanNhat: r.id_danh_muc_gan_nhat,
+      tenDanhMucGanNhat: r.id_danh_muc_gan_nhat
+        ? (tenGan.get(r.id_danh_muc_gan_nhat) ?? null)
+        : null,
+      ganNhatLaCha: r.id_danh_muc_gan_nhat
+        ? chaGan.has(r.id_danh_muc_gan_nhat)
+        : false,
+      cum: r.cum,
+      trangThai: r.trang_thai,
+      taoLuc: r.tao_luc,
+      soShopCungCum: shopByCum.get(r.cum)?.size ?? 1,
+      nguoiDeXuat: nguoi,
+      hangHref,
+      nhomAnhUrl: anhByNhom.get(r.id_nhom) ?? null,
+      soMau: soMauByNhom.get(r.id_nhom) ?? 0,
+      mau: mauByNhom.get(r.id_nhom) ?? [],
+    };
+  });
 
   return { alias, yeuCau };
 }

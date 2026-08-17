@@ -1,9 +1,7 @@
 import {
   isCoSoDaoTaoHubPath,
-  isNgheNghiepHubPath,
   isTimKhoaHocHubPath,
   isToChucHubPath,
-  NGHE_NGHIEP_HUB_PATH,
   TIM_KHOA_HOC_HUB_PATH,
   TO_CHUC_HUB_PATH,
 } from "@/lib/cins/hubPaths";
@@ -73,14 +71,6 @@ export const MAIN_NAV_ITEMS: MainNavItem[] = [
     tip: "Tin nóng, sự kiện và World Journey — trang chủ CINs của bạn",
     icon: "home",
     isActive: (p) => p === "/",
-  },
-  {
-    id: "career",
-    href: NGHE_NGHIEP_HUB_PATH,
-    label: "Khám phá nghề",
-    tip: "120+ vị trí nghề: mô tả công việc, kỹ năng cần học, lương trung bình và lộ trình",
-    icon: "career",
-    isActive: isNgheNghiepHubPath,
   },
   {
     id: "org",

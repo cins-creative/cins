@@ -2498,19 +2498,6 @@
 .cins-admin .table-wrap--articles .admin-article-thumb {
   width: 52px;
   border-radius: 6px;
-  transition:
-    width 0.16s ease,
-    box-shadow 0.16s ease,
-    border-color 0.16s ease;
-}
-
-.cins-admin .table-wrap--articles .admin-article-thumb--has-img:hover,
-.cins-admin .table-wrap--articles .admin-article-thumb--has-img:focus-within {
-  width: 104px;
-  aspect-ratio: 4 / 3;
-  z-index: 30;
-  box-shadow: var(--shadow-md);
-  border-color: color-mix(in srgb, var(--cins-blue) 35%, var(--border));
 }
 
 .cins-admin .table-wrap--articles .admin-article-thumb__ph {

@@ -9,7 +9,6 @@ import {
   ShoppingBag,
   Sparkles,
   Store,
-  X,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -30,6 +29,8 @@ import { WorldJourneyFeedTimeline } from "@/components/cins/world-journey/WorldJ
 import { WorldJourneyGuestLeftAside } from "@/components/cins/world-journey/WorldJourneyGuestLeftAside";
 import { WorldJourneyGuestRightAside } from "@/components/cins/world-journey/WorldJourneyGuestRightAside";
 import { useMobileFeedChromeHide } from "@/components/cins/world-journey/useMobileFeedChromeHide";
+import { useWorldJourneyAsideSwipe } from "@/components/cins/world-journey/useWorldJourneyAsideSwipe";
+import { WorldJourneyOpenFeedVideoProvider } from "@/components/cins/world-journey/WorldJourneyOpenFeedVideoContext";
 import { WorldJourneyVideoFeed } from "@/components/cins/world-journey/WorldJourneyVideoFeed";
 import {
   WorldJourneyVideoListing,
@@ -84,6 +85,12 @@ import {
 import { mergeMilestoneIntoTimeline } from "@/lib/journey/timeline-merge";
 import type { FeedPromoVariant } from "@/lib/cins/worldJourneyFeedPromosTypes";
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
+import { galleryItemFromFeedMilestone } from "@/lib/cins/worldJourneyMilestoneVideo";
+import {
+  pushVideoPlayUrl,
+  readVideoPlayIdFromWindow,
+  videoPlayHref,
+} from "@/lib/cins/worldJourneyVideoUrl";
 
 import "@/app/[slug]/journey/image-grid.css";
 import "@/app/[slug]/journey/journey.css";
@@ -141,13 +148,55 @@ const SURFACE_PANE_ORDER: readonly FeedSurfaceView[] = [
 
 type SurfacePaneSnapshot = {
   view: FeedSurfaceView;
-  milestones: MilestoneItem[];
-  galleryRows: GalleryMainItem[];
+  milestones: ReadonlyArray<MilestoneItem>;
+  galleryRows: ReadonlyArray<GalleryMainItem>;
   galleryMore: boolean;
   galleryOffset: number;
   filterLoading: boolean;
   dir: 1 | -1;
 };
+
+/** Session Reels — đóng băng playlist lúc click, không dính list listing đang fetch. */
+type ReelSession = {
+  startId: string;
+  items: GalleryMainItem[];
+  hasMore: boolean;
+  nextOffset: number;
+};
+
+function isStreamVideoItem(item: GalleryMainItem): boolean {
+  return Boolean(item.streamUid?.trim());
+}
+
+function playlistStartingAt(
+  list: readonly GalleryMainItem[],
+  startId: string,
+  clicked?: GalleryMainItem | null,
+): GalleryMainItem[] {
+  const stream = list.filter(isStreamVideoItem);
+  const head =
+    clicked && isStreamVideoItem(clicked) && clicked.id === startId
+      ? clicked
+      : stream.find((item) => item.id === startId) ?? null;
+  if (!head) return stream;
+  const rest = stream.filter((item) => item.id !== startId);
+  return [head, ...rest];
+}
+
+function reelSessionFromPlayId(
+  playId: string | null,
+  list: readonly GalleryMainItem[] = [],
+  hasMore = true,
+  nextOffset = 0,
+): ReelSession | null {
+  if (!playId) return null;
+  return {
+    startId: playId,
+    items: playlistStartingAt(list, playId),
+    hasMore,
+    nextOffset,
+  };
+}
 
 function surfacePaneIndex(view: FeedSurfaceView): number {
   const i = SURFACE_PANE_ORDER.indexOf(view);
@@ -208,18 +257,13 @@ function feedViewHref(view: FeedSurfaceView, playId?: string | null): string {
     }
     return `/?view=${view}`;
   }
+  if (view === "video" && playId) return videoPlayHref(playId);
   const url = new URL(window.location.href);
   if (view === "journey") url.searchParams.delete("view");
   else url.searchParams.set("view", view);
-  if (view === "video" && playId) url.searchParams.set("play", playId);
-  else url.searchParams.delete("play");
+  url.hash = "";
   const q = url.searchParams.toString();
   return q ? `${url.pathname}?${q}` : url.pathname;
-}
-
-function videoPlayIdFromSearch(search: string): string | null {
-  const id = new URLSearchParams(search).get("play")?.trim();
-  return id || null;
 }
 
 function WorldJourneyFilterBar({
@@ -279,16 +323,6 @@ function WorldJourneyFilterBar({
   );
 }
 
-/** Vuốt ngang tối thiểu để mở / đóng drawer (px). */
-const WJ_ASIDE_SWIPE_MIN_DX = 56;
-/** |dy| vượt ngưỡng này → coi là cuộn dọc, bỏ qua. */
-const WJ_ASIDE_SWIPE_MAX_DY = 48;
-/** Không mở sidebar khi bắt đầu drag trên vùng cuộn ngang (vd. kiosk ticker). */
-const WJ_ASIDE_SWIPE_IGNORE =
-  ".shop-kiosk-ticker-hit, .shop-kiosk-ticker, .shop-kiosk-ticker-track, .wj-feed-promo-rail-track";
-/** Thời gian anim drawer / backdrop (khớp CSS). */
-const WJ_ASIDE_DRAWER_MS = 320;
-
 function WorldJourneyFilterSearching({
   surface,
 }: {
@@ -340,6 +374,8 @@ export function WorldJourneyFeed({
   rightAside,
   pendingConfirmations,
   feedPromos,
+  initialView,
+  initialPlayId,
 }: {
   sidebarProfile: SidebarProfile;
   viewerProfileId: string;
@@ -356,28 +392,36 @@ export function WorldJourneyFeed({
   /** Banner "việc cần xác nhận" — hiện đầu cột feed để user chú ý. */
   pendingConfirmations?: ReactNode;
   feedPromos?: FeedPromoVariant[];
+  /** Từ URL SSR — tránh đọc `window` lúc hydrate. */
+  initialView?: string;
+  initialPlayId?: string;
 }) {
-  const [surfaceView, setSurfaceView] = useState<FeedSurfaceView>(() =>
-    typeof window !== "undefined"
-      ? initialSurfaceView(window.location.search)
-      : "journey",
+  const [surfaceView, setSurfaceView] = useState<FeedSurfaceView>(
+    () => parseFeedSurfaceView(initialView ?? null) ?? "journey",
   );
-  const [playingVideoId, setPlayingVideoId] = useState<string | null>(() =>
-    typeof window !== "undefined"
-      ? videoPlayIdFromSearch(window.location.search)
-      : null,
+  const [reelSession, setReelSession] = useState<ReelSession | null>(() =>
+    reelSessionFromPlayId(
+      initialPlayId?.trim() || null,
+      galleryItems,
+      galleryHasMore,
+      galleryNextOffset,
+    ),
   );
   const surfaceViewRef = useRef(surfaceView);
-  const playingVideoIdRef = useRef(playingVideoId);
+  const reelSessionRef = useRef(reelSession);
   const [openAside, setOpenAside] = useState<OpenAside>(null);
-  /** Giữ backdrop trong DOM thêm 1 nhịp để fade-out. */
-  const [backdropMounted, setBackdropMounted] = useState(false);
   const [backdropOn, setBackdropOn] = useState(false);
   const homeRootRef = useRef<HTMLDivElement | null>(null);
   const openAsideRef = useRef<OpenAside>(null);
   openAsideRef.current = openAside;
 
-  useMobileFeedChromeHide(homeRootRef, !openAside && !playingVideoId);
+  useMobileFeedChromeHide(homeRootRef, !openAside && !reelSession);
+  useWorldJourneyAsideSwipe({
+    rootRef: homeRootRef,
+    openAsideRef,
+    surfaceViewRef,
+    setOpenAside,
+  });
 
   const closeAside = useCallback(() => {
     setOpenAside(null);
@@ -385,18 +429,12 @@ export function WorldJourneyFeed({
 
   useEffect(() => {
     if (openAside) {
-      setBackdropMounted(true);
       const id = window.requestAnimationFrame(() => {
         window.requestAnimationFrame(() => setBackdropOn(true));
       });
       return () => window.cancelAnimationFrame(id);
     }
     setBackdropOn(false);
-    const t = window.setTimeout(
-      () => setBackdropMounted(false),
-      WJ_ASIDE_DRAWER_MS,
-    );
-    return () => window.clearTimeout(t);
   }, [openAside]);
 
   useEffect(() => {
@@ -431,107 +469,6 @@ export function WorldJourneyFeed({
       mqTablet.removeEventListener("change", sync);
     };
   }, []);
-
-  /**
-   * Mobile/tablet: vuốt ngang → mở sidebar fullscreen (trái ← vuốt phải;
-   * phải ← vuốt trái). Bỏ qua khi drag kiosk ticker / rail ngang.
-   * Khi đang mở: vuốt ngược hướng đóng lại.
-   */
-  useEffect(() => {
-    const root = homeRootRef.current;
-    if (!root) return;
-
-    type TouchTrack = {
-      x: number;
-      y: number;
-      /** true = đang theo dõi để mở; false = đang mở sẵn (đóng). */
-      opening: boolean;
-    };
-    let track: TouchTrack | null = null;
-
-    const viewOk = () => {
-      const v = surfaceViewRef.current;
-      return v !== "gallery" && v !== "video";
-    };
-    const canOpenLeft = () =>
-      viewOk() && window.matchMedia("(max-width: 991.98px)").matches;
-    const canOpenRight = () =>
-      viewOk() && window.matchMedia("(max-width: 1199.98px)").matches;
-
-    const onStart = (e: TouchEvent) => {
-      if (e.touches.length !== 1) {
-        track = null;
-        return;
-      }
-      const el = e.target;
-      if (
-        el instanceof Element &&
-        el.closest(WJ_ASIDE_SWIPE_IGNORE)
-      ) {
-        track = null;
-        return;
-      }
-      const t = e.touches[0];
-      const open = openAsideRef.current;
-      if (open) {
-        track = { x: t.clientX, y: t.clientY, opening: false };
-        return;
-      }
-      if (!canOpenLeft() && !canOpenRight()) {
-        track = null;
-        return;
-      }
-      track = { x: t.clientX, y: t.clientY, opening: true };
-    };
-
-    const onEnd = (e: TouchEvent) => {
-      if (!track || e.changedTouches.length !== 1) {
-        track = null;
-        return;
-      }
-      const t = e.changedTouches[0];
-      const dx = t.clientX - track.x;
-      const dy = t.clientY - track.y;
-      const wasOpening = track.opening;
-      track = null;
-
-      if (Math.abs(dy) > WJ_ASIDE_SWIPE_MAX_DY) return;
-      if (Math.abs(dx) < WJ_ASIDE_SWIPE_MIN_DX) return;
-      if (Math.abs(dx) < Math.abs(dy) * 1.2) return;
-
-      const open = openAsideRef.current;
-      if (open === "left") {
-        if (dx < 0) closeAside();
-        return;
-      }
-      if (open === "right") {
-        if (dx > 0) closeAside();
-        return;
-      }
-      if (!wasOpening) return;
-      /* Vuốt phải → cột trái; vuốt trái → cột phải. */
-      if (dx > 0 && canOpenLeft()) {
-        setOpenAside("left");
-        return;
-      }
-      if (dx < 0 && canOpenRight()) {
-        setOpenAside("right");
-      }
-    };
-
-    const onCancel = () => {
-      track = null;
-    };
-
-    root.addEventListener("touchstart", onStart, { passive: true });
-    root.addEventListener("touchend", onEnd, { passive: true });
-    root.addEventListener("touchcancel", onCancel, { passive: true });
-    return () => {
-      root.removeEventListener("touchstart", onStart);
-      root.removeEventListener("touchend", onEnd);
-      root.removeEventListener("touchcancel", onCancel);
-    };
-  }, [closeAside]);
 
   /** Loại nội dung cố định «Tất cả» — UI lọc đã gỡ. */
   const activeFilter = "all";
@@ -590,8 +527,8 @@ export function WorldJourneyFeed({
   const [exitPane, setExitPane] = useState<SurfacePaneSnapshot | null>(null);
   const paneSnapshotRef = useRef<{
     view: FeedSurfaceView;
-    milestones: MilestoneItem[];
-    galleryRows: GalleryMainItem[];
+    milestones: ReadonlyArray<MilestoneItem>;
+    galleryRows: ReadonlyArray<GalleryMainItem>;
     galleryMore: boolean;
     galleryOffset: number;
     filterLoading: boolean;
@@ -612,8 +549,8 @@ export function WorldJourneyFeed({
   }, [surfaceView]);
 
   useEffect(() => {
-    playingVideoIdRef.current = playingVideoId;
-  }, [playingVideoId]);
+    reelSessionRef.current = reelSession;
+  }, [reelSession]);
 
   useEffect(() => {
     activeFilterRef.current = activeFilter;
@@ -765,30 +702,76 @@ export function WorldJourneyFeed({
       window.history.back();
       return;
     }
-    setPlayingVideoId(null);
+    setReelSession(null);
+    const url = new URL(window.location.href);
+    url.searchParams.set("view", "video");
+    url.searchParams.delete("play");
+    url.hash = "";
+    const q = url.searchParams.toString();
     window.history.replaceState(
       { wjView: "video" },
       "",
-      feedViewHref("video"),
+      q ? `${url.pathname}?${q}` : url.pathname,
     );
   }, []);
 
   const openVideoPlayer = useCallback((payload: VideoListingOpenPayload) => {
+    const startId = payload.item.id || payload.id;
+    /* Giữ list listing để lúc đóng Reels không mất trang đã tải. */
     setGalleryRows(payload.items);
     setGalleryMore(payload.hasMore);
     setGalleryOffset(payload.nextOffset);
-    setPlayingVideoId(payload.id);
-    window.history.pushState(
-      { wjView: "video", play: payload.id },
-      "",
-      feedViewHref("video", payload.id),
-    );
+    setOpenAside(null);
+    setSurfaceView("video");
+    setReelSession({
+      startId,
+      items: playlistStartingAt(payload.items, startId, payload.item),
+      hasMore: payload.hasMore,
+      nextOffset: payload.nextOffset,
+    });
+    pushVideoPlayUrl(startId);
   }, []);
+
+  const openVideoFromMilestone = useCallback(
+    (milestone: MilestoneItem) => {
+      const item = galleryItemFromFeedMilestone(milestone);
+      if (!item) return;
+
+      const prev = surfaceViewRef.current;
+      if (prev === "journey" || prev === "shop") {
+        timelineCacheRef.current[prev] = {
+          milestones: feedMilestones,
+          hasMore,
+          nextOffset,
+        };
+      }
+
+      const cacheKey = gallerySurfaceCacheKey("video", "video", "all");
+      const cached = galleryCacheRef.current[cacheKey];
+      const cachedItems = (cached?.items ?? []).filter(isStreamVideoItem);
+      const items = cachedItems.some((row) => row.id === item.id)
+        ? cachedItems
+        : [item, ...cachedItems];
+
+      openVideoPlayer({
+        id: item.id,
+        item,
+        items,
+        hasMore: cached?.hasMore ?? true,
+        nextOffset: cached?.nextOffset ?? 0,
+      });
+
+      if (!galleryCacheHasStreamVideos(cached)) {
+        void prefetchSurface("video");
+      }
+    },
+    [feedMilestones, hasMore, nextOffset, openVideoPlayer, prefetchSurface],
+  );
 
   const handleSurfaceView = useCallback(
     (next: FeedSurfaceView) => {
       if (surfaceViewRef.current === next) {
-        if (next === "video" && playingVideoIdRef.current) {
+        if (next === "video" && reelSessionRef.current) {
           closeVideoPlayer();
           return;
         }
@@ -818,7 +801,7 @@ export function WorldJourneyFeed({
       }
       const snap = paneSnapshotRef.current;
       const skipPan =
-        prefersReducedMotion() || Boolean(playingVideoIdRef.current);
+        prefersReducedMotion() || Boolean(reelSessionRef.current);
       if (!skipPan && snap) {
         window.scrollTo(0, 0);
         const dir: 1 | -1 =
@@ -880,7 +863,7 @@ export function WorldJourneyFeed({
         }
       }
       setOpenAside(null);
-      setPlayingVideoId(null);
+      setReelSession(null);
       setSurfaceView(next);
       window.history.pushState({ wjView: next }, "", feedViewHref(next));
     },
@@ -921,16 +904,41 @@ export function WorldJourneyFeed({
       return;
     }
     setSurfaceView(initialSurfaceView(window.location.search));
-    setPlayingVideoId(
-      feedViewFromSearch(window.location.search) === "video"
-        ? videoPlayIdFromSearch(window.location.search)
-        : null,
-    );
+    const playId = readVideoPlayIdFromWindow();
+    const view = feedViewFromSearch(window.location.search);
+    if (view === "video" && playId) {
+      setReelSession((cur) => {
+        if (cur?.startId === playId && cur.items.length > 0) return cur;
+        return reelSessionFromPlayId(
+          playId,
+          galleryItems,
+          galleryHasMore,
+          galleryNextOffset,
+        );
+      });
+    } else if (view !== "video") {
+      setReelSession(null);
+    }
     const onPop = () => {
       const next = feedViewFromSearch(window.location.search);
-      setPlayingVideoId(
-        next === "video" ? videoPlayIdFromSearch(window.location.search) : null,
-      );
+      const nextPlay = readVideoPlayIdFromWindow();
+      if (next === "video" && nextPlay) {
+        setReelSession((cur) => {
+          if (cur?.startId === nextPlay && cur.items.length > 0) return cur;
+          const cached =
+            galleryCacheRef.current[
+              gallerySurfaceCacheKey("video", "video", "all")
+            ];
+          return reelSessionFromPlayId(
+            nextPlay,
+            cached?.items ?? galleryItems,
+            cached?.hasMore ?? galleryHasMore,
+            cached?.nextOffset ?? galleryNextOffset,
+          );
+        });
+      } else {
+        setReelSession(null);
+      }
       if (next === "journey" || next === "shop") {
         const cached = timelineCacheRef.current[next];
         if (cached) {
@@ -1439,7 +1447,7 @@ export function WorldJourneyFeed({
 
   /** Prefetch tab lân cận khi idle — đổi tab không chờ query trang đầu. */
   useEffect(() => {
-    if (playingVideoId) return;
+    if (reelSession) return;
     if (connectionSaveData()) return;
 
     const idx = surfacePaneIndex(surfaceView);
@@ -1492,7 +1500,7 @@ export function WorldJourneyFeed({
     activeFilter,
     feedSource,
     activeLinhVucSlug,
-    playingVideoId,
+    reelSession,
     prefetchSurface,
   ]);
 
@@ -1535,10 +1543,8 @@ export function WorldJourneyFeed({
 
   const isGallery = surfaceView === "gallery";
   const isVideo = surfaceView === "video";
-  const isVideoPlaying = isVideo && Boolean(playingVideoId);
-  const isVideoListing = isVideo && !playingVideoId;
-  const isTimelineFeed =
-    surfaceView === "journey" || surfaceView === "shop";
+  const isVideoPlaying = isVideo && Boolean(reelSession);
+  const isVideoListing = isVideo && !reelSession;
 
   paneSnapshotRef.current = {
     view: surfaceView,
@@ -1551,8 +1557,8 @@ export function WorldJourneyFeed({
 
   const renderSurfaceBody = (model: {
     view: FeedSurfaceView;
-    milestones: MilestoneItem[];
-    galleryRows: GalleryMainItem[];
+    milestones: ReadonlyArray<MilestoneItem>;
+    galleryRows: ReadonlyArray<GalleryMainItem>;
     galleryMore: boolean;
     galleryOffset: number;
     filterLoading: boolean;
@@ -1725,6 +1731,7 @@ export function WorldJourneyFeed({
   };
 
   return (
+    <WorldJourneyOpenFeedVideoProvider value={openVideoFromMilestone}>
     <div
       ref={homeRootRef}
       className={
@@ -1735,45 +1742,16 @@ export function WorldJourneyFeed({
       }
       aria-label="World Journey"
     >
-      {backdropMounted ? (
-        <button
-          type="button"
-          className={
-            "wj-aside-drawer-backdrop" + (backdropOn ? " is-on" : "")
-          }
-          aria-label="Đóng cột sidebar"
-          onClick={closeAside}
-        />
-      ) : null}
-      {openAside ? (
-        <button
-          type="button"
-          className={`wj-aside-drawer-close wj-aside-drawer-close--${openAside}`}
-          aria-label="Đóng sidebar"
-          onClick={closeAside}
-        >
-          <X size={20} strokeWidth={2.2} aria-hidden />
-        </button>
-      ) : null}
-      {/* Mép click/tap → mở drawer fixed (song song với swipe). */}
-      {!isGallery && !isVideo && isTimelineFeed && !openAside ? (
-        <>
-          <button
-            type="button"
-            className="wj-aside-edge wj-aside-edge--left"
-            aria-label="Mở cột trái"
-            aria-controls="wj-aside-left"
-            onClick={() => setOpenAside("left")}
-          />
-          <button
-            type="button"
-            className="wj-aside-edge wj-aside-edge--right"
-            aria-label="Mở cột phải"
-            aria-controls="wj-aside-right"
-            onClick={() => setOpenAside("right")}
-          />
-        </>
-      ) : null}
+      <button
+        type="button"
+        className={
+          "wj-aside-drawer-backdrop" + (backdropOn ? " is-on" : "")
+        }
+        aria-label="Đóng cột sidebar"
+        aria-hidden={!openAside}
+        tabIndex={openAside ? 0 : -1}
+        onClick={closeAside}
+      />
       <div
         className="wj-shell"
         data-open-aside={openAside ?? undefined}
@@ -1807,7 +1785,7 @@ export function WorldJourneyFeed({
           </header>
 
           {pendingConfirmations}
-          {isVideoPlaying ? (
+          {isVideoPlaying && reelSession ? (
             <div
               className={
                 "wj-video-feed-host" +
@@ -1818,12 +1796,12 @@ export function WorldJourneyFeed({
               aria-busy={filterLoading || undefined}
             >
               <WorldJourneyVideoFeed
-                key={`${videoEndpoint}:${playingVideoId}`}
-                initialItems={galleryRows}
-                hasMore={galleryMore}
-                nextOffset={galleryOffset}
+                key={reelSession.startId}
+                initialItems={reelSession.items}
+                hasMore={reelSession.hasMore}
+                nextOffset={reelSession.nextOffset}
                 endpoint={videoEndpoint}
-                startItemId={playingVideoId}
+                startItemId={reelSession.startId}
                 onClose={closeVideoPlayer}
               />
             </div>
@@ -1878,5 +1856,6 @@ export function WorldJourneyFeed({
       </div>
       <VideoProcessingPoller ownerSlug={sidebarProfile.slug} />
     </div>
+    </WorldJourneyOpenFeedVideoProvider>
   );
 }

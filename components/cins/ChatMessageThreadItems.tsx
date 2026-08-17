@@ -32,6 +32,7 @@ import {
   chatMessageMediaEntries,
   groupChatMessages,
 } from "@/lib/chat/message-albums";
+import { hideSupersededMocNotices } from "@/lib/chat/moc-notice-latest";
 import {
   chatMessageHasInteractiveMedia,
   chatMessageMediaLayout,
@@ -983,13 +984,20 @@ export function ChatMessageThreadItems({
   canConfirmHocPhi = false,
   orgBrand = null,
 }: ChatMessageThreadItemsProps) {
-  const items = useMemo(() => groupChatMessages(messages), [messages]);
+  const visibleMessages = useMemo(
+    () => hideSupersededMocNotices(messages),
+    [messages],
+  );
+  const items = useMemo(
+    () => groupChatMessages(visibleMessages),
+    [visibleMessages],
+  );
   const byMessage = useMemo(
     () =>
       groupReadCursorsByMessage(
-        snapReadCursorsToOwnMessages(readCursors, messages),
+        snapReadCursorsToOwnMessages(readCursors, visibleMessages),
       ),
-    [readCursors, messages],
+    [readCursors, visibleMessages],
   );
 
   /* Gallery toàn hội thoại — filmstrip lightbox xem nhanh ảnh xung quanh

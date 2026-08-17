@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgeCheck, CircleSlash, Clock } from "lucide-react";
+import { BadgeCheck, CircleSlash, Clock, Van } from "lucide-react";
 
 import {
   donCapNhatTieuDe,
@@ -21,7 +21,13 @@ export function ChatDonCapNhatNotice({
 }) {
   const tone = donCapNhatTone(capNhat);
   const Icon =
-    tone === "huy" ? CircleSlash : tone === "xong" ? BadgeCheck : Clock;
+    tone === "huy"
+      ? CircleSlash
+      : tone === "xong"
+        ? BadgeCheck
+        : capNhat.trangThai === "dang_giao"
+          ? Van
+          : Clock;
 
   return (
     <span className={`cins-chat-don-capnhat is-${tone}`} role="status">

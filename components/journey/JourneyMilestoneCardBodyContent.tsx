@@ -97,6 +97,8 @@ type Props = {
   readMoreHref?: string | null;
   /** Feed tổng hợp — album/video chỉ hiện cover, không full grid/embed. */
   compactMediaPreview?: boolean;
+  /** Trang chủ World Journey — click poster Stream mở Reels, không lightbox. */
+  onOpenStreamVideo?: () => void;
   /** Org bài đăng / feed — caption photo/video là nội dung chính, không thu gọn. */
   disableCaptionCollapse?: boolean;
   /** `inline` — «xem thêm...» cuối dòng; `overlay` — CTA «Xem đầy đủ» (mặc định Journey). */
@@ -132,6 +134,7 @@ export function JourneyMilestoneCardBodyContent({
   onChiChuExpandedChange,
   readMoreHref = null,
   compactMediaPreview = false,
+  onOpenStreamVideo,
   disableCaptionCollapse = false,
   captionExpandMode = "overlay",
   hasLinkedPost = false,
@@ -663,7 +666,18 @@ export function JourneyMilestoneCardBodyContent({
           </div>
         ) : null}
 
-        <div className="jcard-media-zone">
+        <div
+          className="jcard-media-zone"
+          onClickCapture={
+            onOpenStreamVideo
+              ? (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onOpenStreamVideo();
+                }
+              : undefined
+          }
+        >
           {useCompactMedia ? (
             readMoreHref ? (
               <Link href={readMoreHref} className="preview" prefetch={false}>
@@ -707,6 +721,7 @@ export function JourneyMilestoneCardBodyContent({
                   : null
               }
               noiDungBlocks={blocks ?? undefined}
+              onPlay={onOpenStreamVideo}
             />
           ) : isAlbumHeroGrid && hasCoverPreview && preview && photoGridImages?.length ? (
             <div className="jcard-photo-album">
@@ -719,7 +734,11 @@ export function JourneyMilestoneCardBodyContent({
                     ? { aspectRatio: preview.aspectRatio }
                     : undefined
                 }
-                onClick={() => setAlbumLightboxIndex(0)}
+                onClick={() =>
+                  onOpenStreamVideo
+                    ? onOpenStreamVideo()
+                    : setAlbumLightboxIndex(0)
+                }
               >
                 <JourneyCoverImage
                   src={preview.src}
@@ -744,6 +763,7 @@ export function JourneyMilestoneCardBodyContent({
                   onLightboxIndexChange={setAlbumLightboxIndex}
                   lightboxImages={albumHeroLightboxImages ?? undefined}
                   lightboxIndexOffset={1}
+                  onOpenOverride={onOpenStreamVideo}
                 />
               </div>
             </div>
@@ -754,6 +774,7 @@ export function JourneyMilestoneCardBodyContent({
                 readOnly
                 timelineLightbox
                 albumLayoutMode={albumLayoutMode}
+                onOpenOverride={onOpenStreamVideo}
               />
             </div>
           ) : (isPhotoSingle || isPhotoCard) &&
@@ -776,6 +797,7 @@ export function JourneyMilestoneCardBodyContent({
                 readOnly
                 timelineLightbox
                 albumLayoutMode={albumLayoutMode}
+                onOpenOverride={onOpenStreamVideo}
               />
             </div>
           ) : isTextWithImage && hasCoverPreview && preview ? (

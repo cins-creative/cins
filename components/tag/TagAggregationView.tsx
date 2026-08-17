@@ -28,8 +28,11 @@ type Props = {
 };
 
 function loaiLabel(loai: LoaiBaiViet): string {
-  if (loai === "phan_mem") return "Phần mềm";
-  return "Khái niệm";
+  if (loai === "mon_hoc") return "Môn học";
+  if (loai === "nghe") return "Nghề nghiệp";
+  if (loai === "nganh_dao_tao") return "Ngành";
+  if (loai === "fandom") return "Phân loại";
+  return "Thẻ";
 }
 
 export async function TagAggregationView({ article, sort }: Props) {

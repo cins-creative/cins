@@ -22,13 +22,7 @@ function matchesRoleOption(option: CoAuthorNgheRoleOption, query: string): boole
   const q = normalizeText(query.trim());
   if (!q) return true;
   const haystack = normalizeText(
-    [
-      option.roleLabel,
-      option.roleShort,
-      option.roleEng,
-      option.linhVucTen,
-      option.tieuDe,
-    ]
+    [option.roleLabel, option.roleShort, option.roleEng, option.tieuDe]
       .filter(Boolean)
       .join(" "),
   );
@@ -59,7 +53,7 @@ export function CoAuthorRoleInput({
   onChange,
   options,
   ariaLabel,
-  placeholder = "Tìm vị trí công việc",
+  placeholder = "Vai trò trên tác phẩm",
   onSelect,
   onAddCustom,
 }: Props) {
@@ -246,11 +240,6 @@ export function CoAuthorRoleInput({
                     onClick={() => selectOption(option)}
                     onMouseEnter={() => setActiveIndex(index)}
                   >
-                    {option.linhVucTen ? (
-                      <span className="ed-coauthor-role-option-lv">
-                        {option.linhVucTen}
-                      </span>
-                    ) : null}
                     <span className="ed-coauthor-role-option-body">
                       <span className="ed-coauthor-role-option-title">
                         {option.roleShort}

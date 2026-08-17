@@ -14,8 +14,8 @@ import type {
 const KICKER_LINE: Record<string, string> = {
   nghe: "Nghề nghiệp",
   nganh_dao_tao: "Ngành đào tạo",
-  phan_mem: "Phần mềm",
-  keyword: "Keyword",
+  phan_mem: "Thẻ",
+  keyword: "Thẻ",
   mon_hoc: "Môn học",
   linh_vuc: "Lĩnh vực",
   blog: "Blog",

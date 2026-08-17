@@ -149,7 +149,7 @@ export function AuthorRoleTooltip({ role, className }: Props) {
   }, [setAnchorHover]);
 
   const desc = preview?.tomTat?.trim() || null;
-  const displayRole = preview?.roleLabel ?? role;
+  const displayRole = preview?.roleShort ?? role;
   const href =
     hasMatch && preview?.slug
       ? articlePublicHref("nghe", preview.slug)
@@ -228,10 +228,8 @@ export function AuthorRoleTooltip({ role, className }: Props) {
                 </div>
               ) : null}
               <div className="j-nghe-role-tip-body">
-                <div className="j-tag-tip-kind">
-                  {preview.linhVucTen ?? "Nghề nghiệp"}
-                </div>
-                <div className="j-nghe-role-tip-title">{preview.roleLabel}</div>
+                <div className="j-tag-tip-kind">Vai trò</div>
+                <div className="j-nghe-role-tip-title">{preview.roleShort}</div>
                 {desc ? <p className="j-tag-tip-desc">{desc}</p> : null}
                 <Link
                   href={articlePublicHref("nghe", preview.slug)}

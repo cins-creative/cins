@@ -819,6 +819,13 @@
   overflow-x: clip;
 }
 
+.wj-feed-pane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wj-feed-gap);
+  min-width: 0;
+}
+
 .wj-feed-pane--live {
   position: relative;
   z-index: 2;
@@ -4018,89 +4025,25 @@
   background: rgba(15, 23, 42, 0.45);
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.32s cubic-bezier(0.2, 0.7, 0.3, 1);
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.32s cubic-bezier(0.2, 0.7, 0.3, 1),
+    visibility 0.32s linear;
   -webkit-tap-highlight-color: transparent;
 }
 
 .wj-aside-drawer-backdrop.is-on {
   opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
-/* Nút đóng drawer fullscreen — trên panel. */
-.wj-aside-drawer-close {
-  position: fixed;
-  top: calc(var(--site-nav-height, 64px) + 12px);
-  z-index: calc(var(--cins-app-topbar-z, 200) + 30);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 999px;
-  background: var(--bg-surface, #fff);
-  color: var(--ink-title, #1e293b);
-  box-shadow: var(--sh-md, 0 8px 28px rgba(15, 23, 42, 0.16));
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.wj-aside-drawer-close--left {
-  right: calc(12px + env(safe-area-inset-right, 0px));
-  left: auto;
-}
-
-.wj-aside-drawer-close--right {
-  left: calc(12px + env(safe-area-inset-left, 0px));
-  right: auto;
-}
-
-.wj-aside-drawer-close:focus-visible {
-  outline: 2px solid var(--cins-blue, #3b82f6);
-  outline-offset: 2px;
-}
-
-/* Mép màn hình: tap/click mở drawer fixed (ẩn nút header). */
-.wj-aside-edge {
-  position: fixed;
-  top: var(--wj-sticky-top, 64px);
-  bottom: 0;
-  z-index: 35;
-  width: 14px;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.wj-aside-edge--left {
-  left: 0;
-  display: none;
-}
-
-.wj-aside-edge--right {
-  right: 0;
-  display: none;
-}
-
-@media (max-width: 1199.98px) {
-  .wj-aside-edge--right {
-    display: block;
-  }
-}
-
-@media (max-width: 991.98px) {
-  .wj-aside-edge--left {
-    display: block;
-  }
-}
-
-.world-journey-home.view-grid .wj-aside-edge {
-  display: none;
+/* Kéo theo ngón: overlay mờ theo progress, không chặn touch. */
+.world-journey-home[data-dragging-aside] > .wj-aside-drawer-backdrop {
+  visibility: visible;
+  pointer-events: none;
+  transition: none;
+  opacity: var(--wj-aside-backdrop-o, 0);
 }
 
 /* Responsive */
@@ -4142,7 +4085,7 @@
     overscroll-behavior: contain;
     background: var(--bg-page, #f7f8fa);
     box-shadow: var(--sh-lg, 0 12px 40px rgba(15, 23, 42, 0.2));
-    transform: translate3d(100%, 0, 0);
+    transform: translate3d(var(--wj-aside-tx, 100%), 0, 0);
     visibility: hidden;
     pointer-events: none;
     transition:
@@ -4152,7 +4095,7 @@
 
   .world-journey-home .wj-shell[data-open-aside="right"] > .wj-guest-aside--right,
   .world-journey-home .wj-shell > .wj-guest-aside--right.is-open {
-    transform: translate3d(0, 0, 0);
+    transform: translate3d(var(--wj-aside-tx, 0%), 0, 0);
     visibility: visible;
     pointer-events: auto;
   }
@@ -4167,6 +4110,7 @@
     --wj-feed-gap: 14px;
     --wj-feed-card-gap: 14px;
     --wj-feed-pad-top: 0;
+    overscroll-behavior-x: none;
   }
 
   .world-journey-home .wj-shell {
@@ -4254,7 +4198,7 @@
     overscroll-behavior: contain;
     background: var(--bg-page, #f7f8fa);
     box-shadow: var(--sh-lg, 0 12px 40px rgba(15, 23, 42, 0.2));
-    transform: translate3d(-100%, 0, 0);
+    transform: translate3d(var(--wj-aside-tx, -100%), 0, 0);
     visibility: hidden;
     pointer-events: none;
     transition:
@@ -4264,7 +4208,7 @@
 
   .world-journey-home .wj-shell[data-open-aside="left"] > .wj-guest-aside--left,
   .world-journey-home .wj-shell > .wj-guest-aside--left.is-open {
-    transform: translate3d(0, 0, 0);
+    transform: translate3d(var(--wj-aside-tx, 0%), 0, 0);
     visibility: visible;
     pointer-events: auto;
   }
@@ -4473,7 +4417,9 @@
 }
 
 /* ── Video / Reels surface (Facebook-style) ── */
-/* Reels: cột flex lấp hết phần còn lại — tránh khe đáy do 100vh > 100dvh (Chrome mobile). */
+/* Reels: cột flex lấp hết phần còn lại — tránh khe đáy do 100vh > 100dvh (Chrome mobile).
+ * Không dùng `.cins-main:has(> .world-journey-home)` — home nằm trong div bọc
+ * (`cins-home-feed-root`), selector con trực tiếp không khớp → player cao 0px. */
 body:has(.world-journey-home.view-video) .cins-shell,
 body:has(.world-journey-home.view-video) .cins-shell-column {
   min-height: 100dvh;
@@ -4482,7 +4428,7 @@ body:has(.world-journey-home.view-video) .cins-shell-column {
   overflow: hidden;
 }
 
-.cins-main:has(> .world-journey-home.view-video) {
+body:has(.world-journey-home.view-video) .cins-main {
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -4490,12 +4436,37 @@ body:has(.world-journey-home.view-video) .cins-shell-column {
   overflow: hidden;
 }
 
+body:has(.world-journey-home.view-video) .cins-home-feed-root {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .world-journey-home.view-video {
   flex: 1;
   min-height: 0;
-  height: 100%;
+  height: calc(100dvh - var(--site-nav-height, 64px));
+  max-height: calc(100dvh - var(--site-nav-height, 64px));
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  background: #000;
+}
+
+.world-journey-home.view-video .wj-feed-header {
+  background: #000;
+  border-bottom-color: rgba(255, 255, 255, 0.14);
+  box-shadow: none;
+}
+.world-journey-home.view-video .wj-vt-btn {
+  color: rgba(255, 255, 255, 0.72);
+}
+.world-journey-home.view-video .wj-vt-btn.active,
+.world-journey-home.view-video .wj-vt-btn:hover {
+  color: #fff;
 }
 
 .world-journey-home.view-video .wj-shell {
@@ -4541,13 +4512,17 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 }
 
 .wj-video-feed {
-  --wj-reel-pad-y: 40px;
+  --wj-reel-pad-y: 28px;
   --wj-reel-pad-x: 24px;
   --wj-reel-rail-w: 72px;
+  --wj-reel-pan-ms: 420ms;
   /* Dọc (9:16) vs ngang fill-W (16:9). */
   --wj-reel-max-w-portrait: 420px;
   --wj-reel-max-w-landscape: min(960px, calc(100vw - 220px));
+  --wj-reel-slide-h: 100%;
+  --wj-reel-i: 0;
   position: relative;
+  display: block;
   width: 100%;
   height: min(
     calc(100dvh - var(--site-nav-height, 64px) - var(--wj-feed-header-h, 58px)),
@@ -4556,21 +4531,30 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   max-height: calc(
     100dvh - var(--site-nav-height, 64px) - var(--wj-feed-header-h, 58px)
   );
-  overflow-x: hidden;
-  overflow-y: auto;
-  scroll-snap-type: y mandatory;
-  overscroll-behavior-y: contain;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
   background: #000;
   border-radius: 0;
   color: #fff;
 }
 
-.wj-video-feed::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
+.wj-reel-track {
+  width: 100%;
+  will-change: transform;
+  transform: translate3d(
+    0,
+    calc(var(--wj-reel-i, 0) * var(--wj-reel-slide-h, 0px) * -1),
+    0
+  );
+  transition: transform var(--wj-reel-pan-ms, 420ms)
+    var(--ease, cubic-bezier(0.2, 0.7, 0.3, 1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wj-reel-track {
+    transition: none;
+  }
 }
 
 .wj-video-feed-wrap {
@@ -4584,9 +4568,24 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 
 .world-journey-home.view-video .wj-video-feed {
   flex: 1;
+  min-height: 0;
   height: auto;
   max-height: none;
-  min-height: 0;
+}
+
+.world-journey-home.view-video .wj-video-feed-wrap {
+  background: #000;
+}
+
+.world-journey-home.view-video .wj-feed-empty {
+  margin: 24px 16px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.world-journey-home.view-video .wj-feed-empty b {
+  color: #fff;
 }
 
 .wj-reel-back {
@@ -4618,24 +4617,43 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 }
 
 .wj-reel-snap {
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  min-height: 100%;
+  height: var(--wj-reel-slide-h, 100%);
+  min-height: var(--wj-reel-slide-h, 100%);
+  max-height: var(--wj-reel-slide-h, 100%);
   padding: var(--wj-reel-pad-y) var(--wj-reel-pad-x);
 }
 
 .wj-reel-stage {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   justify-content: center;
-  gap: 12px;
+  gap: 0;
   height: 100%;
   max-height: 100%;
+  min-height: 0;
+}
+
+.wj-reel-frame {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+
+.wj-reel-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  flex: 0 1 auto;
 }
 
 .wj-reel-stage[data-aspect="portrait"] {
@@ -4643,7 +4661,6 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
     100%,
     calc(var(--wj-reel-max-w-portrait) + var(--wj-reel-rail-w) + 12px)
   );
-  align-items: stretch;
 }
 
 .wj-reel-stage[data-aspect="landscape"] {
@@ -4656,7 +4673,8 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 .wj-reel-slide {
   position: relative;
   isolation: isolate;
-  flex: 0 1 auto;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: hidden;
   background: #0b0c0e;
   border: 1px solid rgba(255, 255, 255, 0.22);
@@ -4665,7 +4683,7 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   aspect-ratio: var(--wj-reel-aspect, 16 / 9);
 }
 
-.wj-reel-stage[data-aspect="portrait"] .wj-reel-slide {
+.wj-reel-stage[data-aspect="portrait"] .wj-reel-main {
   height: 100%;
   max-height: 100%;
   width: auto;
@@ -4673,16 +4691,30 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
     var(--wj-reel-max-w-portrait),
     calc(100% - var(--wj-reel-rail-w) - 12px)
   );
+}
+
+.wj-reel-stage[data-aspect="portrait"] .wj-reel-slide {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
   aspect-ratio: var(--wj-reel-aspect, 9 / 16);
 }
 
-.wj-reel-stage[data-aspect="landscape"] .wj-reel-slide {
+.wj-reel-stage[data-aspect="landscape"] .wj-reel-main {
   width: min(
     var(--wj-reel-max-w-landscape),
     calc(100% - var(--wj-reel-rail-w) - 12px)
   );
   height: auto;
   max-height: 100%;
+}
+
+.wj-reel-stage[data-aspect="landscape"] .wj-reel-slide {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
   aspect-ratio: var(--wj-reel-aspect, 16 / 9);
 }
 
@@ -4731,6 +4763,49 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   border: 0;
   background: transparent;
   cursor: pointer;
+  touch-action: none;
+}
+
+.wj-reel-nav {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transform: translateY(-50%);
+}
+
+.wj-reel-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.65));
+}
+
+.wj-reel-nav-btn:hover:not(:disabled),
+.wj-reel-nav-btn:focus-visible {
+  background: rgba(0, 0, 0, 0.55);
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.wj-reel-nav-btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.wj-reel-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 .wj-reel-pause-badge {
@@ -4761,7 +4836,7 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
-  padding: 0 0 56px;
+  padding: 0 0 8px;
   margin: 0;
   border: 0;
   background: transparent;
@@ -4908,25 +4983,17 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 }
 
 .wj-reel-meta {
-  position: absolute;
-  left: 0;
-  right: 0;
-  /* Nhường chỗ timeline sát cạnh dưới video. */
-  bottom: 14px;
+  position: static;
   z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 48px 14px 10px;
+  gap: 6px;
+  padding: 10px 2px 0;
   box-sizing: border-box;
-  pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(0, 0, 0, 0.22) 42%,
-    rgba(0, 0, 0, 0.62) 100%
-  );
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+  flex: 0 0 auto;
+  background: none;
+  text-shadow: none;
+  pointer-events: auto;
 }
 
 .wj-reel-meta a,
@@ -4935,16 +5002,14 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 }
 
 .wj-reel-timeline {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: relative;
   z-index: 3;
-  height: 28px;
+  flex: 0 0 auto;
+  height: 18px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 0 0 0;
+  padding: 8px 0 0;
   box-sizing: border-box;
   cursor: pointer;
   touch-action: none;
@@ -4995,7 +5060,7 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 
 .wj-reel-scrub-preview {
   position: absolute;
-  bottom: 18px;
+  bottom: 22px;
   z-index: 4;
   width: 112px;
   transform: translateX(-50%);
@@ -5028,13 +5093,12 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 
 .wj-reel-timeline-time {
   position: absolute;
-  right: 10px;
-  bottom: 10px;
+  right: 0;
+  top: 0;
   font-size: 11px;
   font-weight: 600;
   line-height: 1;
   color: rgba(255, 255, 255, 0.92);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
   pointer-events: none;
   font-variant-numeric: tabular-nums;
 }
@@ -5121,10 +5185,16 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 }
 
 .wj-reel-loading {
-  padding: 16px;
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  z-index: 6;
+  transform: translateX(-50%);
+  padding: 6px 12px;
   text-align: center;
   font-size: 13px;
   color: rgba(255, 255, 255, 0.7);
+  pointer-events: none;
 }
 
 .wj-video-feed .sr-only {
@@ -5150,6 +5220,14 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 }
 
 @media (max-width: 780px) {
+  .wj-reel-nav {
+    right: auto;
+    left: 12px;
+    top: auto;
+    bottom: 96px;
+    transform: none;
+  }
+
   .wj-video-feed {
     --wj-reel-pad-y: 0;
     --wj-reel-pad-x: 0;
@@ -5157,7 +5235,7 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
     --wj-reel-max-w-portrait: 100%;
     --wj-reel-max-w-landscape: 100%;
     flex: 1;
-    height: auto;
+    height: 100%;
     max-height: none;
     min-height: 0;
   }
@@ -5174,39 +5252,52 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
     align-items: stretch;
   }
 
+  .wj-reel-frame {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .wj-reel-stage[data-aspect="portrait"] .wj-reel-main,
+  .wj-reel-stage[data-aspect="landscape"] .wj-reel-main {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+  }
+
   .wj-reel-stage[data-aspect="portrait"] .wj-reel-slide,
   .wj-reel-stage[data-aspect="landscape"] .wj-reel-slide {
     width: 100%;
     max-width: none;
-    height: 100%;
+    height: auto;
     max-height: none;
     aspect-ratio: auto;
     border: 0;
     border-radius: 0;
     box-shadow: none;
+    flex: 1 1 auto;
+    min-height: 0;
   }
 
   .wj-reel-rail.jcard-actions {
-    position: absolute;
-    right: 8px;
-    bottom: 88px;
-    align-self: auto;
-    padding-bottom: 0;
+    position: static;
+    align-self: flex-end;
+    padding-bottom: 8px;
     gap: 8px;
   }
 
   .wj-reel-meta {
-    right: 0;
-    padding-right: 64px;
-    bottom: 14px;
+    padding: 10px 14px 12px;
   }
 
   .wj-reel-timeline {
-    height: 36px;
+    height: 16px;
+    padding: 6px 12px 0;
   }
 
   .wj-reel-timeline-time {
-    right: 64px;
+    right: 12px;
   }
 }
 
@@ -5244,7 +5335,7 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
     padding-top: 0;
     padding-bottom: 0;
     z-index: calc(var(--cins-app-topbar-z, 200) + 20);
-    transform: translate3d(100%, 0, 0);
+    transform: translate3d(var(--wj-aside-tx, 100%), 0, 0);
     visibility: hidden;
     pointer-events: none;
   }
@@ -5263,7 +5354,7 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
     padding-top: 0;
     padding-bottom: 0;
     align-self: auto;
-    transform: translate3d(0, 0, 0);
+    transform: translate3d(var(--wj-aside-tx, 0%), 0, 0);
     visibility: visible;
     pointer-events: auto;
   }
@@ -5279,7 +5370,7 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
     padding-top: 0;
     padding-bottom: 0;
     z-index: calc(var(--cins-app-topbar-z, 200) + 20);
-    transform: translate3d(-100%, 0, 0);
+    transform: translate3d(var(--wj-aside-tx, -100%), 0, 0);
     visibility: hidden;
     pointer-events: none;
   }
@@ -5298,7 +5389,7 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
     padding-top: 0;
     padding-bottom: 0;
     align-self: auto;
-    transform: translate3d(0, 0, 0);
+    transform: translate3d(var(--wj-aside-tx, 0%), 0, 0);
     visibility: visible;
     pointer-events: auto;
   }
@@ -5311,6 +5402,14 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   }
 }
 
+/* Vuốt kéo sidebar: hiện panel theo ngón, tắt transition lúc drag. */
+.world-journey-home[data-dragging-aside="left"] .wj-shell > .wj-guest-aside--left,
+.world-journey-home[data-dragging-aside="right"] .wj-shell > .wj-guest-aside--right {
+  visibility: visible;
+  pointer-events: none;
+  transition: none;
+  overflow: hidden;
+}
 
 .world-journey-home .ha-col::-webkit-scrollbar {
   display: none;
