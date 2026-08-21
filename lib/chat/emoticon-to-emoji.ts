@@ -3,7 +3,7 @@
  * Không đụng `http://` (`:/` sau chữ cái hoặc trước `/` thứ hai).
  */
 
-const EMOTICON_TO_EMOJI: [string, string][] = [
+const EMOTICON_PAIRS: [string, string][] = [
   ["</3", "💔"],
   [">:(", "😠"],
   [">:)", "😈"],
@@ -36,7 +36,10 @@ const EMOTICON_TO_EMOJI: [string, string][] = [
   ["=D", "😃"],
   [":/", "😕"],
   [":\\", "😕"],
-].sort((a, b) => b[0].length - a[0].length);
+];
+const EMOTICON_TO_EMOJI = EMOTICON_PAIRS.sort(
+  (a, b) => b[0].length - a[0].length,
+);
 
 const SCHEME_SLASH = new Set([":/", ":-/", ":\\", ":-\\"]);
 
