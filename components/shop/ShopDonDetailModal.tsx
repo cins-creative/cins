@@ -357,16 +357,16 @@ export function ShopDonDetailModal({
 
   const copyText = useCallback(
     async (text: string, label: string) => {
-      const t = text.trim();
-      if (!t) return;
+      const trimmed = text.trim();
+      if (!trimmed) return;
       try {
-        await navigator.clipboard.writeText(t);
+        await navigator.clipboard.writeText(trimmed);
         flashCopy(label);
       } catch {
         setErr(t("shop.order.copyFail"));
       }
     },
-    [flashCopy],
+    [flashCopy, t],
   );
 
   async function patch(
