@@ -1547,6 +1547,7 @@ function CommentRow({
   const menuRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLTextAreaElement>(null);
   const t = useT();
+  const locale = useLocale();
 
   const display = commentDisplayAuthor(comment, {
     org: t("comment.org"),
