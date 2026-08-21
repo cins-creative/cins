@@ -104,6 +104,39 @@ export function isTextStickyNode(
   return (node.layout.mau?.trim() ?? STICKY_PALETTE[0]) === TEXT_STICKY_MAU;
 }
 
+export function isAreaTextNode(
+  node: Pick<BoardNode, "loai" | "layout">,
+): boolean {
+  return isTextStickyNode(node) && node.layout.textKind === "area";
+}
+
+/** Đo khung ôm chữ (point text) — không wrap. */
+export function measureFitTextSize(
+  text: string,
+  fontSize = DEFAULT_TEXT_SIZE,
+): { w: number; h: number } {
+  const size = normalizeTextSize(fontSize);
+  const padX = 10;
+  const padY = 8;
+  const lineH = Math.round(size * 1.35);
+  const lines = (text.length > 0 ? text : " ").split("\n");
+  let maxW = size;
+  if (typeof document !== "undefined") {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.font = `600 ${size}px ${getComputedStyle(document.body).fontFamily || "sans-serif"}`;
+      for (const line of lines) {
+        maxW = Math.max(maxW, ctx.measureText(line.length > 0 ? line : " ").width);
+      }
+    }
+  }
+  return {
+    w: Math.max(48, Math.ceil(maxW + padX * 2)),
+    h: Math.max(lineH + padY * 2, lines.length * lineH + padY * 2),
+  };
+}
+
 export type BoardShapeKind = "rect" | "ellipse" | "diamond";
 
 export const SHAPE_KINDS: readonly BoardShapeKind[] = [
@@ -179,17 +212,37 @@ export function CanvasColorWheelInput({
   disabled,
   isActive,
   onPick,
+  onPreview,
   ariaLabel = "Màu tùy chọn",
   title,
 }: {
   value: string;
   disabled?: boolean;
   isActive?: boolean;
+  /** Commit (blur / nhả picker) — persist + history. */
   onPick: (hex: string) => void;
+  /** Kéo màu: chỉ sơn UI, không commit. */
+  onPreview?: (hex: string) => void;
   ariaLabel?: string;
   title?: string;
 }) {
-  const hex = toHexColor(value);
+  const committed = toHexColor(value);
+  const [live, setLive] = useState(committed);
+  const liveRef = useRef(committed);
+  const swatchRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    setLive(committed);
+    liveRef.current = committed;
+  }, [committed]);
+
+  const paintLive = (hex: string) => {
+    liveRef.current = hex;
+    setLive(hex);
+    if (swatchRef.current) swatchRef.current.style.background = hex;
+    onPreview?.(hex);
+  };
+
   return (
     <label
       className={
@@ -201,16 +254,19 @@ export function CanvasColorWheelInput({
     >
       <span className="cins-canvas-colorwheel-ring" aria-hidden />
       <span
+        ref={swatchRef}
         className="cins-canvas-colorwheel-current"
-        style={{ background: value }}
+        style={{ background: live }}
         aria-hidden
       />
       <input
         type="color"
-        value={hex}
+        value={live}
         disabled={disabled}
         aria-label={ariaLabel}
-        onChange={(e) => onPick(e.target.value)}
+        onInput={(e) => paintLive(e.currentTarget.value)}
+        onChange={(e) => paintLive(e.currentTarget.value)}
+        onBlur={() => onPick(liveRef.current)}
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
@@ -487,6 +543,8 @@ type NodeCardProps = {
   ) => void;
   /** Bubble bình luận — board cập nhật w/h theo nội dung. */
   onCommentSize?: (nodeId: string, size: { w: number; h: number }) => void;
+  /** Point text — board ôm khung theo chữ. */
+  onTextFitSize?: (nodeId: string, size: { w: number; h: number }) => void;
 };
 
 function StickyEditor({
@@ -497,11 +555,13 @@ function StickyEditor({
   tone = "sticky",
   textColor,
   textSize,
+  area = false,
 }: Pick<NodeCardProps, "node" | "onCommitText" | "onCancelEdit"> & {
-  onInputGrow?: () => void;
+  onInputGrow?: (value: string) => void;
   tone?: "sticky" | "comment";
   textColor?: string | null;
   textSize?: number | null;
+  area?: boolean;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
@@ -510,7 +570,7 @@ function StickyEditor({
     if (!el) return;
     el.style.height = "auto";
     el.style.height = `${Math.max(el.scrollHeight, tone === "comment" ? 20 : 40)}px`;
-    onInputGrow?.();
+    onInputGrow?.(el.value);
   };
 
   useEffect(() => {
@@ -528,7 +588,8 @@ function StickyEditor({
       ref={ref}
       className={
         "cins-canvas-sticky-editor" +
-        (tone === "comment" ? " is-comment" : "")
+        (tone === "comment" ? " is-comment" : "") +
+        (area ? " is-area" : "")
       }
       defaultValue={node.noiDung ?? ""}
       rows={1}
@@ -1008,6 +1069,7 @@ export function NodeCard({
   onRequestEdit,
   onImageNaturalSize,
   onCommentSize,
+  onTextFitSize,
 }: NodeCardProps) {
   const { loai, url, noiDung, messageId } = node;
   const mau = node.layout.mau ?? "";
@@ -1075,6 +1137,7 @@ export function NodeCard({
   } else {
     const shapeKind = normalizeShapeKind(node.layout.shapeKind);
     const isText = isTextStickyNode(node);
+    const isArea = isAreaTextNode(node);
     const paperMau = stickyPaperColor(mau);
     const textColor = isText ? node.layout.textColor : null;
     const textSize = isText ? node.layout.textSize : null;
@@ -1103,7 +1166,9 @@ export function NodeCard({
         <div
           className={
             "cins-canvas-card cins-canvas-card-sticky" +
-            (isText ? " is-text" : "")
+            (isText ? " is-text" : "") +
+            (isArea ? " is-text-area" : "") +
+            (isText && !isArea ? " is-text-fit" : "")
           }
           style={{
             backgroundColor: isText ? "transparent" : paperMau,
@@ -1116,6 +1181,16 @@ export function NodeCard({
               onCancelEdit={onCancelEdit}
               textColor={textColor}
               textSize={textSize}
+              area={isArea}
+              onInputGrow={
+                isText && !isArea && onTextFitSize
+                  ? (value) =>
+                      onTextFitSize(
+                        node.id,
+                        measureFitTextSize(value, textSize ?? undefined),
+                      )
+                  : undefined
+              }
             />
           ) : (
             <span className="cins-canvas-sticky-text" style={textStyle}>
