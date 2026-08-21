@@ -45,12 +45,10 @@ export function groupReadCursorsByMessage(
 }
 
 /**
- * Messenger-style: avatar «đã xem» chỉ neo dưới tin của mình.
- * Nếu watermark của người khác đang trỏ tin của họ (hoặc tin hệ thống),
- * kéo về tin `me` gần nhất phía trước — tránh hiện `is-them` gây hiểu nhầm
- * là đã đọc khi người xem chưa kịp mở nội dung.
+ * Neo avatar «đã xem» dưới đúng tin watermark đang trỏ (mọi người gửi).
+ * Tin đã xóa → kéo về tin còn hiện phía trước trong danh sách.
  */
-export function snapReadCursorsToOwnMessages(
+export function snapReadCursorsToVisibleMessages(
   cursors: ChatReadCursor[],
   messages: Array<Pick<ChatMessage, "id" | "from" | "deleted">>,
 ): ChatReadCursor[] {
@@ -69,7 +67,7 @@ export function snapReadCursorsToOwnMessages(
     let targetId: string | null = null;
     for (let i = at; i >= 0; i--) {
       const msg = messages[i]!;
-      if (msg.from === "me" && !msg.deleted) {
+      if (!msg.deleted) {
         targetId = msg.id;
         break;
       }

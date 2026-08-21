@@ -59,12 +59,15 @@ export function shopTamDongRemainingMs(
   return Math.max(0, den - nowMs);
 }
 
-export function formatShopMoLaiLuc(iso: string | null | undefined): string {
+export function formatShopMoLaiLuc(
+  iso: string | null | undefined,
+  locale: string = "vi-VN",
+): string {
   if (!iso) return "";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   try {
-    return new Intl.DateTimeFormat("vi-VN", {
+    return new Intl.DateTimeFormat(locale, {
       weekday: "short",
       day: "2-digit",
       month: "2-digit",
@@ -73,7 +76,7 @@ export function formatShopMoLaiLuc(iso: string | null | undefined): string {
       minute: "2-digit",
     }).format(d);
   } catch {
-    return d.toLocaleString("vi-VN");
+    return d.toLocaleString(locale);
   }
 }
 

@@ -3,6 +3,7 @@
 import { Ban, Check, Clock3, UserCheck, UserMinus, UserPlus, X, Bell, BellOff } from "lucide-react";
 import { useCallback, useEffect, useState, useTransition } from "react";
 
+import { useT } from "@/lib/i18n/use-t";
 import { emitNotificationsChanged } from "@/lib/journey/notifications-client";
 import {
   emitUserFollowChanged,
@@ -27,6 +28,7 @@ export function JourneyFollowButton({
   refreshStatus,
   compact = false,
 }: Props) {
+  const t = useT();
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -228,7 +230,9 @@ export function JourneyFollowButton({
       await refreshStatus();
       setMenuOpen(false);
       setUnfriending(false);
-      setNotice(quanHe === "accepted" ? "Đã hủy kết bạn" : "Đã huỷ lời mời");
+      setNotice(
+        quanHe === "accepted" ? t("social.unfriended") : t("social.inviteCancelled"),
+      );
       window.setTimeout(() => setNotice(null), 1800);
       emitNotificationsChanged();
     });
@@ -243,12 +247,12 @@ export function JourneyFollowButton({
 
   const label =
     quanHe === "accepted"
-      ? "Bạn bè"
+      ? t("social.friends")
       : quanHe === "pending_sent"
-        ? "Đã gửi lời mời"
+        ? t("social.inviteSent")
         : quanHe === "pending_received"
-          ? "Chấp nhận lời mời"
-          : "Kết bạn";
+          ? t("social.acceptInvite")
+          : t("social.friend");
 
   const Icon =
     quanHe === "accepted"
@@ -293,10 +297,10 @@ export function JourneyFollowButton({
           role="menu"
           aria-label={
             quanHe === "accepted"
-              ? "Tuỳ chọn bạn bè"
+              ? t("social.friendOptions")
               : quanHe === "pending_sent"
-                ? "Huỷ lời mời"
-                : "Phản hồi lời mời kết bạn"
+                ? t("social.cancelInvite")
+                : t("social.respondInvite")
           }
         >
           {quanHe === "accepted" ? (
@@ -312,7 +316,7 @@ export function JourneyFollowButton({
                 ) : (
                   <Bell size={13} strokeWidth={2} aria-hidden />
                 )}
-                {following ? "Bỏ theo dõi" : "Theo dõi"}
+                {following ? t("social.unfollow") : t("social.follow")}
               </button>
               <button
                 type="button"
@@ -321,7 +325,7 @@ export function JourneyFollowButton({
                 onClick={cancelOrUnfriend}
               >
                 <UserMinus size={13} strokeWidth={2} aria-hidden />
-                {unfriending ? "Đang hủy..." : "Hủy kết bạn"}
+                {unfriending ? t("social.unfriending") : t("social.unfriend")}
               </button>
             </>
           ) : quanHe === "pending_sent" ? (
@@ -332,7 +336,7 @@ export function JourneyFollowButton({
               onClick={cancelOrUnfriend}
             >
               <X size={13} strokeWidth={2} aria-hidden />
-              Huỷ lời mời
+              {t("social.cancelInvite")}
             </button>
           ) : (
             <>
@@ -343,7 +347,7 @@ export function JourneyFollowButton({
                 onClick={() => respondIncoming("accept")}
               >
                 <Check size={13} strokeWidth={2} aria-hidden />
-                Chấp nhận
+                {t("social.accept")}
               </button>
               <button
                 type="button"
@@ -352,7 +356,7 @@ export function JourneyFollowButton({
                 onClick={() => respondIncoming("decline")}
               >
                 <X size={13} strokeWidth={2} aria-hidden />
-                Từ chối
+                {t("social.decline")}
               </button>
             </>
           )}

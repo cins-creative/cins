@@ -31,6 +31,7 @@ import {
   findFirstOgPreviewUrl,
   isUrlOnlyBody,
 } from "@/lib/link/og-preview";
+import { isChatSoloEmojiBody } from "@/lib/chat/solo-emoji";
 import { buildChatVideoUrl } from "@/lib/chat/video-url";
 
 const CHAT_CONTEXT_LABEL: Record<string, string> = {
@@ -117,7 +118,7 @@ function MessageCaption({
   viewerUserId?: string | null;
 }) {
   return (
-    <p>
+    <p className={isChatSoloEmojiBody(text) ? "cins-chat-solo-emoji" : undefined}>
       <ChatMentionText
         text={text}
         mentions={msg.mentions}

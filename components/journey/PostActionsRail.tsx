@@ -1,6 +1,7 @@
 "use client";
 
 import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
+import { useT } from "@/lib/i18n/use-t";
 import { JourneySocialActorsModal } from "@/components/journey/JourneySocialActorsModal";
 import { ShareMilestoneToCongDongModal } from "@/components/journey/ShareMilestoneToCongDongModal";
 import { SharePostToFriendsPanel } from "@/components/social/SharePostToFriendsPanel";
@@ -98,6 +99,7 @@ export function PostShareMenu({
   ownerSlug = null,
   onAfterShareToCommunity,
 }: ShareMenuProps) {
+  const t = useT();
   const router = useRouter();
   const authGate = useOptionalAuthGate();
   const [shareOpen, setShareOpen] = useState(false);
@@ -271,7 +273,7 @@ export function PostShareMenu({
       ? [
           {
             id: "native",
-            label: "Chia sẻ…",
+            label: t("action.shareEllipsis"),
             iconClass: "post-byline-share-ic--native",
             iconLabel: "↗",
             onClick: () => void nativeShare(),
@@ -280,7 +282,7 @@ export function PostShareMenu({
       : []),
     {
       id: "copy",
-      label: copied ? "Đã sao chép!" : "Sao chép liên kết",
+      label: copied ? t("action.copied") : t("action.copyLink"),
       iconClass: "post-byline-share-ic--copy",
       iconLabel: "",
       onClick: () => void copyLink(),
@@ -340,11 +342,11 @@ export function PostShareMenu({
         }}
         aria-haspopup="menu"
         aria-expanded={shareOpen}
-        aria-label="Chia sẻ bài viết"
+        aria-label={t("action.sharePost")}
       >
         <Share2 size={16} strokeWidth={1.8} aria-hidden />
         {showLabel ? (
-          <span className="post-byline-share-label">Chia sẻ</span>
+          <span className="post-byline-share-label">{t("social.share")}</span>
         ) : null}
       </button>
 
@@ -373,7 +375,7 @@ export function PostShareMenu({
                 >
                   ←
                 </span>
-                <span>Quay lại</span>
+                <span>{t("action.back")}</span>
               </button>
               {flash ? (
                 <p className="j-m-share-friends-flash" role="status">
@@ -405,7 +407,7 @@ export function PostShareMenu({
                 >
                   <MessageCircle size={14} strokeWidth={2} />
                 </span>
-                <span>Gửi bạn bè, nhóm, tổ chức</span>
+                <span>{t("action.sendFriends")}</span>
               </button>
               {showCommunityShare ? (
                 <button
@@ -507,6 +509,7 @@ export function PostActionsRail({
   orientation = "horizontal",
   showLabels = false,
 }: Props) {
+  const t = useT();
   const isVertical = orientation === "vertical";
   const authGate = useOptionalAuthGate();
   const requireAuth = useCallback(
@@ -669,14 +672,14 @@ export function PostActionsRail({
         "post-byline-actions" +
         (isVertical ? " post-byline-actions--vertical" : "")
       }
-      aria-label="Hành động bài viết"
+      aria-label={t("action.postActions")}
     >
       <button
         type="button"
         className={`post-byline-act ${liked ? "is-active is-like" : ""}`}
         onClick={toggleLike}
         aria-pressed={liked}
-        aria-label={liked ? "Bỏ thích" : "Thích"}
+        aria-label={liked ? t("action.unlike") : t("action.like")}
         disabled={pending}
       >
         <Heart
@@ -685,7 +688,9 @@ export function PostActionsRail({
           fill={liked ? "currentColor" : "none"}
           aria-hidden
         />
-        {showLabels ? <span className="post-byline-act-label">Thích</span> : null}
+        {showLabels ? (
+          <span className="post-byline-act-label">{t("action.like")}</span>
+        ) : null}
         {showCounts ? (
           likes > 0 ? (
             <span
@@ -695,7 +700,7 @@ export function PostActionsRail({
               }
               role="button"
               tabIndex={0}
-              aria-label="Xem người thích"
+              aria-label={t("action.seeLikers")}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -729,7 +734,7 @@ export function PostActionsRail({
           className={`post-byline-act ${bookmarked ? "is-active is-bookmark" : ""}`}
           onClick={saveBookmark}
           aria-pressed={bookmarked}
-          aria-label={bookmarked ? "Bỏ lưu" : "Lưu"}
+          aria-label={bookmarked ? t("action.unsave") : t("action.save")}
           disabled={pending}
         >
           {bookmarked ? (
@@ -741,7 +746,9 @@ export function PostActionsRail({
           ) : (
             <Bookmark size={isVertical ? 18 : 16} strokeWidth={1.8} aria-hidden />
           )}
-          {showLabels ? <span className="post-byline-act-label">Lưu</span> : null}
+          {showLabels ? (
+            <span className="post-byline-act-label">{t("action.save")}</span>
+          ) : null}
           {showCounts ? (
             <span
               className={
@@ -762,8 +769,8 @@ export function PostActionsRail({
         onClick={() => requireAuth(scrollToComments)}
         aria-label={
           commented
-            ? `${commentCount} bình luận — bạn đã bình luận`
-            : `${commentCount} bình luận — cuộn tới phần bình luận`
+            ? t("action.commentsCountOwn", { count: commentCount })
+            : t("action.commentsCount", { count: commentCount })
         }
         aria-pressed={commented || undefined}
       >
@@ -774,7 +781,7 @@ export function PostActionsRail({
           aria-hidden
         />
         {showLabels ? (
-          <span className="post-byline-act-label">Bình luận</span>
+          <span className="post-byline-act-label">{t("action.comment")}</span>
         ) : null}
         <span
           className={

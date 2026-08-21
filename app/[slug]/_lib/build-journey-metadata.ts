@@ -10,6 +10,9 @@ import {
   buildOgImageVersion,
   buildOgPageSearchParams,
 } from "@/lib/journey/og-image-url";
+import { getT } from "@/lib/i18n/t";
+import { getCinsLocale } from "@/lib/locale/server";
+import { ogLocale } from "@/lib/locale/types";
 
 function pagePathForShare(slug: string, search: OgShareSearch): string {
   const params = buildOgPageSearchParams(search);
@@ -32,12 +35,14 @@ export async function buildJourneyMetadata(
   const ctx = await fetchOgShareContext(slug, resolved);
   const siteOrigin = getConfiguredSiteOrigin() ?? "https://cins.vn";
   const pagePath = pagePathForShare(slug, resolved);
+  const locale = await getCinsLocale();
+  const t = getT(locale);
 
   const title = ctx
     ? `${ctx.displayTitle} · CINS`
     : `Journey · ${slug} · CINS`;
   const description =
-    ctx?.description ?? `Hành trình sáng tạo của ${slug} trên CINS.`;
+    ctx?.description ?? t("profile.journeyOf", { name: slug });
 
   const themeVersion = ctx
     ? buildOgImageVersion(ctx.theme, ctx.layout, ctx.filterVersion)
@@ -58,7 +63,7 @@ export async function buildJourneyMetadata(
       description,
       url: pagePath,
       siteName: "CINs",
-      locale: "vi_VN",
+      locale: ogLocale(locale),
       type: "profile",
       images: [
         {

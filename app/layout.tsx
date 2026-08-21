@@ -6,6 +6,9 @@ import { AuthSessionRemember } from "@/components/auth/AuthSessionRemember";
 import { ThemeRoot } from "@/components/cins/ThemeRoot";
 import { HardNavGuard } from "@/components/navigation/HardNavGuard";
 import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
+import { LocaleProvider } from "@/lib/locale/context";
+import { getCinsLocale } from "@/lib/locale/server";
+import { htmlLang, ogLocale } from "@/lib/locale/types";
 import { THEME_NO_FLASH_SCRIPT } from "@/lib/theme/theme-mode";
 import "./globals.css";
 import "./cins-design-tokens.css";
@@ -32,43 +35,47 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteOrigin),
-  title: "CINs — Khám phá ngành sáng tạo thị giác tại Việt Nam",
-  description:
-    "Mạng xã hội chuyên môn ngành sáng tạo Việt Nam — portfolio, cộng đồng, khóa học, cửa hàng và cơ sở đào tạo.",
-  icons: {
-    icon: [
-      { url: "/assets/logo-cins-icon.svg", type: "image/svg+xml" },
-      { url: "/favicon.ico", sizes: "32x32" },
-    ],
-    apple: "/apple-touch-icon.png",
-  },
-  openGraph: {
-    type: "website",
-    siteName: "CINs",
-    locale: "vi_VN",
-    url: "/",
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getCinsLocale();
+  return {
+    metadataBase: new URL(siteOrigin),
     title: "CINs — Khám phá ngành sáng tạo thị giác tại Việt Nam",
     description:
       "Mạng xã hội chuyên môn ngành sáng tạo Việt Nam — portfolio, cộng đồng, khóa học, cửa hàng và cơ sở đào tạo.",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "CINs — Khám phá ngành sáng tạo thị giác tại Việt Nam",
-    description:
-      "Mạng xã hội chuyên môn ngành sáng tạo Việt Nam — portfolio, cộng đồng, khóa học, cửa hàng và cơ sở đào tạo.",
-  },
-};
+    icons: {
+      icon: [
+        { url: "/assets/logo-cins-icon.svg", type: "image/svg+xml" },
+        { url: "/favicon.ico", sizes: "32x32" },
+      ],
+      apple: "/apple-touch-icon.png",
+    },
+    openGraph: {
+      type: "website",
+      siteName: "CINs",
+      locale: ogLocale(locale),
+      url: "/",
+      title: "CINs — Khám phá ngành sáng tạo thị giác tại Việt Nam",
+      description:
+        "Mạng xã hội chuyên môn ngành sáng tạo Việt Nam — portfolio, cộng đồng, khóa học, cửa hàng và cơ sở đào tạo.",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "CINs — Khám phá ngành sáng tạo thị giác tại Việt Nam",
+      description:
+        "Mạng xã hội chuyên môn ngành sáng tạo Việt Nam — portfolio, cộng đồng, khóa học, cửa hàng và cơ sở đào tạo.",
+    },
+  };
+}
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getCinsLocale();
   return (
     <html
-      lang="vi"
+      lang={htmlLang(locale)}
       className={`${beVietnam.variable} h-full antialiased`}
       suppressHydrationWarning
     >
@@ -98,11 +105,13 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
-        <ThemeRoot />
-        <HardNavGuard />
-        <AuthSessionRemember />
-        <AuthEnterOverlayHost />
-        {children}
+        <LocaleProvider locale={locale}>
+          <ThemeRoot />
+          <HardNavGuard />
+          <AuthSessionRemember />
+          <AuthEnterOverlayHost />
+          {children}
+        </LocaleProvider>
       </body>
     </html>
   );

@@ -22,6 +22,7 @@ import { prefetchHuongDanCatalog } from "@/lib/huong-dan/catalog-client";
 import { clearAllWorldJourneyFirstImpressionSeen } from "@/lib/cins/worldJourneyFirstImpression";
 import { getNameInitials } from "@/lib/journey/profile";
 import { clearRecentSearches } from "@/lib/search/recent-searches-storage";
+import { useT } from "@/lib/i18n/use-t";
 import {
   THEME_CHANGE_EVENT,
   THEME_MODE_OPTIONS,
@@ -29,6 +30,13 @@ import {
   setThemeMode as persistThemeMode,
   type ThemeMode,
 } from "@/lib/theme/theme-mode";
+import type { MessageKey } from "@/lib/i18n/messages";
+
+const THEME_LABEL_KEY: Record<ThemeMode, MessageKey> = {
+  light: "account.themeLight",
+  dark: "account.themeDark",
+  system: "account.themeSystem",
+};
 
 const THEME_ICON: Record<ThemeMode, LucideIcon> = {
   light: Sun,
@@ -53,6 +61,7 @@ export function UserAccountMenu({
   profile,
   placement = "sidebar",
 }: Props) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsSection, setSettingsSection] = useState<
@@ -127,7 +136,7 @@ export function UserAccountMenu({
           className={menuClass}
           role="menu"
           id={menuId}
-          aria-label="Tài khoản"
+          aria-label={t("account.menuAria")}
         >
           <Link
             href={`/${profile.slug}`}
@@ -138,7 +147,7 @@ export function UserAccountMenu({
             <span className="app-user-menu-ico" aria-hidden>
               <SidebarNavIcon name="profile" />
             </span>
-            <span>Trang cá nhân</span>
+            <span>{t("account.profile")}</span>
           </Link>
 
           <Link
@@ -150,7 +159,7 @@ export function UserAccountMenu({
             <span className="app-user-menu-ico" aria-hidden>
               <PlusCircle size={18} strokeWidth={1.7} />
             </span>
-            <span>Tạo tổ chức</span>
+            <span>{t("account.createOrg")}</span>
           </Link>
           <Link
             href="/community/create"
@@ -161,7 +170,7 @@ export function UserAccountMenu({
             <span className="app-user-menu-ico" aria-hidden>
               <SidebarNavIcon name="community" />
             </span>
-            <span>Tạo cộng đồng</span>
+            <span>{t("account.createCommunity")}</span>
           </Link>
 
           <button
@@ -177,7 +186,7 @@ export function UserAccountMenu({
             <span className="app-user-menu-ico" aria-hidden>
               <SidebarNavIcon name="settings" />
             </span>
-            <span>Cài đặt</span>
+            <span>{t("account.settings")}</span>
           </button>
           <button
             type="button"
@@ -191,7 +200,7 @@ export function UserAccountMenu({
             <span className="app-user-menu-ico" aria-hidden>
               <MessageSquarePlus size={18} strokeWidth={1.7} />
             </span>
-            <span>Góp ý</span>
+            <span>{t("account.feedback")}</span>
           </button>
           <button
             type="button"
@@ -205,25 +214,26 @@ export function UserAccountMenu({
             <span className="app-user-menu-ico" aria-hidden>
               <SidebarNavIcon name="help" />
             </span>
-            <span>Trợ giúp</span>
+            <span>{t("account.help")}</span>
           </button>
 
           <div
             className="app-user-theme"
             role="radiogroup"
-            aria-label="Chế độ giao diện"
+            aria-label={t("account.themeAria")}
           >
             {THEME_MODE_OPTIONS.map((opt) => {
               const Icon = THEME_ICON[opt.value];
               const active = themeMode === opt.value;
+              const label = t(THEME_LABEL_KEY[opt.value]);
               return (
                 <button
                   key={opt.value}
                   type="button"
                   role="radio"
                   aria-checked={active}
-                  aria-label={opt.label}
-                  title={opt.label}
+                  aria-label={label}
+                  title={label}
                   className={`app-user-theme-btn${active ? " on" : ""}`}
                   onClick={() => chooseTheme(opt.value)}
                 >
@@ -264,7 +274,7 @@ export function UserAccountMenu({
                   <line x1="21" y1="12" x2="9" y2="12" />
                 </svg>
               </span>
-              <span>Đăng xuất @{profile.slug}</span>
+              <span>{t("account.signOut", { slug: profile.slug })}</span>
             </button>
           </form>
         </div>

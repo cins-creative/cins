@@ -8,6 +8,7 @@ import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { avatarBg } from "@/lib/chat/avatar";
 import { forwardMessageToRoom } from "@/lib/chat/forward-message-client";
 import type { ChatMessage, ChatThread } from "@/lib/chat/types";
+import { useT } from "@/lib/i18n/use-t";
 
 type Props = {
   message: ChatMessage;
@@ -24,6 +25,7 @@ export function ChatForwardPicker({
   onDone,
   onError,
 }: Props) {
+  const t = useT();
   const { getCachedThreads } = useCinsChat();
   const [portalReady, setPortalReady] = useState(false);
   const [query, setQuery] = useState("");
@@ -114,7 +116,7 @@ export function ChatForwardPicker({
       <button
         type="button"
         className="cins-chat-group-modal-backdrop"
-        aria-label="Đóng"
+        aria-label={t("chat.close")}
         onClick={guardedClose}
       />
       <div
@@ -128,13 +130,13 @@ export function ChatForwardPicker({
             <Forward size={18} strokeWidth={2} />
           </span>
           <div>
-            <h3 id="cins-chat-forward-title">Chuyển tiếp</h3>
-            <p>Chọn hội thoại để gửi lại tin nhắn</p>
+            <h3 id="cins-chat-forward-title">{t("chat.forward")}</h3>
+            <p>{t("chat.forwardPick")}</p>
           </div>
           <button
             type="button"
             className="cins-chat-icon-btn"
-            aria-label="Đóng"
+            aria-label={t("chat.close")}
             onClick={onClose}
           >
             <X size={18} aria-hidden />
@@ -147,7 +149,7 @@ export function ChatForwardPicker({
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Tìm hội thoại…"
+            placeholder={t("chat.searchPh")}
             autoFocus
           />
         </label>
@@ -155,10 +157,10 @@ export function ChatForwardPicker({
         <div className="cins-chat-group-list">
           {loading ? (
             <p className="cins-chat-group-list-empty">
-              <Loader2 size={16} className="cins-chat-spin" aria-hidden /> Đang tải…
+              <Loader2 size={16} className="cins-chat-spin" aria-hidden /> {t("chat.loading")}
             </p>
           ) : filtered.length === 0 ? (
-            <p className="cins-chat-group-list-empty">Không có hội thoại phù hợp.</p>
+            <p className="cins-chat-group-list-empty">{t("chat.forwardEmpty")}</p>
           ) : (
             <ul role="list">
               {filtered.map((thread) => {

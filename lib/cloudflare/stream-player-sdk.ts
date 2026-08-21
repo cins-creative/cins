@@ -10,6 +10,8 @@ export type StreamPlayer = {
   duration: number;
   paused: boolean;
   muted: boolean;
+  videoWidth?: number;
+  videoHeight?: number;
   addEventListener: (
     type: string,
     listener: EventListenerOrEventListenerObject,

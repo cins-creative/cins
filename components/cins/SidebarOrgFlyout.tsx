@@ -5,6 +5,7 @@ import { ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
+import { useT } from "@/lib/i18n/use-t";
 import { getNameInitials } from "@/lib/journey/profile";
 import type { MainNavItem, OrgFlyoutKind } from "@/lib/cins/mainNav";
 
@@ -74,6 +75,7 @@ export function SidebarOrgFlyout({
   pathname: string;
   onNavigate?: (href: string) => void;
 }) {
+  const t = useT();
   const cfg = KIND_CONFIG[kind];
   const [orgs, setOrgs] = useState<MyOrg[] | null>(null);
   /** Mặc định xổ — bấm hàng chính hoặc mũi tên để thu lại. */
@@ -131,8 +133,8 @@ export function SidebarOrgFlyout({
               aria-expanded={expanded}
               aria-label={
                 expanded
-                  ? `${item.label} — thu gọn danh sách`
-                  : `${item.label} — mở rộng danh sách`
+                  ? t("nav.flyoutCollapse", { label: item.label })
+                  : t("nav.flyoutExpand", { label: item.label })
               }
               onClick={() => setExpanded((v) => !v)}
             >

@@ -359,15 +359,6 @@
   }
 }
 
-.wj-ci-embed {
-  color: var(--amber-deep, #d97706);
-}
-
-.wj-composer-icons .wj-ci-embed:hover,
-.wj-composer-icons .wj-ci-embed:focus-visible {
-  background: #fff7ed;
-}
-
 .ed-minimal-toolbar--embed {
   flex-direction: column;
   align-items: stretch;

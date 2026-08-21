@@ -1,6 +1,9 @@
 import { Star } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 
+import { translate } from "@/lib/i18n/t";
+import { DEFAULT_LOCALE, type CinsLocale } from "@/lib/locale/types";
+
 import type {
   JourneyGalleryCardVariant,
   JourneyJourneyCardVariant,
@@ -310,10 +313,12 @@ function StatsInline({
   profile,
   ink,
   muted,
+  locale,
 }: {
   profile: JourneyShareProfile;
   ink: string;
   muted: string;
+  locale: CinsLocale;
 }) {
   const noiBat = profile.stats?.noiBat ?? 0;
   const tacPham = profile.stats?.tacPham ?? 0;
@@ -326,7 +331,9 @@ function StatsInline({
       <span style={{ color: muted }}>•</span>
       <span style={{ display: "flex", gap: 6 }}>
         <span style={{ fontWeight: 800, color: ink }}>{tacPham}</span>
-        <span style={{ fontWeight: 600, color: muted }}>Tác phẩm</span>
+        <span style={{ fontWeight: 600, color: muted }}>
+          {translate(locale, "og.works")}
+        </span>
       </span>
     </div>
   );
@@ -335,9 +342,11 @@ function StatsInline({
 function StatsPair({
   profile,
   tokens,
+  locale,
 }: {
   profile: JourneyShareProfile;
   tokens: ShareOgThemeTokens;
+  locale: CinsLocale;
 }) {
   const noiBat = profile.stats?.noiBat ?? 0;
   const tacPham = profile.stats?.tacPham ?? 0;
@@ -369,17 +378,16 @@ function StatsPair({
         <span style={{ fontSize: 26, fontWeight: 800, color: tokens.accent, lineHeight: 1 }}>
           {tacPham}
         </span>
-        <span style={{ fontSize: 13, fontWeight: 600, color: tokens.muted }}>Tác phẩm</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: tokens.muted }}>
+          {translate(locale, "og.works")}
+        </span>
       </div>
     </div>
   );
 }
 
-function bioText(profile: JourneyShareProfile): string {
-  return (
-    profile.bio?.trim() ||
-    "Khám phá hành trình sáng tạo — cột mốc, tác phẩm và kết nối trên CINs."
-  );
+function bioText(profile: JourneyShareProfile, locale: CinsLocale): string {
+  return profile.bio?.trim() || translate(locale, "og.bioFallback");
 }
 
 /* ── Journey layouts ────────────────────────────────────────── */
@@ -388,10 +396,12 @@ function BannerLayout({
   profile,
   tokens,
   logoUrl,
+  locale,
 }: {
   profile: JourneyShareProfile;
   tokens: ShareOgThemeTokens;
   logoUrl: string;
+  locale: CinsLocale;
 }) {
   const noiBat = profile.stats?.noiBat ?? 0;
   const tacPham = profile.stats?.tacPham ?? 0;
@@ -455,7 +465,7 @@ function BannerLayout({
                 display: "flex",
               }}
             >
-              {bioText(profile)}
+              {bioText(profile, locale)}
             </div>
           </div>
           <div
@@ -487,7 +497,7 @@ function BannerLayout({
               <span>•</span>
               <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 <span style={{ fontWeight: 800, color: tokens.accent }}>{tacPham}</span>
-                <span>Tác phẩm</span>
+                <span>{translate(locale, "og.works")}</span>
               </span>
             </div>
             <OgBrand logoUrl={logoUrl} ink={tokens.ink} />
@@ -501,9 +511,11 @@ function BannerLayout({
 function FrameLayout({
   profile,
   tokens,
+  locale,
 }: {
   profile: JourneyShareProfile;
   tokens: ShareOgThemeTokens;
+  locale: CinsLocale;
 }) {
   return (
     <ThemeShell tokens={tokens} padding={28}>
@@ -553,9 +565,9 @@ function FrameLayout({
               display: "flex",
             }}
           >
-            {bioText(profile)}
+            {bioText(profile, locale)}
           </div>
-          <StatsPair profile={profile} tokens={tokens} />
+          <StatsPair profile={profile} tokens={tokens} locale={locale} />
           <OgUrlChip slug={profile.slug} accent={tokens.accent} panel={tokens.panel} />
         </div>
       </div>
@@ -566,9 +578,11 @@ function FrameLayout({
 function CenterLayout({
   profile,
   tokens,
+  locale,
 }: {
   profile: JourneyShareProfile;
   tokens: ShareOgThemeTokens;
+  locale: CinsLocale;
 }) {
   const noiBat = profile.stats?.noiBat ?? 0;
   const tacPham = profile.stats?.tacPham ?? 0;
@@ -615,7 +629,7 @@ function CenterLayout({
               maxWidth: 720,
             }}
           >
-            {bioText(profile)}
+            {bioText(profile, locale)}
           </div>
           <div style={{ display: "flex", gap: 16, marginTop: 18 }}>
             <div
@@ -630,7 +644,9 @@ function CenterLayout({
               }}
             >
               <span style={{ fontSize: 28, fontWeight: 800, color: tokens.accent }}>{tacPham}</span>
-              <span style={{ fontSize: 14, fontWeight: 600, color: tokens.muted }}>Tác phẩm</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: tokens.muted }}>
+                {translate(locale, "og.works")}
+              </span>
             </div>
             <div
               style={{
@@ -659,9 +675,11 @@ function CenterLayout({
 function SplitLayout({
   profile,
   tokens,
+  locale,
 }: {
   profile: JourneyShareProfile;
   tokens: ShareOgThemeTokens;
+  locale: CinsLocale;
 }) {
   return (
     <ThemeShell tokens={tokens}>
@@ -694,9 +712,9 @@ function SplitLayout({
           </div>
           <RoleLine text={profile.roleLine} color={tokens.muted} />
           <div style={{ fontSize: 19, lineHeight: 1.4, color: tokens.ink, opacity: 0.9 }}>
-            {bioText(profile)}
+            {bioText(profile, locale)}
           </div>
-          <StatsPair profile={profile} tokens={tokens} />
+          <StatsPair profile={profile} tokens={tokens} locale={locale} />
           <OgUrlChip slug={profile.slug} accent={tokens.accent} panel="rgba(255,255,255,0.9)" />
         </div>
       </div>
@@ -707,9 +725,11 @@ function SplitLayout({
 function ImmersiveLayout({
   profile,
   tokens,
+  locale,
 }: {
   profile: JourneyShareProfile;
   tokens: ShareOgThemeTokens;
+  locale: CinsLocale;
 }) {
   return (
     <div
@@ -786,7 +806,7 @@ function ImmersiveLayout({
               </div>
             </div>
             <div style={{ fontSize: 20, lineHeight: 1.4, color: "rgba(255,255,255,0.9)", maxWidth: 760 }}>
-              {bioText(profile)}
+              {bioText(profile, locale)}
             </div>
           </div>
           <StatsPair
@@ -797,6 +817,7 @@ function ImmersiveLayout({
               accent: "#ffffff",
               muted: "rgba(255,255,255,0.7)",
             }}
+            locale={locale}
           />
         </div>
       </div>
@@ -839,11 +860,13 @@ function StripLayout({
   tokens,
   logoUrl,
   filterLabel,
+  locale,
 }: {
   profile: JourneyShareProfile;
   tokens: ShareOgThemeTokens;
   logoUrl: string;
   filterLabel?: string | null;
+  locale: CinsLocale;
 }) {
   const cells = padThumbs(profile.galleryThumbs, 4);
   return (
@@ -864,7 +887,12 @@ function StripLayout({
               <span style={{ fontSize: 16, fontWeight: 600, color: tokens.muted }}>
                 {`cins.vn/${profile.slug}`}
               </span>
-              <StatsInline profile={profile} ink={tokens.ink} muted={tokens.muted} />
+              <StatsInline
+                profile={profile}
+                ink={tokens.ink}
+                muted={tokens.muted}
+                locale={locale}
+              />
             </div>
           </div>
           <OgBrand logoUrl={logoUrl} ink={tokens.ink} />
@@ -892,10 +920,12 @@ function PanelLayout({
   profile,
   tokens,
   filterLabel,
+  locale,
 }: {
   profile: JourneyShareProfile;
   tokens: ShareOgThemeTokens;
   filterLabel?: string | null;
+  locale: CinsLocale;
 }) {
   const cells = padThumbs(profile.galleryThumbs, 5);
   return (
@@ -934,7 +964,12 @@ function PanelLayout({
           {filterLabel ? (
             <FilterPill label={filterLabel} accent={tokens.accent} panel="rgba(255,255,255,0.9)" />
           ) : null}
-          <StatsInline profile={profile} ink={tokens.ink} muted={tokens.muted} />
+          <StatsInline
+            profile={profile}
+            ink={tokens.ink}
+            muted={tokens.muted}
+            locale={locale}
+          />
         </div>
         <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 14 }}>
           <div style={{ display: "flex", flex: 1, gap: 12 }}>
@@ -968,10 +1003,12 @@ function SidebarLayout({
   profile,
   tokens,
   filterLabel,
+  locale,
 }: {
   profile: JourneyShareProfile;
   tokens: ShareOgThemeTokens;
   filterLabel?: string | null;
+  locale: CinsLocale;
 }) {
   const cells = padThumbs(profile.galleryThumbs, 5);
   return (
@@ -1007,7 +1044,7 @@ function SidebarLayout({
           {filterLabel ? (
             <FilterPill label={filterLabel} accent={tokens.accent} panel="rgba(255,255,255,0.9)" />
           ) : null}
-          <StatsPair profile={profile} tokens={tokens} />
+          <StatsPair profile={profile} tokens={tokens} locale={locale} />
         </div>
         <div style={{ display: "flex", flex: 1, gap: 12 }}>
           <div style={{ flexGrow: 2, display: "flex" }}>
@@ -1085,10 +1122,12 @@ function StackLayout({
   profile,
   tokens,
   filterLabel,
+  locale,
 }: {
   profile: JourneyShareProfile;
   tokens: ShareOgThemeTokens;
   filterLabel?: string | null;
+  locale: CinsLocale;
 }) {
   const cells = padThumbs(profile.galleryThumbs, 5);
   const offsets = [
@@ -1112,7 +1151,7 @@ function StackLayout({
                 <FilterPill label={filterLabel} accent={tokens.accent} panel={tokens.panel} />
               ) : null}
             </div>
-            <StatsPair profile={profile} tokens={tokens} />
+            <StatsPair profile={profile} tokens={tokens} locale={locale} />
           </div>
         </div>
         <div
@@ -1199,11 +1238,13 @@ export function OgJourneyShareCard({
   logoUrl,
   theme,
   layout = DEFAULT_SHARE_OG_LAYOUTS.journey,
+  locale = DEFAULT_LOCALE,
 }: {
   profile: JourneyShareProfile;
   logoUrl: string;
   theme?: ShareOgTheme | null;
   layout?: JourneyJourneyCardVariant;
+  locale?: CinsLocale;
 }) {
   const tokens = resolveShareOgThemeTokens(theme, profile.slug);
   if (tokens.isCustom && tokens.backgroundImage) {
@@ -1211,16 +1252,25 @@ export function OgJourneyShareCard({
   }
   switch (layout) {
     case "frame":
-      return <FrameLayout profile={profile} tokens={tokens} />;
+      return <FrameLayout profile={profile} tokens={tokens} locale={locale} />;
     case "center":
-      return <CenterLayout profile={profile} tokens={tokens} />;
+      return <CenterLayout profile={profile} tokens={tokens} locale={locale} />;
     case "split":
-      return <SplitLayout profile={profile} tokens={tokens} />;
+      return <SplitLayout profile={profile} tokens={tokens} locale={locale} />;
     case "immersive":
-      return <ImmersiveLayout profile={profile} tokens={tokens} />;
+      return (
+        <ImmersiveLayout profile={profile} tokens={tokens} locale={locale} />
+      );
     case "banner":
     default:
-      return <BannerLayout profile={profile} tokens={tokens} logoUrl={logoUrl} />;
+      return (
+        <BannerLayout
+          profile={profile}
+          tokens={tokens}
+          logoUrl={logoUrl}
+          locale={locale}
+        />
+      );
   }
 }
 
@@ -1230,6 +1280,7 @@ export function OgGalleryShareCard({
   theme,
   layout = DEFAULT_SHARE_OG_LAYOUTS.gallery,
   filterLabel = null,
+  locale = DEFAULT_LOCALE,
 }: {
   profile: JourneyShareProfile;
   logoUrl: string;
@@ -1237,6 +1288,7 @@ export function OgGalleryShareCard({
   layout?: JourneyGalleryCardVariant;
   /** Nhãn filter đang chia sẻ (Cộng đồng, Học tập, …). */
   filterLabel?: string | null;
+  locale?: CinsLocale;
 }) {
   const tokens = resolveShareOgThemeTokens(theme, profile.slug);
   if (tokens.isCustom && tokens.backgroundImage) {
@@ -1245,9 +1297,23 @@ export function OgGalleryShareCard({
   const label = filterLabel?.trim() || null;
   switch (layout) {
     case "panel":
-      return <PanelLayout profile={profile} tokens={tokens} filterLabel={label} />;
+      return (
+        <PanelLayout
+          profile={profile}
+          tokens={tokens}
+          filterLabel={label}
+          locale={locale}
+        />
+      );
     case "sidebar":
-      return <SidebarLayout profile={profile} tokens={tokens} filterLabel={label} />;
+      return (
+        <SidebarLayout
+          profile={profile}
+          tokens={tokens}
+          filterLabel={label}
+          locale={locale}
+        />
+      );
     case "film":
       return (
         <FilmLayout
@@ -1258,7 +1324,14 @@ export function OgGalleryShareCard({
         />
       );
     case "stack":
-      return <StackLayout profile={profile} tokens={tokens} filterLabel={label} />;
+      return (
+        <StackLayout
+          profile={profile}
+          tokens={tokens}
+          filterLabel={label}
+          locale={locale}
+        />
+      );
     case "strip":
     default:
       return (
@@ -1267,6 +1340,7 @@ export function OgGalleryShareCard({
           tokens={tokens}
           logoUrl={logoUrl}
           filterLabel={label}
+          locale={locale}
         />
       );
   }
@@ -1275,9 +1349,11 @@ export function OgGalleryShareCard({
 export function OgFallbackShareCard({
   slug,
   logoUrl,
+  tagline = "Hành trình sáng tạo trên CINs",
 }: {
   slug: string;
   logoUrl: string;
+  tagline?: string;
 }) {
   return (
     <div
@@ -1326,7 +1402,7 @@ export function OgFallbackShareCard({
         {`Journey · ${slug}`}
       </div>
       <div style={{ fontSize: 24, fontWeight: 600, opacity: 0.92 }}>
-        Hành trình sáng tạo trên CINs
+        {tagline}
       </div>
     </div>
   );

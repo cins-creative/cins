@@ -2,12 +2,18 @@ import "server-only";
 
 import { todayYmdVn } from "@/lib/co-so/ky-hoc";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import {
-  mergeChiNhanhIntoCauHinh,
-  parseChiNhanhFromCauHinh,
-} from "@/lib/truong/chi-nhanh";
+import { parseChiNhanhFromCauHinh } from "@/lib/truong/chi-nhanh";
 import { normalizeTinhThanhForDb } from "@/lib/truong/contact";
 import type { TruongChiNhanh } from "@/lib/truong/types";
+
+const CN_COLS =
+  "id, ten, dia_chi, tinh_thanh, dien_thoai, email, cover_id, dang_hoat_dong, thu_tu";
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isUuid(value: string): boolean {
+  return UUID_RE.test(value);
+}
 
 export type ChiNhanhRow = {
   id: string;
@@ -16,16 +22,13 @@ export type ChiNhanhRow = {
   tinhThanh: string | null;
   dienThoai: string | null;
   email: string | null;
-  /** Cloudflare Images id — mirror `cau_hinh.chi_nhanh[].cover_id`. */
+  /** Cloudflare Images id — cột `org_chi_nhanh.cover_id` (A25). */
   coverId: string | null;
   dangHoatDong: boolean;
   thuTu: number;
 };
 
-function mapCn(
-  r: Record<string, unknown>,
-  coverId: string | null = null,
-): ChiNhanhRow {
+function mapCn(r: Record<string, unknown>): ChiNhanhRow {
   return {
     id: r.id as string,
     ten: r.ten as string,
@@ -33,47 +36,17 @@ function mapCn(
     tinhThanh: (r.tinh_thanh as string | null) ?? null,
     dienThoai: (r.dien_thoai as string | null) ?? null,
     email: (r.email as string | null) ?? null,
-    coverId,
+    coverId: ((r.cover_id as string | null) ?? "").trim() || null,
     dangHoatDong: Boolean(r.dang_hoat_dong),
     thuTu: Number(r.thu_tu) || 0,
   };
-}
-
-function coverLookupFromCauHinh(cauHinh: unknown): {
-  byId: Map<string, string | null>;
-  byKey: Map<string, string | null>;
-} {
-  const prev = parseChiNhanhFromCauHinh(cauHinh) ?? [];
-  const byId = new Map<string, string | null>();
-  const byKey = new Map<string, string | null>();
-  for (const p of prev) {
-    const cover = p.cover_id?.trim() || null;
-    byId.set(p.id, cover);
-    byKey.set(`${p.ten.trim()}|${p.dia_chi.trim()}`, cover);
-  }
-  return { byId, byKey };
-}
-
-function resolveCoverForRow(
-  row: { id: string; ten: string; dia_chi: string | null },
-  lookup: ReturnType<typeof coverLookupFromCauHinh>,
-  override?: string | null,
-): string | null {
-  if (override !== undefined) return override?.trim() || null;
-  return (
-    lookup.byId.get(row.id) ??
-    lookup.byKey.get(`${row.ten.trim()}|${(row.dia_chi ?? "").trim()}`) ??
-    null
-  );
 }
 
 export async function listChiNhanh(orgId: string): Promise<ChiNhanhRow[]> {
   const admin = createServiceRoleClient();
   let { data } = await admin
     .from("org_chi_nhanh")
-    .select(
-      "id, ten, dia_chi, tinh_thanh, dien_thoai, email, dang_hoat_dong, thu_tu",
-    )
+    .select(CN_COLS)
     .eq("id_to_chuc", orgId)
     .order("thu_tu")
     .order("tao_luc");
@@ -82,34 +55,14 @@ export async function listChiNhanh(orgId: string): Promise<ChiNhanhRow[]> {
     await seedOrgChiNhanhFromCauHinh(orgId);
     const again = await admin
       .from("org_chi_nhanh")
-      .select(
-        "id, ten, dia_chi, tinh_thanh, dien_thoai, email, dang_hoat_dong, thu_tu",
-      )
+      .select(CN_COLS)
       .eq("id_to_chuc", orgId)
       .order("thu_tu")
       .order("tao_luc");
     data = again.data;
   }
 
-  const { data: org } = await admin
-    .from("org_to_chuc")
-    .select("cau_hinh")
-    .eq("id", orgId)
-    .maybeSingle();
-  const lookup = coverLookupFromCauHinh(org?.cau_hinh);
-
-  return (data ?? []).map((r) => {
-    const row = r as Record<string, unknown>;
-    const coverId = resolveCoverForRow(
-      {
-        id: row.id as string,
-        ten: row.ten as string,
-        dia_chi: (row.dia_chi as string | null) ?? null,
-      },
-      lookup,
-    );
-    return mapCn(row, coverId);
-  });
+  return (data ?? []).map((r) => mapCn(r as Record<string, unknown>));
 }
 
 /** Một lần: JSON `cau_hinh.chi_nhanh` → bảng `org_chi_nhanh`. */
@@ -134,6 +87,7 @@ async function seedOrgChiNhanhFromCauHinh(orgId: string): Promise<void> {
         email: c.email ?? null,
         thu_tu: i,
         dang_hoat_dong: true,
+        cover_id: c.cover_id?.trim() || null,
       });
     }
   } else if (org.dia_chi?.trim()) {
@@ -152,74 +106,101 @@ async function seedOrgChiNhanhFromCauHinh(orgId: string): Promise<void> {
   await admin.from("org_chi_nhanh").insert(rows);
 }
 
-/** Đồng bộ chi nhánh → cột org + mirror `cau_hinh.chi_nhanh` (kèm cover_id). */
+/** Đồng bộ chi nhánh đang hoạt động → cột liên hệ org. Không ghi `cau_hinh.chi_nhanh`. */
 export async function syncPublicContactFromOrgChiNhanh(
   orgId: string,
-  coverOverrides?: Record<string, string | null>,
 ): Promise<void> {
   const admin = createServiceRoleClient();
   const { data: rows } = await admin
     .from("org_chi_nhanh")
-    .select(
-      "id, ten, dia_chi, tinh_thanh, dien_thoai, email, dang_hoat_dong, thu_tu",
-    )
+    .select(CN_COLS)
     .eq("id_to_chuc", orgId)
     .order("thu_tu")
     .order("tao_luc");
 
-  const { data: org } = await admin
-    .from("org_to_chuc")
-    .select("cau_hinh")
-    .eq("id", orgId)
-    .maybeSingle();
-  if (!org) return;
-
-  const lookup = coverLookupFromCauHinh(org.cau_hinh);
   const all = (rows ?? []).filter(
     (r) => (r.ten as string)?.trim() && (r.dia_chi as string)?.trim(),
   );
-  const asTruong: TruongChiNhanh[] = all.map((r) => {
-    const id = r.id as string;
-    const override =
-      coverOverrides && Object.prototype.hasOwnProperty.call(coverOverrides, id)
-        ? coverOverrides[id]
-        : undefined;
-    return {
-      id,
-      ten: r.ten as string,
-      dia_chi: (r.dia_chi as string) || "",
-      tinh_thanh: (r.tinh_thanh as string | null) ?? null,
-      dien_thoai: (r.dien_thoai as string | null) ?? null,
-      email: (r.email as string | null) ?? null,
-      website: null,
-      facebook: null,
-      cover_id: resolveCoverForRow(
-        {
-          id,
-          ten: r.ten as string,
-          dia_chi: (r.dia_chi as string | null) ?? null,
-        },
-        lookup,
-        override,
+  const primary = all.find((r) => r.dang_hoat_dong) ?? all[0];
+  if (!primary) return;
+
+  await admin
+    .from("org_to_chuc")
+    .update({
+      dia_chi: (primary.dia_chi as string) || null,
+      tinh_thanh: normalizeTinhThanhForDb(
+        (primary.tinh_thanh as string | null) ?? null,
       ),
+      dien_thoai: (primary.dien_thoai as string | null) ?? null,
+      email_lien_he: (primary.email as string | null) ?? null,
+    })
+    .eq("id", orgId);
+}
+
+/** Ghi danh sách chi nhánh settings → bảng (SoT). Id không phải uuid = insert mới. */
+export async function replaceChiNhanhList(
+  orgId: string,
+  list: TruongChiNhanh[],
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = createServiceRoleClient();
+  const { data: existing, error: readErr } = await admin
+    .from("org_chi_nhanh")
+    .select("id")
+    .eq("id_to_chuc", orgId);
+  if (readErr) return { ok: false, error: readErr.message };
+
+  const keep = new Set<string>();
+  for (const [i, c] of list.entries()) {
+    const row = {
+      ten: c.ten,
+      dia_chi: c.dia_chi,
+      tinh_thanh: c.tinh_thanh,
+      dien_thoai: c.dien_thoai,
+      email: c.email,
+      cover_id: c.cover_id?.trim() || null,
+      thu_tu: i,
+      dang_hoat_dong: true,
+      cap_nhat_luc: new Date().toISOString(),
     };
-  });
-
-  const primary = all.find((r) => r.dang_hoat_dong);
-  const primaryMapped = primary
-    ? asTruong.find((t) => t.id === (primary.id as string))
-    : asTruong[0];
-
-  const patch: Record<string, unknown> = {
-    cau_hinh: mergeChiNhanhIntoCauHinh(org.cau_hinh, asTruong),
-  };
-  if (primaryMapped) {
-    patch.dia_chi = primaryMapped.dia_chi;
-    patch.tinh_thanh = normalizeTinhThanhForDb(primaryMapped.tinh_thanh);
-    patch.dien_thoai = primaryMapped.dien_thoai;
-    patch.email_lien_he = primaryMapped.email;
+    const id = c.id?.trim() ?? "";
+    if (id && isUuid(id) && (existing ?? []).some((e) => e.id === id)) {
+      const { error } = await admin
+        .from("org_chi_nhanh")
+        .update(row)
+        .eq("id", id)
+        .eq("id_to_chuc", orgId);
+      if (error) return { ok: false, error: error.message };
+      keep.add(id);
+      continue;
+    }
+    const { data: created, error } = await admin
+      .from("org_chi_nhanh")
+      .insert({ id_to_chuc: orgId, ...row })
+      .select("id")
+      .single();
+    if (error || !created) {
+      return { ok: false, error: error?.message ?? "Không tạo được chi nhánh." };
+    }
+    keep.add(created.id as string);
   }
-  await admin.from("org_to_chuc").update(patch).eq("id", orgId);
+
+  const stale = (existing ?? [])
+    .map((e) => e.id as string)
+    .filter((id) => !keep.has(id));
+  if (stale.length > 0) {
+    const { error } = await admin
+      .from("org_chi_nhanh")
+      .update({
+        dang_hoat_dong: false,
+        cap_nhat_luc: new Date().toISOString(),
+      })
+      .eq("id_to_chuc", orgId)
+      .in("id", stale);
+    if (error) return { ok: false, error: error.message };
+  }
+
+  await syncPublicContactFromOrgChiNhanh(orgId);
+  return { ok: true };
 }
 
 export async function createChiNhanh(input: {
@@ -243,22 +224,17 @@ export async function createChiNhanh(input: {
       tinh_thanh: input.tinhThanh?.trim() || null,
       dien_thoai: input.dienThoai?.trim() || null,
       email: input.email?.trim() || null,
+      cover_id: input.coverId?.trim() || null,
     })
-    .select(
-      "id, ten, dia_chi, tinh_thanh, dien_thoai, email, dang_hoat_dong, thu_tu",
-    )
+    .select(CN_COLS)
     .single();
   if (error || !data) {
     return { ok: false, error: error?.message ?? "Không tạo được." };
   }
-  const coverId = input.coverId?.trim() || null;
-  await syncPublicContactFromOrgChiNhanh(
-    input.orgId,
-    coverId ? { [data.id as string]: coverId } : undefined,
-  );
+  await syncPublicContactFromOrgChiNhanh(input.orgId);
   return {
     ok: true,
-    row: mapCn(data as Record<string, unknown>, coverId),
+    row: mapCn(data as Record<string, unknown>),
   };
 }
 
@@ -289,6 +265,9 @@ export async function updateChiNhanh(input: {
     patch.dien_thoai = input.dienThoai?.trim() || null;
   }
   if (input.email !== undefined) patch.email = input.email?.trim() || null;
+  if (input.coverId !== undefined) {
+    patch.cover_id = input.coverId?.trim() || null;
+  }
   if (input.dangHoatDong !== undefined) {
     patch.dang_hoat_dong = input.dangHoatDong;
   }
@@ -299,39 +278,17 @@ export async function updateChiNhanh(input: {
     .update(patch)
     .eq("id", input.id)
     .eq("id_to_chuc", input.orgId)
-    .select(
-      "id, ten, dia_chi, tinh_thanh, dien_thoai, email, dang_hoat_dong, thu_tu",
-    )
+    .select(CN_COLS)
     .maybeSingle();
   if (error || !data) {
     return { ok: false, error: error?.message ?? "Không cập nhật." };
   }
 
-  const coverOverride =
-    input.coverId !== undefined
-      ? { [input.id]: input.coverId?.trim() || null }
-      : undefined;
-  await syncPublicContactFromOrgChiNhanh(input.orgId, coverOverride);
-
-  const { data: org } = await admin
-    .from("org_to_chuc")
-    .select("cau_hinh")
-    .eq("id", input.orgId)
-    .maybeSingle();
-  const lookup = coverLookupFromCauHinh(org?.cau_hinh);
-  const coverId = resolveCoverForRow(
-    {
-      id: data.id as string,
-      ten: data.ten as string,
-      dia_chi: (data.dia_chi as string | null) ?? null,
-    },
-    lookup,
-    input.coverId !== undefined ? input.coverId?.trim() || null : undefined,
-  );
+  await syncPublicContactFromOrgChiNhanh(input.orgId);
 
   return {
     ok: true,
-    row: mapCn(data as Record<string, unknown>, coverId),
+    row: mapCn(data as Record<string, unknown>),
   };
 }
 

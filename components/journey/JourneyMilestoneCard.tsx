@@ -37,6 +37,10 @@ import { JourneyOwnCoAuthorRoleEditor } from "@/components/journey/JourneyOwnCoA
 import { JourneyBookmarkListingCard } from "@/components/journey/JourneyBookmarkListingCard";
 import { BatDauHocMilestoneCard } from "@/components/journey/BatDauHocMilestonePanel";
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
+import type { MessageKey } from "@/lib/i18n/messages";
+import type { TFn } from "@/lib/i18n/t";
+import { useT } from "@/lib/i18n/use-t";
+import { useLocale } from "@/lib/locale/context";
 import { useWorldJourneyOpenFeedVideo } from "@/components/cins/world-journey/WorldJourneyOpenFeedVideoContext";
 import { streamUidFromBlocks } from "@/lib/journey/video-embed";
 import {
@@ -187,16 +191,6 @@ type Props = {
   hostOrgName?: string | null;
   /** Menu ghim lên đầu Journey timeline — chỉ view Journey. */
   showJourneyPin?: boolean;
-};
-
-const TYPE_LABEL: Record<MilestoneType, string> = {
-  hoc: "Học",
-  lam: "Làm việc",
-  "du-an": "Dự án",
-  "su-kien": "Sự kiện",
-  "thanh-tuu": "Thành tựu",
-  "ca-nhan": "Cá nhân",
-  bookmark: "Lưu về",
 };
 
 const TYPE_CLASS: Record<MilestoneType, string> = {
@@ -370,20 +364,23 @@ const AVATAR_TONE_CLASSES = [
 ];
 
 function MilestoneTypeBadgeContent({ type }: { type: MilestoneType }) {
+  const t = useT();
   const TypeIco = TYPE_ICON[type];
+  const key = `milestone.type.${type}` as MessageKey;
   return (
     <>
       <TypeIco size={11} strokeWidth={1.8} aria-hidden />
-      {TYPE_LABEL[type]}
+      {t(key)}
     </>
   );
 }
 
 function CongDongTypeBadge() {
+  const t = useT();
   return (
     <span className="ctx-badge j-type-cong-dong">
       <Users size={11} strokeWidth={1.8} aria-hidden />
-      Cộng đồng
+      {t("milestone.community")}
     </span>
   );
 }
@@ -423,16 +420,17 @@ function congDongInlineContext(
 
 function visibilityIcon(
   v: MilestoneItem["visibility"] | undefined,
-  congDongOrg?: MilestoneItem["congDongOrg"],
-  visibilityCustom?: MilestoneItem["visibilityCustom"],
+  congDongOrg: MilestoneItem["congDongOrg"] | undefined,
+  visibilityCustom: MilestoneItem["visibilityCustom"] | undefined,
+  t: TFn,
 ): { Icon: LucideIcon; label: string; badgeKey: string } | null {
   if (visibilityCustom) {
     return {
       Icon: SlidersHorizontal,
       label:
         visibilityCustom.mode === "chan"
-          ? `Tùy chỉnh · chặn ${visibilityCustom.people.length} người`
-          : `Tùy chỉnh · ${visibilityCustom.people.length} người`,
+          ? t("vis.customBlock", { count: visibilityCustom.people.length })
+          : t("vis.customAllow", { count: visibilityCustom.people.length }),
       badgeKey: "custom",
     };
   }
@@ -440,15 +438,15 @@ function visibilityIcon(
     return {
       Icon: Users,
       label: congDongOrg?.name
-        ? `Cộng đồng · ${congDongOrg.name}`
-        : "Cộng đồng",
+        ? t("vis.communityNamed", { name: congDongOrg.name })
+        : t("milestone.community"),
       badgeKey: "cong-dong",
     };
   }
   if (v === "feature") return { Icon: Star, label: "Feature", badgeKey: "feature" };
-  if (!v || v === "public") return { Icon: Globe, label: "Công khai", badgeKey: "public" };
-  if (v === "unlisted") return { Icon: Users, label: "Bạn bè", badgeKey: "unlisted" };
-  if (v === "private") return { Icon: Lock, label: "Chỉ mình tôi", badgeKey: "private" };
+  if (!v || v === "public") return { Icon: Globe, label: t("vis.public"), badgeKey: "public" };
+  if (v === "unlisted") return { Icon: Users, label: t("vis.friends"), badgeKey: "unlisted" };
+  if (v === "private") return { Icon: Lock, label: t("vis.onlyMe"), badgeKey: "private" };
   return null;
 }
 
@@ -474,6 +472,8 @@ export function JourneyMilestoneCard({
   hostOrgName = null,
   showJourneyPin = false,
 }: Props) {
+  const t = useT();
+  const locale = useLocale();
   const { adminSeedingEdit } = useJourneyCompose();
   const openFeedVideo = useWorldJourneyOpenFeedVideo();
   const openFeedVideoAtRef = useRef(0);
@@ -594,7 +594,7 @@ export function JourneyMilestoneCard({
 
   const displayDate = `${String(day).padStart(2, "0")}-${String(month).padStart(2, "0")}-${year}`;
   /** Chip author: trong 24h → relative; sau đó → ngày đăng (DD-MM-YYYY). */
-  const postedAgoLabel = formatPostedWithin24h(milestone.createdAt);
+  const postedAgoLabel = formatPostedWithin24h(milestone.createdAt, locale);
   const scheduledPublishLabel =
     canActAsPostOwner && isCotMocScheduledDraft(milestone.createdAt)
       ? formatCotMocScheduleLabel(milestone.createdAt)
@@ -792,6 +792,7 @@ export function JourneyMilestoneCard({
     visibility,
     congDongOrg,
     milestone.visibilityCustom,
+    t,
   );
   const isCongDongPost = visibility === "cong-dong";
   const isBookmarkMilestone = variant === "bookmark";
@@ -845,10 +846,10 @@ export function JourneyMilestoneCard({
   const foreignFrameDateLead: "bookmark" | "tag" | "cong-dong" =
     isBookmarkMilestone ? "bookmark" : isCongDongSelfPost ? "cong-dong" : "tag";
   const foreignFrameDateTitle = isBookmarkMilestone
-    ? "Ngày lưu về"
+    ? t("date.saved")
     : isCongDongSelfPost
-      ? "Ngày đăng"
-      : "Ngày gắn thẻ";
+      ? t("date.posted")
+      : t("date.tagged");
   const canManageSelf =
     canActAsPostOwner &&
     (variant === "self" ||
@@ -1546,7 +1547,7 @@ export function JourneyMilestoneCard({
   }
 
   const jcardAuthors = showAuthorsStrip ? (
-    <div className="jcard-authors" aria-label="Đồng tác giả">
+    <div className="jcard-authors" aria-label={t("milestone.coauthors")}>
       <details className="authors-details">
         <summary className="authors-collapsed">
           <span className="av-stack" aria-hidden>
@@ -1566,10 +1567,10 @@ export function JourneyMilestoneCard({
               {otherContributorCount} người đóng góp khác
             </span>
             <span className="authors-toggle-slot">
-              <span className="expand-hint" aria-label="Xem tất cả">
+              <span className="expand-hint" aria-label={t("shop.seeAll")}>
                 <Eye size={15} strokeWidth={1.9} aria-hidden />
               </span>
-              <span className="collapse-hint" aria-label="Thu gọn">
+              <span className="collapse-hint" aria-label={t("milestone.collapse")}>
                 <ChevronUp size={15} strokeWidth={2} aria-hidden />
               </span>
             </span>
@@ -1721,7 +1722,7 @@ export function JourneyMilestoneCard({
         />
       ) : null}
       {views ? (
-        <span className="jcard-view-count" aria-label={`${formatViews(views)} lượt xem`}>
+        <span className="jcard-view-count" aria-label={t("milestone.views", { count: formatViews(views) })}>
           {formatViews(views)}
         </span>
       ) : null}
@@ -2097,7 +2098,7 @@ export function JourneyMilestoneCard({
                   orgKind={entityPosterOrgKind}
                   href={attribution?.href ?? undefined}
                   fallbackName={
-                    entityPosterLabel ?? entityPosterSlug ?? "Tổ chức"
+                    entityPosterLabel ?? entityPosterSlug ?? t("people.org")
                   }
                   fallbackAvatarUrl={entityPosterAvatar}
                 >
@@ -2116,9 +2117,9 @@ export function JourneyMilestoneCard({
                     <span className="org-copy">
                       <strong>
                         {entityPosterLabel ||
-                          (ownerSlug ? `@${ownerSlug}` : "Tổ chức")}
+                          (ownerSlug ? `@${ownerSlug}` : t("people.org"))}
                       </strong>
-                      <small title="Ngày đăng">{authorChipDateLabel}</small>
+                      <small title={t("date.posted")}>{authorChipDateLabel}</small>
                     </span>
                   </span>
                 </JourneyOrgPopover>
@@ -2126,7 +2127,7 @@ export function JourneyMilestoneCard({
                 <JourneyUserPopover
                   slug={entityPosterSlug ?? ""}
                   fallbackName={
-                    entityPosterLabel ?? entityPosterSlug ?? "Người dùng"
+                    entityPosterLabel ?? entityPosterSlug ?? t("people.user")
                   }
                   fallbackAvatarUrl={entityPosterAvatar}
                   track={
@@ -2153,10 +2154,10 @@ export function JourneyMilestoneCard({
                     <span className="org-copy">
                       <strong>
                         {entityPosterLabel ||
-                          (ownerSlug ? `@${ownerSlug}` : "Người dùng")}
+                          (ownerSlug ? `@${ownerSlug}` : t("people.user"))}
                         <VerifiedTick slug={entityPosterSlug} />
                       </strong>
-                      <small title="Ngày đăng">{authorChipDateLabel}</small>
+                      <small title={t("date.posted")}>{authorChipDateLabel}</small>
                     </span>
                   </span>
                 </JourneyUserPopover>
@@ -2168,7 +2169,7 @@ export function JourneyMilestoneCard({
                   {isBookmarkMilestone ? (
                     <span className="ctx-badge j-type-bookmark">
                       <Bookmark size={11} strokeWidth={1.8} aria-hidden />
-                      {TYPE_LABEL.bookmark}
+                      {t("milestone.type.bookmark")}
                     </span>
                   ) : isCongDongPost ? (
                     <span className="ctx-badge j-vis-cong-dong">
@@ -2266,7 +2267,7 @@ export function JourneyMilestoneCard({
                   <JourneyUserPopover
                     slug={ownerSlug}
                     fallbackName={
-                      authorName || (ownerSlug ? `@${ownerSlug}` : "Người dùng")
+                      authorName || (ownerSlug ? `@${ownerSlug}` : t("people.user"))
                     }
                     fallbackAvatarUrl={authorAvatarUrl}
                     track={
@@ -2292,7 +2293,7 @@ export function JourneyMilestoneCard({
                           {authorName || `@${ownerSlug ?? ""}`}
                           <VerifiedTick slug={ownerSlug} />
                         </strong>
-                        <small title="Ngày đăng">{authorChipDateLabel}</small>
+                        <small title={t("date.posted")}>{authorChipDateLabel}</small>
                       </span>
                     </span>
                   </JourneyUserPopover>
@@ -2307,8 +2308,8 @@ export function JourneyMilestoneCard({
                       )}
                     </span>
                     <span className="org-copy">
-                      <strong>{authorName || "Người dùng"}</strong>
-                      <small title="Ngày đăng">{authorChipDateLabel}</small>
+                      <strong>{authorName || t("people.user")}</strong>
+                      <small title={t("date.posted")}>{authorChipDateLabel}</small>
                     </span>
                   </span>
                 )
@@ -2406,7 +2407,7 @@ export function JourneyMilestoneCard({
                 <JourneyUserPopover
                   slug={ownerSlug ?? ""}
                   fallbackName={
-                    authorName || (ownerSlug ? `@${ownerSlug}` : "Người dùng")
+                    authorName || (ownerSlug ? `@${ownerSlug}` : t("people.user"))
                   }
                   fallbackAvatarUrl={authorAvatarUrl}
                   track={
@@ -2432,13 +2433,13 @@ export function JourneyMilestoneCard({
                         {authorName || `@${ownerSlug ?? ""}`}
                         <VerifiedTick slug={ownerSlug} />
                       </strong>
-                      <small title="Ngày đăng">{authorChipDateLabel}</small>
+                      <small title={t("date.posted")}>{authorChipDateLabel}</small>
                     </span>
                   </span>
                 </JourneyUserPopover>
               ) : (
                 <span className="org-copy">
-                  <small title="Ngày đăng">{authorChipDateLabel}</small>
+                  <small title={t("date.posted")}>{authorChipDateLabel}</small>
                 </span>
               )}
               <span className="badge-row">
@@ -2504,7 +2505,7 @@ export function JourneyMilestoneCard({
             >
               <JourneyUserPopover
                 slug={ownerSlug ?? ""}
-                fallbackName={authorName || (ownerSlug ? `@${ownerSlug}` : "Người dùng")}
+                fallbackName={authorName || (ownerSlug ? `@${ownerSlug}` : t("people.user"))}
                 fallbackAvatarUrl={authorAvatarUrl}
                 track={
                   trackOwnContent
@@ -2529,7 +2530,7 @@ export function JourneyMilestoneCard({
                       {authorName || `@${ownerSlug ?? ""}`}
                       <VerifiedTick slug={ownerSlug} />
                     </strong>
-                    <small title="Ngày đăng">{authorChipDateLabel}</small>
+                    <small title={t("date.posted")}>{authorChipDateLabel}</small>
                   </span>
                 </span>
               </JourneyUserPopover>

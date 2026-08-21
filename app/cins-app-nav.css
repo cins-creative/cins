@@ -766,6 +766,22 @@
     padding: 8px 14px 12px;
   }
 
+  .cins-app-sidebar.sidebar:not(:hover):not(:focus-within):not(:has(.sb-user.open)) .cins-locale-switch--sidebar {
+    margin: 0 auto 4px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    width: 36px;
+  }
+
+  .cins-app-sidebar.sidebar:not(:hover):not(:focus-within):not(:has(.sb-user.open)) .cins-locale-switch-pair {
+    display: none;
+  }
+
+  .cins-app-sidebar.sidebar:not(:hover):not(:focus-within):not(:has(.sb-user.open)) .cins-locale-switch-solo {
+    display: inline-flex;
+  }
+
   .cins-app-sidebar.sidebar:not(:hover):not(:focus-within):not(:has(.sb-user.open)) .sb-user-pill {
     justify-content: center;
     padding-left: 0;
@@ -1036,6 +1052,69 @@
   color: var(--cins-blue);
 }
 
+.cins-locale-switch--sidebar {
+  margin: 0 0 8px;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.cins-locale-switch-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.cins-locale-switch-solo {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: 0 auto;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  cursor: pointer;
+}
+
+.cins-locale-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.cins-locale-switch-btn:hover,
+.cins-locale-switch-solo:hover {
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue);
+}
+
+.cins-locale-switch-btn.on {
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue);
+}
+
+.cins-locale-flag {
+  display: block;
+  flex-shrink: 0;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12);
+}
+
 .app-user-ava-fallback {
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -1131,10 +1210,13 @@
     --cins-sticky-follow: calc(-1 * var(--site-nav-height, 64px));
   }
 
-  /* Section head shop: chỉ follow khi `.is-chrome-stuck` — còn giữa
-   * trang (dưới hero) thì transform sẽ kéo thanh đè nội dung. */
+  /* Sticky chrome follow topbar ẩn — chỉ khi đã dính top.
+   * `.j-tlb` giữa trang (timeline / gallery dưới profile) chưa stuck:
+   * transform sẽ kéo thanh lên sớm. Listing toolbar thường đã sát top. */
   .cins-shell :is(
-    .j-tlb,
+    .j-tlb:not(.j-timeline > .j-tlb):not(.j-gallery-main > .j-tlb),
+    .j-timeline > .j-tlb.is-chrome-stuck,
+    .j-gallery-main > .j-tlb.is-chrome-stuck,
     .j-shop-sf-section-head.is-chrome-stuck,
     .org-baidang-tlb,
     .shop-quay-tlb,
@@ -2534,7 +2616,7 @@ a.j-notify-mini-action.is-link:hover {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(15, 23, 42, 0.48);
+  background: rgba(15, 23, 42, 0.68);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }

@@ -11,9 +11,8 @@ import { JourneyProfileShareTrigger } from "@/components/journey/JourneyProfileS
 import { JourneyUserFollowButton } from "@/components/journey/JourneyUserFollowButton";
 import type { ChatPeerPreview } from "@/lib/chat/types";
 import type { JourneyShareProfile } from "@/lib/journey/profile-share";
+import { useT } from "@/lib/i18n/use-t";
 import type { useKetBanStatus } from "@/lib/social/use-ket-ban-status";
-
-const CHAT_AUTH_MESSAGE = "Đăng nhập để nhắn tin trên CINs.";
 
 type KetBanState = ReturnType<typeof useKetBanStatus>;
 
@@ -32,6 +31,7 @@ export function JourneyProfileGuestActions({
   chatPeerPreview,
   shareProfile,
 }: Props) {
+  const t = useT();
   const router = useRouter();
   const authGate = useOptionalAuthGate();
   const { openChat } = useCinsChat();
@@ -50,7 +50,7 @@ export function JourneyProfileGuestActions({
   );
 
   const openMessage = () => {
-    if (!requireAuth(CHAT_AUTH_MESSAGE)) return;
+    if (!requireAuth(t("social.authMessage"))) return;
     if (isSelf) return;
 
     setError(null);
@@ -60,7 +60,7 @@ export function JourneyProfileGuestActions({
       peerPreview: chatPeerPreview,
     }).catch((err: unknown) => {
       setError(
-        err instanceof Error ? err.message : "Không mở được hội thoại.",
+        err instanceof Error ? err.message : t("social.chatError"),
       );
     });
   };
@@ -72,8 +72,8 @@ export function JourneyProfileGuestActions({
           type="button"
           className="j-friend-message is-icon"
           disabled={isSelf}
-          title="Nhắn tin"
-          aria-label="Nhắn tin"
+          title={t("social.message")}
+          aria-label={t("social.message")}
           onClick={openMessage}
         >
           <MessageCircle size={17} strokeWidth={2} aria-hidden />

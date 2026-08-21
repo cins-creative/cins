@@ -32,6 +32,7 @@ import {
   justifiedRowStyle,
   resolveAlbumLayout,
   splitJustifiedRows,
+  SQUARE_ASPECT_TOLERANCE,
   type AlbumCell,
   type GridImage,
   type GridUploadSlotState,
@@ -644,8 +645,7 @@ export function ImageGrid({
       </div>
     );
   } else if (layout.kind === "justified") {
-    /* Chỉ tách hàng khi mọi ô đã có tỉ lệ thật (block hoặc onLoad).
-       Fallback 1200×800 khiến 3 ảnh nhảy 1+2 ↔ 1 hàng, 6 ảnh nhảy 3+3 ↔ 2+2+2. */
+    /* Chỉ tách hàng khi mọi ô đã có tỉ lệ thật (block hoặc onLoad). */
     const baseCells = layout.rows.flat();
     const cellsWithAspect = baseCells.map((c) => {
       const img = images[c.index];
@@ -677,21 +677,26 @@ export function ImageGrid({
       const justifiedRows = splitJustifiedRows(cellsWithAspect);
       body = (
         <div className="image-grid image-grid-col image-grid--justified" data-count={total}>
-          {justifiedRows.map((row, ri) => (
-            <div
-              key={`jrow-${ri}`}
-              className="image-grid-jrow"
-              style={justifiedRowStyle(row) as CSSProperties}
-            >
-              {row.map((c: AlbumCell) =>
-                renderCell(c.index, {
-                  style: { flexGrow: c.aspect },
-                  overlay: layout.overlaySlotIndex === c.index,
-                  remaining: layout.remaining,
-                }),
-              )}
-            </div>
-          ))}
+          {justifiedRows.map((row, ri) => {
+            const soloPortrait =
+              row.length === 1 &&
+              row[0]!.aspect < 1 / SQUARE_ASPECT_TOLERANCE;
+            return (
+              <div
+                key={`jrow-${ri}`}
+                className={`image-grid-jrow${soloPortrait ? " is-solo-portrait" : ""}`}
+                style={justifiedRowStyle(row) as CSSProperties}
+              >
+                {row.map((c: AlbumCell) =>
+                  renderCell(c.index, {
+                    style: { flexGrow: c.aspect },
+                    overlay: layout.overlaySlotIndex === c.index,
+                    remaining: layout.remaining,
+                  }),
+                )}
+              </div>
+            );
+          })}
         </div>
       );
     }

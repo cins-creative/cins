@@ -37,6 +37,9 @@ import {
   editMilestoneComment,
 } from "@/app/[slug]/journey/actions";
 import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
+import { formatRelativeTime } from "@/lib/format";
+import { useT } from "@/lib/i18n/use-t";
+import { useLocale } from "@/lib/locale/context";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
 import type { ChatSendGifPayload } from "@/components/cins/ChatStickerPicker";
 import { MsIcon } from "@/components/cins/MsIcon";
@@ -129,6 +132,7 @@ export function CommentBlock(props: CommentBlockProps) {
     pinCompose = false,
     commentDeniedFallback,
   } = props;
+  const t = useT();
   const authGate = useOptionalAuthGate();
   const isAuthenticated = Boolean(authGate?.isAuthenticated);
   const openAuthModal = useCallback(
@@ -282,7 +286,7 @@ export function CommentBlock(props: CommentBlockProps) {
       } catch (error) {
         onCommentRemoved(tempId);
         setErr(
-          error instanceof Error ? error.message : "Không gửi được GIF.",
+          error instanceof Error ? error.message : t("comment.sendGifFail"),
         );
       }
     })();
@@ -302,7 +306,7 @@ export function CommentBlock(props: CommentBlockProps) {
 
   const commentsHead = (
     <header className="post-comments-head">
-      <h2>Bình luận</h2>
+      <h2>{t("comment.title")}</h2>
       <span className="post-comments-count">{threadCount}</span>
     </header>
   );
@@ -311,7 +315,7 @@ export function CommentBlock(props: CommentBlockProps) {
     <>
       {comments.length === 0 ? (
         <div className="post-comments-empty">
-          Chưa có bình luận nào. Bạn là người đầu tiên ✨
+          {t("comment.empty")}
         </div>
       ) : (
         <ol className="post-comments-list">
@@ -341,7 +345,7 @@ export function CommentBlock(props: CommentBlockProps) {
     <div className="post-comments-login">{commentDeniedFallback}</div>
   ) : isAuthenticated ? (
     <div className="post-comments-login">
-      Bạn chưa thể bình luận lúc này.
+      {t("comment.cannot")}
     </div>
   ) : (
     <div className="post-comments-login">
@@ -349,20 +353,20 @@ export function CommentBlock(props: CommentBlockProps) {
         type="button"
         className="post-comments-login-btn"
         onClick={() =>
-          openAuthModal("Đăng nhập hoặc tạo tài khoản để bình luận bài viết này.")
+          openAuthModal(t("comment.authModal"))
         }
       >
-        Đăng nhập
+        {t("comment.login")}
       </button>{" "}
-      hoặc{" "}
+      {t("comment.or")}{" "}
       <button
         type="button"
         className="post-comments-login-btn"
-        onClick={() => openAuthModal("Tạo tài khoản CINs để tham gia thảo luận.")}
+        onClick={() => openAuthModal(t("comment.signupModal"))}
       >
-        tạo tài khoản
+        {t("comment.createAccount")}
       </button>{" "}
-      để bình luận.
+      {t("comment.toComment")}
     </div>
   );
 
@@ -373,7 +377,7 @@ export function CommentBlock(props: CommentBlockProps) {
         (pinCompose ? " post-comments--pin-compose" : "")
       }
       id={sectionId}
-      aria-label="Bình luận"
+      aria-label={t("comment.title")}
     >
       {pinCompose ? (
         <>
@@ -448,7 +452,10 @@ function commentInitial(name: string): string {
   return getNameInitials(name, "") || name.charAt(0).toUpperCase() || "?";
 }
 
-function commentDisplayAuthor(comment: MilestonePostComment): {
+function commentDisplayAuthor(
+  comment: MilestonePostComment,
+  labels: { org: string; you: string; user: string },
+): {
   name: string;
   initial: string;
   avatarUrl: string | null;
@@ -456,7 +463,7 @@ function commentDisplayAuthor(comment: MilestonePostComment): {
 } {
   const asOrg = comment.author?.asOrg ?? null;
   if (asOrg) {
-    const name = asOrg.ten?.trim() || "Tổ chức";
+    const name = asOrg.ten?.trim() || labels.org;
     return {
       name,
       initial: commentInitial(name),
@@ -467,7 +474,7 @@ function commentDisplayAuthor(comment: MilestonePostComment): {
   const name =
     comment.author?.tenHienThi?.trim() ||
     comment.author?.slug?.trim() ||
-    (comment.isOwn ? "Bạn" : "Người dùng");
+    (comment.isOwn ? labels.you : labels.user);
   return {
     name,
     initial: name.charAt(0).toUpperCase(),
@@ -479,13 +486,14 @@ function commentDisplayAuthor(comment: MilestonePostComment): {
 function composeOptimisticAuthor(
   personal: CommentIdentityPersonal | null,
   selectedOrg: CommentIdentityOrg | null,
+  youLabel: string,
 ): NonNullable<MilestonePostComment["author"]> {
   const remembered = personal ? null : readRememberedAccount();
   const tenHienThi =
     selectedOrg?.ten?.trim() ||
     personal?.tenHienThi?.trim() ||
     remembered?.tenHienThi?.trim() ||
-    "Bạn";
+    youLabel;
   return {
     id: personal?.id || remembered?.id || "self",
     slug: personal?.slug || remembered?.slug || "",
@@ -545,20 +553,21 @@ function MentionSuggestMenu({
   className?: string;
   style?: React.CSSProperties;
 }) {
+  const t = useT();
   return (
     <div
       className={className}
       style={style}
       role="listbox"
-      aria-label="Gợi ý bạn bè"
+      aria-label={t("comment.mentionAria")}
     >
       {mentionLoading ? (
-        <p className="post-comments-mention-hint">Đang tìm…</p>
+        <p className="post-comments-mention-hint">{t("comment.mentionSearching")}</p>
       ) : suggestions.length === 0 ? (
         <p className="post-comments-mention-hint">
           {mentionActive.query
-            ? "Không tìm thấy bạn bè phù hợp."
-            : "Chưa có bạn bè để gắn thẻ — kết nối trước nhé."}
+            ? t("comment.mentionNone")
+            : t("comment.mentionEmpty")}
         </p>
       ) : (
         suggestions.map((user, i) => {
@@ -605,6 +614,7 @@ function CommentComposeForm({
   inputRef,
   inline = false,
 }: ComposeProps) {
+  const t = useT();
   const [attachments, setAttachments] = useState<CommentAttachmentDraft[]>([]);
   const [stickerPickerOpen, setStickerPickerOpen] = useState(false);
   const [stickerPickerPos, setStickerPickerPos] = useState<{
@@ -670,7 +680,7 @@ function CommentComposeForm({
             setPersonal({
               id: p.id,
               slug: p.slug?.trim() || "",
-              tenHienThi: p.tenHienThi?.trim() || "Bạn",
+              tenHienThi: p.tenHienThi?.trim() || t("comment.you"),
               avatarId: p.avatarId ?? null,
               avatarUrl: p.avatarUrl ?? null,
             });
@@ -708,7 +718,7 @@ function CommentComposeForm({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (!identityMenuOpen) return;
@@ -747,7 +757,7 @@ function CommentComposeForm({
       : null;
   const activeAvatarUrl = selectedOrg?.avatarUrl ?? personal?.avatarUrl ?? null;
   const activeName =
-    selectedOrg?.ten ?? personal?.tenHienThi ?? "Bạn";
+    selectedOrg?.ten ?? personal?.tenHienThi ?? t("comment.you");
   const activeInitial = commentInitial(activeName);
   const showIdentityPicker = orgs.length > 0;
   const idToChuc =
@@ -758,7 +768,7 @@ function CommentComposeForm({
       setAttachments((prev) =>
         prev.map((item) =>
           item.localId === localId
-            ? { ...item, uploading: false, error: "File không phải ảnh." }
+            ? { ...item, uploading: false, error: t("comment.notImage") }
             : item,
         ),
       );
@@ -775,7 +785,7 @@ function CommentComposeForm({
         error?: string;
       };
       if (!res.ok || !data.imageId) {
-        throw new Error(data.error || "Upload thất bại.");
+        throw new Error(data.error || t("comment.uploadFail"));
       }
       if (data.url) rememberCfAccountHashFromDeliveryUrl(data.url);
       setAttachments((prev) =>
@@ -800,13 +810,13 @@ function CommentComposeForm({
             ? {
                 ...item,
                 uploading: false,
-                error: e instanceof Error ? e.message : "Upload thất bại.",
+                error: e instanceof Error ? e.message : t("comment.uploadFail"),
               }
             : item,
         ),
       );
     }
-  }, []);
+  }, [t]);
 
   const addAttachmentFiles = useCallback(
     (files: FileList | File[]) => {
@@ -867,7 +877,7 @@ function CommentComposeForm({
       onSendGif(
         payload,
         idToChuc,
-        composeOptimisticAuthor(personal, selectedOrg),
+        composeOptimisticAuthor(personal, selectedOrg, t("comment.you")),
       );
     },
     [pending, onSendGif, idToChuc, personal, selectedOrg],
@@ -1052,7 +1062,7 @@ function CommentComposeForm({
   const replyDisplayName =
     replyTo?.author?.asOrg?.ten?.trim() ||
     replyTo?.author?.tenHienThi ||
-    "người dùng";
+    t("comment.userFallback");
 
   return (
     <form
@@ -1079,13 +1089,13 @@ function CommentComposeForm({
             <div className="post-comments-reply-context">
               <Reply size={14} strokeWidth={2} aria-hidden />
               <span className="post-comments-reply-context-text">
-                Trả lời <strong>{replyDisplayName}</strong>
+                {t("comment.replying")} <strong>{replyDisplayName}</strong>
               </span>
               <button
                 type="button"
                 className="post-comments-reply-dismiss"
                 onClick={onCancelReply}
-                aria-label="Huỷ trả lời"
+                aria-label={t("comment.cancelReply")}
               >
                 <X size={14} strokeWidth={2} aria-hidden />
               </button>
@@ -1105,13 +1115,13 @@ function CommentComposeForm({
                   <img src={item.previewUrl} alt="" />
                   {item.uploading ? (
                     <span className="post-comments-compose-attachment-busy" aria-busy>
-                      <MemeShapesLoader size={16} label="Đang tải ảnh" />
+                      <MemeShapesLoader size={16} label={t("comment.loadingImage")} />
                     </span>
                   ) : null}
                   <button
                     type="button"
                     className="post-comments-compose-attachment-remove"
-                    aria-label="Xóa ảnh đính kèm"
+                    aria-label={t("comment.removeImage")}
                     onClick={() => removeAttachment(item.localId)}
                   >
                     <X size={12} strokeWidth={2} aria-hidden />
@@ -1129,7 +1139,7 @@ function CommentComposeForm({
                 <button
                   type="button"
                   className="post-comments-identity-trigger"
-                  aria-label={`Bình luận với tư cách ${activeName}`}
+                  aria-label={t("comment.as", { name: activeName })}
                   aria-haspopup="menu"
                   aria-expanded={identityMenuOpen}
                   disabled={pending}
@@ -1182,13 +1192,13 @@ function CommentComposeForm({
                           /* eslint-disable-next-line @next/next/no-img-element */
                           <img src={personal.avatarUrl} alt="" />
                         ) : (
-                          getNameInitials(personal?.tenHienThi || "Bạn", "") ||
+                          getNameInitials(personal?.tenHienThi || t("comment.you"), "") ||
                           "B"
                         )}
                       </span>
                       <span className="post-comments-identity-opt-copy">
-                        <strong>{personal?.tenHienThi || "Cá nhân"}</strong>
-                        <small>Cá nhân</small>
+                        <strong>{personal?.tenHienThi || t("comment.personal")}</strong>
+                        <small>{t("comment.personal")}</small>
                       </span>
                     </button>
                     {orgs.map((org) => {
@@ -1236,8 +1246,8 @@ function CommentComposeForm({
               className="post-comments-input post-comments-textarea"
               placeholder={
                 replyTo
-                  ? "Viết trả lời… @ để tìm bạn bè"
-                  : "Bình luận..."
+                  ? t("comment.placeholderReply")
+                  : t("comment.placeholder")
               }
               value={text}
               onChange={(e) => {
@@ -1344,7 +1354,7 @@ function CommentComposeForm({
             <button
               type="button"
               className="post-comments-attach-btn"
-              aria-label="Đính kèm ảnh"
+              aria-label={t("comment.attach")}
               disabled={
                 pending ||
                 attachmentsUploading ||
@@ -1371,10 +1381,10 @@ function CommentComposeForm({
           type="submit"
           className="post-comments-send"
           disabled={!canSend}
-          aria-label={pending ? "Đang gửi bình luận" : "Gửi bình luận"}
+          aria-label={pending ? t("comment.sending") : t("comment.send")}
         >
           {pending ? (
-            <MemeShapesLoader size={20} label="Đang gửi bình luận" />
+            <MemeShapesLoader size={20} label={t("comment.sending")} />
           ) : (
             <Send size={18} strokeWidth={2} aria-hidden />
           )}
@@ -1409,6 +1419,8 @@ function CommentThread({
   isReply?: boolean;
   allThreads?: ReadonlyArray<MilestonePostComment>;
 }) {
+  const t = useT();
+  const locale = useLocale();
   const threads = allThreads ?? [comment];
   const isReplyTarget = replyTo?.id === comment.id;
 
@@ -1535,7 +1547,11 @@ function CommentRow({
   const menuRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLTextAreaElement>(null);
 
-  const display = commentDisplayAuthor(comment);
+  const display = commentDisplayAuthor(comment, {
+    org: t("comment.org"),
+    you: t("comment.you"),
+    user: t("people.user"),
+  });
   const asOrg = display.asOrg;
   const orgKind = asOrg
     ? orgPopoverKindFromLoai(asOrg.loaiToChuc)
@@ -1694,9 +1710,11 @@ function CommentRow({
             ) : (
               nameEl
             )}
-            <span className="post-comments-time">{formatRelative(comment.taoLuc)}</span>
+            <span className="post-comments-time">
+              {formatRelativeTime(comment.taoLuc, locale)}
+            </span>
             {comment.ghimLuc ? (
-              <span className="post-comments-pin-badge" title="Đã ghim">
+              <span className="post-comments-pin-badge" title={t("comment.pinned")}>
                 <Pin size={12} strokeWidth={2} aria-hidden />
               </span>
             ) : null}
@@ -1706,7 +1724,7 @@ function CommentRow({
                 type="button"
                 className="post-comments-more"
                 onClick={() => setMenuOpen((v) => !v)}
-                aria-label="Tuỳ chọn bình luận"
+                aria-label={t("comment.options")}
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
               >
@@ -1736,7 +1754,7 @@ function CommentRow({
                     }}
                   >
                     <MessageCircle size={14} strokeWidth={1.7} aria-hidden />
-                    <span>Trả lời</span>
+                    <span>{t("comment.reply")}</span>
                   </button>
                   <button
                     type="button"
@@ -1748,7 +1766,7 @@ function CommentRow({
                     }}
                   >
                     <Copy size={14} strokeWidth={1.7} aria-hidden />
-                    <span>Sao chép</span>
+                    <span>{t("comment.copy")}</span>
                   </button>
                   {canEditOwn ? (
                     <button
@@ -1763,7 +1781,7 @@ function CommentRow({
                       }}
                     >
                       <Pencil size={14} strokeWidth={1.7} aria-hidden />
-                      <span>Sửa</span>
+                      <span>{t("comment.editShort")}</span>
                     </button>
                   ) : null}
                   {canDeleteOwn ? (
@@ -1773,7 +1791,7 @@ function CommentRow({
                       className="post-comments-menu-item post-comments-menu-item-danger"
                       onClick={() => {
                         setMenuOpen(false);
-                        if (!confirm("Xoá bình luận này?")) return;
+                        if (!confirm(t("comment.deleteConfirm"))) return;
                         startTransition(async () => {
                           const res = await deleteMilestoneComment(comment.id);
                           if (res.ok) onRemoved(comment.id);
@@ -1781,7 +1799,7 @@ function CommentRow({
                       }}
                     >
                       <Trash2 size={14} strokeWidth={1.7} aria-hidden />
-                      <span>Xoá</span>
+                      <span>{t("comment.delete")}</span>
                     </button>
                   ) : null}
                   {canHide ? (
@@ -1796,14 +1814,14 @@ function CommentRow({
                           if (res.ok) {
                             onUpdated(comment.id, {
                               daXoa: true,
-                              noiDung: "Bình luận đã xoá",
+                              noiDung: t("comment.deleted"),
                             });
                           }
                         });
                       }}
                     >
                       <Trash2 size={14} strokeWidth={1.7} aria-hidden />
-                      <span>Ẩn bình luận</span>
+                      <span>{t("comment.hide")}</span>
                     </button>
                   ) : null}
                   {canPin ? (
@@ -1842,7 +1860,9 @@ function CommentRow({
                       ) : (
                         <Pin size={14} strokeWidth={1.7} aria-hidden />
                       )}
-                      <span>{comment.ghimLuc ? "Bỏ ghim" : "Ghim"}</span>
+                      <span>
+                        {comment.ghimLuc ? t("comment.unpin") : t("comment.pin")}
+                      </span>
                     </button>
                   ) : null}
                 </div>,
@@ -1859,7 +1879,7 @@ function CommentRow({
                   e.preventDefault();
                   const next = editDraft.trim();
                   if (!next) {
-                    setEditErr("Nội dung bình luận trống.");
+                    setEditErr(t("comment.emptyEdit"));
                     return;
                   }
                   if (next === comment.noiDung.trim()) {
@@ -1886,7 +1906,7 @@ function CommentRow({
                   rows={3}
                   maxLength={1000}
                   disabled={pending}
-                  aria-label="Sửa bình luận"
+                  aria-label={t("comment.edit")}
                   onChange={(e) => setEditDraft(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Escape") {
@@ -1920,7 +1940,7 @@ function CommentRow({
                     className="post-comments-edit-save"
                     disabled={pending || !editDraft.trim()}
                   >
-                    {pending ? "Đang lưu…" : "Lưu"}
+                    {pending ? t("comment.saving") : t("comment.save")}
                   </button>
                 </div>
               </form>
@@ -1979,7 +1999,7 @@ function CommentRow({
                         onClick={() => onReply(comment)}
                         aria-expanded={isReplyTarget}
                       >
-                        Trả lời
+                        {t("comment.reply")}
                       </button>
                     ) : null}
                   </div>
@@ -2002,15 +2022,3 @@ function CommentRow({
   );
 }
 
-function formatRelative(iso: string): string {
-  const then = new Date(iso).getTime();
-  const diff = Date.now() - then;
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "Vừa xong";
-  if (mins < 60) return `${mins} phút trước`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} giờ trước`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days} ngày trước`;
-  return new Date(iso).toLocaleDateString("vi-VN");
-}

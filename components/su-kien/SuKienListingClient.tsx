@@ -9,7 +9,6 @@ import { HaOrgPopoverChip } from "@/components/cins/home-adaptive/HaOrgPopoverCh
 import { SuKienHeroCarousel } from "@/components/su-kien/SuKienHeroCarousel";
 import { SuKienPhanHoiActions } from "@/components/to-chuc/SuKienPhanHoiActions";
 import {
-  LOAI_SU_KIEN_LABELS,
   LOAI_SU_KIEN_VALUES,
   labelLoaiSuKien,
   type LoaiSuKien,
@@ -17,6 +16,8 @@ import {
 import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-phan-hoi-types";
 import type { SuKienListItem } from "@/lib/to-chuc/su-kien-listing";
 import { suKienCardPath } from "@/lib/to-chuc/su-kien-routes";
+import { tEventLoai } from "@/lib/i18n/home-modules";
+import { useT } from "@/lib/i18n/use-t";
 import {
   TINH_THANH_SELECT_OPTIONS,
   formatSuKienDiaDiemDisplay,
@@ -106,16 +107,19 @@ function normalize(value: string): string {
     .trim();
 }
 
-function eventTag(item: SuKienListItem): { label: string; kind: string } {
+function eventTag(
+  item: SuKienListItem,
+  t: ReturnType<typeof useT>,
+): { label: string; kind: string } {
   if (item.status === "active") {
-    return { label: "Đang diễn ra", kind: "is-live" };
+    return { label: t("event.live"), kind: "is-live" };
   }
   const daysUntil =
     (new Date(item.batDau).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
   if (daysUntil >= 0 && daysUntil <= 14) {
-    return { label: "Sắp diễn ra", kind: "is-hot" };
+    return { label: t("event.upcoming"), kind: "is-hot" };
   }
-  return { label: labelLoaiSuKien(item.loaiSuKien), kind: "" };
+  return { label: tEventLoai(t, item.loaiSuKien), kind: "" };
 }
 
 function compareNearestSuKien(a: SuKienListItem, b: SuKienListItem): number {
@@ -139,8 +143,9 @@ function SuKienListCard({
   onPhanHoiChange?: (suKienId: string, loai: LoaiPhanHoiSuKien | null) => void;
   onSoDangKyChange?: (suKienId: string, soDangKy: number) => void;
 }) {
+  const t = useT();
   const { month, day } = eventDate(item.batDau);
-  const tag = eventTag(item);
+  const tag = eventTag(item, t);
   const location = formatSuKienDiaDiemDisplay(item.tinhThanh, item.diaDiem);
   const time = formatTimeRange(item.batDau, item.ketThuc);
   const rsvpEnabled = item.status !== "done";
@@ -250,6 +255,7 @@ export function SuKienListingClient({
   initialTab,
   isLoggedIn,
 }: Props) {
+  const t = useT();
   const [timeFilter, setTimeFilter] = useState<TimeFilter>(() =>
     initialTab === "cua-ban" ? "cua-ban" : "upcoming",
   );
@@ -348,13 +354,13 @@ export function SuKienListingClient({
         <div
           className="sk-list-pills"
           role="tablist"
-          aria-label="Lọc theo thời gian"
+          aria-label={t("event.filterTimeAria")}
         >
           {(
             [
-              ["upcoming", "Sắp diễn ra", upcomingCount],
-              ["cua-ban", "Sự kiện của bạn", mineCount],
-              ["past", "Đã qua", pastCount],
+              ["upcoming", t("event.upcoming"), upcomingCount],
+              ["cua-ban", t("event.yours"), mineCount],
+              ["past", t("event.past"), pastCount],
             ] as const
           ).map(([key, label, count]) => (
             <button
@@ -376,23 +382,23 @@ export function SuKienListingClient({
             <Search size={18} strokeWidth={2} aria-hidden />
             <input
               type="search"
-              placeholder="Tìm sự kiện, tổ chức…"
+              placeholder={t("event.searchPh")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              aria-label="Tìm sự kiện"
+              aria-label={t("event.searchAria")}
               autoComplete="off"
             />
           </label>
 
           <label className="sk-list-select-wrap">
-            <span className="sk-list-select-label">Khu vực</span>
+            <span className="sk-list-select-label">{t("event.area")}</span>
             <select
               className="sk-list-select"
               value={tinhThanh}
               onChange={(e) => setTinhThanh(e.target.value)}
-              aria-label="Lọc theo khu vực"
+              aria-label={t("event.areaAria")}
             >
-              <option value="">Tất cả khu vực</option>
+              <option value="">{t("event.allAreas")}</option>
               {TINH_THANH_SELECT_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
@@ -402,7 +408,7 @@ export function SuKienListingClient({
           </label>
 
           <label className="sk-list-select-wrap">
-            <span className="sk-list-select-label">Loại sự kiện</span>
+            <span className="sk-list-select-label">{t("event.type")}</span>
             <select
               className="sk-list-select"
               value={loaiFilter}
@@ -410,12 +416,12 @@ export function SuKienListingClient({
                 const value = e.target.value;
                 setLoaiFilter(value === "all" ? "all" : (value as LoaiSuKien));
               }}
-              aria-label="Lọc theo loại sự kiện"
+              aria-label={t("event.typeAria")}
             >
-              <option value="all">Tất cả loại</option>
+              <option value="all">{t("event.allTypes")}</option>
               {LOAI_SU_KIEN_VALUES.map((loai) => (
                 <option key={loai} value={loai}>
-                  {LOAI_SU_KIEN_LABELS[loai]}
+                  {tEventLoai(t, loai)}
                 </option>
               ))}
             </select>

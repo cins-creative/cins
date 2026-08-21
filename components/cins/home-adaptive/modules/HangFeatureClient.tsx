@@ -139,6 +139,7 @@ export function HangFeaturePanel({ initialItems, limit }: PanelProps) {
   return (
     <ModuleCard
       icon={Package}
+      moduleId="hang_feature"
       title="Hàng feature"
       moreHref="/shopping"
       moreLabel="Khám phá cửa hàng"

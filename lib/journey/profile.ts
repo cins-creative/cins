@@ -1,6 +1,8 @@
 import { getCoverUrl } from "@/lib/articles/cover";
 import type { GiaiDoan } from "@/lib/auth/session";
+import { getT } from "@/lib/i18n/t";
 import { getDefaultAvatarUrl } from "@/lib/journey/default-avatars";
+import { DEFAULT_LOCALE, type CinsLocale } from "@/lib/locale/types";
 
 /**
  * Helper này pure (không touch DB/secrets) → an toàn import cả client lẫn server.
@@ -173,14 +175,19 @@ export function getNameInitials(
     .toUpperCase();
 }
 
-/** Stage label cho dòng "vai trò" dưới tên. */
-const GIAI_DOAN_LABEL: Record<GiaiDoan, string> = {
-  dang_hoc: "Đang học",
-  dang_lam: "Đang làm",
-  tim_viec: "Đang tìm việc",
-  freelance: "Freelance",
-  dang_day: "Giáo viên",
-};
-export function getGiaiDoanLabel(g: GiaiDoan | null): string {
-  return g ? GIAI_DOAN_LABEL[g] : "Đang khởi tạo hồ sơ";
+/** Stage label cho dòng "vai trò" dưới tên. Locale mặc định `vi`. */
+const GIAI_DOAN_KEY = {
+  dang_hoc: "profile.stage.dang_hoc",
+  dang_lam: "profile.stage.dang_lam",
+  tim_viec: "profile.stage.tim_viec",
+  freelance: "profile.stage.freelance",
+  dang_day: "profile.stage.dang_day",
+} as const;
+
+export function getGiaiDoanLabel(
+  g: GiaiDoan | null,
+  locale: CinsLocale = DEFAULT_LOCALE,
+): string {
+  const t = getT(locale);
+  return g ? t(GIAI_DOAN_KEY[g]) : t("profile.stage.unknown");
 }

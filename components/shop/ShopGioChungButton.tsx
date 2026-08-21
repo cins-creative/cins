@@ -3,6 +3,8 @@
 import {
   ArrowLeft,
   Check,
+  ChevronRight,
+  Gift,
   History,
   Loader2,
   Minus,
@@ -19,10 +21,11 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { useCinsChatContext } from "@/components/cins/CinsChatProvider";
+import { useT } from "@/lib/i18n/use-t";
 import {
   resolveLiveThumbFit,
   useShopThumbFitLive,
@@ -148,6 +151,7 @@ const SDT_RE = /^[0-9+()\-.\s]{6,20}$/;
 
 export function ShopGioChungButton() {
   /* Topbar nằm trong CinsChatShellBridge — vẫn dùng bản nullable cho chắc. */
+  const t = useT();
   const chat = useCinsChatContext();
   const [open, setOpen] = useState(false);
   const [gio, setGio] = useState<ShopGioChung | null>(null);
@@ -399,14 +403,14 @@ export function ShopGioChungButton() {
               className={`gio-chung-panel${isSplitLayout ? " is-split" : ""}${isPaying ? " is-paying" : ""}`}
               role="dialog"
               aria-modal="true"
-              aria-label={isPaying ? "Thanh toán" : "Giỏ chờ mua"}
+              aria-label={isPaying ? t("shop.cart.dialogPay") : t("shop.cart.dialogCart")}
             >
               <header className="gio-chung-hdr">
                 <div
                   className={`gio-chung-hdr-copy gio-chung-hdr-cart${isPaying ? " is-mobile-hidden" : ""}`}
                 >
-                  <p className="gio-chung-kicker">Giỏ chờ mua</p>
-                  <h2>Hàng của bạn</h2>
+                  <p className="gio-chung-kicker">{t("shop.cart.kicker")}</p>
+                  <h2>{t("shop.cart.yourItems")}</h2>
                 </div>
                 <div
                   className={`gio-chung-hdr-main gio-chung-hdr-pay${isPaying ? " is-mobile-visible" : ""}`}
@@ -414,30 +418,33 @@ export function ShopGioChungButton() {
                   <button
                     type="button"
                     className="gio-chung-back"
-                    aria-label="Quay lại giỏ hàng"
+                    aria-label={t("shop.cart.backAria")}
                     onClick={() => setPayingSellerId(null)}
                   >
                     <ArrowLeft size={18} strokeWidth={2} aria-hidden />
                   </button>
                   <div className="gio-chung-hdr-copy">
-                    <p className="gio-chung-kicker">Thanh toán</p>
-                    <h2>{payingGroup?.tenCuaHang ?? "Cửa hàng"}</h2>
+                    <p className="gio-chung-kicker">{t("shop.cart.pay")}</p>
+                    <h2>{payingGroup?.tenCuaHang ?? t("shop.cart.shopFallback")}</h2>
                   </div>
                 </div>
                 <div className="gio-chung-hdr-actions">
                   <button
                     type="button"
                     className={`gio-chung-history-btn${isPaying ? " is-mobile-hidden" : ""}`}
-                    aria-label="Lịch sử mua hàng"
-                    title="Lịch sử mua hàng"
-                    onClick={() => setHistoryOpen(true)}
+                    aria-label={t("shop.history.title")}
+                    title={t("shop.history.title")}
+                    onClick={() => {
+                      setOpen(false);
+                      setHistoryOpen(true);
+                    }}
                   >
                     <History size={17} strokeWidth={2} aria-hidden />
                   </button>
                   <button
                     type="button"
                     className="gio-chung-close"
-                    aria-label="Đóng"
+                    aria-label={t("home.edit.close")}
                     onClick={() => setOpen(false)}
                   >
                     <X size={18} strokeWidth={2} aria-hidden />
@@ -493,10 +500,8 @@ export function ShopGioChungButton() {
                     >
                       {!payingSellerId ? (
                         <div className="gio-chung-pay-empty">
-                          <p>Thông tin thanh toán</p>
-                          <span>
-                            Chọn cửa hàng bên trái rồi bấm Thanh toán.
-                          </span>
+                          <p>{t("shop.cart.payInfo")}</p>
+                          <span>{t("shop.cart.pickShop")}</span>
                         </div>
                       ) : null}
                     </div>
@@ -694,8 +699,37 @@ function mapComboCongKhai(
   };
 }
 
+function comboDkThumbUrl(
+  dk: ShopCombo["dieuKien"][number] | undefined,
+  dong: ShopGioChungNhom["dong"],
+): string | null {
+  if (dk?.anhUrl) return dk.anhUrl;
+  if (!dk) return null;
+  const hit = dong.find((line) => {
+    if (dk.phamVi === "bien_the" && dk.idBienThe) {
+      return line.idBienThe === dk.idBienThe;
+    }
+    if (dk.phamVi === "san_pham" && dk.idSanPham) {
+      return line.idSanPham === dk.idSanPham;
+    }
+    if (dk.phamVi === "loai_hang" && dk.idNhom) {
+      return line.idNhom === dk.idNhom;
+    }
+    return false;
+  });
+  return hit?.anhUrl ?? null;
+}
+
 function GioChungComboBlock({ group }: { group: ShopGioChungNhom }) {
+  const t = useT();
+  const titleId = useId();
   const [combos, setCombos] = useState<ShopCombo[]>([]);
+  const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -724,74 +758,226 @@ function GioChungComboBlock({ group }: { group: ShopGioChungNhom }) {
     };
   }, [group.idNguoiBan]);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
+
   const tienDo = tinhComboTienDoNhom(group.dong, combos);
   const appliedIds = new Set(group.comboApDung.map((c) => c.idCombo));
   const pending = tienDo.filter(
-    (t) => !t.khopDu && !appliedIds.has(t.idCombo),
+    (td) => !td.khopDu && !appliedIds.has(td.idCombo),
   );
 
   if (group.comboApDung.length === 0 && pending.length === 0) return null;
 
   const ownerSlug = group.sellerSlug ?? "";
+  const hasPending = pending.length > 0;
+  const hasApplied = group.comboApDung.length > 0;
+  const cta = hasPending
+    ? hasApplied
+      ? t("shop.cartComboCtaBoth", {
+          amount: money(group.giamCombo, group.tienTe),
+        })
+      : t("shop.cartComboCta")
+    : t("shop.cartComboCtaApplied", {
+        amount: money(group.giamCombo, group.tienTe),
+      });
+
+  const dialog =
+    open && mounted
+      ? createPortal(
+          <div
+            className="gio-chung-combo-overlay"
+            role="presentation"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) setOpen(false);
+            }}
+          >
+            <div
+              className="gio-chung-combo-sheet"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={titleId}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <header className="gio-chung-combo-sheet-head">
+                <h3 id={titleId}>{t("shop.cartComboDialogTitle")}</h3>
+                <button
+                  type="button"
+                  className="gio-chung-combo-sheet-close"
+                  aria-label={t("shop.cartComboClose")}
+                  onClick={() => setOpen(false)}
+                >
+                  <X size={18} strokeWidth={2.2} aria-hidden />
+                </button>
+              </header>
+              <div className="gio-chung-combo-sheet-body">
+                {hasApplied ? (
+                  <section className="gio-chung-combo-sheet-section">
+                    <p className="gio-chung-combo-sheet-kicker">
+                      {t("shop.cartComboAppliedHeading")}
+                    </p>
+                    <ul className="gio-chung-combo-applied">
+                      {group.comboApDung.map((c) => (
+                        <li key={c.idCombo}>
+                          <Check size={13} strokeWidth={2.5} aria-hidden />
+                          <span>
+                            Combo «{c.ten}»
+                            {c.soLan > 1 ? ` ×${c.soLan}` : ""} · −
+                            {money(c.tien, group.tienTe)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                ) : null}
+                {hasPending ? (
+                  <section className="gio-chung-combo-sheet-section">
+                    <p className="gio-chung-combo-sheet-kicker">
+                      {t("shop.cartComboPendingHeading")}
+                    </p>
+                    <ul className="gio-chung-combo-pending">
+                      {pending.map((td) => {
+                        const combo = combos.find((c) => c.id === td.idCombo);
+                        const thieu = td.dieuKien.filter((d) => d.coDu < d.can);
+                        return (
+                          <li key={td.idCombo}>
+                            <p className="gio-chung-combo-pending-title">
+                              {t("shop.cartComboMissing", {
+                                name: td.ten,
+                                count: thieu.length,
+                              })}
+                            </p>
+                            <ul className="gio-chung-combo-pending-items">
+                              {td.dieuKien.map((d) => {
+                                const missing = d.coDu < d.can;
+                                const dk = combo?.dieuKien.find(
+                                  (x) => x.id === d.id,
+                                );
+                                const href =
+                                  missing && dk && ownerSlug
+                                    ? comboDieuKienHref(
+                                        dk,
+                                        ownerSlug,
+                                        group.tenCuaHang,
+                                        td.idCombo,
+                                      )
+                                    : null;
+                                const thumbUrl = comboDkThumbUrl(
+                                  dk,
+                                  group.dong,
+                                );
+                                const thumb = thumbUrl ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={thumbUrl}
+                                    alt=""
+                                    loading="lazy"
+                                  />
+                                ) : (
+                                  <Package size={14} strokeWidth={1.7} />
+                                );
+                                return (
+                                  <li
+                                    key={d.id}
+                                    className={
+                                      missing
+                                        ? "gio-chung-combo-dk is-missing"
+                                        : "gio-chung-combo-dk is-ok"
+                                    }
+                                  >
+                                    {href ? (
+                                      <Link
+                                        href={href}
+                                        className="gio-chung-combo-dk-thumb"
+                                        tabIndex={-1}
+                                        onClick={() => setOpen(false)}
+                                      >
+                                        {thumb}
+                                      </Link>
+                                    ) : (
+                                      <span
+                                        className="gio-chung-combo-dk-thumb"
+                                        aria-hidden
+                                      >
+                                        {thumb}
+                                      </span>
+                                    )}
+                                    <span className="gio-chung-combo-dk-name">
+                                      {d.nhan}
+                                    </span>
+                                    <span className="gio-chung-combo-dk-qty">
+                                      {t("shop.cartComboHaveNeed", {
+                                        have: d.coDu,
+                                        need: d.can,
+                                      })}
+                                    </span>
+                                    {href ? (
+                                      <Link
+                                        href={href}
+                                        className="gio-chung-combo-link"
+                                        onClick={() => setOpen(false)}
+                                      >
+                                        {t("shop.cartComboChoose")}
+                                      </Link>
+                                    ) : (
+                                      <span className="gio-chung-combo-dk-done">
+                                        <Check
+                                          size={12}
+                                          strokeWidth={2.5}
+                                          aria-hidden
+                                        />
+                                      </span>
+                                    )}
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </section>
+                ) : null}
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
 
   return (
-    <div className="gio-chung-combo-block" aria-label="Combo">
-      {group.comboApDung.length > 0 ? (
-        <ul className="gio-chung-combo-applied">
-          {group.comboApDung.map((c) => (
-            <li key={c.idCombo}>
-              <Check size={13} strokeWidth={2.5} aria-hidden />
-              <span>
-                Combo «{c.ten}»
-                {c.soLan > 1 ? ` ×${c.soLan}` : ""} · −
-                {money(c.tien, group.tienTe)}
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-      {pending.length > 0 ? (
-        <ul className="gio-chung-combo-pending">
-          {pending.map((t) => {
-            const combo = combos.find((c) => c.id === t.idCombo);
-            const thieu = t.dieuKien.filter((d) => d.coDu < d.can);
-            return (
-              <li key={t.idCombo}>
-                <p className="gio-chung-combo-pending-title">
-                  Combo «{t.ten}» — còn thiếu {thieu.length} món
-                </p>
-                <ul className="gio-chung-combo-pending-items">
-                  {thieu.map((d) => {
-                    const dk = combo?.dieuKien.find((x) => x.id === d.id);
-                    const href =
-                      dk && ownerSlug
-                        ? comboDieuKienHref(
-                            dk,
-                            ownerSlug,
-                            group.tenCuaHang,
-                            t.idCombo,
-                          )
-                        : null;
-                    return (
-                      <li key={d.id}>
-                        {d.nhan} ×{d.can - d.coDu}
-                        {href ? (
-                          <>
-                            {" · "}
-                            <Link href={href} className="gio-chung-combo-link">
-                              Chọn
-                            </Link>
-                          </>
-                        ) : null}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
+    <div className="gio-chung-combo-block" aria-label={t("shop.cartComboAria")}>
+      <button
+        type="button"
+        className={`gio-chung-combo-trigger${hasPending ? "" : " is-applied"}`}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => setOpen(true)}
+      >
+        {hasPending ? (
+          <Gift size={16} strokeWidth={2.2} aria-hidden />
+        ) : (
+          <Check size={16} strokeWidth={2.5} aria-hidden />
+        )}
+        <span className="gio-chung-combo-trigger-copy">
+          <strong>{cta}</strong>
+          {hasPending ? (
+            <span>
+              {t("shop.cartComboPendingHint", { count: pending.length })}
+            </span>
+          ) : null}
+        </span>
+        <ChevronRight size={16} strokeWidth={2} aria-hidden />
+      </button>
+      {dialog}
     </div>
   );
 }

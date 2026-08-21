@@ -6,7 +6,6 @@ import {
   Loader2,
   MessageCircle,
   Minus,
-  Package,
   Plus,
   Search,
   Store,
@@ -52,6 +51,7 @@ import {
   type SuKienQuayView,
   withSuKienQuayView,
 } from "@/lib/to-chuc/su-kien-routes";
+import { useT } from "@/lib/i18n/use-t";
 
 import "@/app/shopping/cua-hang-listing.css";
 import "@/components/journey/journey-shop-view.css";
@@ -1159,6 +1159,7 @@ function ShopQuaySuKienPanelInner({
   onPendingCountChange,
   viewerProfileId: viewerProfileIdProp,
 }: Props) {
+  const t = useT();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const quayFromUrl = parseSuKienQuayView(searchParams.get("quay"));
@@ -1326,7 +1327,6 @@ function ShopQuaySuKienPanelInner({
       /* hangSearch fallback khi catalog loại/mẫu trống. */
       void ensureHang();
     }
-    if (browseMode === "hang") void ensureHang();
   }, [browseMode, ensureCatalog, ensureHang]);
 
   useEffect(() => {
@@ -1471,7 +1471,7 @@ function ShopQuaySuKienPanelInner({
     setActionErr(null);
   }
 
-  const showHangCatalog = browseMode === "hang" && !canManage;
+  const showHangCatalog = false;
   const showMatHangCatalog = browseMode === "mat-hang" && !canManage;
   const hangCards = useMemo(
     () =>
@@ -1523,18 +1523,12 @@ function ShopQuaySuKienPanelInner({
                 type="search"
                 value={search}
                 placeholder={
-                  browseMode === "hang"
-                    ? "Tìm hàng, phân loại…"
-                    : browseMode === "mat-hang"
-                      ? "Tìm mặt hàng…"
-                      : "Tìm shop…"
+                  browseMode === "mat-hang" ? "Tìm mặt hàng…" : "Tìm shop…"
                 }
                 aria-label={
-                  browseMode === "hang"
-                    ? "Tìm theo tên sản phẩm hoặc phân loại"
-                    : browseMode === "mat-hang"
-                      ? "Tìm theo tên mặt hàng"
-                      : "Tìm theo tên shop"
+                  browseMode === "mat-hang"
+                    ? "Tìm theo tên mặt hàng"
+                    : "Tìm theo tên shop"
                 }
                 autoComplete="off"
                 spellCheck={false}
@@ -1565,7 +1559,7 @@ function ShopQuaySuKienPanelInner({
               scroll={false}
               className={`j-svt-btn${browseMode === "shop" ? " active" : ""}`}
               aria-current={browseMode === "shop" ? "page" : undefined}
-              title="Xem theo cửa hàng"
+              title={t("event.viewByShop")}
             >
               <Store size={15} strokeWidth={2} aria-hidden />
               Shop
@@ -1576,21 +1570,10 @@ function ShopQuaySuKienPanelInner({
               scroll={false}
               className={`j-svt-btn${browseMode === "mat-hang" ? " active" : ""}`}
               aria-current={browseMode === "mat-hang" ? "page" : undefined}
-              title="Xem theo mặt hàng"
+              title={t("event.viewByItems")}
             >
               <LayoutGrid size={15} strokeWidth={2} aria-hidden />
-              Mặt hàng
-            </Link>
-            <Link
-              href={withSuKienQuayView(pathname, "hang", searchParams)}
-              replace
-              scroll={false}
-              className={`j-svt-btn${browseMode === "hang" ? " active" : ""}`}
-              aria-current={browseMode === "hang" ? "page" : undefined}
-              title="Xem theo hàng"
-            >
-              <Package size={15} strokeWidth={2} aria-hidden />
-              Hàng
+              {t("shop.tabTypes")}
             </Link>
           </div>
         ) : null}

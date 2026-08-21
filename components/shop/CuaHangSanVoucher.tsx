@@ -15,6 +15,11 @@ import {
 import { createPortal } from "react-dom";
 
 import { ShopVoucherCard } from "@/components/shop/ShopVoucherCard";
+import { formatMoney } from "@/lib/format";
+import type { TFn } from "@/lib/i18n/t";
+import { useT } from "@/lib/i18n/use-t";
+import { useLocale } from "@/lib/locale/context";
+import type { CinsLocale } from "@/lib/locale/types";
 import { shopPublicHref, shopSlugFromTen } from "@/lib/shop/cua-hang-href";
 import type {
   ShopVoucherCongKhaiItem,
@@ -59,9 +64,18 @@ function tickerFingerVelocityPxMs(samples: TickerDragSample[]): number {
   return ((b.x - a.x) / (b.t - a.t)) * TICKER_INERTIA_BOOST;
 }
 
-function formatGiamChip(loaiGiam: CongKhaiItem["loaiGiam"], giaTri: number): string {
-  if (loaiGiam === "phan_tram") return `Giảm ${giaTri}%`;
-  return `Giảm ${giaTri.toLocaleString("vi-VN")}₫`;
+function formatGiamChip(
+  loaiGiam: CongKhaiItem["loaiGiam"],
+  giaTri: number,
+  locale: CinsLocale,
+  t: TFn,
+): string {
+  if (loaiGiam === "phan_tram") {
+    return t("shop.voucher.offPercent", { n: giaTri });
+  }
+  return t("shop.voucher.offAmount", {
+    amount: formatMoney(giaTri, locale),
+  });
 }
 
 function tickerResumeEase(t: number): number {
@@ -79,6 +93,8 @@ function SanVoucherChip({
   dup: boolean;
   onOpen: () => void;
 }) {
+  const t = useT();
+  const locale = useLocale();
   return (
     <button
       type="button"
@@ -92,7 +108,7 @@ function SanVoucherChip({
         <TicketPercent size={15} strokeWidth={2.25} />
       </span>
       <span className="ch-san-voucher-chip-giam">
-        {formatGiamChip(v.loaiGiam, v.giaTri)}
+        {formatGiamChip(v.loaiGiam, v.giaTri, locale, t)}
       </span>
       <span className="ch-san-voucher-chip-meta">
         <span className="ch-san-voucher-chip-shop-row">
@@ -124,6 +140,7 @@ function SanVoucherChip({
  * Khu «Săn voucher» trên /cua-hang — ticker lặp + modal đầy đủ.
  */
 export function CuaHangSanVoucher() {
+  const t = useT();
   const titleId = useId();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("san");
@@ -740,9 +757,9 @@ export function CuaHangSanVoucher() {
     (tab === "san" || loggedIn);
 
   const railLabel = loading
-    ? "Đang tải voucher"
+    ? t("shop.voucher.loadingRail")
     : san.length > 0
-      ? `Shop Voucher, ${san.length} mã đang chạy`
+      ? t("shop.voucher.railCount", { count: san.length })
       : "Shop Voucher";
 
   const modal =
@@ -765,7 +782,7 @@ export function CuaHangSanVoucher() {
               <header className="shop-kho-nhom-dialog-head ch-san-voucher-modal-head">
                 <h3 id={titleId} className="ch-san-voucher-modal-title">
                   <TicketPercent size={20} strokeWidth={2.2} aria-hidden />
-                  Săn voucher
+                  {t("shop.voucher.hunt")}
                 </h3>
                 <div className="ch-san-voucher-tabs" role="tablist">
                   <button
@@ -775,7 +792,7 @@ export function CuaHangSanVoucher() {
                     className={`ch-san-voucher-tab${tab === "san" ? " is-active" : ""}`}
                     onClick={() => setTab("san")}
                   >
-                    Toàn bộ voucher
+                    {t("shop.voucher.all")}
                   </button>
                   {loggedIn ? (
                     <button
@@ -785,7 +802,7 @@ export function CuaHangSanVoucher() {
                       className={`ch-san-voucher-tab${tab === "vi" ? " is-active" : ""}`}
                       onClick={() => setTab("vi")}
                     >
-                      Voucher của tôi
+                      {t("shop.voucher.mine")}
                     </button>
                   ) : null}
                 </div>
@@ -793,7 +810,7 @@ export function CuaHangSanVoucher() {
                   type="button"
                   className="shop-kho-nhom-dialog-close"
                   onClick={() => setOpen(false)}
-                  aria-label="Đóng"
+                  aria-label={t("actors.close")}
                 >
                   <X size={18} aria-hidden />
                 </button>
@@ -801,12 +818,12 @@ export function CuaHangSanVoucher() {
 
               <div className="ch-san-voucher-modal-body">
                 {loading ? (
-                  <p className="ch-san-voucher-muted">Đang tải…</p>
+                  <p className="ch-san-voucher-muted">{t("shop.loadingShort")}</p>
                 ) : empty ? (
                   <p className="ch-san-voucher-muted">
                     {tab === "vi"
-                      ? "Chưa lưu voucher nào. Nhặt mã ở mục Toàn bộ voucher."
-                      : "Chưa có voucher công khai."}
+                      ? t("shop.voucher.emptyMine")
+                      : t("shop.voucher.emptyPublic")}
                   </p>
                 ) : (
                   <div className="ch-san-voucher-grid">
@@ -854,7 +871,7 @@ export function CuaHangSanVoucher() {
                                     disabled={busyId === v.id}
                                     onClick={() => void luu(v.id)}
                                   >
-                                    {busyId === v.id ? "…" : "Lưu"}
+                                    {busyId === v.id ? "…" : t("shop.voucher.save")}
                                   </button>
                                 ) : null}
                                 {conHieuLuc && v.sellerSlug ? (
@@ -862,7 +879,7 @@ export function CuaHangSanVoucher() {
                                     href={shopHref(v)}
                                     className="ch-san-voucher-btn is-primary"
                                   >
-                                    Dùng ngay
+                                    {t("shop.voucher.useNow")}
                                   </Link>
                                 ) : null}
                               </>

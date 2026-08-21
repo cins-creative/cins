@@ -1,6 +1,8 @@
 /** L33 — Shop UGC types (không payment gateway). */
 
 import type { MilestoneItem } from "@/components/journey/milestone-types";
+import { getT } from "@/lib/i18n/t";
+import { DEFAULT_LOCALE, type CinsLocale } from "@/lib/locale/types";
 import type { PublicShopListingItem } from "@/lib/shop/cua-hang-listing-types";
 import type { ShopThumbFit } from "@/lib/shop/anh-thumb-fit";
 
@@ -783,6 +785,38 @@ export const SHOP_TRANG_THAI_DON_LABEL: Record<ShopTrangThaiDon, string> = {
   hoan_tra: "Hoàn trả",
   huy: "Đã hủy",
 };
+
+const SHOP_STATUS_MSG = {
+  nhap: "shop.status.nhap",
+  cho_xac_nhan: "shop.status.cho_xac_nhan",
+  da_nhan_tien: "shop.status.da_nhan_tien",
+  cho_lay_hang: "shop.status.cho_lay_hang",
+  dang_giao: "shop.status.dang_giao",
+  da_giao_tai_su_kien: "shop.status.da_giao_tai_su_kien",
+  hoan_thanh: "shop.status.hoan_thanh",
+  hoan_tra: "shop.status.hoan_tra",
+  huy: "shop.status.huy",
+} as const;
+
+const SHOP_LOAI_MSG = {
+  mua_ngay: "shop.loai.mua_ngay",
+  dat_truoc_nhan_su_kien: "shop.loai.dat_truoc_nhan_su_kien",
+} as const;
+
+/** Nhãn trạng thái đơn theo locale — buyer view. Map VI cũ giữ cho seller dashboard. */
+export function shopTrangThaiDonLabel(
+  status: ShopTrangThaiDon,
+  locale: CinsLocale = DEFAULT_LOCALE,
+): string {
+  return getT(locale)(SHOP_STATUS_MSG[status]);
+}
+
+export function shopLoaiDonLabel(
+  loai: ShopLoaiDon,
+  locale: CinsLocale = DEFAULT_LOCALE,
+): string {
+  return getT(locale)(SHOP_LOAI_MSG[loai]);
+}
 
 export const SHOP_TRANG_THAI_QUAY_LABEL: Record<ShopTrangThaiQuay, string> = {
   cho_xu_ly: "Chờ duyệt",

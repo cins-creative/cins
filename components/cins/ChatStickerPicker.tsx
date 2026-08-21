@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import { MemeShapesLoader } from "@/components/cins/MemeShapesLoader";
+import { useT } from "@/lib/i18n/use-t";
 import { fetchChatComposeImageUpload } from "@/lib/chat/compose-image-upload";
 import { readImageFileFromClipboard } from "@/lib/files/clipboard-images";
 import { GifClientError, type GifResult } from "@/lib/gif/client";
@@ -93,6 +94,7 @@ export function ChatStickerPicker({
   onSendGif,
   disabled,
 }: Props) {
+  const t = useT();
   const panelRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const gifEnabled = typeof onSendGif === "function";
@@ -119,6 +121,8 @@ export function ChatStickerPicker({
   const [gifError, setGifError] = useState<string | null>(null);
   const [gifMissingKey, setGifMissingKey] = useState(false);
   const gifReqIdRef = useRef(0);
+  /** Chặn double-click gửi 2 GIF/meme trước khi picker unmount. */
+  const pickLockRef = useRef(false);
 
   useEffect(() => {
     ensureGifPrefetchOnStickerHover();
@@ -341,14 +345,22 @@ export function ChatStickerPicker({
     }
   };
 
+  const lockAndSend = (fn: () => void) => {
+    if (disabled || pickLockRef.current) return;
+    pickLockRef.current = true;
+    fn();
+  };
+
   const handlePickGif = (item: GifResult) => {
-    if (!onSendGif || disabled) return;
-    onSendGif({
-      previewUrl: item.previewUrl,
-      url: item.url,
-      id: item.id,
+    if (!onSendGif) return;
+    lockAndSend(() => {
+      onSendGif({
+        previewUrl: item.previewUrl,
+        url: item.url,
+        id: item.id,
+      });
+      onClose();
     });
-    onClose();
   };
 
   return (
@@ -363,7 +375,7 @@ export function ChatStickerPicker({
           <div
             className="cins-chat-sticker-picker-mode"
             role="tablist"
-            aria-label="Loại nội dung"
+            aria-label={t("chat.contentType")}
           >
             <button
               type="button"
@@ -395,7 +407,7 @@ export function ChatStickerPicker({
             <button
               type="button"
               className={`cins-chat-sticker-picker-icon${manageMode ? " is-active" : ""}`}
-              aria-label={manageMode ? "Xong quản lý" : "Quản lý bộ meme"}
+              aria-label={manageMode ? t("chat.doneManage") : t("chat.manageMemes")}
               aria-pressed={manageMode}
               onClick={() => setManageMode((value) => !value)}
             >
@@ -405,7 +417,7 @@ export function ChatStickerPicker({
           <button
             type="button"
             className="cins-chat-sticker-picker-icon"
-            aria-label="Đóng"
+            aria-label={t("chat.close")}
             onClick={onClose}
           >
             <X size={16} strokeWidth={2} aria-hidden />
@@ -420,8 +432,8 @@ export function ChatStickerPicker({
             className="cins-chat-gif-search"
             value={gifQuery}
             onChange={(e) => setGifQuery(e.target.value)}
-            placeholder="Tìm GIF…"
-            aria-label="Tìm GIF"
+            placeholder={`${t("chat.searchGif")}…`}
+            aria-label={t("chat.searchGif")}
             disabled={disabled}
           />
           {gifMissingKey ? (
@@ -459,7 +471,7 @@ export function ChatStickerPicker({
                         type="button"
                         className="cins-chat-sticker-picker-sticker cins-chat-gif-cell"
                         disabled={disabled}
-                        aria-label={item.title?.trim() || "Gửi GIF"}
+                        aria-label={item.title?.trim() || t("chat.sendGif")}
                         style={{
                           aspectRatio:
                             item.width > 0 && item.height > 0
@@ -484,7 +496,7 @@ export function ChatStickerPicker({
         </div>
       ) : (
         <>
-          <div className="cins-chat-sticker-picker-tabs" role="tablist" aria-label="Bộ meme">
+          <div className="cins-chat-sticker-picker-tabs" role="tablist" aria-label={t("chat.memePacks")}>
             {boList.map((bo) => (
               <button
                 key={bo.id}
@@ -588,7 +600,7 @@ export function ChatStickerPicker({
                         className="cins-chat-sticker-picker-sticker"
                         disabled={disabled || manageMode}
                         aria-label={item.tenGoi ?? "Gửi meme"}
-                        onClick={() => onSend(item)}
+                        onClick={() => lockAndSend(() => onSend(item))}
                       >
                         {item.url ? <StickerImg src={item.url} /> : null}
                       </button>

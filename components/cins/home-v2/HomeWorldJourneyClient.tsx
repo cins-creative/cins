@@ -67,7 +67,6 @@ type Props = {
   feedPromosPromise?: Promise<FeedPromoVariant[]>;
   initialView?: string;
   initialPlayId?: string;
-  feedPromosPromise?: Promise<FeedPromoVariant[]>;
   editingLayout?: boolean;
   layoutPersona: Persona;
   layoutGiaiDoan?: GiaiDoan | null;

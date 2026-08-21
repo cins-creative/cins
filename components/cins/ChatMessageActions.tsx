@@ -21,6 +21,8 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+import { useT } from "@/lib/i18n/use-t";
+
 import { CHAT_REACTION_EMOJIS } from "@/lib/chat/constants";
 import { canForwardMessage } from "@/lib/chat/forward-message-client";
 import {
@@ -115,6 +117,7 @@ function useFloatingPanel(
 }
 
 export function ChatMessageActions({ msg, handlers }: Props) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [showReact, setShowReact] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
@@ -208,7 +211,7 @@ export function ChatMessageActions({ msg, handlers }: Props) {
           >
             <button type="button" role="menuitem" onClick={() => void copyText()}>
               <Copy size={14} aria-hidden />
-              Sao chép
+              {t("chat.copy")}
             </button>
             {forwardable ? (
               <button
@@ -224,7 +227,7 @@ export function ChatMessageActions({ msg, handlers }: Props) {
                 }}
               >
                 <Forward size={14} aria-hidden />
-                Chuyển tiếp
+                {t("chat.forward")}
               </button>
             ) : null}
             {editable && isText ? (
@@ -240,7 +243,7 @@ export function ChatMessageActions({ msg, handlers }: Props) {
                 }}
               >
                 <Pencil size={14} aria-hidden />
-                Sửa
+                {t("chat.edit")}
               </button>
             ) : null}
             <button
@@ -255,7 +258,7 @@ export function ChatMessageActions({ msg, handlers }: Props) {
               }}
             >
               <Pin size={14} aria-hidden />
-              {msg.pinned ? "Bỏ ghim" : "Ghim"}
+              {msg.pinned ? t("chat.unpinShort") : t("chat.pin")}
             </button>
             {canAddToCanvas ? (
               <button
@@ -271,7 +274,7 @@ export function ChatMessageActions({ msg, handlers }: Props) {
                 }}
               >
                 <Frame size={14} aria-hidden />
-                Thêm vào canvas
+                {t("chat.addCanvas")}
               </button>
             ) : null}
             {handlers.onNopBai &&
@@ -289,7 +292,7 @@ export function ChatMessageActions({ msg, handlers }: Props) {
                   setOpen(false);
                 }}
               >
-                Nộp bài này
+                {t("chat.submitWork")}
               </button>
             ) : null}
             {handlers.onLuuBai &&
@@ -307,7 +310,7 @@ export function ChatMessageActions({ msg, handlers }: Props) {
                   setOpen(false);
                 }}
               >
-                Lưu bài
+                {t("chat.saveWork")}
               </button>
             ) : null}
             {recallable ? (
@@ -325,7 +328,7 @@ export function ChatMessageActions({ msg, handlers }: Props) {
                 }}
               >
                 <Undo2 size={14} aria-hidden />
-                Thu hồi
+                {t("chat.recall")}
               </button>
             ) : null}
           </div>,
@@ -344,8 +347,8 @@ export function ChatMessageActions({ msg, handlers }: Props) {
       <button
         type="button"
         className="cins-chat-msg-action-btn"
-        aria-label="Trả lời"
-        title="Trả lời"
+        aria-label={t("chat.reply")}
+        title={t("chat.reply")}
         onClick={() => {
           handlers.onReply(msg);
           setOpen(false);

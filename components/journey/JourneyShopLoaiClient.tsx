@@ -33,6 +33,11 @@ import {
 } from "react";
 
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
+import { formatDate, formatMoney } from "@/lib/format";
+import type { TFn } from "@/lib/i18n/t";
+import { useT } from "@/lib/i18n/use-t";
+import { useLocale } from "@/lib/locale/context";
+import type { CinsLocale } from "@/lib/locale/types";
 import { JourneyShopGuestActions } from "@/components/journey/JourneyShopGuestActions";
 import { JourneyShopSectionHead } from "@/components/journey/JourneyShopSectionHead";
 import { JourneyShopSfHero } from "@/components/journey/JourneyShopSfHero";
@@ -142,13 +147,17 @@ function applyMauMultiFilter(
   });
 }
 
-function filterTriggerLabel(selected: string[], emptyLabel: string): string {
-  if (selected.length === 0) return "Tất cả";
+function filterTriggerLabel(
+  selected: string[],
+  emptyLabel: string,
+  t: TFn,
+): string {
+  if (selected.length === 0) return t("shop.all");
   const labels = selected.map((k) =>
     k === FILTER_KHAC ? emptyLabel : k,
   );
   if (labels.length <= 2) return labels.join(", ");
-  return `Đã chọn ${labels.length}`;
+  return t("shop.selectedCount", { count: labels.length });
 }
 
 function LoaiFilterDropdown({
@@ -164,9 +173,10 @@ function LoaiFilterDropdown({
   onToggle: (key: string) => void;
   onClear: () => void;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const isFiltered = selected.length > 0;
-  const valueLabel = filterTriggerLabel(selected, "Khác");
+  const valueLabel = filterTriggerLabel(selected, t("shop.other"), t);
 
   useEffect(() => {
     if (!open) return;
@@ -194,7 +204,7 @@ function LoaiFilterDropdown({
         className={`j-shop-loai-dd-trigger${isFiltered ? " is-active" : ""}${open ? " is-open" : ""}`}
         aria-expanded={open}
         aria-haspopup="listbox"
-        aria-label={`Lọc theo ${axisLabel}`}
+        aria-label={t("shop.filterBy", { axis: axisLabel })}
         onClick={() => setOpen((o) => !o)}
       >
         <span className="j-shop-loai-dd-axis">{axisLabel}</span>
@@ -217,7 +227,7 @@ function LoaiFilterDropdown({
               checked={selected.length === 0}
               onChange={onClear}
             />
-            <span>Tất cả</span>
+            <span>{t("shop.all")}</span>
           </label>
           {options.map((opt) => (
             <label key={opt.key} className="j-shop-loai-dd-opt">
@@ -239,17 +249,8 @@ function warmPrefetchBanHang() {
   prefetchBanHangClientStatus();
 }
 
-function formatGia(gia: number, tienTe: string): string {
-  const n = Number.isFinite(gia) ? gia : 0;
-  try {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: tienTe === "VND" ? "VND" : tienTe || "VND",
-      maximumFractionDigits: tienTe === "VND" ? 0 : 2,
-    }).format(n);
-  } catch {
-    return `${n.toLocaleString("vi-VN")} ${tienTe || "VND"}`;
-  }
+function formatGia(gia: number, tienTe: string, locale: CinsLocale): string {
+  return formatMoney(gia, locale, tienTe || "VND");
 }
 
 function Stars({
@@ -293,6 +294,8 @@ export function JourneyShopLoaiClient({
   viewerProfileId: viewerProfileIdProp = null,
   ownerAvatarUrl = null,
 }: Props) {
+  const t = useT();
+  const locale = useLocale();
   const { openAuthModal } = useAuthGate();
   const setShopSlugCtx = useJourneyViewOptional()?.setShopSlug;
   const searchParams = useSearchParams();
@@ -525,7 +528,7 @@ export function JourneyShopLoaiClient({
       } | null;
       if (!res.ok || !json?.detail) {
         setDetail(null);
-        setErr(json?.error ?? "Không tải được loại hàng.");
+        setErr(json?.error ?? t("shop.loadTypeFail"));
         return;
       }
       setDetail(json.detail);
@@ -545,12 +548,12 @@ export function JourneyShopLoaiClient({
         setSelectedBtId(null);
       }
     } catch {
-      setErr("Không tải được loại hàng.");
+      setErr(t("shop.loadTypeFail"));
       setDetail(null);
     } finally {
       setLoading(false);
     }
-  }, [nhomId, ownerSlug, mauFromQuery]);
+  }, [nhomId, ownerSlug, mauFromQuery, t]);
 
   useEffect(() => {
     if (isOwnerProp != null) {
@@ -672,18 +675,18 @@ export function JourneyShopLoaiClient({
       buildMauFilterOptions(
         detail?.mau ?? [],
         (m) => m.phanLoai,
-        `Chưa có ${nhanPhanLoai.toLowerCase()}`,
+        t("shop.noneOf", { label: nhanPhanLoai.toLowerCase() }),
       ),
-    [detail, nhanPhanLoai],
+    [detail, nhanPhanLoai, t],
   );
   const filterOptions2 = useMemo(
     () =>
       buildMauFilterOptions(
         detail?.mau ?? [],
         (m) => m.phanLoai2,
-        `Chưa có ${nhanPhanLoai2.toLowerCase()}`,
+        t("shop.noneOf", { label: nhanPhanLoai2.toLowerCase() }),
       ),
-    [detail, nhanPhanLoai2],
+    [detail, nhanPhanLoai2, t],
   );
   /* Hiện khi có ≥ 2 giá trị thẻ (hoặc 1 giá trị + «chưa gán»). */
   const showFilter1 = filterOptions1.length >= 2;
@@ -1037,14 +1040,14 @@ export function JourneyShopLoaiClient({
   const addToCart = useCallback(() => {
     if (!selectedBt) return;
     if (!viewerId) {
-      openAuthModal("Đăng nhập để thêm vào giỏ.");
+      openAuthModal(t("shop.authCart"));
       return;
     }
     if (!canAdd) {
       setCartErr(
         selectedBt.giaHienThi == null
-          ? "Mẫu này chưa có giá."
-          : "Hết hàng.",
+          ? t("shop.noPriceThis")
+          : t("shop.soldOutShort"),
       );
       return;
     }
@@ -1065,15 +1068,15 @@ export function JourneyShopLoaiClient({
           error?: string;
         } | null;
         if (!res.ok) {
-          setCartErr(json?.error ?? "Không thêm vào giỏ.");
+          setCartErr(json?.error ?? t("shop.addCartFail"));
           return;
         }
         window.dispatchEvent(new Event(GIO_CHUNG_CHANGED_EVENT));
       } catch {
-        setCartErr("Không thêm vào giỏ.");
+        setCartErr(t("shop.addCartFail"));
       }
     })();
-  }, [selectedBt, viewerId, canAdd, qty, openAuthModal]);
+  }, [selectedBt, viewerId, canAdd, qty, openAuthModal, t]);
 
   async function uploadReviewImage(file: File) {
     const fd = new FormData();
@@ -1098,7 +1101,9 @@ export function JourneyShopLoaiClient({
     setReviewErr(null);
     const room = SHOP_NHOM_DANH_GIA_ANH_MAX - reviewAnh.length;
     if (room <= 0) {
-      setReviewErr(`Tối đa ${SHOP_NHOM_DANH_GIA_ANH_MAX} ảnh.`);
+      setReviewErr(
+        t("shop.reviewMaxPhotos", { count: SHOP_NHOM_DANH_GIA_ANH_MAX }),
+      );
       return;
     }
     const batch = files.slice(0, room);
@@ -1127,7 +1132,7 @@ export function JourneyShopLoaiClient({
   async function submitReview() {
     if (!canReview) return;
     if (!viewerId) {
-      openAuthModal("Đăng nhập để đánh giá.");
+      openAuthModal(t("shop.authReview"));
       return;
     }
     setReviewBusy(true);
@@ -1149,7 +1154,7 @@ export function JourneyShopLoaiClient({
         error?: string;
       } | null;
       if (!res.ok) {
-        setReviewErr(json?.error ?? "Không gửi được đánh giá.");
+        setReviewErr(json?.error ?? t("shop.reviewFail"));
         return;
       }
       setReviewText("");
@@ -1157,7 +1162,7 @@ export function JourneyShopLoaiClient({
       setReviewDiem(5);
       await loadReviews();
     } catch {
-      setReviewErr("Không gửi được đánh giá.");
+      setReviewErr(t("shop.reviewFail"));
     } finally {
       setReviewBusy(false);
     }
@@ -1263,7 +1268,7 @@ export function JourneyShopLoaiClient({
         <div className="j-shop-sf-section-tools">
           <Link href={shopHref} className="j-shop-loai-back">
             <ChevronLeft size={16} aria-hidden />
-            Về cửa hàng
+            {t("shop.backToShop")}
           </Link>
           <div className="j-shop-loai-head-actions">
             {sectionActions}
@@ -1272,12 +1277,12 @@ export function JourneyShopLoaiClient({
               shareTitle={loaiShareTitle}
               viewerLoggedIn={Boolean(viewerId)}
               triggerClassName="j-shop-loai-share-btn"
-              triggerLabel="Chia sẻ mặt hàng này"
+              triggerLabel={t("shop.shareItem")}
               triggerIcon={
                 <>
                   <Share2 size={15} strokeWidth={2} aria-hidden />
                   <span className="j-shop-loai-share-label">
-                    Chia sẻ mặt hàng này
+                    {t("shop.shareItem")}
                   </span>
                 </>
               }
@@ -1296,7 +1301,7 @@ export function JourneyShopLoaiClient({
         <div className="j-shop-loai-page">
           <div className="j-shop-loai-loading">
             <Loader2 size={18} className="shop-spin" aria-hidden />
-            Đang tải…
+            {t("shop.loadingShort")}
           </div>
         </div>
       </section>
@@ -1309,7 +1314,7 @@ export function JourneyShopLoaiClient({
         {shopChrome}
         <div className="j-shop-loai-page">
           <p className="j-shop-loai-err" role="alert">
-            {err ?? "Không tìm thấy loại hàng."}
+            {err ?? t("shop.typeNotFound")}
           </p>
         </div>
       </section>
@@ -1360,7 +1365,7 @@ export function JourneyShopLoaiClient({
               galleryItems.length > 1 ? "carousel" : undefined
             }
             aria-label={
-              galleryItems.length > 1 ? "Ảnh và video sản phẩm" : undefined
+              galleryItems.length > 1 ? t("shop.galleryAria") : undefined
             }
             onPointerDown={onGalleryPointerDown}
             onPointerUp={onGalleryPointerUp}
@@ -1451,7 +1456,7 @@ export function JourneyShopLoaiClient({
             <div
               className="j-shop-loai-gallery-thumbs"
               role="listbox"
-              aria-label="Ảnh và video sản phẩm"
+              aria-label={t("shop.galleryAria")}
             >
               {galleryItems.map((item, i) => (
                 <button
@@ -1517,7 +1522,7 @@ export function JourneyShopLoaiClient({
             >
               {loaiGiaLabel.giaGoc != null ? (
                 <span className="j-shop-loai-price-goc">
-                  {formatGia(loaiGiaLabel.giaGoc, loaiGiaLabel.tienTe)}
+                  {formatGia(loaiGiaLabel.giaGoc, loaiGiaLabel.tienTe, locale)}
                 </span>
               ) : null}
               <span>
@@ -1525,12 +1530,18 @@ export function JourneyShopLoaiClient({
                 "range" in loaiGiaLabel &&
                 loaiGiaLabel.range &&
                 loaiGiaLabel.giaDen != null
-                  ? `Từ ${formatGia(loaiGiaLabel.gia, loaiGiaLabel.tienTe)}`
-                  : formatGia(loaiGiaLabel.gia, loaiGiaLabel.tienTe)}
+                  ? t("shop.from", {
+                      price: formatGia(
+                        loaiGiaLabel.gia,
+                        loaiGiaLabel.tienTe,
+                        locale,
+                      ),
+                    })
+                  : formatGia(loaiGiaLabel.gia, loaiGiaLabel.tienTe, locale)}
               </span>
             </p>
           ) : (
-            <p className="j-shop-loai-price is-empty">Chưa có giá</p>
+            <p className="j-shop-loai-price is-empty">{t("shop.noPrice")}</p>
           )}
 
           {showFilters ? (
@@ -1557,11 +1568,11 @@ export function JourneyShopLoaiClient({
           ) : null}
 
           <div className="j-shop-loai-section">
-            <h2>Mẫu</h2>
+            <h2>{t("shop.samples")}</h2>
             <div className="j-shop-loai-chips j-shop-loai-chips--mau">
               {filteredMau.length === 0 ? (
                 <p className="j-shop-loai-mau-empty">
-                  Không có mẫu khớp bộ lọc.
+                  {t("shop.noVariantMatch")}
                 </p>
               ) : null}
               {filteredMau.map((m) => {
@@ -1607,8 +1618,8 @@ export function JourneyShopLoaiClient({
                       {m.noiBat ? (
                         <span
                           className="j-shop-loai-chip-feature"
-                          title="Ngôi sao"
-                          aria-label="Ngôi sao"
+                          title={t("shop.featured")}
+                          aria-label={t("shop.featured")}
                         >
                           <Star
                             size={12}
@@ -1662,7 +1673,7 @@ export function JourneyShopLoaiClient({
                   <span className="j-shop-sf-qty">
                     <button
                       type="button"
-                      aria-label="Bớt"
+                      aria-label={t("shop.qtyMinus")}
                       disabled={qty <= 1}
                       onClick={() => setQty((q) => Math.max(1, q - 1))}
                     >
@@ -1671,7 +1682,7 @@ export function JourneyShopLoaiClient({
                     <span>{qty}</span>
                     <button
                       type="button"
-                      aria-label="Thêm"
+                      aria-label={t("shop.qtyPlus")}
                       disabled={qty >= maxQty}
                       onClick={() =>
                         setQty((q) => Math.min(maxQty || 1, q + 1))
@@ -1682,7 +1693,7 @@ export function JourneyShopLoaiClient({
                   </span>
                   {selectedBt ? (
                     <span className="j-shop-loai-ton">
-                      Còn {selectedBt.soLuongTon}
+                      {t("shop.inStock", { count: selectedBt.soLuongTon })}
                     </span>
                   ) : null}
                 </div>
@@ -1702,7 +1713,7 @@ export function JourneyShopLoaiClient({
                   onClick={addToCart}
                 >
                   <ShoppingBag size={16} aria-hidden />
-                  Thêm vào giỏ
+                  {t("shop.addToCart")}
                 </button>
               ) : (
                 <p className="j-shop-loai-owner-hint">
@@ -1720,9 +1731,9 @@ export function JourneyShopLoaiClient({
           aria-labelledby="j-shop-loai-more-title"
         >
           <header className="j-shop-loai-more-head">
-            <h2 id="j-shop-loai-more-title">Loại khác</h2>
+            <h2 id="j-shop-loai-more-title">{t("shop.otherTypes")}</h2>
             <Link href={shopHref} className="j-shop-loai-more-all">
-              Xem tất cả
+              {t("shop.seeAll")}
             </Link>
           </header>
           <div
@@ -1743,9 +1754,11 @@ export function JourneyShopLoaiClient({
                 const giaLabel =
                   card.giaTu != null
                     ? card.giaDen != null && card.giaDen !== card.giaTu
-                      ? `Từ ${formatGia(card.giaTu, card.tienTe)}`
-                      : formatGia(card.giaTu, card.tienTe)
-                    : "Chưa có giá";
+                      ? t("shop.from", {
+                          price: formatGia(card.giaTu, card.tienTe, locale),
+                        })
+                      : formatGia(card.giaTu, card.tienTe, locale)
+                    : t("shop.noPrice");
                 return (
                   <Link
                     key={card.id}
@@ -1807,36 +1820,36 @@ export function JourneyShopLoaiClient({
       {nhomId !== SHOP_STOREFRONT_KHAC_SLUG ? (
         <section className="j-shop-loai-reviews" aria-labelledby="j-shop-loai-rv">
           <header className="j-shop-loai-reviews-head">
-            <h2 id="j-shop-loai-rv">Đánh giá sản phẩm</h2>
+            <h2 id="j-shop-loai-rv">{t("shop.reviews")}</h2>
             <div className="j-shop-loai-review-board">
               <div className="j-shop-loai-review-score">
                 {diemTb != null ? (
                   <>
                     <p className="j-shop-loai-review-score-num">
                       <strong>{diemTb}</strong>
-                      <span>trên 5</span>
+                      <span>{t("shop.outOf5")}</span>
                     </p>
                     <Stars value={Math.round(diemTb)} size={14} />
                     <p className="j-shop-loai-review-score-tong">
-                      {tongDg} đánh giá
+                      {t("shop.reviewCount", { count: tongDg })}
                     </p>
                   </>
                 ) : (
                   <p className="j-shop-loai-review-score-empty">
-                    Chưa có đánh giá
+                    {t("shop.noReviews")}
                   </p>
                 )}
               </div>
               <div
                 className="j-shop-loai-review-filters"
                 role="toolbar"
-                aria-label="Lọc đánh giá"
+                aria-label={t("shop.filterReviews")}
               >
                 {(
                   [
                     {
                       key: "all" as const,
-                      label: `Tất cả (${reviewBoDem.tong})`,
+                      label: t("shop.allWithCount", { count: reviewBoDem.tong }),
                     },
                     {
                       key: "5" as const,
@@ -1893,10 +1906,10 @@ export function JourneyShopLoaiClient({
               <div className="j-shop-loai-review-form-head">
                 <span className="j-shop-loai-review-form-title">
                   <PenLine size={15} aria-hidden />
-                  Viết đánh giá
+                  {t("shop.writeReview")}
                   <span className="j-shop-loai-review-form-badge">
                     <BadgeCheck size={12} aria-hidden />
-                    Đã mua
+                    {t("shop.verifiedBuyer")}
                   </span>
                 </span>
                 <Stars value={reviewDiem} onChange={setReviewDiem} size={18} />
@@ -1914,8 +1927,8 @@ export function JourneyShopLoaiClient({
                     e.preventDefault();
                     void addReviewImages(files);
                   }}
-                  aria-label="Nội dung đánh giá"
-                  placeholder="Chất lượng, đúng mô tả… (Ctrl+V dán ảnh)"
+                  aria-label={t("shop.reviewBody")}
+                  placeholder={t("shop.reviewPlaceholder")}
                 />
                 <div className="j-shop-loai-review-form-side">
                   {reviewAnh.length > 0 ? (
@@ -1971,7 +1984,7 @@ export function JourneyShopLoaiClient({
                     ) : (
                       <Send size={15} aria-hidden />
                     )}
-                    Gửi
+                    {t("shop.submit")}
                   </button>
                 </div>
               </div>
@@ -1997,17 +2010,17 @@ export function JourneyShopLoaiClient({
                     )}
                   </span>
                   <div>
-                    <strong>{r.tenHienThi || "Người mua"}</strong>
+                    <strong>{r.tenHienThi || t("shop.review.buyer")}</strong>
                     <Stars value={r.diem} size={13} />
                     <time dateTime={r.taoLuc}>
-                      {new Date(r.taoLuc).toLocaleDateString("vi-VN")}
+                      {formatDate(r.taoLuc, locale)}
                     </time>
                   </div>
                   {r.isMine ? (
                     <button
                       type="button"
                       className="j-shop-loai-review-del"
-                      aria-label="Xóa đánh giá"
+                      aria-label={t("shop.review.delete")}
                       disabled={reviewBusy}
                       onClick={() => void deleteMyReview(r.id)}
                     >
@@ -2034,7 +2047,7 @@ export function JourneyShopLoaiClient({
           </ul>
           {reviews.length === 0 ? (
             <p className="j-shop-sf-empty">
-              Chưa có đánh giá nào. Người mua hàng mới có thể đánh giá.
+              {t("shop.noReviewsHint")}
             </p>
           ) : null}
         </section>

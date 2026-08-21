@@ -293,6 +293,36 @@ function redirectToLogin(
   return redirect;
 }
 
+/**
+ * Locale bề mặt public (PLAN_GLOBAL_SURFACE §2).
+ * Ưu tiên: `?lang=` > cookie `cins-locale` (user đã switch)
+ * > IP (`cf-ipcountry`: VN → vi, khác → en) — chỉ seed mặc định switch
+ * > `Accept-Language` > `vi`.
+ * KHÔNG dùng URL prefix (đụng catch-all `[slug]`).
+ */
+function detectLocale(request: NextRequest): "en" | "vi" {
+  const q = request.nextUrl.searchParams.get("lang");
+  if (q === "en" || q === "vi") return q;
+
+  const cookie = request.cookies.get("cins-locale")?.value;
+  if (cookie === "en" || cookie === "vi") return cookie;
+
+  const country = request.headers.get("cf-ipcountry")?.toUpperCase();
+  if (country && country !== "XX" && country !== "T1") {
+    return country === "VN" ? "vi" : "en";
+  }
+
+  const al = request.headers.get("accept-language");
+  if (al) {
+    const first = al.split(",")[0]?.trim().toLowerCase() ?? "";
+    if (first.startsWith("en")) return "en";
+    if (first.startsWith("vi")) return "vi";
+    const lower = al.toLowerCase();
+    if (lower.includes("en") && !lower.includes("vi")) return "en";
+  }
+  return "vi";
+}
+
 export async function middleware(request: NextRequest) {
   const canonicalHost = buildCanonicalHostRedirect(request.nextUrl);
   if (canonicalHost) {
@@ -321,6 +351,10 @@ export async function middleware(request: NextRequest) {
   /* Forward pathname (+ OG URL) vào request headers cho Server Components/layout. */
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-pathname", pathname);
+
+  /* Locale bề mặt public — forward như x-pathname (PLAN_GLOBAL_SURFACE §2). */
+  const locale = detectLocale(request);
+  requestHeaders.set("x-cins-locale", locale);
 
   const isOgImage =
     pathname.endsWith("/opengraph-image") ||
@@ -366,6 +400,17 @@ export async function middleware(request: NextRequest) {
   }
   if (request.cookies.has("cins-restore-hint")) {
     sessionResponse.cookies.delete("cins-restore-hint");
+  }
+
+  /* Ghi nhớ lựa chọn ngôn ngữ khi có `?lang=` — KHÔNG áp cho OG image
+   * (tránh Set-Cookie lẫn vào response được CDN cache). */
+  const langParam = request.nextUrl.searchParams.get("lang");
+  if (!isOgImage && (langParam === "en" || langParam === "vi")) {
+    sessionResponse.cookies.set("cins-locale", langParam, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+    });
   }
 
   /* /login: chỉ sync cookie phiên — return trước maintenance + protected. */

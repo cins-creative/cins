@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import { useCinsChatContext } from "@/components/cins/CinsChatProvider";
 import type { ChatContextCard } from "@/lib/chat/types";
+import { useT } from "@/lib/i18n/use-t";
 import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-phan-hoi-types";
 
 const AUTH_MESSAGE = "Đăng nhập để quan tâm hoặc đăng ký tham gia sự kiện.";
@@ -44,6 +45,7 @@ export function SuKienPhanHoiActions({
   orgAvatarUrl,
 }: Props) {
   const { isAuthenticated, openAuthModal } = useAuthGate();
+  const t = useT();
   const chat = useCinsChatContext();
   const [messaging, setMessaging] = useState(false);
   const [loai, setLoai] = useState<LoaiPhanHoiSuKien | null>(initialLoai);
@@ -193,7 +195,7 @@ export function SuKienPhanHoiActions({
             onClick={() => handlePhanHoi("quan_tam")}
           >
             <Heart size={16} aria-hidden />
-            {loai === "quan_tam" ? "Đang quan tâm" : "Quan tâm"}
+            {loai === "quan_tam" ? t("event.interestedOn") : t("event.interested")}
           </button>
         ) : null}
         <button
@@ -201,9 +203,9 @@ export function SuKienPhanHoiActions({
           className={`cso-sk-detail-btn cso-sk-detail-btn--join${loai === "se_tham_gia" ? " is-active" : ""}`}
           aria-pressed={loai === "se_tham_gia"}
           aria-label={
-            loai === "se_tham_gia" ? "Hủy tham gia sự kiện" : "Sẽ tham gia"
+            loai === "se_tham_gia" ? t("event.cancelJoinAria") : t("event.willJoin")
           }
-          title={loai === "se_tham_gia" ? "Hủy tham gia" : undefined}
+          title={loai === "se_tham_gia" ? t("event.cancelJoin") : undefined}
           disabled={!loaded || pending || slotFull || !enabled}
           onClick={() => handlePhanHoi("se_tham_gia")}
         >
@@ -211,17 +213,17 @@ export function SuKienPhanHoiActions({
             <>
               <span className="cso-sk-detail-btn-face cso-sk-detail-btn-face--idle">
                 <Check size={16} aria-hidden />
-                Đã đăng ký
+                {t("event.registered")}
               </span>
               <span className="cso-sk-detail-btn-face cso-sk-detail-btn-face--hover">
                 <X size={16} aria-hidden />
-                Hủy tham gia
+                {t("event.cancelJoin")}
               </span>
             </>
           ) : (
             <>
               <Users size={16} aria-hidden />
-              Sẽ tham gia
+              {t("event.willJoin")}
             </>
           )}
         </button>

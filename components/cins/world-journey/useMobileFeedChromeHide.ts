@@ -10,8 +10,8 @@ function clamp(n: number, min: number, max: number) {
 }
 
 /**
- * Mobile: chrome bám ngón tay — kéo xuống ẩn dần, kéo lên hiện dần, không delay.
- * Chỉ `transform` (không co layout) để tránh giật scrollY.
+ * Mobile: chrome bám ngón tay — kéo xuống ẩn dần, kéo lên hiện dần.
+ * Chỉ `transform` (không co layout / không nhảy full-hide) để tránh giật.
  */
 export function useMobileFeedChromeHide(
   rootRef: RefObject<HTMLElement | null>,
@@ -36,6 +36,7 @@ export function useMobileFeedChromeHide(
         header.style.transform = "";
         header.style.pointerEvents = "";
       }
+      root?.style.removeProperty("--wj-sticky-top");
     };
 
     if (!enabled) {
@@ -47,24 +48,31 @@ export function useMobileFeedChromeHide(
     let lastY = Math.max(0, window.scrollY);
     let offset = 0;
     let raf = 0;
+    let header = headerEl();
+    let topH = topbar?.offsetHeight ?? 64;
+    let headH = header?.offsetHeight ?? 49;
+
+    const measure = () => {
+      header = headerEl();
+      topH = topbar?.offsetHeight ?? 64;
+      headH = header?.offsetHeight ?? 49;
+      if (root && topH > 0) {
+        root.style.setProperty("--wj-sticky-top", `${topH}px`);
+      }
+    };
 
     const paint = () => {
-      const header = headerEl();
-      const topH = topbar?.offsetHeight ?? 64;
-      const headH = header?.offsetHeight ?? 49;
+      if (!header || !header.isConnected) header = headerEl();
       const max = topH + headH;
-      const topShift = clamp(offset, 0, topH);
+      const y = clamp(offset, 0, max);
+      const topShift = clamp(y, 0, topH);
       if (topbar) {
-        topbar.style.transform = topShift
-          ? `translate3d(0, ${-topShift}px, 0)`
-          : "";
-        topbar.style.pointerEvents = offset >= topH ? "none" : "";
+        topbar.style.transform = `translate3d(0, ${-topShift}px, 0)`;
+        topbar.style.pointerEvents = y >= topH ? "none" : "";
       }
       if (header) {
-        header.style.transform = offset
-          ? `translate3d(0, ${-offset}px, 0)`
-          : "";
-        header.style.pointerEvents = offset >= max - 1 ? "none" : "";
+        header.style.transform = `translate3d(0, ${-y}px, 0)`;
+        header.style.pointerEvents = y >= max - 1 ? "none" : "";
       }
     };
 
@@ -84,15 +92,11 @@ export function useMobileFeedChromeHide(
       const y = Math.max(0, window.scrollY);
       const dy = y - lastY;
       lastY = y;
-      const topH = topbar?.offsetHeight ?? 64;
-      const headH = headerEl()?.offsetHeight ?? 49;
       const max = topH + headH;
       if (y <= SHOW_AT_TOP_PX) {
         offset = 0;
-      } else if (dy > 0) {
-        // Kéo xuống: topbar luôn ẩn hết (không để hở một phần).
-        offset = clamp(Math.max(offset + dy, topH), 0, max);
       } else {
+        /* 1:1 theo ngón — không snap topbar ẩn hết (gây giật khi dy đảo). */
         offset = clamp(offset + dy, 0, max);
       }
       paint();
@@ -110,12 +114,15 @@ export function useMobileFeedChromeHide(
       }
     };
 
+    measure();
     syncFollowClass(true);
     paint();
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", measure, { passive: true });
     mq.addEventListener("change", onMq);
     return () => {
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", measure);
       mq.removeEventListener("change", onMq);
       if (raf) window.cancelAnimationFrame(raf);
       clear();

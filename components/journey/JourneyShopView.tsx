@@ -17,6 +17,7 @@ import {
 } from "@/lib/shop/client-fetch-cache";
 import { isShopTamDongActive } from "@/lib/shop/tam-dong";
 import { JourneyShopGuestActions } from "@/components/journey/JourneyShopGuestActions";
+import { useT } from "@/lib/i18n/use-t";
 import { JourneyShopStorefront } from "@/components/journey/JourneyShopStorefront";
 import { useJourneyViewOptional } from "@/components/journey/JourneyViewContext";
 import {
@@ -49,6 +50,7 @@ export function JourneyShopView({
   viewerProfileId = null,
   ownerAvatarUrl = null,
 }: Props) {
+  const t = useT();
   const journeyView = useJourneyViewOptional();
   const setShopSlugCtx = journeyView?.setShopSlug;
   const [shop, setShop] = useState<ShopCuaHang | null>(null);
@@ -98,14 +100,14 @@ export function JourneyShopView({
         }),
       );
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Không tải được cửa hàng.");
+        setErr(e instanceof Error ? e.message : t("shop.loadFail"));
       setShop(null);
       setBanHangBat(false);
       setShopVisible(false);
     } finally {
       setLoading(false);
     }
-  }, [ownerId, ownerSlug]);
+  }, [ownerId, ownerSlug, t]);
 
   useEffect(() => {
     void load();
@@ -140,7 +142,7 @@ export function JourneyShopView({
       <section className="j-shop" aria-busy="true">
         <div className="j-shop-loading">
           <Loader2 size={18} className="shop-spin" aria-hidden />
-          Đang tải cửa hàng…
+          {t("shop.loading")}
         </div>
       </section>
     );
@@ -149,13 +151,13 @@ export function JourneyShopView({
   if (!isOwner && !shopVisible) {
     return (
       <section className="j-shop">
-        <p className="j-shop-empty">Cửa hàng chưa mở.</p>
+        <p className="j-shop-empty">{t("shop.closed")}</p>
       </section>
     );
   }
 
   return (
-    <section className="j-shop" aria-label="Cửa hàng">
+    <section className="j-shop" aria-label={t("shop.storeAria")}>
       {!banHangBat && isOwner ? (
         <p className="j-shop-banner-warn">
           Bán hàng đang tắt — bật trong Cài đặt tài khoản → Bán hàng để dùng kho

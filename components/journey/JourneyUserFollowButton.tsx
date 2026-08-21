@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, useTransition } from "react";
 
 import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
+import { useT } from "@/lib/i18n/use-t";
 import {
   emitUserFollowChanged,
   USER_FOLLOW_CHANGED,
@@ -16,13 +17,12 @@ type Props = {
   compact?: boolean;
 };
 
-const AUTH_MESSAGE = "Đăng nhập để theo dõi người này trên CINs.";
-
 export function JourneyUserFollowButton({
   targetUserId,
   viewerProfileId,
   compact = false,
 }: Props) {
+  const t = useT();
   const router = useRouter();
   const authGate = useOptionalAuthGate();
   const [following, setFollowing] = useState(false);
@@ -70,7 +70,7 @@ export function JourneyUserFollowButton({
 
   if (!viewerProfileId || isSelf) return null;
 
-  const label = following ? "Đang theo dõi" : "Theo dõi";
+  const label = following ? t("social.following") : t("social.follow");
 
   function toggle() {
     // Nếu không có AuthGateRoot bao ngoài (ví dụ popover trong dropdown
@@ -81,7 +81,7 @@ export function JourneyUserFollowButton({
 
     if (!isAuthenticated) {
       if (authGate) {
-        authGate.openAuthModal(AUTH_MESSAGE);
+        authGate.openAuthModal(t("social.authFollow"));
       } else {
         router.push("/login");
       }
@@ -105,7 +105,7 @@ export function JourneyUserFollowButton({
       } | null;
 
       if (!res.ok) {
-        setError(json?.error ?? "Không cập nhật được theo dõi.");
+        setError(json?.error ?? t("social.followError"));
         return;
       }
 

@@ -11,7 +11,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
-import { Forward, Pin } from "lucide-react";
+import { CornerUpLeft, Forward, Pin } from "lucide-react";
 
 import {
   ChatMessageActions,
@@ -37,10 +37,17 @@ import {
   chatMessageHasInteractiveMedia,
   chatMessageMediaLayout,
 } from "@/lib/chat/message-media-layout";
+import { isChatSoloEmojiMessage } from "@/lib/chat/solo-emoji";
+import { useT } from "@/lib/i18n/use-t";
+import {
+  CHAT_SWIPE_MIN_DX,
+  classifyChatSwipe,
+  isChatSwipeMobile,
+} from "@/lib/chat/use-chat-convo-swipe";
 import {
   CHAT_SEEN_AVATARS_MAX,
   groupReadCursorsByMessage,
-  snapReadCursorsToOwnMessages,
+  snapReadCursorsToVisibleMessages,
 } from "@/lib/chat/read-cursors-client";
 import type {
   ChatMessage,
@@ -88,13 +95,18 @@ function isIgnoredActionTarget(target: EventTarget | null): boolean {
  * Chỉ mở (không toggle đóng) — tránh click đôi / contextmenu+click đóng ngay.
  * Desktop (con trỏ chuột) không có effect này — click chỉ để chọn text/link.
  */
-function useBubbleTapActions(enabledProp: boolean) {
+function useBubbleTapActions(
+  enabledProp: boolean,
+  onSwipeReply?: () => void,
+) {
   const isCoarsePointer = useCoarsePointer();
   const enabled = enabledProp && isCoarsePointer;
   const [mobileOpen, setMobileOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const openedAtRef = useRef(0);
   const ignoreClickUntilRef = useRef(0);
+  const onSwipeReplyRef = useRef(onSwipeReply);
+  onSwipeReplyRef.current = onSwipeReply;
 
   const closeMobile = useCallback(() => {
     if (Date.now() - openedAtRef.current < DISMISS_GUARD_MS) return;
@@ -181,6 +193,97 @@ function useBubbleTapActions(enabledProp: boolean) {
     [enabled, mobileOpen, openMobile],
   );
 
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el || !enabled || !onSwipeReply) return;
+
+    const REPLY_PULL = 72;
+    const LOCK_PX = 12;
+    type Track = {
+      x: number;
+      y: number;
+      axis: "h" | "v" | null;
+    };
+    let track: Track | null = null;
+
+    const resetPull = () => {
+      el.classList.remove("is-swipe-reply");
+      el.style.removeProperty("--cins-chat-swipe-x");
+      el.style.removeProperty("--cins-chat-swipe-p");
+    };
+
+    const setPull = (dx: number) => {
+      const x = Math.min(Math.max(0, dx), REPLY_PULL);
+      el.classList.add("is-swipe-reply");
+      el.style.setProperty("--cins-chat-swipe-x", `${x}px`);
+      el.style.setProperty(
+        "--cins-chat-swipe-p",
+        String(Math.min(1, x / CHAT_SWIPE_MIN_DX)),
+      );
+    };
+
+    const onStart = (e: TouchEvent) => {
+      if (!isChatSwipeMobile() || e.touches.length !== 1) {
+        track = null;
+        return;
+      }
+      if (isIgnoredActionTarget(e.target)) {
+        track = null;
+        return;
+      }
+      const t = e.touches[0];
+      track = { x: t.clientX, y: t.clientY, axis: null };
+    };
+
+    const onMove = (e: TouchEvent) => {
+      if (!track || e.touches.length !== 1) return;
+      const t = e.touches[0];
+      const dx = t.clientX - track.x;
+      const dy = t.clientY - track.y;
+      if (!track.axis) {
+        if (Math.abs(dx) < LOCK_PX && Math.abs(dy) < LOCK_PX) return;
+        track.axis = Math.abs(dx) > Math.abs(dy) ? "h" : "v";
+      }
+      if (track.axis === "h" && dx > 0) setPull(dx);
+      else resetPull();
+    };
+
+    const onEnd = (e: TouchEvent) => {
+      if (!track || e.changedTouches.length !== 1) {
+        track = null;
+        resetPull();
+        return;
+      }
+      const t = e.changedTouches[0];
+      const dx = t.clientX - track.x;
+      const dy = t.clientY - track.y;
+      const axis = track.axis;
+      track = null;
+      resetPull();
+      if (!isChatSwipeMobile()) return;
+      if (axis === "h" && Math.abs(dx) > LOCK_PX) {
+        ignoreClickUntilRef.current = Date.now() + DISMISS_GUARD_MS;
+      }
+      const dir = classifyChatSwipe(dx, dy);
+      if (dir === "right") {
+        e.stopPropagation();
+        onSwipeReplyRef.current?.();
+      }
+    };
+
+    el.addEventListener("touchstart", onStart, { passive: true });
+    el.addEventListener("touchmove", onMove, { passive: true });
+    el.addEventListener("touchend", onEnd, { passive: true });
+    el.addEventListener("touchcancel", resetPull, { passive: true });
+    return () => {
+      el.removeEventListener("touchstart", onStart);
+      el.removeEventListener("touchmove", onMove);
+      el.removeEventListener("touchend", onEnd);
+      el.removeEventListener("touchcancel", resetPull);
+      resetPull();
+    };
+  }, [enabled, onSwipeReply]);
+
   return {
     enabled,
     wrapRef,
@@ -206,6 +309,10 @@ function ChatBubbleActionsHost({
   handlers?: ChatMessageActionHandlers;
   children: ReactNode;
 }) {
+  const onSwipeReply = useCallback(() => {
+    if (msg && handlers) handlers.onReply(msg);
+  }, [handlers, msg]);
+
   const {
     enabled,
     wrapRef,
@@ -215,7 +322,10 @@ function ChatBubbleActionsHost({
     onMouseDown,
     onContextMenu,
     onKeyDown,
-  } = useBubbleTapActions(enabledProp);
+  } = useBubbleTapActions(
+    enabledProp,
+    msg && handlers ? onSwipeReply : undefined,
+  );
 
   return (
     <div
@@ -226,6 +336,11 @@ function ChatBubbleActionsHost({
       onContextMenu={onContextMenu}
       onKeyDown={enabled ? onKeyDown : undefined}
     >
+      {msg && handlers ? (
+        <span className="cins-chat-swipe-reply-hint" aria-hidden>
+          <CornerUpLeft size={16} strokeWidth={2.2} />
+        </span>
+      ) : null}
       {children}
       {msg && handlers && mobileOpen ? (
         <ChatMessageMobileChrome
@@ -284,19 +399,21 @@ function collectGalleryMessages(
 }
 
 function PinBadge() {
+  const t = useT();
   return (
-    <span className="cins-chat-pin-badge" aria-label="Tin đã ghim">
+    <span className="cins-chat-pin-badge" aria-label={t("chat.pinnedBadge")}>
       <Pin size={11} strokeWidth={2.2} fill="currentColor" aria-hidden />
     </span>
   );
 }
 
 function ForwardedBadge({ msg }: { msg: ChatMessage }) {
+  const t = useT();
   if (!msg.forwarded) return null;
   return (
     <span className="cins-chat-forwarded-label">
       <Forward size={11} strokeWidth={2.2} aria-hidden />
-      Đã chuyển tiếp
+      {t("chat.forwarded")}
     </span>
   );
 }
@@ -316,11 +433,12 @@ function ChatSeenAvatars({
   const shown = cursors.slice(0, CHAT_SEEN_AVATARS_MAX);
   const extra = cursors.length - shown.length;
   const names = cursors.map((c) => c.name).join(", ");
+  const t = useT();
 
   return (
     <div
       className={`cins-chat-seen-row is-${align}`}
-      aria-label={`Đã xem bởi ${names}`}
+      aria-label={t("chat.seenBy", { names })}
       title={names}
     >
       <span className="cins-chat-seen-avatars">
@@ -401,10 +519,9 @@ function SeenUnderMessage({
   from: "me" | "them";
   byMessage: Map<string, ChatReadCursor[]>;
 }) {
-  if (from !== "me") return null;
   const cursors = byMessage.get(messageId);
   if (!cursors?.length) return null;
-  return <ChatSeenAvatars cursors={cursors} align="me" />;
+  return <ChatSeenAvatars cursors={cursors} align={from} />;
 }
 
 function SenderCluster({
@@ -512,6 +629,10 @@ function bubbleClassName(
     parts.push("is-sticker-only", "has-media-actions");
   } else if (layout === "media-caption") {
     parts.push("has-media-with-caption", "has-media-actions");
+  }
+
+  if (!isEditing && isChatSoloEmojiMessage(msg)) {
+    parts.push("is-solo-emoji");
   }
 
   return parts.join(" ");
@@ -958,8 +1079,8 @@ function SingleMessageBubble({
           </div>
         )}
       </div>
-      {seenBy?.length && isMe ? (
-        <ChatSeenAvatars cursors={seenBy} align="me" />
+      {seenBy?.length ? (
+        <ChatSeenAvatars cursors={seenBy} align={isMe ? "me" : "them"} />
       ) : null}
     </>
   );
@@ -995,7 +1116,7 @@ export function ChatMessageThreadItems({
   const byMessage = useMemo(
     () =>
       groupReadCursorsByMessage(
-        snapReadCursorsToOwnMessages(readCursors, visibleMessages),
+        snapReadCursorsToVisibleMessages(readCursors, visibleMessages),
       ),
     [readCursors, visibleMessages],
   );

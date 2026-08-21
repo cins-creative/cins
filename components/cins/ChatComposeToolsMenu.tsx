@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { isCompactCallViewport } from "@/lib/media/call-constraints";
+import { useT } from "@/lib/i18n/use-t";
 import {
   useEffect,
   useId,
@@ -25,7 +26,8 @@ type Props = {
   disabled?: boolean;
   canAddMoc: boolean;
   onAddMoc: () => void;
-  onAttachImage: () => void;
+  /** Mini chat: vẫn trong menu +. Overlay fullscreen: nút Ảnh ngoài compose. */
+  onAttachImage?: () => void;
   onAttachVideo: () => void;
   onShareScreen?: () => void;
   onCreatePoll: (input: {
@@ -45,6 +47,7 @@ export function ChatComposeToolsMenu({
   onShareScreen,
   onCreatePoll,
 }: Props) {
+  const t = useT();
   const menuId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<"menu" | "poll">("menu");
@@ -116,7 +119,7 @@ export function ChatComposeToolsMenu({
       <button
         type="button"
         className="cins-chat-attach"
-        aria-label="Tính năng bổ trợ"
+        aria-label={t("chat.toolsAria")}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
@@ -134,6 +137,7 @@ export function ChatComposeToolsMenu({
         >
           {mode === "menu" ? (
             <>
+              {onAttachImage ? (
               <button
                 type="button"
                 role="menuitem"
@@ -145,10 +149,11 @@ export function ChatComposeToolsMenu({
               >
                 <ImageIcon size={16} strokeWidth={1.9} aria-hidden />
                 <span>
-                  <strong>Đính kèm ảnh</strong>
-                  <em>JPEG, PNG, WebP hoặc GIF</em>
+                  <strong>{t("chat.attachImage")}</strong>
+                  <em>{t("chat.attachImageHint")}</em>
                 </span>
               </button>
+              ) : null}
               <button
                 type="button"
                 role="menuitem"
@@ -160,8 +165,8 @@ export function ChatComposeToolsMenu({
               >
                 <VideoIcon size={16} strokeWidth={1.9} aria-hidden />
                 <span>
-                  <strong>Đính kèm video</strong>
-                  <em>MP4/WebM/MOV, tối đa 60s</em>
+                  <strong>{t("chat.attachVideo")}</strong>
+                  <em>{t("chat.attachVideoHint")}</em>
                 </span>
               </button>
               <button
@@ -177,11 +182,11 @@ export function ChatComposeToolsMenu({
               >
                 <CalendarPlus size={16} strokeWidth={1.9} aria-hidden />
                 <span>
-                  <strong>Thêm mốc</strong>
+                  <strong>{t("chat.addMilestone")}</strong>
                   <em>
                     {canAddMoc
-                      ? "Deadline, sync, bàn giao…"
-                      : "Nhóm: chỉ admin thêm mốc"}
+                      ? t("chat.addMilestoneHint")
+                      : t("chat.addMilestoneAdmin")}
                   </em>
                 </span>
               </button>
@@ -197,8 +202,8 @@ export function ChatComposeToolsMenu({
                 >
                   <MonitorUp size={16} strokeWidth={1.9} aria-hidden />
                   <span>
-                    <strong>Chia sẻ màn hình</strong>
-                    <em>Desktop web — chọn cửa sổ / tab</em>
+                    <strong>{t("chat.shareScreen")}</strong>
+                    <em>{t("chat.shareScreenHint")}</em>
                   </span>
                 </button>
               ) : null}
@@ -210,19 +215,19 @@ export function ChatComposeToolsMenu({
               >
                 <BarChart2 size={16} strokeWidth={1.9} aria-hidden />
                 <span>
-                  <strong>Bình chọn</strong>
-                  <em>Hỏi nhanh, mọi người bỏ phiếu trong chat</em>
+                  <strong>{t("chat.poll")}</strong>
+                  <em>{t("chat.pollHint")}</em>
                 </span>
               </button>
             </>
           ) : (
             <div className="cins-chat-compose-poll-form">
               <header className="cins-chat-compose-poll-form-head">
-                <strong>Tạo bình chọn</strong>
+                <strong>{t("chat.pollCreate")}</strong>
                 <button
                   type="button"
                   className="cins-chat-icon-btn"
-                  aria-label="Đóng"
+                  aria-label={t("chat.close")}
                   onClick={() => setMode("menu")}
                 >
                   <X size={14} />
@@ -231,7 +236,7 @@ export function ChatComposeToolsMenu({
               <input
                 type="text"
                 maxLength={200}
-                placeholder="Câu hỏi…"
+                placeholder={t("chat.pollQuestion")}
                 value={question}
                 disabled={pending}
                 onChange={(e) => setQuestion(e.target.value)}
@@ -241,7 +246,7 @@ export function ChatComposeToolsMenu({
                   <input
                     type="text"
                     maxLength={80}
-                    placeholder={`Lựa chọn ${index + 1}`}
+                    placeholder={t("chat.pollOption", { n: index + 1 })}
                     value={opt}
                     disabled={pending}
                     onChange={(e) => {
@@ -254,7 +259,7 @@ export function ChatComposeToolsMenu({
                     <button
                       type="button"
                       className="cins-chat-icon-btn"
-                      aria-label="Xóa lựa chọn"
+                      aria-label={t("chat.removeOption")}
                       disabled={pending}
                       onClick={() =>
                         setOptions((prev) =>
@@ -274,7 +279,7 @@ export function ChatComposeToolsMenu({
                   disabled={pending}
                   onClick={() => setOptions((prev) => [...prev, ""])}
                 >
-                  + Thêm lựa chọn
+                  {t("chat.pollAddOpt")}
                 </button>
               ) : null}
               {error ? (
@@ -291,7 +296,7 @@ export function ChatComposeToolsMenu({
                 onClick={submitPoll}
               >
                 {pending ? <Loader2 size={14} className="spin" /> : null}
-                Đăng bình chọn
+                {t("chat.pollSubmit")}
               </button>
             </div>
           )}

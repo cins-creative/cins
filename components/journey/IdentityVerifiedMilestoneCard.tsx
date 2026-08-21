@@ -10,6 +10,7 @@ import type {
   MilestoneType,
   MilestoneVisibility,
 } from "@/components/journey/milestone-types";
+import { useT } from "@/lib/i18n/use-t";
 
 type Props = {
   milestoneCls: string;
@@ -45,8 +46,9 @@ export function IdentityVerifiedMilestoneCard({
   orgHref,
   isOwner,
 }: Props) {
+  const t = useT();
   const orgName =
-    attribution?.name ?? verifiedBy?.replace(/^✓\s*/, "") ?? "Tổ chức";
+    attribution?.name ?? verifiedBy?.replace(/^✓\s*/, "") ?? t("people.org");
   const avatarUrl = attribution?.avatarUrl ?? null;
   const href = orgHref ?? attribution?.href ?? null;
 
@@ -77,7 +79,7 @@ export function IdentityVerifiedMilestoneCard({
                     prefetch={false}
                   >
                     <ExternalLink size={14} strokeWidth={2} aria-hidden />
-                    Xem tổ chức
+                    {t("verify.viewOrg")}
                   </Link>
                 ) : null}
                 <JourneyMilestoneOwnerMenu

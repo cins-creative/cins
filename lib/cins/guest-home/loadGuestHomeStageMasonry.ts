@@ -127,9 +127,9 @@ function artFromPost(input: {
     title: input.title,
     imageSrc: img.src,
     href: input.href,
-    width: img.width,
-    height: img.height,
-    portrait: isPortraitThumb(img.width, img.height),
+    width: img.width ?? 0,
+    height: img.height ?? 0,
+    portrait: isPortraitThumb(img.width ?? 0, img.height ?? 0),
   };
 }
 

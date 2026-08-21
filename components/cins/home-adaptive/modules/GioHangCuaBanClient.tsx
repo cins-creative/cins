@@ -65,6 +65,7 @@ export function GioHangPanel({
     return (
       <ModuleCard
         icon={ShoppingCart}
+        moduleId="gio_hang_cua_ban"
         title="Giỏ hàng của bạn"
         className="ha-card--gio"
       >
@@ -85,6 +86,7 @@ export function GioHangPanel({
   return (
     <ModuleCard
       icon={ShoppingCart}
+      moduleId="gio_hang_cua_ban"
       title="Giỏ hàng của bạn"
       badge={tongSoDong > 0 ? String(tongSoDong) : undefined}
       className="ha-card--gio"

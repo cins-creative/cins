@@ -34,23 +34,27 @@ import {
   mapCheDoToMilestoneVisibility,
   mapLoaiMocToMilestoneType,
 } from "@/lib/journey/milestone-ui-map";
+import { formatDate, formatNumber } from "@/lib/format";
+import { useT } from "@/lib/i18n/use-t";
+import type { MessageKey } from "@/lib/i18n/messages";
 import { getAvatarUrl } from "@/lib/journey/profile";
+import { useLocale } from "@/lib/locale/context";
 
-const TYPE_LABEL: Record<string, string> = {
-  hoc: "Học",
-  lam_viec: "Làm việc",
-  du_an: "Dự án",
-  su_kien: "Sự kiện",
-  thanh_tuu: "Thành tựu",
-  ca_nhan: "Cá nhân",
+const TYPE_MSG: Record<string, MessageKey> = {
+  hoc: "meta.type.hoc",
+  lam_viec: "meta.type.lam_viec",
+  du_an: "meta.type.du_an",
+  su_kien: "meta.type.su_kien",
+  thanh_tuu: "meta.type.thanh_tuu",
+  ca_nhan: "meta.type.ca_nhan",
 };
 
-const VIS_LABEL: Record<string, { Icon: LucideIcon; text: string }> = {
-  feature: { Icon: Star, text: "Feature" },
-  public: { Icon: Globe, text: "Công khai" },
-  theo_nhom: { Icon: Users, text: "Bạn bè" },
-  chi_minh: { Icon: Lock, text: "Chỉ mình tôi" },
-  cong_dong: { Icon: Users, text: "Cộng đồng" },
+const VIS_MSG: Record<string, { Icon: LucideIcon; key: MessageKey }> = {
+  feature: { Icon: Star, key: "meta.vis.feature" },
+  public: { Icon: Globe, key: "meta.vis.public" },
+  theo_nhom: { Icon: Users, key: "meta.vis.theo_nhom" },
+  chi_minh: { Icon: Lock, key: "meta.vis.chi_minh" },
+  cong_dong: { Icon: Users, key: "meta.vis.cong_dong" },
 };
 
 const TYPE_ICON: Record<string, LucideIcon> = {
@@ -100,12 +104,16 @@ export function PostMetaRail({
   commentsRail,
   onMilestoneUpdated,
 }: Props) {
+  const t = useT();
+  const locale = useLocale();
   const { viewerProfileId } = useCinsChat();
   const onClose = useContext(PostOverlayCloseContext);
-  const typeLabel = TYPE_LABEL[milestone.loaiMoc] ?? "Cột mốc";
+  const typeKey = TYPE_MSG[milestone.loaiMoc];
+  const typeLabel = typeKey ? t(typeKey) : t("meta.milestone");
   const TypeIcon = TYPE_ICON[milestone.loaiMoc] ?? UserCircle2;
-  const vis = VIS_LABEL[milestone.cheDoHienThi] ?? VIS_LABEL.public;
-  const dateLabel = formatVnDate(milestone.thoiDiem);
+  const visSpec = VIS_MSG[milestone.cheDoHienThi] ?? VIS_MSG.public;
+  const vis = { Icon: visSpec.Icon, text: t(visSpec.key) };
+  const dateLabel = formatDate(milestone.thoiDiem, locale);
   const ownerInitial = (owner.tenHienThi || owner.slug).charAt(0).toUpperCase();
   const ownerAvatarUrl = getAvatarUrl(owner.avatarId);
   const people = buildRailPeople(mainPost?.contributors ?? []);
@@ -240,7 +248,9 @@ export function PostMetaRail({
       {people.length > 0 ? (
         <div className="post-rail-blk post-rail-blk--people">
           <div className="post-rail-lbl">
-            Đóng góp · {people.length.toLocaleString("vi-VN")}
+            {t("meta.contributors", {
+              count: formatNumber(people.length, locale),
+            })}
           </div>
           <div className="post-rail-people">
             {people.map((c) => {
@@ -390,11 +400,3 @@ function PostRailVerifierCallout({
   );
 }
 
-function formatVnDate(iso: string): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  return `${dd}/${mm}/${d.getFullYear()}`;
-}

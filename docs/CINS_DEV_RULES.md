@@ -30,6 +30,17 @@
 
 **ALTER bảng/cột đã có (BẮT BUỘC):** Mọi `ALTER TABLE` trên bảng đang live (thêm/đổi/xóa cột, đổi kiểu, đổi/thêm enum value dùng chung, đổi FK/CHECK, rename) → **báo cáo user trước** (bảng · cột · kiểu · nullable · lý do · ảnh hưởng dữ liệu cũ) → ghi / cập nhật inventory trong `CINS_DECISIONS.md` (mục CSĐT / ALTER) → **chỉ chạy migration sau khi user xác nhận**. Tạo bảng mới (`CREATE TABLE`) vẫn cần plan, nhưng không cùng mức gate với sửa cột cũ. Không tự ý ALTER “tiện tay”. Chi tiết inventory đề xuất: DECISIONS **L34**.
 
+**SSOT scan trước SQL/schema (BẮT BUỘC):** Trước mọi `CREATE TABLE` / `ALTER` / cột jsonb mới / dual-write — **dừng và scan**, không viết SQL trước. Một sự kiện nghiệp vụ = **một Single Source of Truth**. Không thêm bảng/cột/JSON nếu cùng grain đã có chỗ ghi.
+
+Scan (đọc DB thật + `information_schema` + chỗ đọc/ghi app):
+
+1. Đã có bảng/cột/junction/jsonb key nào giữ **cùng sự thật** không?
+2. Khác grain (biến thể vs loại, mốc vs tác phẩm) hay cache có trigger → **được tách**; ghi rõ SoT vs bản phụ.
+3. Cùng grain + đang dual-write / fallback → **không** thêm nguồn thứ ba; gộp hoặc dùng SoT sẵn (`PLAN_gop_nguon_su_that.md`).
+4. Báo user: SoT đề xuất · chỗ trùng · tách hay gộp · có cần ALTER không.
+
+Cấm: cột phẳng + JSON cùng danh sách; hai bảng kỳ/hóa đơn cho một khoản nợ; lộ trình song song cùng khóa; “tiện tay” thêm `gia_*` / `so_*` / `cau_hinh.*` mà không nói đây là cache.
+
 **Quy ước làm việc:** tiếng Việt, ngắn gọn. "Khoan sửa" → defer. "Sao cũng được" → tự quyết, không hỏi lại. Push back khi agent over-engineer hoặc sai semantic.
 
 ---
@@ -45,6 +56,23 @@
 - **CẤM tự ý xóa file / thư mục trên ổ `C:\` (và mọi ổ khác ngoài phạm vi task).** Không “dọn ổ”, không Storage Sense / Disk Cleanup / `cleanmgr` / xóa `Temp` / `AppData` / OneDrive / Desktop / Downloads / `node_modules` toàn máy / Windows Update cache / “giải phóng dung lượng” — kể cả khi agent đoán đó là rác. Sự cố clean ổ gần đây đã gây mất dữ liệu; **chỉ xóa khi user yêu cầu rõ path cụ thể**, và chỉ trong đúng path đó. Trong repo: được sửa/xóa file thuộc task; **không** lan sang ngoài workspace dự án.
 
 → Chi tiết: §6.
+
+---
+
+## 2b. Global-ready guardrail (trụ Portfolio + Shop)
+
+> Định vị 2026-08-20 (FOUNDATIONS §1.1–1.3, DECISIONS O23): Portfolio + Shop phải **global-ready**; hướng nghiệp/ĐH/CSĐT là module VN-only. Bề mặt public đang làm tiếng Anh (`PLAN_GLOBAL_SURFACE.md`).
+
+**Code MỚI trên trụ 1/2 (journey, profile, shop, tác phẩm) — KHÔNG hardcode ở tầng lõi:**
+
+- **Locale/format:** không viết thẳng `"vi-VN"` / `toLocaleDateString("vi-VN")` / `Intl.*("vi-VN")` trong component/lib. Dùng `lib/format/*` + locale từ `getCinsLocale()` (server) / `useLocale()` (client).
+- **Tiền:** không hardcode `₫`/`"VND"` rời rạc — qua `formatCurrency(value, locale)`. Tiền vẫn là VND, chỉ format đổi theo locale.
+- **Chuỗi UI:** chuỗi tĩnh mới trên bề mặt public → khai vào catalog `lib/i18n/messages/{vi,en}.ts` (Phase 1), không chôn tiếng Việt cứng.
+- **Địa lý/timezone:** không nhúng `tinh_thanh_vn_enum` / `Asia/Ho_Chi_Minh` vào lõi trụ 1/2 — nếu cần thì bọc sau tham số/adapter.
+
+**Được phép giữ VN cứng:** module hướng nghiệp/ĐH/CSĐT (`/guidance`, `/university`, `/majors`, `co_so_dao_tao`), admin, dashboard seller, editor — **không** đầu tư i18n. Coupling VN **cũ** không phải sửa ngay; luật này chỉ chặn **thêm mới** vào lõi trụ 1/2.
+
+**Không đổi:** naming DB tiếng Việt không dấu (§7, FOUNDATIONS §4) — global hoá là tầng UI/dữ liệu người dùng thấy, không phải đổi tên bảng/cột.
 
 ---
 

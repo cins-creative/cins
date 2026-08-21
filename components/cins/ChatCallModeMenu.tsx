@@ -6,6 +6,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { isCompactCallViewport } from "@/lib/media/call-constraints";
 import type { MediaCallMode } from "@/lib/media/call-mode";
 import { stopWarmCallMedia, warmCallMedia } from "@/lib/media/media-warm";
+import { useT } from "@/lib/i18n/use-t";
 
 type Props = {
   disabled?: boolean;
@@ -14,6 +15,7 @@ type Props = {
 
 /** Nút gọi + menu chọn audio / video / chia sẻ màn (desktop). */
 export function ChatCallModeMenu({ disabled = false, onSelect }: Props) {
+  const t = useT();
   const menuId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -73,8 +75,8 @@ export function ChatCallModeMenu({ disabled = false, onSelect }: Props) {
       <button
         type="button"
         className="cins-chat-attach"
-        aria-label="Gọi"
-        title="Gọi"
+        aria-label={t("chat.call")}
+        title={t("chat.call")}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
@@ -98,8 +100,8 @@ export function ChatCallModeMenu({ disabled = false, onSelect }: Props) {
           >
             <Phone size={16} strokeWidth={1.9} aria-hidden />
             <span>
-              <strong>Gọi thoại</strong>
-              <em>Chỉ mic</em>
+              <strong>{t("chat.callAudio")}</strong>
+              <em>{t("chat.callMicOnly")}</em>
             </span>
           </button>
           <button
@@ -113,8 +115,8 @@ export function ChatCallModeMenu({ disabled = false, onSelect }: Props) {
           >
             <Video size={16} strokeWidth={1.9} aria-hidden />
             <span>
-              <strong>Gọi video</strong>
-              <em>Camera + mic</em>
+              <strong>{t("chat.callVideo")}</strong>
+              <em>{t("chat.callCamMic")}</em>
             </span>
           </button>
           {allowScreen ? (
@@ -126,8 +128,8 @@ export function ChatCallModeMenu({ disabled = false, onSelect }: Props) {
             >
               <MonitorUp size={16} strokeWidth={1.9} aria-hidden />
               <span>
-                <strong>Chia sẻ màn hình</strong>
-                <em>Desktop web — chọn cửa sổ / tab</em>
+                <strong>{t("chat.shareScreen")}</strong>
+                <em>{t("chat.shareScreenHint")}</em>
               </span>
             </button>
           ) : null}

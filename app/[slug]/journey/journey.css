@@ -15966,7 +15966,7 @@ select.j-edit-input {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(15, 23, 42, 0.48);
+  background: rgba(15, 23, 42, 0.68);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
@@ -18380,6 +18380,11 @@ button.j-user-pop-close svg {
   height: 100%;
   object-fit: cover;
   display: block;
+}
+/* Album photo — không cover: `.preview img` ở trên thắng contain của image-grid
+   nếu specificity thấp hơn trong một số ngữ cảnh feed. */
+.preview.preview--photo-grid .image-grid-cell img {
+  object-fit: contain;
 }
 .preview-inner {
   display: flex;

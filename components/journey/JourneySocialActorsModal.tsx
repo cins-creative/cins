@@ -6,6 +6,10 @@ import { createPortal } from "react-dom";
 
 import { JourneySocialActorRow } from "@/components/journey/JourneySocialActorRow";
 import { commentReactionLabel } from "@/lib/social/comments/types";
+import { formatNumber } from "@/lib/format";
+import type { TFn } from "@/lib/i18n/t";
+import { useT } from "@/lib/i18n/use-t";
+import { useLocale } from "@/lib/locale/context";
 import type {
   ReactionBreakdownEntry,
   SocialActorProfile,
@@ -46,21 +50,24 @@ type FetchState =
   | { status: "error"; message: string };
 
 function modalTitle(
+  t: TFn,
   kind: SocialInteractionKind,
   mediaLabel?: "anh" | "bai",
   emoji?: string,
 ): string {
   if (emoji) {
-    return `Người bày tỏ ${commentReactionLabel(emoji)}`;
+    return t("actors.reactedWith", { label: commentReactionLabel(emoji) });
   }
   if (kind === "like") {
-    return mediaLabel === "anh" ? "Người thích ảnh" : "Người thích";
+    return t(mediaLabel === "anh" ? "actors.likersImage" : "actors.likers");
   }
   if (kind === "dislike") {
-    return mediaLabel === "anh" ? "Người không thích ảnh" : "Người không thích";
+    return t(
+      mediaLabel === "anh" ? "actors.dislikersImage" : "actors.dislikers",
+    );
   }
-  if (kind === "comment") return "Người bình luận";
-  return "Người đã lưu";
+  if (kind === "comment") return t("actors.commenters");
+  return t("actors.savers");
 }
 
 function modalHeadIcon(kind: SocialInteractionKind) {
@@ -106,6 +113,8 @@ export function JourneySocialActorsModal({
   mediaLabel,
   emoji,
 }: Props) {
+  const t = useT();
+  const locale = useLocale();
   const [mounted, setMounted] = useState(false);
   const [state, setState] = useState<FetchState>({ status: "idle" });
   /** Emoji đang lọc (`null` = tất cả). Khởi tạo theo prop `emoji`. */
@@ -151,7 +160,7 @@ export function JourneySocialActorsModal({
         if (!res.ok) {
           setState({
             status: "error",
-            message: json?.error ?? "Không tải được danh sách.",
+            message: json?.error ?? t("actors.loadFail"),
           });
           return;
         }
@@ -173,10 +182,10 @@ export function JourneySocialActorsModal({
           return { status: "ok", actors: merged, total, hasMore, viewerId };
         });
       } catch {
-        setState({ status: "error", message: "Lỗi mạng." });
+        setState({ status: "error", message: t("actors.networkError") });
       }
     },
-    [kind, loaiDoiTuong, idDoiTuong, activeEmoji],
+    [kind, loaiDoiTuong, idDoiTuong, activeEmoji, t],
   );
 
   useEffect(() => {
@@ -207,7 +216,7 @@ export function JourneySocialActorsModal({
 
   if (!mounted || !open) return null;
 
-  const title = modalTitle(kind, mediaLabel, activeEmoji ?? undefined);
+  const title = modalTitle(t, kind, mediaLabel, activeEmoji ?? undefined);
   const actorCount =
     state.status === "ok" || state.status === "loadingMore" ? state.total : null;
   const viewerId =
@@ -235,17 +244,22 @@ export function JourneySocialActorsModal({
             <strong>{title}</strong>
             {actorCount != null ? (
               <small>
-                {new Intl.NumberFormat("vi-VN").format(actorCount)} người
+                {t("actors.count", { count: formatNumber(actorCount, locale) })}
               </small>
             ) : null}
           </div>
-          <button type="button" className="jsa-close" aria-label="Đóng" onClick={onClose}>
+          <button
+            type="button"
+            className="jsa-close"
+            aria-label={t("actors.close")}
+            onClick={onClose}
+          >
             <X size={16} aria-hidden />
           </button>
         </div>
 
         {showFilters ? (
-          <div className="jsa-filters" role="tablist" aria-label="Lọc theo cảm xúc">
+          <div className="jsa-filters" role="tablist" aria-label={t("actors.filterAria")}>
             <button
               type="button"
               role="tab"
@@ -253,7 +267,7 @@ export function JourneySocialActorsModal({
               className={`jsa-filter${activeEmoji === null ? " is-active" : ""}`}
               onClick={() => setActiveEmoji(null)}
             >
-              <span className="jsa-filter-label">Tất cả</span>
+              <span className="jsa-filter-label">{t("filter.all")}</span>
               <span className="jsa-filter-count">{totalReactions}</span>
             </button>
             {breakdown.map((entry) => (
@@ -276,14 +290,14 @@ export function JourneySocialActorsModal({
         ) : null}
 
         {state.status === "loading" ? (
-          <p className="jsa-msg">Đang tải…</p>
+          <p className="jsa-msg">{t("actors.loading")}</p>
         ) : state.status === "error" ? (
           <p className="jsa-msg jsa-msg--err">{state.message}</p>
         ) : state.status === "ok" || state.status === "loadingMore" ? (
           state.actors.length === 0 ? (
             <p className="jsa-msg">
               <Users size={14} strokeWidth={2} aria-hidden />
-              Chưa có ai tương tác.
+              {t("actors.empty")}
             </p>
           ) : (
             <>
@@ -306,7 +320,9 @@ export function JourneySocialActorsModal({
                     disabled={state.status === "loadingMore"}
                     onClick={() => void loadPage(state.actors.length, true)}
                   >
-                    {state.status === "loadingMore" ? "Đang tải…" : "Xem thêm"}
+                    {state.status === "loadingMore"
+                      ? t("actors.loading")
+                      : t("actors.loadMore")}
                   </button>
                 </div>
               ) : null}

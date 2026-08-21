@@ -4,8 +4,10 @@ import { MessageCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
+import { useT } from "@/lib/i18n/use-t";
 
 export function CinsChatLauncher() {
+  const t = useT();
   const router = useRouter();
   const { open, totalUnread, openChat, viewerProfileId } = useCinsChat();
 
@@ -19,7 +21,11 @@ export function CinsChatLauncher() {
       ]
         .filter(Boolean)
         .join(" ")}
-      aria-label={totalUnread > 0 ? `${totalUnread} tin nhắn chưa đọc` : "Tin nhắn"}
+      aria-label={
+        totalUnread > 0
+          ? t("chat.fabUnread", { n: totalUnread })
+          : t("chat.messages")
+      }
       aria-expanded={open}
       aria-hidden={open}
       onClick={() => {

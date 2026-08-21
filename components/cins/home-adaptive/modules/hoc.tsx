@@ -33,6 +33,7 @@ export async function KhamPhaLinhVucModule(_props: { ctx: HomeModuleCtx }) {
   return (
     <ModuleCard
       icon={Compass}
+      moduleId="kham_pha_linh_vuc"
       title="Lĩnh vực"
       moreHref="/community"
       moreLabel="Xem thêm"
@@ -60,7 +61,7 @@ export async function DuongToiDoModule({ ctx }: { ctx: HomeModuleCtx }) {
 
   if (suggested.length > 0) {
     return (
-      <ModuleCard icon={GraduationCap} title="Cơ sở đào tạo" moreHref="/organizations">
+      <ModuleCard icon={GraduationCap} moduleId="duong_toi_do" title="Cơ sở đào tạo" moreHref="/organizations">
         {suggested.map((o) => (
           <HaOrgSuggestionRow key={o.id} org={o} />
         ))}
@@ -72,7 +73,7 @@ export async function DuongToiDoModule({ ctx }: { ctx: HomeModuleCtx }) {
   if (schools.length === 0) return null;
 
   return (
-    <ModuleCard icon={GraduationCap} title="Cơ sở đào tạo" moreHref="/organizations">
+    <ModuleCard icon={GraduationCap} moduleId="duong_toi_do" title="Cơ sở đào tạo" moreHref="/organizations">
       {schools.map((s) => (
         <Link
           key={s.id}
@@ -114,7 +115,7 @@ export async function KhoaHocGoiYModule(_props: { ctx: HomeModuleCtx }) {
   if (courses.length === 0) return null;
 
   return (
-    <ModuleCard icon={BookOpen} title="Khóa học hợp với bạn" moreHref={TIM_KHOA_HOC_HUB_PATH}>
+    <ModuleCard icon={BookOpen} moduleId="khoa_hoc_goi_y" title="Khóa học hợp với bạn" moreHref={TIM_KHOA_HOC_HUB_PATH}>
       {courses.map((k) => (
         <Link
           key={k.id}

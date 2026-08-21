@@ -472,6 +472,9 @@
   list-style: none;
   margin: 0;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 /* ---- Tab Tổ chức: 2 nhóm + org node gập/mở ---- */
@@ -5291,6 +5294,36 @@ button.cins-canvas-table-cell-text {
   word-break: normal;
 }
 
+/* Tin chỉ 1 emoji: phóng to, không bọc bubble chữ.
+ * Không inherit --ink-display/--ink-body (rgba) — Windows tint glyph bị tối. */
+.cins-chat-bubble.is-solo-emoji.is-me,
+.cins-chat-bubble.is-solo-emoji.is-them {
+  padding: 2px 4px;
+  background: transparent;
+  border: 0;
+  opacity: 1;
+  color: #111111;
+}
+
+:root[data-theme="dark"] .cins-chat-bubble.is-solo-emoji.is-me,
+:root[data-theme="dark"] .cins-chat-bubble.is-solo-emoji.is-them {
+  background: transparent;
+  opacity: 1;
+  color: #ffffff;
+}
+
+.cins-chat-bubble.is-solo-emoji p,
+.cins-chat-bubble p.cins-chat-solo-emoji {
+  opacity: 1;
+  color: inherit;
+  -webkit-text-fill-color: inherit;
+  font-size: 48px;
+  line-height: 1.1;
+  overflow-wrap: normal;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", emoji;
+  font-variant-emoji: emoji;
+}
+
 .cins-chat-bubble time {
   display: block;
   margin-top: 6px;
@@ -5317,6 +5350,39 @@ button.cins-canvas-table-cell-text {
   cursor: pointer;
   position: relative;
   z-index: 1;
+}
+
+.cins-chat-swipe-reply-hint {
+  display: none;
+}
+
+@media (max-width: 767.98px) {
+  .cins-chat-bubble-wrap.has-bubble-actions {
+    touch-action: pan-y;
+  }
+
+  .cins-chat-swipe-reply-hint {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 28px;
+    height: 28px;
+    margin-top: -14px;
+    margin-left: -34px;
+    color: var(--ink-muted, rgba(15, 23, 42, 0.5));
+    opacity: var(--cins-chat-swipe-p, 0);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .cins-chat-bubble-wrap.is-swipe-reply > .cins-chat-bubble,
+  .cins-chat-bubble-wrap.is-swipe-reply > .cins-chat-don-hang-body,
+  .cins-chat-bubble-wrap.is-swipe-reply > .cins-chat-bare-media-body {
+    transform: translate3d(var(--cins-chat-swipe-x, 0px), 0, 0);
+    will-change: transform;
+  }
 }
 
 /* Nội dung bubble không chặn hit — tap luôn về wrap (trừ interactive bên dưới). */
@@ -5910,9 +5976,11 @@ button.cins-canvas-table-cell-text {
   border-radius: 999px;
   /* Solid — tránh nền trong suốt / color-mix làm emoji trông mờ. */
   background: #ffffff;
+  color: #111;
   opacity: 1;
   filter: none;
   isolation: isolate;
+  -webkit-font-smoothing: auto;
   box-shadow:
     0 8px 24px rgba(15, 23, 42, 0.2),
     0 2px 6px rgba(15, 23, 42, 0.12);
@@ -5930,6 +5998,7 @@ button.cins-canvas-table-cell-text {
   opacity: 1;
   filter: none;
   background: #ffffff;
+  color: #111;
 }
 
 .cins-chat-msg-react-picker button {
@@ -5944,9 +6013,12 @@ button.cins-canvas-table-cell-text {
   border-radius: 999px;
   padding: 5px 6px;
   opacity: 1;
-  /* Windows + filter/opacity trên glyph → emoji xám/mờ (cùng bug Journey picker). */
+  /* Windows: color inherit (ink alpha) nhuộm color-emoji → glyph mờ. */
   filter: none;
-  color: inherit;
+  color: initial;
+  -webkit-text-fill-color: initial;
+  font-variant-emoji: emoji;
+  -webkit-font-smoothing: auto;
   font-family:
     "Apple Color Emoji",
     "Segoe UI Emoji",
@@ -6053,8 +6125,7 @@ button.cins-canvas-table-cell-text {
   margin: 0 0 8px;
   padding: 6px 8px;
   border: 0;
-  border-left: 3px solid rgba(255, 255, 255, 0.45);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  border-radius: var(--radius-sm);
   background: rgba(0, 0, 0, 0.12);
   color: inherit;
   font: inherit;
@@ -6087,7 +6158,6 @@ button.cins-canvas-table-cell-text {
 }
 
 .cins-chat-bubble.is-them .cins-chat-reply-quote {
-  border-left-color: var(--cins-blue);
   background: rgba(59, 130, 246, 0.08);
   color: var(--ink-body);
 }
@@ -6150,11 +6220,11 @@ button.cins-canvas-table-cell-text {
   align-items: center;
   gap: 3px;
   margin: 0;
-  padding: 2px 6px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 999px;
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
   cursor: pointer;
   opacity: 1;
   filter: none;
@@ -6199,9 +6269,9 @@ button.cins-canvas-table-cell-text {
 }
 
 :root[data-theme="dark"] .cins-chat-reactions.is-corner .cins-chat-reaction-tab {
-  background: #1b1f27;
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  background: none;
+  border: 0;
+  box-shadow: none;
   color: #fff;
 }
 
@@ -8524,7 +8594,8 @@ button.cins-chat-don-card-cta.is-action:disabled {
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: rgba(0, 0, 0, 0.4);
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+  opacity: 1;
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -8550,7 +8621,8 @@ button.cins-chat-don-card-cta.is-action:disabled {
 .cins-chat-compose-icon-cluster .cins-chat-attach {
   width: 22px;
   height: 22px;
-  color: var(--ink-muted, rgba(0, 0, 0, 0.4));
+  color: var(--ink-display, rgba(0, 0, 0, 0.85));
+  opacity: 1;
 }
 
 .cins-chat-compose-icon-cluster .cins-chat-attach:disabled {
@@ -8570,9 +8642,8 @@ button.cins-chat-don-card-cta.is-action:disabled {
   height: 20px;
 }
 
-/* Meme là asset màu — dim để khớp ink-muted của icon Lucide (+ / Gọi). */
 .cins-chat-compose-icon-cluster .cins-chat-attach-meme-icon {
-  opacity: 0.4;
+  opacity: 1;
 }
 
 .cins-chat-compose-icon-cluster .cins-chat-attach:hover,
@@ -8586,6 +8657,11 @@ button.cins-chat-don-card-cta.is-action:disabled {
 }
 
 .cins-chat-compose-icon-expand {
+  display: none;
+}
+
+/* Máy ảnh: chỉ hiện trên layout chat mobile — chụp xong gửi ngay. */
+.cins-chat-attach-camera {
   display: none;
 }
 
@@ -8653,7 +8729,10 @@ button.cins-chat-don-card-cta.is-action:disabled {
   flex-direction: column;
   border: 1px solid var(--border, #e4e6eb);
   border-radius: 12px;
-  background: var(--bg-surface, #fff);
+  /* Không inherit --ink-body mờ của compose — bảng phải đặc. */
+  opacity: 1;
+  color: #111111;
+  background: #ffffff;
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
   overflow: hidden;
 }
@@ -8697,12 +8776,15 @@ button.cins-chat-don-card-cta.is-action:disabled {
   overflow-y: auto;
   flex: 1;
   scrollbar-width: thin;
+  opacity: 1;
 }
 
 .cins-chat-emoji-wrap .ed-emoji-cell {
   border: 0;
   border-radius: 8px;
   background: transparent;
+  opacity: 1;
+  color: inherit;
   font-size: 20px;
   line-height: 1.4;
   cursor: pointer;
@@ -10309,9 +10391,21 @@ button.cins-chat-don-card-cta.is-action:disabled {
     font-size: max(16px, 1rem);
   }
 
+  .cins-chat-attach-camera {
+    display: inline-flex;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+  }
+
+  .cins-chat-attach-camera:hover,
+  .cins-chat-attach-camera:disabled {
+    background: transparent;
+  }
+
   .cins-chat-compose-row .cins-chat-compose-icon-cluster {
     overflow: hidden;
-    max-width: 90px;
+    max-width: 160px;
     transition:
       max-width 180ms ease,
       opacity 160ms ease,
@@ -12919,7 +13013,8 @@ button.cins-chat-project-card-mark:hover {
 }
 
 :root[data-theme="dark"] .cins-chat-attach {
-  color: var(--ink-muted);
+  color: var(--ink-display);
+  opacity: 1;
 }
 
 :root[data-theme="dark"] .cins-chat-attach-emoji:hover,
@@ -12928,7 +13023,9 @@ button.cins-chat-project-card-mark:hover {
 }
 
 :root[data-theme="dark"] .cins-chat-emoji-wrap .ed-emoji-popover {
-  background: var(--bg-surface);
+  opacity: 1;
+  color: #f5f6f9;
+  background: #1c212c;
   border-color: var(--border);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
@@ -12947,7 +13044,7 @@ button.cins-chat-project-card-mark:hover {
 }
 
 :root[data-theme="dark"] .cins-chat-compose-icon-cluster .cins-chat-attach-meme-icon {
-  opacity: 0.46;
+  opacity: 1;
 }
 :root[data-theme="dark"] .j-chat-mini-compose-row textarea {
   background: var(--neutral-100);
@@ -12988,11 +13085,18 @@ button.cins-chat-project-card-mark:hover {
 :root[data-theme="dark"] .cins-chat-msg-react-picker {
   background: #1b1f27;
   border-color: rgba(255, 255, 255, 0.14);
+  color: #eee;
   opacity: 1;
   filter: none;
   box-shadow:
     0 10px 32px rgba(0, 0, 0, 0.5),
     0 2px 8px rgba(0, 0, 0, 0.4);
+}
+:root[data-theme="dark"] .cins-chat-msg-react-picker button {
+  color: initial;
+  -webkit-text-fill-color: initial;
+  opacity: 1;
+  filter: none;
 }
 :root[data-theme="dark"] .cins-chat-msg-react-picker button.is-active {
   background: var(--cins-blue-soft);
@@ -13512,7 +13616,8 @@ button.cins-chat-project-card-mark:hover {
   --cins-project-active: var(--cins-orange, #fdad4c);
   /* Thụt dưới avatar nhóm cha; rail + active sát tên */
   padding-left: var(--cins-project-indent);
-  margin-top: -2px;
+  /* -2px nest + hủy gap 8px của ul */
+  margin-top: -10px;
 }
 
 .cins-chat-thread.is-project-thread {

@@ -32,7 +32,9 @@ import { ArticleRichBody } from "@/components/article/ArticleRichBody";
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import type { FeedFriendAttendee } from "@/components/journey/milestone-types";
 import { ShareLinkMenu } from "@/components/social/ShareLinkMenu";
-import { orgLoaiLabel } from "@/lib/cins/home-adaptive/suggestions-display";
+import { tOrgLoai } from "@/lib/i18n/home-modules";
+import { useT } from "@/lib/i18n/use-t";
+import type { TFn } from "@/lib/i18n/t";
 import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-phan-hoi-types";
 import {
   formatGiaVnd,
@@ -173,6 +175,7 @@ function SuKienDetailMainTabs({
   active: SuKienDetailMainTabId | null;
   onActiveChange: (id: SuKienDetailMainTabId) => void;
 }) {
+  const t = useT();
   const uid = useId().replace(/:/g, "");
   const hasQuay = suKien.hasQuay === true;
   const showVe = !suKien.mienPhi;
@@ -180,11 +183,11 @@ function SuKienDetailMainTabs({
   const tabs = useMemo(() => {
     const next: Array<{ id: SuKienDetailMainTabId; label: string }> = [];
     /* Quầy trước (nếu có) → Thông tin → Vé. */
-    if (hasQuay) next.push({ id: "quay", label: "Quầy sự kiện" });
-    next.push({ id: "thong_tin", label: "Thông tin sự kiện" });
-    if (showVe) next.push({ id: "ve", label: "Vé sự kiện" });
+    if (hasQuay) next.push({ id: "quay", label: t("event.tabBooths") });
+    next.push({ id: "thong_tin", label: t("event.tabInfo") });
+    if (showVe) next.push({ id: "ve", label: t("event.tabTickets") });
     return next;
-  }, [hasQuay, showVe]);
+  }, [hasQuay, showVe, t]);
 
   const activeId =
     (active && tabs.some((t) => t.id === active) ? active : null) ??
@@ -203,7 +206,7 @@ function SuKienDetailMainTabs({
         <div
           className="sk-detail-tabs"
           role="tablist"
-          aria-label="Nội dung sự kiện"
+          aria-label={t("event.tabsAria")}
         >
           {tabs.map((tab) => (
             <button
@@ -445,6 +448,7 @@ function SuKienRsvpActions({
   className,
   compact = false,
 }: RsvpProps) {
+  const t = useT();
   const registered = loai === "se_tham_gia";
   const iconSize = compact ? 13 : 16;
 
@@ -470,11 +474,11 @@ function SuKienRsvpActions({
             shareTitle={shareTitle}
             viewerLoggedIn={viewerLoggedIn}
             triggerClassName="cso-sk-detail-btn cso-sk-detail-btn--share"
-            triggerLabel="Chia sẻ"
+            triggerLabel={t("social.share")}
             triggerIcon={
               <>
                 <Share2 size={iconSize} aria-hidden />
-                Chia sẻ
+                {t("social.share")}
               </>
             }
             placement={compact ? "down" : "up"}
@@ -489,15 +493,15 @@ function SuKienRsvpActions({
             onClick={() => onPhanHoi("quan_tam")}
           >
             <Heart size={iconSize} aria-hidden />
-            {loai === "quan_tam" ? "Đang quan tâm" : "Quan tâm"}
+            {loai === "quan_tam" ? t("event.interestedOn") : t("event.interested")}
           </button>
         )}
         <button
           type="button"
           className={`cso-sk-detail-btn cso-sk-detail-btn--join${registered ? " is-active" : ""}`}
           aria-pressed={registered}
-          aria-label={registered ? "Hủy tham gia sự kiện" : "Sẽ tham gia"}
-          title={registered ? "Hủy tham gia" : undefined}
+          aria-label={registered ? t("event.cancelJoinAria") : t("event.willJoin")}
+          title={registered ? t("event.cancelJoin") : undefined}
           disabled={!loaded || pending || slotFull}
           onClick={() => onPhanHoi("se_tham_gia")}
         >
@@ -505,17 +509,17 @@ function SuKienRsvpActions({
             <>
               <span className="cso-sk-detail-btn-face cso-sk-detail-btn-face--idle">
                 <Check size={iconSize} aria-hidden />
-                Đã đăng ký
+                {t("event.registered")}
               </span>
               <span className="cso-sk-detail-btn-face cso-sk-detail-btn-face--hover">
                 <X size={iconSize} aria-hidden />
-                Hủy tham gia
+                {t("event.cancelJoin")}
               </span>
             </>
           ) : (
             <>
               <Users size={iconSize} aria-hidden />
-              Sẽ tham gia
+              {t("event.willJoin")}
             </>
           )}
         </button>
@@ -533,24 +537,29 @@ function BackControl({
   href: string;
   className: string;
 }) {
+  const t = useT();
   if (onBack) {
     return (
       <button type="button" className={className} onClick={onBack}>
         <ArrowLeft size={16} aria-hidden />
-        Quay lại
+        {t("action.back")}
       </button>
     );
   }
   return (
     <Link href={href} className={className}>
       <ArrowLeft size={16} aria-hidden />
-      Quay lại
+      {t("action.back")}
     </Link>
   );
 }
 
-function orgTopbarLabel(loai: string | null | undefined, ten: string): string {
-  const type = orgLoaiLabel(loai ?? "");
+function orgTopbarLabel(
+  t: TFn,
+  loai: string | null | undefined,
+  ten: string,
+): string {
+  const type = tOrgLoai(t, loai ?? "");
   const trimmed = ten.trim();
   if (!trimmed) return type;
   const lower = trimmed.toLowerCase();
@@ -688,6 +697,7 @@ function SuKienDetailViewInner({
   viewerProfileId = null,
 }: SuKienDetailViewProps) {
   const titleId = useId();
+  const t = useT();
   const { isAuthenticated, openAuthModal } = useAuthGate();
   const [loai, setLoai] = useState<LoaiPhanHoiSuKien | null>(null);
   const [soDangKy, setSoDangKy] = useState(suKien.soDangKy);
@@ -1048,7 +1058,7 @@ function SuKienDetailViewInner({
                 )}
               </span>
               <span className="sk-detail-org-name">
-                {orgTopbarLabel(orgLoai, orgTen)}
+                {orgTopbarLabel(t, orgLoai, orgTen)}
               </span>
             </Link>
           ) : null}
@@ -1083,7 +1093,7 @@ function SuKienDetailViewInner({
         </div>
 
         <div className="sk-detail-body">
-          <aside className="sk-detail-aside" aria-label="Thông tin sự kiện">
+          <aside className="sk-detail-aside" aria-label={t("event.infoAria")}>
             <div className="sk-detail-dateblock">
               <span className="sk-detail-date-day">{cal.day}</span>
               <span className="sk-detail-date-meta">
@@ -1095,7 +1105,7 @@ function SuKienDetailViewInner({
               <li>
                 <CalendarDays size={16} aria-hidden />
                 <span>
-                  <strong>Thời gian</strong>
+                  <strong>{t("event.time")}</strong>
                   {timeLabel || rangeLabel}
                 </span>
               </li>
@@ -1104,7 +1114,7 @@ function SuKienDetailViewInner({
                   <MapPin size={16} aria-hidden />
                   <span>
                     <span className="sk-detail-fact-head">
-                      <strong>Địa điểm</strong>
+                      <strong>{t("event.place")}</strong>
                       {mapQuery ? (
                         <a
                           className="sk-detail-fact-link-hint"
@@ -1112,7 +1122,7 @@ function SuKienDetailViewInner({
                           target="_blank"
                           rel="noreferrer"
                         >
-                          Xem bản đồ
+                          {t("event.viewMap")}
                         </a>
                       ) : null}
                     </span>
@@ -1124,7 +1134,7 @@ function SuKienDetailViewInner({
                 <Ticket size={16} aria-hidden />
                 {suKien.mienPhi ? (
                   <span>
-                    <strong>Vé</strong>
+                    <strong>{t("event.ticket")}</strong>
                     <span className="sk-detail-fact-strong">{veLabel}</span>
                   </span>
                 ) : (
@@ -1133,7 +1143,7 @@ function SuKienDetailViewInner({
                     className="sk-detail-fact-link"
                     onClick={openVeTab}
                   >
-                    <strong>Vé</strong>
+                    <strong>{t("event.ticket")}</strong>
                     <span className="sk-detail-fact-strong">{veLabel}</span>
                   </button>
                 )}
@@ -1142,9 +1152,9 @@ function SuKienDetailViewInner({
                 <li>
                   <Users size={16} aria-hidden />
                   <span>
-                    <strong>Chỗ</strong>
+                    <strong>{t("event.seats")}</strong>
                     {soDangKy}/{suKien.slotToiDa}
-                    {slotFull ? " · Hết chỗ" : ""}
+                    {slotFull ? ` · ${t("event.full")}` : ""}
                   </span>
                 </li>
               ) : null}
@@ -1250,14 +1260,14 @@ function SuKienDetailViewInner({
               <p className="cso-sk-detail-fact">
                 <CalendarDays size={18} aria-hidden />
                 <span>
-                  <strong>Thời gian</strong>
+                  <strong>{t("event.time")}</strong>
                   {rangeLabel}
                 </span>
               </p>
               <p className="cso-sk-detail-fact">
                 <Ticket size={18} aria-hidden />
                 <span>
-                  <strong>Vé</strong>
+                  <strong>{t("event.ticket")}</strong>
                   {veLabel}
                 </span>
               </p>
@@ -1266,7 +1276,7 @@ function SuKienDetailViewInner({
                   <MapPin size={18} aria-hidden />
                   <span>
                     <span className="cso-sk-detail-fact-head">
-                      <strong>Địa điểm</strong>
+                      <strong>{t("event.place")}</strong>
                       {mapQuery ? (
                         <a
                           className="cso-sk-detail-fact-link"
@@ -1274,7 +1284,7 @@ function SuKienDetailViewInner({
                           target="_blank"
                           rel="noreferrer"
                         >
-                          Xem bản đồ
+                          {t("event.viewMap")}
                         </a>
                       ) : null}
                     </span>
@@ -1286,9 +1296,9 @@ function SuKienDetailViewInner({
                 <p className="cso-sk-detail-fact">
                   <Users size={18} aria-hidden />
                   <span>
-                    <strong>Chỗ</strong>
+                    <strong>{t("event.seats")}</strong>
                     {soDangKy}/{suKien.slotToiDa}
-                    {slotFull ? " · Hết chỗ" : ""}
+                    {slotFull ? ` · ${t("event.full")}` : ""}
                   </span>
                 </p>
               ) : null}

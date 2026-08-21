@@ -1,6 +1,8 @@
 import { ImageResponse } from "next/og";
 
 import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
+import { getT } from "@/lib/i18n/t";
+import { getCinsLocale } from "@/lib/locale/server";
 import {
   OgFallbackShareCard,
   OgGalleryShareCard,
@@ -71,6 +73,8 @@ export default async function Image({
   searchParams?: SearchParams;
 }) {
   const { slug } = await params;
+  const locale = await getCinsLocale();
+  const t = getT(locale);
   const sp = await resolveOgSearch(searchParams ? await searchParams : {});
   const origin = siteOrigin();
   const logoUrl = `${origin}/assets/logo-cins-64.png`;
@@ -98,6 +102,7 @@ export default async function Image({
             ? ctx.filterSpec.label
             : null
         }
+        locale={locale}
       />
     ) : (
       <OgJourneyShareCard
@@ -105,10 +110,15 @@ export default async function Image({
         logoUrl={logoUrl}
         theme={ctx.theme}
         layout={ctx.layout as JourneyJourneyCardVariant}
+        locale={locale}
       />
     )
   ) : (
-    <OgFallbackShareCard slug={slug} logoUrl={logoWhiteUrl} />
+    <OgFallbackShareCard
+      slug={slug}
+      logoUrl={logoWhiteUrl}
+      tagline={t("profile.journeyOnCins")}
+    />
   );
 
   /**

@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { chatImageVariantUrl } from "@/lib/chat/image-url";
 import { useHorizontalSwipe } from "@/lib/ui/use-horizontal-swipe";
 import { usePinchZoomPan } from "@/lib/ui/use-pinch-zoom-pan";
+import { useT } from "@/lib/i18n/use-t";
 
 type ChatImageLightboxProps = {
   images: string[];
@@ -21,6 +22,7 @@ export function ChatImageLightbox({
   onClose,
   onIndexChange,
 }: ChatImageLightboxProps) {
+  const t = useT();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const activeThumbRef = useRef<HTMLButtonElement>(null);
   const total = images.length;
@@ -39,6 +41,8 @@ export function ChatImageLightbox({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
         onClose();
         return;
       }
@@ -52,8 +56,9 @@ export function ChatImageLightbox({
         onIndexChange((index + 1) % total);
       }
     };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    /* Capture: chặn ESC trước overlay/mini chat (cùng keydown sẽ đóng cả bảng chat). */
+    document.addEventListener("keydown", onKey, true);
+    return () => document.removeEventListener("keydown", onKey, true);
   }, [index, onClose, onIndexChange, total]);
 
   useEffect(() => {
@@ -89,7 +94,7 @@ export function ChatImageLightbox({
     <dialog
       ref={dialogRef}
       className={`cins-chat-lightbox${hasFilmstrip ? " has-filmstrip" : ""}`}
-      aria-label="Xem ảnh"
+      aria-label={t("chat.lightbox")}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
@@ -102,7 +107,7 @@ export function ChatImageLightbox({
         <button
           type="button"
           className="cins-chat-lightbox-close"
-          aria-label="Đóng"
+          aria-label={t("chat.close")}
           onClick={onClose}
         >
           <X size={22} strokeWidth={2} aria-hidden />
@@ -113,7 +118,7 @@ export function ChatImageLightbox({
             <button
               type="button"
               className="cins-chat-lightbox-nav cins-chat-lightbox-nav--prev"
-              aria-label="Ảnh trước"
+              aria-label={t("chat.prevPhoto")}
               onClick={goPrev}
             >
               <ChevronLeft size={28} strokeWidth={2} aria-hidden />
@@ -121,7 +126,7 @@ export function ChatImageLightbox({
             <button
               type="button"
               className="cins-chat-lightbox-nav cins-chat-lightbox-nav--next"
-              aria-label="Ảnh sau"
+              aria-label={t("chat.nextPhoto")}
               onClick={goNext}
             >
               <ChevronRight size={28} strokeWidth={2} aria-hidden />
@@ -141,7 +146,7 @@ export function ChatImageLightbox({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={current}
-              alt="Ảnh đính kèm"
+              alt={t("chat.photoAttached")}
               decoding="async"
               draggable={false}
             />
@@ -149,7 +154,7 @@ export function ChatImageLightbox({
         </figure>
 
         {hasFilmstrip ? (
-          <div className="cins-chat-lightbox-filmstrip" role="tablist" aria-label="Danh sách ảnh">
+          <div className="cins-chat-lightbox-filmstrip" role="tablist" aria-label={t("chat.photoList")}>
             <div className="cins-chat-lightbox-filmstrip-track">
               {images.map((src, i) => (
                 <button
@@ -158,7 +163,7 @@ export function ChatImageLightbox({
                   type="button"
                   role="tab"
                   aria-selected={i === index}
-                  aria-label={`Xem ảnh ${i + 1}/${total}`}
+                  aria-label={t("chat.photoN", { i: i + 1, total })}
                   className={`cins-chat-lightbox-thumb${i === index ? " is-active" : ""}`}
                   onClick={() => onIndexChange(i)}
                 >

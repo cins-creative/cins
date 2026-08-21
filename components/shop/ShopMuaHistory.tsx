@@ -15,8 +15,13 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { formatDate, formatMoney } from "@/lib/format";
+import type { TFn } from "@/lib/i18n/t";
+import { useT } from "@/lib/i18n/use-t";
+import { useLocale } from "@/lib/locale/context";
+import type { CinsLocale } from "@/lib/locale/types";
 import type { ShopDonHang } from "@/lib/shop/types";
-import { SHOP_TRANG_THAI_DON_LABEL } from "@/lib/shop/types";
+import { shopTrangThaiDonLabel } from "@/lib/shop/types";
 
 import { ShopDonDetailModal } from "./ShopDonDetailModal";
 import "./shop-mua-history.css";
@@ -34,13 +39,13 @@ function isPaidDon(d: ShopDonHang): boolean {
   return d.trangThai === "da_nhan_tien" || d.trangThai === "hoan_thanh";
 }
 
-function money(n: number, tienTe: string): string {
-  return `${n.toLocaleString("vi-VN")} ${tienTe}`;
+function money(n: number, tienTe: string, locale: CinsLocale): string {
+  return formatMoney(n, locale, tienTe);
 }
 
-function dateVi(iso: string): string {
+function dateLabel(iso: string, locale: CinsLocale): string {
   try {
-    return new Date(iso).toLocaleString("vi-VN", {
+    return formatDate(iso, locale, {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -60,9 +65,19 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-/** HTML tự chứa để in → "Save as PDF" (giữ dấu tiếng Việt qua font trình duyệt). */
-function buildPrintHtml(orders: ShopDonHang[]): string {
-  const now = new Date().toLocaleString("vi-VN");
+/** HTML tự chứa để in → "Save as PDF". */
+function buildPrintHtml(
+  orders: ShopDonHang[],
+  locale: CinsLocale,
+  t: TFn,
+): string {
+  const now = formatDate(new Date(), locale, {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
   const blocks = orders
     .map((d) => {
       const rows = d.dong
@@ -75,8 +90,8 @@ function buildPrintHtml(orders: ShopDonHang[]): string {
                 : ""
             }</td>
             <td class="num">${l.soLuong}</td>
-            <td class="num">${money(l.giaDonVi, d.tienTe)}</td>
-            <td class="num">${money(l.giaDonVi * l.soLuong, d.tienTe)}</td>
+            <td class="num">${money(l.giaDonVi, d.tienTe, locale)}</td>
+            <td class="num">${money(l.giaDonVi * l.soLuong, d.tienTe, locale)}</td>
           </tr>`,
         )
         .join("");
@@ -84,25 +99,26 @@ function buildPrintHtml(orders: ShopDonHang[]): string {
       <section class="order">
         <div class="order-hdr">
           <div>
-            <strong>${escapeHtml(d.banTen ?? "Cửa hàng")}</strong>
-            <span class="ma">Mã ${escapeHtml(d.maDon ?? d.id.slice(0, 8))}</span>
+            <strong>${escapeHtml(d.banTen ?? t("shop.history.shopFallback"))}</strong>
+            <span class="ma">${escapeHtml(t("shop.history.orderCode", { code: d.maDon ?? d.id.slice(0, 8) }))}</span>
           </div>
           <div class="meta">
             <span class="status ${isPaidDon(d) ? "paid" : "unpaid"}">${
-              SHOP_TRANG_THAI_DON_LABEL[d.trangThai]
+              shopTrangThaiDonLabel(d.trangThai, locale)
             }</span>
-            <span>${escapeHtml(dateVi(d.taoLuc))}</span>
+            <span>${escapeHtml(dateLabel(d.taoLuc, locale))}</span>
           </div>
         </div>
         <table>
           <thead>
-            <tr><th>Sản phẩm</th><th class="num">SL</th><th class="num">Đơn giá</th><th class="num">Thành tiền</th></tr>
+            <tr><th>${escapeHtml(t("shop.history.printProduct"))}</th><th class="num">${escapeHtml(t("shop.history.printQty"))}</th><th class="num">${escapeHtml(t("shop.history.printUnit"))}</th><th class="num">${escapeHtml(t("shop.history.printLine"))}</th></tr>
           </thead>
           <tbody>${rows}</tbody>
           <tfoot>
-            <tr><td colspan="3" class="num">Tổng</td><td class="num total">${money(
+            <tr><td colspan="3" class="num">${escapeHtml(t("shop.history.printTotal"))}</td><td class="num total">${money(
               d.tongTien,
               d.tienTe,
+              locale,
             )}</td></tr>
           </tfoot>
         </table>
@@ -111,8 +127,8 @@ function buildPrintHtml(orders: ShopDonHang[]): string {
     .join("");
   const grandTotal = orders.reduce((s, d) => s + d.tongTien, 0);
   const tienTe = orders[0]?.tienTe ?? "VND";
-  return `<!doctype html><html lang="vi"><head><meta charset="utf-8" />
-  <title>Lịch sử mua hàng</title>
+  return `<!doctype html><html lang="${locale}"><head><meta charset="utf-8" />
+  <title>${escapeHtml(t("shop.history.title"))}</title>
   <style>
     * { box-sizing: border-box; }
     body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #1a1a1a; margin: 28px; }
@@ -133,21 +149,28 @@ function buildPrintHtml(orders: ShopDonHang[]): string {
     .grand { text-align: right; font-size: 15px; font-weight: 800; margin-top: 8px; }
   </style></head>
   <body onload="window.print()">
-    <h1>Lịch sử mua hàng</h1>
-    <p class="sub">${orders.length} đơn · Xuất ${escapeHtml(now)}</p>
+    <h1>${escapeHtml(t("shop.history.title"))}</h1>
+    <p class="sub">${escapeHtml(t("shop.history.printSub", { count: orders.length, when: now }))}</p>
     ${blocks}
-    <p class="grand">Tổng cộng: ${money(grandTotal, tienTe)}</p>
+    <p class="grand">${escapeHtml(t("shop.history.printGrand", { amount: money(grandTotal, tienTe, locale) }))}</p>
   </body></html>`;
 }
 
-function buildShareText(orders: ShopDonHang[]): string {
-  const lines: string[] = [`Lịch sử mua hàng — ${orders.length} đơn:`];
+function buildShareText(
+  orders: ShopDonHang[],
+  locale: CinsLocale,
+  t: TFn,
+): string {
+  const lines: string[] = [
+    t("shop.history.shareHead", { count: orders.length }),
+  ];
   orders.forEach((d, i) => {
     lines.push(
-      `${i + 1}. [${d.maDon ?? d.id.slice(0, 8)}] ${d.banTen ?? "Cửa hàng"} — ${money(
+      `${i + 1}. [${d.maDon ?? d.id.slice(0, 8)}] ${d.banTen ?? t("shop.history.shopFallback")} — ${money(
         d.tongTien,
         d.tienTe,
-      )} — ${SHOP_TRANG_THAI_DON_LABEL[d.trangThai]} · ${dateVi(d.taoLuc)}`,
+        locale,
+      )} — ${shopTrangThaiDonLabel(d.trangThai, locale)} · ${dateLabel(d.taoLuc, locale)}`,
     );
     for (const l of d.dong) {
       lines.push(
@@ -169,6 +192,8 @@ export function ShopMuaHistory({
   open: boolean;
   onClose: () => void;
 }) {
+  const locale = useLocale();
+  const t = useT();
   const [orders, setOrders] = useState<ShopDonHang[]>([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -196,16 +221,16 @@ export function ShopMuaHistory({
         error?: string;
       } | null;
       if (!res.ok) {
-        setErr(json?.error ?? "Không tải lịch sử.");
+        setErr(json?.error ?? t("shop.history.loadFail"));
         return;
       }
       setOrders(json?.items ?? []);
     } catch {
-      setErr("Không tải lịch sử.");
+      setErr(t("shop.history.loadFail"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (!open) return;
@@ -278,13 +303,13 @@ export function ShopMuaHistory({
     if (selectedOrders.length === 0) return;
     const w = window.open("", "_blank", "width=820,height=920");
     if (!w) {
-      setToast("Trình duyệt chặn cửa sổ in — cho phép popup rồi thử lại.");
+      setToast(t("shop.history.popupBlocked"));
       return;
     }
-    w.document.write(buildPrintHtml(selectedOrders));
+    w.document.write(buildPrintHtml(selectedOrders, locale, t));
     w.document.close();
     w.focus();
-  }, [selectedOrders]);
+  }, [selectedOrders, locale, t]);
 
   const loadRecipients = useCallback(async () => {
     setRecipLoading(true);
@@ -300,12 +325,12 @@ export function ShopMuaHistory({
         }>;
       } | null;
       const list: Recipient[] = (json?.threads ?? [])
-        .filter((t) => Boolean(t.roomId))
-        .map((t) => ({
-          roomId: t.roomId,
-          name: t.isSelf ? "Gửi cho tôi" : t.name,
-          avatarUrl: t.avatarUrl ?? null,
-          isGroup: Boolean(t.isGroup),
+        .filter((thread) => Boolean(thread.roomId))
+        .map((thread) => ({
+          roomId: thread.roomId,
+          name: thread.isSelf ? t("shop.history.sendToMe") : thread.name,
+          avatarUrl: thread.avatarUrl ?? null,
+          isGroup: Boolean(thread.isGroup),
         }));
       setRecipients(list);
     } catch {
@@ -313,7 +338,7 @@ export function ShopMuaHistory({
     } finally {
       setRecipLoading(false);
     }
-  }, []);
+  }, [t]);
 
   const openShare = useCallback(() => {
     if (selectedOrders.length === 0) return;
@@ -330,24 +355,31 @@ export function ShopMuaHistory({
         const res = await fetch(`/api/chat/rooms/${r.roomId}/messages`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ noi_dung: buildShareText(selectedOrders) }),
+          body: JSON.stringify({
+            noi_dung: buildShareText(selectedOrders, locale, t),
+          }),
         });
         if (!res.ok) {
           const j = (await res.json().catch(() => null)) as {
             error?: string;
           } | null;
-          setToast(j?.error ?? "Gửi thất bại.");
+          setToast(j?.error ?? t("shop.history.sendFail"));
           return;
         }
-        setToast(`Đã chia sẻ ${selectedOrders.length} đơn cho ${r.name}.`);
+        setToast(
+          t("shop.history.sharedTo", {
+            count: selectedOrders.length,
+            name: r.name,
+          }),
+        );
         setShareOpen(false);
       } catch {
-        setToast("Gửi thất bại.");
+        setToast(t("shop.history.sendFail"));
       } finally {
         setSendingRoom(null);
       }
     },
-    [selectedOrders],
+    [selectedOrders, locale, t],
   );
 
   const filteredRecipients = useMemo(() => {
@@ -372,17 +404,17 @@ export function ShopMuaHistory({
         className="mua-history-panel"
         role="dialog"
         aria-modal="true"
-        aria-label="Lịch sử mua hàng"
+        aria-label={t("shop.history.title")}
       >
         <header className="mua-history-hdr">
           <div>
-            <p className="mua-history-kicker">Lịch sử mua hàng</p>
-            <h2>Đơn của bạn</h2>
+            <p className="mua-history-kicker">{t("shop.history.title")}</p>
+            <h2>{t("shop.history.yourOrders")}</h2>
           </div>
           <button
             type="button"
             className="mua-history-close"
-            aria-label="Đóng"
+            aria-label={t("actors.close")}
             onClick={onClose}
           >
             <X size={18} strokeWidth={2} aria-hidden />
@@ -392,9 +424,9 @@ export function ShopMuaHistory({
         <div className="mua-history-tabs" role="tablist">
           {(
             [
-              ["all", "Tất cả"],
-              ["unpaid", "Chưa thanh toán"],
-              ["paid", "Đã thanh toán"],
+              ["all", t("shop.all")],
+              ["unpaid", t("shop.history.unpaid")],
+              ["paid", t("shop.history.paid")],
             ] as [Filter, string][]
           ).map(([f, label]) => (
             <button
@@ -427,10 +459,12 @@ export function ShopMuaHistory({
                 className={someSelected ? "is-partial" : undefined}
               />
             )}
-            Chọn tất cả
+            {t("shop.history.selectAll")}
           </button>
           <span className="mua-history-selcount">
-            {selCount > 0 ? `Đã chọn ${selCount}` : ""}
+            {selCount > 0
+              ? t("shop.history.selectedCount", { count: selCount })
+              : ""}
           </span>
           <div className="mua-history-actions">
             <button
@@ -440,7 +474,8 @@ export function ShopMuaHistory({
               onClick={openShare}
             >
               <Share2 size={15} strokeWidth={2} aria-hidden />
-              Chia sẻ{selCount > 0 ? ` (${selCount})` : ""}
+              {t("shop.history.share")}
+              {selCount > 0 ? ` (${selCount})` : ""}
             </button>
             <button
               type="button"
@@ -449,7 +484,8 @@ export function ShopMuaHistory({
               onClick={exportPdf}
             >
               <FileDown size={15} strokeWidth={2} aria-hidden />
-              Xuất PDF{selCount > 0 ? ` (${selCount})` : ""}
+              {t("shop.history.exportPdf")}
+              {selCount > 0 ? ` (${selCount})` : ""}
             </button>
           </div>
         </div>
@@ -463,13 +499,13 @@ export function ShopMuaHistory({
         <div className="mua-history-body">
           {loading ? (
             <p className="mua-history-muted">
-              <Loader2 size={16} className="mua-history-spin" aria-hidden /> Đang
-              tải…
+              <Loader2 size={16} className="mua-history-spin" aria-hidden />{" "}
+              {t("shop.loadingShort")}
             </p>
           ) : filtered.length === 0 ? (
             <div className="mua-history-empty">
               <Package size={26} strokeWidth={1.6} aria-hidden />
-              <p>Chưa có đơn nào.</p>
+              <p>{t("shop.history.empty")}</p>
             </div>
           ) : (
             filtered.map((d) => {
@@ -483,7 +519,11 @@ export function ShopMuaHistory({
                   <button
                     type="button"
                     className="mua-history-check"
-                    aria-label={checked ? "Bỏ chọn đơn" : "Chọn đơn"}
+                    aria-label={
+                      checked
+                        ? t("shop.history.unselectOrder")
+                        : t("shop.history.selectOrder")
+                    }
                     aria-pressed={checked}
                     onClick={() => toggle(d.id)}
                   >
@@ -497,13 +537,13 @@ export function ShopMuaHistory({
                     <div className="mua-history-order-hdr">
                       <span className="mua-history-shop">
                         <Store size={14} strokeWidth={1.9} aria-hidden />
-                        {d.banTen ?? "Cửa hàng"}
+                        {d.banTen ?? t("shop.history.shopFallback")}
                       </span>
                       <span className="mua-history-status-row">
                         <span
                           className={`mua-history-status ${paid ? "is-paid" : "is-unpaid"}`}
                         >
-                          {SHOP_TRANG_THAI_DON_LABEL[d.trangThai]}
+                          {shopTrangThaiDonLabel(d.trangThai, locale)}
                         </span>
                         {d.trangThai === "da_nhan_tien" && d.yeuCauHuyLuc ? (
                           <button
@@ -511,15 +551,19 @@ export function ShopMuaHistory({
                             className="mua-history-status is-yeu-cau"
                             onClick={() => setDetailId(d.id)}
                           >
-                            Shop đề nghị hủy
+                            {t("shop.history.cancelRequest")}
                           </button>
                         ) : null}
                       </span>
                     </div>
                     <div className="mua-history-order-sub">
-                      <span>Mã {d.maDon ?? d.id.slice(0, 8)}</span>
+                      <span>
+                        {t("shop.history.orderCode", {
+                          code: d.maDon ?? d.id.slice(0, 8),
+                        })}
+                      </span>
                       <span>·</span>
-                      <span>{dateVi(d.taoLuc)}</span>
+                      <span>{dateLabel(d.taoLuc, locale)}</span>
                     </div>
                     <ul className="mua-history-lines">
                       {d.dong.map((l) => (
@@ -545,7 +589,7 @@ export function ShopMuaHistory({
                             ×{l.soLuong}
                           </span>
                           <span className="mua-history-line-price">
-                            {money(l.giaDonVi * l.soLuong, d.tienTe)}
+                            {money(l.giaDonVi * l.soLuong, d.tienTe, locale)}
                           </span>
                         </li>
                       ))}
@@ -558,13 +602,13 @@ export function ShopMuaHistory({
                           rel="noreferrer"
                           className="mua-history-bill"
                         >
-                          Biên lai
+                          {t("shop.history.receipt")}
                         </a>
                       ) : (
                         <span />
                       )}
                       <strong className="mua-history-order-total">
-                        {money(d.tongTien, d.tienTe)}
+                        {money(d.tongTien, d.tienTe, locale)}
                       </strong>
                     </div>
                   </div>
@@ -579,7 +623,7 @@ export function ShopMuaHistory({
             className="mua-history-share"
             role="dialog"
             aria-modal="true"
-            aria-label="Chọn người nhận"
+            aria-label={t("shop.history.pickRecipient")}
             onMouseDown={(e) => {
               if (e.target === e.currentTarget) setShareOpen(false);
             }}
@@ -587,13 +631,17 @@ export function ShopMuaHistory({
             <div className="mua-history-share-card">
               <header className="mua-history-share-hdr">
                 <div>
-                  <p className="mua-history-kicker">Chia sẻ qua chat</p>
-                  <h3>Gửi {selectedOrders.length} đơn cho…</h3>
+                  <p className="mua-history-kicker">{t("shop.history.shareViaChat")}</p>
+                  <h3>
+                    {t("shop.history.sendOrdersTo", {
+                      count: selectedOrders.length,
+                    })}
+                  </h3>
                 </div>
                 <button
                   type="button"
                   className="mua-history-close"
-                  aria-label="Đóng"
+                  aria-label={t("actors.close")}
                   onClick={() => setShareOpen(false)}
                 >
                   <X size={18} strokeWidth={2} aria-hidden />
@@ -603,7 +651,7 @@ export function ShopMuaHistory({
                 <Search size={15} strokeWidth={2} aria-hidden />
                 <input
                   type="search"
-                  placeholder="Tìm hội thoại…"
+                  placeholder={t("shop.history.searchThreads")}
                   value={recipQuery}
                   onChange={(e) => setRecipQuery(e.target.value)}
                 />
@@ -616,11 +664,11 @@ export function ShopMuaHistory({
                       className="mua-history-spin"
                       aria-hidden
                     />{" "}
-                    Đang tải hội thoại…
+                    {t("shop.history.loadingThreads")}
                   </p>
                 ) : filteredRecipients.length === 0 ? (
                   <p className="mua-history-muted">
-                    Chưa có hội thoại nào để chia sẻ.
+                    {t("shop.history.noThreads")}
                   </p>
                 ) : (
                   filteredRecipients.map((r) => (

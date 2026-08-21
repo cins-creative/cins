@@ -27,6 +27,9 @@ import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
 import { PostCover } from "@/components/editor/PostRenderer";
 import { MoTaMarkdown } from "@/components/editor/compose/MoTaMarkdown";
 import { findCoverThumbMeta } from "@/lib/journey/cover-thumb";
+import { formatNumber } from "@/lib/format";
+import { useT } from "@/lib/i18n/use-t";
+import { useLocale } from "@/lib/locale/context";
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
 import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButton";
 import { JourneyCommentLink } from "@/components/journey/JourneyCommentLink";
@@ -771,13 +774,17 @@ function PostContributors({
   contributors: ReadonlyArray<MilestonePostContributor>;
   variant?: "default" | "rail";
 }) {
+  const t = useT();
+  const locale = useLocale();
   if (!shouldShowPostContributors(contributors)) return null;
 
   if (variant === "rail") {
     return (
       <div className="post-rail-blk post-rail-blk--people">
         <div className="post-rail-lbl">
-          Đóng góp · {contributors.length.toLocaleString("vi-VN")}
+          {t("post.contributors", {
+            count: formatNumber(contributors.length, locale),
+          })}
         </div>
           <div className="post-rail-people">
             {contributors.map((c) => {

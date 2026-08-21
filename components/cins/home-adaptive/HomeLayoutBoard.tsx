@@ -52,7 +52,6 @@ import {
   type HomeLayoutItemLimits,
 } from "@/lib/cins/home-adaptive/layout-prefs";
 import {
-  MODULE_GROUP_LABEL,
   MODULE_META,
   moduleGroupOrderForPersona,
   type ModuleMeta,
@@ -78,6 +77,14 @@ import {
   type PresetId,
 } from "@/lib/cins/home-adaptive/presets";
 import { requestHomeLayoutEdit } from "@/lib/home/home-layout-edit";
+import {
+  tHomeGroupLabel,
+  tHomeModDesc,
+  tHomeModLabel,
+  tHomePresetFor,
+  tHomePresetLabel,
+} from "@/lib/i18n/home-modules";
+import { useT } from "@/lib/i18n/use-t";
 
 type Side = "left" | "right";
 
@@ -1321,6 +1328,7 @@ export function HomeOpenShopFeedBannerBound() {
 
 export function HomeEditToolbar() {
   const ctx = useLayoutEdit();
+  const t = useT();
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -1328,9 +1336,7 @@ export function HomeEditToolbar() {
 
   const exit = (confirmIfDirty: boolean) => {
     if (confirmIfDirty && ctx.dirty) {
-      const ok = window.confirm(
-        "Bạn có thay đổi chưa lưu. Rời khỏi chế độ chỉnh sửa?",
-      );
+      const ok = window.confirm(t("home.edit.unsaved"));
       if (!ok) return;
       ctx.discardDraft();
     }
@@ -1378,9 +1384,7 @@ export function HomeEditToolbar() {
   };
 
   const resetDefault = async () => {
-    const ok = window.confirm(
-      "Khôi phục bố cục mặc định theo giai đoạn của bạn?",
-    );
+    const ok = window.confirm(t("home.edit.resetConfirm"));
     if (!ok) return;
     setSaving(true);
     setErr(null);
@@ -1390,25 +1394,23 @@ export function HomeEditToolbar() {
         const json = (await res.json().catch(() => null)) as {
           error?: string;
         } | null;
-        setErr(json?.error ?? "Không khôi phục được.");
+        setErr(json?.error ?? t("home.edit.resetFail"));
         return;
       }
       ctx.exitEditing({ refresh: true });
     } catch {
-      setErr("Không khôi phục được.");
+      setErr(t("home.edit.resetFail"));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="ha-edit-bar" role="region" aria-label="Tuỳ chỉnh trang chủ">
+    <div className="ha-edit-bar" role="region" aria-label={t("home.edit.regionAria")}>
       <div className="ha-edit-bar-inner">
         <div className="ha-edit-bar-copy">
-          <p className="ha-edit-bar-title">Đang tuỳ chỉnh trang chủ</p>
-          <p className="ha-edit-bar-hint">
-            Kéo để sắp xếp · Bấm + giữa các khối để thêm · ✕ để ẩn
-          </p>
+          <p className="ha-edit-bar-title">{t("home.edit.title")}</p>
+          <p className="ha-edit-bar-hint">{t("home.edit.hint")}</p>
           {err ? <p className="ha-edit-bar-err">{err}</p> : null}
         </div>
         <div className="ha-edit-bar-actions">
@@ -1419,7 +1421,7 @@ export function HomeEditToolbar() {
             disabled={saving}
           >
             <RotateCcw size={14} strokeWidth={2} aria-hidden />
-            Khôi phục mặc định
+            {t("home.edit.reset")}
           </button>
           <button
             type="button"
@@ -1427,7 +1429,7 @@ export function HomeEditToolbar() {
             onClick={() => exit(true)}
             disabled={saving}
           >
-            Huỷ
+            {t("home.edit.cancel")}
           </button>
           <button
             type="button"
@@ -1440,7 +1442,7 @@ export function HomeEditToolbar() {
             ) : (
               <Check size={14} strokeWidth={2.4} aria-hidden />
             )}
-            Lưu
+            {t("action.save")}
           </button>
         </div>
       </div>
@@ -1458,14 +1460,15 @@ function InsertGap({
   open: boolean;
 }) {
   const ctx = useLayoutEdit();
+  const t = useT();
   return (
     <div className={`ha-edit-gap${open ? " ha-edit-gap--open" : ""}`}>
       <button
         type="button"
         className="ha-edit-gap-btn"
-        aria-label={`Thêm khối tại vị trí ${index + 1}`}
+        aria-label={t("home.edit.addAt", { n: index + 1 })}
         aria-expanded={open}
-        title="Thêm khối vào đây"
+        title={t("home.edit.addHere")}
         onClick={() => {
           if (open) {
             ctx.setAddAt(null);
@@ -1487,15 +1490,14 @@ function ModulePlaceholder({
   meta: ModuleMeta;
   failed?: boolean;
 }) {
+  const t = useT();
   return (
     <section className="ha-card ha-card--placeholder">
       <div className="ha-card-head">
-        <span className="ha-card-title">{meta.label}</span>
+        <span className="ha-card-title">{tHomeModLabel(t, meta.id)}</span>
       </div>
       <p className="ha-card-empty">
-        {failed
-          ? "Không tải được nội dung. Thử thêm lại hoặc lưu rồi tải lại trang."
-          : meta.description}
+        {failed ? t("home.edit.loadFail") : tHomeModDesc(t, meta.id)}
       </p>
     </section>
   );
@@ -1503,6 +1505,7 @@ function ModulePlaceholder({
 
 /** Timeline giả ở giữa mockup bộ khối — chỉ trang trí. */
 function PresetTimelineMock() {
+  const t = useT();
   return (
     <div className="ha-edit-preset-feed">
       <div className="ha-edit-preset-feed-composer" aria-hidden>
@@ -1520,7 +1523,7 @@ function PresetTimelineMock() {
           </div>
         </div>
       ))}
-      <p className="ha-edit-preset-feed-caption">Dòng thời gian</p>
+      <p className="ha-edit-preset-feed-caption">{t("home.edit.timeline")}</p>
     </div>
   );
 }
@@ -1535,6 +1538,7 @@ function AddModuleOverlay({
   onClose: () => void;
 }) {
   const ctx = useLayoutEdit();
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const [query, setQuery] = useState("");
   /** Tab đang chọn: preset id hoặc catalog thủ công. */
@@ -1640,12 +1644,12 @@ function AddModuleOverlay({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return items;
-    return items.filter(
-      (m) =>
-        m.label.toLowerCase().includes(q) ||
-        m.description.toLowerCase().includes(q),
-    );
-  }, [items, query]);
+    return items.filter((m) => {
+      const label = tHomeModLabel(t, m.id).toLowerCase();
+      const desc = tHomeModDesc(t, m.id).toLowerCase();
+      return label.includes(q) || desc.includes(q);
+    });
+  }, [items, query, t]);
 
   const itemIds = useMemo(() => filtered.map((m) => m.id), [filtered]);
   useEffect(() => {
@@ -1729,24 +1733,22 @@ function AddModuleOverlay({
         className="ha-edit-add-backdrop"
         role="button"
         tabIndex={-1}
-        aria-label="Đóng"
+        aria-label={t("home.edit.close")}
         onClick={onClose}
       />
       <div
         className="ha-edit-add-panel ha-edit-add-panel--modal"
         role="dialog"
         aria-modal="true"
-        aria-label="Thêm khối"
+        aria-label={t("home.edit.addDialog")}
         onClick={(e) => e.stopPropagation()}
       >
         <header className="ha-edit-add-head">
           <div className="ha-edit-add-head-copy">
-            <span className="ha-edit-add-head-title">Thêm khối vào đây</span>
-            <span className="ha-edit-add-head-hint">
-              Chọn bộ khối theo nhu cầu · hoặc tự thêm từng khối
-            </span>
+            <span className="ha-edit-add-head-title">{t("home.edit.addHere")}</span>
+            <span className="ha-edit-add-head-hint">{t("home.edit.addHint")}</span>
           </div>
-          <button type="button" aria-label="Đóng" onClick={onClose}>
+          <button type="button" aria-label={t("home.edit.close")} onClick={onClose}>
             <X size={14} strokeWidth={2} aria-hidden />
           </button>
         </header>
@@ -1754,10 +1756,10 @@ function AddModuleOverlay({
         {overflow ? (
           <div className="ha-edit-preset-overflow">
             <p className="ha-edit-preset-overflow-title">
-              Layout đã đầy — chọn ít nhất {overflow.needRemove} khối để thay
+              {t("home.edit.overflowTitle", { n: overflow.needRemove })}
             </p>
             <p className="ha-edit-preset-overflow-hint">
-              Tối đa {PRESET_LAYOUT_MAX} khối. Đã gợi ý các khối ít dùng hơn.
+              {t("home.edit.overflowHint", { max: PRESET_LAYOUT_MAX })}
             </p>
             <ul className="ha-edit-preset-overflow-list">
               {overflow.candidates.map((id) => {
@@ -1778,10 +1780,10 @@ function AddModuleOverlay({
                           });
                         }}
                       />
-                      <span>{MODULE_META[id].label}</span>
+                      <span>{tHomeModLabel(t, id)}</span>
                       {overflow.suggested.includes(id) ? (
                         <span className="ha-edit-preset-overflow-tag">
-                          gợi ý
+                          {t("home.edit.suggested")}
                         </span>
                       ) : null}
                     </label>
@@ -1795,7 +1797,7 @@ function AddModuleOverlay({
                 className="ha-edit-add-pick-cta ha-edit-add-pick-cta--ghost"
                 onClick={() => setOverflow(null)}
               >
-                Huỷ
+                {t("home.edit.cancel")}
               </button>
               <button
                 type="button"
@@ -1803,7 +1805,7 @@ function AddModuleOverlay({
                 disabled={overflow.selected.size < overflow.needRemove}
                 onClick={confirmOverflow}
               >
-                Áp dụng
+                {t("home.edit.apply")}
               </button>
             </div>
           </div>
@@ -1816,11 +1818,11 @@ function AddModuleOverlay({
           >
             {ctx.presets.length > 0 ? (
               <section className="ha-edit-preset-section">
-                <p className="ha-edit-add-group-label">Chọn cách thêm khối</p>
+                <p className="ha-edit-add-group-label">{t("home.edit.chooseHow")}</p>
                 <div
                   className="ha-edit-preset-toolbar"
                   role="group"
-                  aria-label="Cách thêm khối"
+                  aria-label={t("home.edit.chooseHowAria")}
                 >
                   <div className="ha-edit-preset-dd" ref={presetDdRef}>
                     <button
@@ -1836,11 +1838,15 @@ function AddModuleOverlay({
                       onClick={() => setPresetDdOpen((o) => !o)}
                     >
                       <span className="ha-edit-preset-dd-label">
-                        {activePreset?.label ?? "Chọn bộ khối"}
+                        {activePreset
+                          ? tHomePresetLabel(t, activePreset.id)
+                          : t("home.edit.pickPreset")}
                       </span>
                       {activePreset &&
                       ctx.draft.presetDaAp.includes(activePreset.id) ? (
-                        <span className="ha-edit-preset-tab-used">Đang dùng</span>
+                        <span className="ha-edit-preset-tab-used">
+                          {t("home.edit.inUse")}
+                        </span>
                       ) : null}
                       <ChevronDown
                         size={14}
@@ -1879,11 +1885,11 @@ function AddModuleOverlay({
                                 }}
                               >
                                 <span className="ha-edit-preset-dd-option-label">
-                                  {p.label}
+                                  {tHomePresetLabel(t, p.id)}
                                 </span>
                                 {used ? (
                                   <span className="ha-edit-preset-tab-used">
-                                    Đang dùng
+                                    {t("home.edit.inUse")}
                                   </span>
                                 ) : null}
                                 {selected ? (
@@ -1916,7 +1922,7 @@ function AddModuleOverlay({
                     }}
                   >
                     <span className="ha-edit-preset-tab-label">
-                      Tự chọn từng khối
+                      {t("home.edit.pickEach")}
                     </span>
                   </button>
                 </div>
@@ -1929,14 +1935,15 @@ function AddModuleOverlay({
                   >
                     <div className="ha-edit-preset-panel-meta">
                       <p className="ha-edit-preset-panel-for">
-                        {activePreset.forWhom} · thay toàn bộ layout hiện tại
+                        {tHomePresetFor(t, activePreset.id)} ·{" "}
+                        {t("home.edit.replaceLayout")}
                       </p>
                       <button
                         type="button"
                         className="ha-edit-preset-card-cta"
                         onClick={() => tryApplyPreset(activePreset, "replace")}
                       >
-                        Dùng bộ này
+                        {t("home.edit.usePreset")}
                       </button>
                     </div>
 
@@ -1960,7 +1967,7 @@ function AddModuleOverlay({
                         ))}
                         {activePresetCols.left.length === 0 ? (
                           <p className="ha-edit-preset-col-empty">
-                            Không có khối trái
+                            {t("home.edit.noLeft")}
                           </p>
                         ) : null}
                       </div>
@@ -1981,7 +1988,7 @@ function AddModuleOverlay({
                         ))}
                         {activePresetCols.right.length === 0 ? (
                           <p className="ha-edit-preset-col-empty">
-                            Không có khối phải
+                            {t("home.edit.noRight")}
                           </p>
                         ) : null}
                       </div>
@@ -2006,7 +2013,7 @@ function AddModuleOverlay({
                       className="ha-edit-preset-tab ha-edit-preset-tab--catalog is-selected"
                     >
                       <span className="ha-edit-preset-tab-label">
-                        Tự chọn từng khối
+                        {t("home.edit.pickEach")}
                       </span>
                     </button>
                   </div>
@@ -2017,24 +2024,24 @@ function AddModuleOverlay({
                       type="search"
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Tìm khối…"
-                      aria-label="Tìm khối"
+                      placeholder={t("home.edit.searchPh")}
+                      aria-label={t("home.edit.searchAria")}
                     />
                   </div>
                 ) : null}
                 {items.length === 0 ? (
                   <p className="ha-edit-add-empty">
-                    Đã thêm hết các khối có sẵn.
+                    {t("home.edit.allAdded")}
                   </p>
                 ) : filtered.length === 0 ? (
                   <p className="ha-edit-add-empty">
-                    Không khớp «{query.trim()}».
+                    {t("home.edit.noMatch", { q: query.trim() })}
                   </p>
                 ) : (
                   groups.map(([group, list]) => (
                     <div key={group} className="ha-edit-add-group">
                       <p className="ha-edit-add-group-label">
-                        {MODULE_GROUP_LABEL[group]}
+                        {tHomeGroupLabel(t, group)}
                       </p>
                       <div className="ha-edit-add-grid">
                         {list.map((m) => (
@@ -2055,10 +2062,7 @@ function AddModuleOverlay({
           </div>
         )}
 
-        <p className="ha-edit-add-suggest">
-          Bạn có thể đề xuất tính năng phù hợp với nhu cầu của mình ở phần góp
-          ý nhé!
-        </p>
+        <p className="ha-edit-add-suggest">{t("home.edit.suggest")}</p>
       </div>
     </div>,
     document.body,
@@ -2102,6 +2106,8 @@ function AddModulePickCard({
   viewerProfileId: string;
   onPick: () => void;
 }) {
+  const t = useT();
+  const label = tHomeModLabel(t, meta.id);
   return (
     <div className="ha-edit-add-pick">
       <div className="ha-edit-add-pick-preview world-journey-home">
@@ -2113,15 +2119,15 @@ function AddModulePickCard({
       </div>
       <div className="ha-edit-add-pick-foot">
         <div className="ha-edit-add-pick-meta">
-          <span className="ha-edit-add-pick-desc">{meta.description}</span>
+          <span className="ha-edit-add-pick-desc">{tHomeModDesc(t, meta.id)}</span>
         </div>
         <button
           type="button"
           className="ha-edit-add-pick-cta"
-          aria-label={`Thêm ${meta.label}`}
+          aria-label={t("home.edit.addNamed", { label })}
           onClick={onPick}
         >
-          Thêm
+          {t("home.edit.add")}
         </button>
       </div>
     </div>

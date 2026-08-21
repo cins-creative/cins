@@ -26,6 +26,8 @@ import {
   getNameInitials,
   normalizeSocialLinks,
 } from "@/lib/journey/profile";
+import { useT } from "@/lib/i18n/use-t";
+import { useLocale } from "@/lib/locale/context";
 import type { KetBanStatusSummary } from "@/lib/social/types";
 
 export type SidebarProfile = {
@@ -88,13 +90,15 @@ export function JourneySidebar({
   viewerProfileId = null,
   initialKetBanStatus = null,
 }: Props) {
+  const t = useT();
+  const locale = useLocale();
   const { avatarUrl, coverUrl } = profile;
   const initials = getNameInitials(profile.tenHienThi, profile.slug);
   const cityLabel = formatTinhThanh(profile.tinhThanh);
   const socialLinks = normalizeSocialLinks(profile.mxhLinks);
 
   /* "Vai trò" tạm dùng giai_doan label. Sau này có thể thay bằng vai trò tự nhập. */
-  const roleLine = getGiaiDoanLabel(profile.giaiDoan);
+  const roleLine = getGiaiDoanLabel(profile.giaiDoan, locale);
 
   const shareProfile: JourneyShareProfile = {
     slug: profile.slug,
@@ -121,7 +125,7 @@ export function JourneySidebar({
   };
 
   return (
-    <aside className="j-sidebar" aria-label="Hồ sơ người dùng">
+    <aside className="j-sidebar" aria-label={t("profile.sidebarAria")}>
       {isOwner ? (
         <JourneyCoverTrigger
           coverUrl={coverUrl}
@@ -179,7 +183,7 @@ export function JourneySidebar({
       ) : (
         <div className="j-profile-actions">
           <button type="button" className="j-btn-msg" disabled>
-            <Pencil size={14} strokeWidth={1.8} aria-hidden /> Chỉnh sửa hồ sơ
+            <Pencil size={14} strokeWidth={1.8} aria-hidden /> {t("profile.edit")}
           </button>
           <JourneyProfileShareTrigger
             shareProfile={shareProfile}

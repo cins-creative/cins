@@ -39,7 +39,7 @@ export async function UngTuyenCuaToiModule({ ctx }: { ctx: HomeModuleCtx }) {
   );
   if (items.length === 0) {
     return (
-      <ModuleCard icon={Briefcase} title="Ứng tuyển của tôi">
+      <ModuleCard icon={Briefcase} moduleId="ung_tuyen_cua_toi" title="Ứng tuyển của tôi">
         <ModuleEmpty>Bạn chưa nộp hồ sơ nào.</ModuleEmpty>
       </ModuleCard>
     );
@@ -48,6 +48,7 @@ export async function UngTuyenCuaToiModule({ ctx }: { ctx: HomeModuleCtx }) {
   return (
     <ModuleCard
       icon={Briefcase}
+      moduleId="ung_tuyen_cua_toi"
       title="Ứng tuyển của tôi"
       badge={String(items.length)}
     >
@@ -90,6 +91,7 @@ export async function LoiMoiKetBanModule({ ctx }: { ctx: HomeModuleCtx }) {
   return (
     <ModuleCard
       icon={UserPlus}
+      moduleId="loi_moi_ket_ban"
       title="Lời mời kết bạn"
       badge={String(items.length)}
     >
@@ -133,6 +135,7 @@ export async function SeThamGiaModule({ ctx }: { ctx: HomeModuleCtx }) {
   return (
     <ModuleCard
       icon={CalendarHeart}
+      moduleId="se_tham_gia"
       title="Sẽ tham gia"
       badge={String(items.length)}
     >
@@ -162,7 +165,7 @@ export async function DaLuuModule({ ctx }: { ctx: HomeModuleCtx }) {
   if (items.length === 0) return null;
 
   return (
-    <ModuleCard icon={Bookmark} title="Đã lưu">
+    <ModuleCard icon={Bookmark} moduleId="da_luu" title="Đã lưu">
       {items.map((b) => (
         <div key={b.id} className="ha-trow">
           <span className="ha-trow-th" aria-hidden>

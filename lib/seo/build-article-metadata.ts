@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { getCinsLocale } from "@/lib/locale/server";
+import { ogLocale } from "@/lib/locale/types";
 import { seoSiteOrigin } from "@/lib/seo/site";
 
 export type BuildPublicPageMetadataInput = {
@@ -18,15 +20,16 @@ export type BuildPublicPageMetadataInput = {
 /**
  * Metadata chuẩn DEV_RULES §SEO: title, description, canonical, OG, Twitter.
  */
-export function buildPublicPageMetadata(
+export async function buildPublicPageMetadata(
   input: BuildPublicPageMetadataInput,
-): Metadata {
+): Promise<Metadata> {
   const siteOrigin = seoSiteOrigin();
   const metadataBase = new URL(siteOrigin);
   const path = input.path.startsWith("/") ? input.path : `/${input.path}`;
   const title = input.title.trim() || "CINs";
   const description = input.description?.trim() || undefined;
   const ogType = input.ogType ?? "website";
+  const locale = await getCinsLocale();
 
   const images = input.ogImagePath
     ? [
@@ -50,7 +53,7 @@ export function buildPublicPageMetadata(
     openGraph: {
       type: ogType,
       siteName: "CINs",
-      locale: "vi_VN",
+      locale: ogLocale(locale),
       url: path,
       title,
       description,

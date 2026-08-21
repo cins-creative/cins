@@ -30,6 +30,7 @@ import {
   canRecallMessage,
 } from "@/lib/chat/message-action-capabilities";
 import type { ChatMessage } from "@/lib/chat/types";
+import { useT } from "@/lib/i18n/use-t";
 
 type Props = {
   msg: ChatMessage;
@@ -78,6 +79,7 @@ export function ChatMessageMobileChrome({
   anchorRef,
   onClose,
 }: Props) {
+  const t = useT();
   const [portalReady, setPortalReady] = useState(
     () => typeof document !== "undefined",
   );
@@ -210,7 +212,7 @@ export function ChatMessageMobileChrome({
       <button
         type="button"
         className="cins-chat-msg-mobile-scrim is-sheet"
-        aria-label="Đóng"
+        aria-label={t("chat.close")}
         onPointerDown={(event) => {
           if (event.pointerType === "mouse" && event.button !== 0) return;
           dismissScrim(event);
@@ -220,7 +222,7 @@ export function ChatMessageMobileChrome({
         ref={reactRef}
         className="cins-chat-msg-react-picker is-floating is-mobile-tap"
         role="menu"
-        aria-label="Thả reaction"
+        aria-label={t("chat.react")}
       >
         {CHAT_REACTION_EMOJIS.map((emoji) => {
           const existing = msg.reactions?.find((r) => r.emoji === emoji);
@@ -245,7 +247,7 @@ export function ChatMessageMobileChrome({
         className="cins-chat-msg-sheet"
         role="dialog"
         aria-modal="true"
-        aria-label="Hành động tin nhắn"
+        aria-label={t("chat.msgActions")}
       >
         <div className="cins-chat-msg-sheet-grid">
           <button
@@ -257,7 +259,7 @@ export function ChatMessageMobileChrome({
             }}
           >
             <CornerUpLeft size={22} strokeWidth={1.8} aria-hidden />
-            <span>Trả lời</span>
+            <span>{t("chat.reply")}</span>
           </button>
           <button
             type="button"
@@ -265,7 +267,7 @@ export function ChatMessageMobileChrome({
             onClick={() => void copyText()}
           >
             <Copy size={22} strokeWidth={1.8} aria-hidden />
-            <span>Sao chép</span>
+            <span>{t("chat.copy")}</span>
           </button>
           {forwardable ? (
             <button
@@ -274,7 +276,7 @@ export function ChatMessageMobileChrome({
               onPointerDown={startForward}
             >
               <Forward size={22} strokeWidth={1.8} aria-hidden />
-              <span>Chuyển tiếp</span>
+              <span>{t("chat.forward")}</span>
             </button>
           ) : null}
           {hasMoreItems ? (
@@ -285,7 +287,7 @@ export function ChatMessageMobileChrome({
               onClick={() => setMoreOpen((v) => !v)}
             >
               <Menu size={22} strokeWidth={1.8} aria-hidden />
-              <span>Khác</span>
+              <span>{t("chat.more")}</span>
             </button>
           ) : null}
         </div>
@@ -301,7 +303,7 @@ export function ChatMessageMobileChrome({
               }}
             >
               <Pin size={16} aria-hidden />
-              {msg.pinned ? "Bỏ ghim" : "Ghim"}
+              {msg.pinned ? t("chat.unpinShort") : t("chat.pin")}
             </button>
             {moreEdit ? (
               <button
@@ -313,7 +315,7 @@ export function ChatMessageMobileChrome({
                 }}
               >
                 <Pencil size={16} aria-hidden />
-                Sửa
+                {t("chat.edit")}
               </button>
             ) : null}
             {moreCanvas ? (
@@ -326,7 +328,7 @@ export function ChatMessageMobileChrome({
                 }}
               >
                 <Frame size={16} aria-hidden />
-                Thêm vào canvas
+                {t("chat.addCanvas")}
               </button>
             ) : null}
             {recallable ? (
@@ -340,7 +342,7 @@ export function ChatMessageMobileChrome({
                 }}
               >
                 <Trash2 size={16} aria-hidden />
-                Thu hồi
+                {t("chat.recall")}
               </button>
             ) : null}
           </div>

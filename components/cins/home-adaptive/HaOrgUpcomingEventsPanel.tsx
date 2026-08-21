@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import { HaOrgUpcomingListRow } from "@/components/cins/home-adaptive/HaOrgUpcomingListRow";
 import { HaOrgUpcomingRow } from "@/components/cins/home-adaptive/HaOrgUpcomingRow";
 import type { SidebarUpcomingEvent } from "@/lib/cins/home-adaptive/sidebar-upcoming-types";
+import { useT } from "@/lib/i18n/use-t";
 
 type Tab = "all" | "mine";
 
@@ -18,8 +19,9 @@ type Props = {
 };
 
 function EventList({ items }: { items: SidebarUpcomingEvent[] }) {
+  const t = useT();
   if (items.length === 0) {
-    return <p className="ha-card-empty">Chưa có sự kiện phù hợp.</p>;
+    return <p className="ha-card-empty">{t("home.edit.emptyEvents")}</p>;
   }
   const [featured, ...rest] = items;
   return (
@@ -37,8 +39,10 @@ export function HaOrgUpcomingEventsPanel({
   allItems,
   myItems,
   myEventsTotal,
-  title = "Sự kiện",
+  title,
 }: Props) {
+  const t = useT();
+  const heading = title ?? t("home.mod.theo_doi_org");
   const hasMine = myItems.length > 0;
   const hasAll = allItems.length > 0;
   const [tab, setTab] = useState<Tab>(() => (hasMine ? "mine" : "all"));
@@ -52,10 +56,10 @@ export function HaOrgUpcomingEventsPanel({
   const tabs = useMemo(
     () =>
       [
-        { id: "all" as const, label: "Tất cả" },
-        { id: "mine" as const, label: "Quan tâm" },
+        { id: "all" as const, label: t("home.edit.tabAll") },
+        { id: "mine" as const, label: t("home.edit.tabMine") },
       ] as const,
-    [],
+    [t],
   );
 
   if (!hasAll && !hasMine) return null;
@@ -66,28 +70,29 @@ export function HaOrgUpcomingEventsPanel({
       <div className="ha-org-up-head">
         <div className="ha-card-head">
           <CalendarDays size={16} strokeWidth={2} aria-hidden />
-          <span className="ha-card-title">{title}</span>
+          <span className="ha-card-title">{heading}</span>
         </div>
         <div
           className="ha-org-up-tabs"
           role="tablist"
-          aria-label="Lọc sự kiện"
+          aria-label={t("home.edit.filterEvents")}
         >
-          {tabs.map((t) => {
+          {tabs.map((item) => {
             const disabled =
-              (t.id === "all" && !hasAll) || (t.id === "mine" && !hasMine);
-            const selected = tab === t.id;
+              (item.id === "all" && !hasAll) ||
+              (item.id === "mine" && !hasMine);
+            const selected = tab === item.id;
             return (
               <button
-                key={t.id}
+                key={item.id}
                 type="button"
                 role="tab"
                 aria-selected={selected}
                 disabled={disabled}
                 className={`ha-org-up-tab${selected ? " is-active" : ""}`}
-                onClick={() => setTab(t.id)}
+                onClick={() => setTab(item.id)}
               >
-                {t.label}
+                {item.label}
               </button>
             );
           })}
@@ -98,7 +103,7 @@ export function HaOrgUpcomingEventsPanel({
         {showMore ? (
           <p className="ha-org-up-more">
             <Link href={moreHref} prefetch={false}>
-              Xem thêm
+              {t("home.edit.seeMore")}
             </Link>
           </p>
         ) : null}

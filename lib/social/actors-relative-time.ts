@@ -1,3 +1,6 @@
+import { formatRelativeTime } from "@/lib/format";
+import type { CinsLocale } from "@/lib/locale/types";
+
 /** Thời gian tương đối ngắn — danh sách người tương tác. */
 export function formatActorRelativeTime(iso: string | null | undefined): string | null {
   if (!iso) return null;
@@ -28,20 +31,17 @@ export function formatActorRelativeTime(iso: string | null | undefined): string 
  */
 export function formatPostedWithin24h(
   iso: string | null | undefined,
+  locale: CinsLocale = "vi",
 ): string | null {
   if (!iso) return null;
   const then = new Date(iso).getTime();
   if (Number.isNaN(then)) return null;
 
   const diffMs = Date.now() - then;
-  if (diffMs < 0) return "Vừa xong";
+  if (diffMs < 0) return formatRelativeTime(iso, locale);
 
-  const mins = Math.floor(diffMs / 60_000);
-  if (mins < 1) return "Vừa xong";
-  if (mins < 60) return `${mins} phút trước`;
-
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} giờ trước`;
+  const hours = Math.floor(diffMs / 3_600_000);
+  if (hours < 24) return formatRelativeTime(iso, locale);
 
   return null;
 }

@@ -39,6 +39,7 @@
     "migrate:shop-buyer-soft-limit": "node scripts/run-shop-buyer-soft-limit-migration.mjs",
     "migrate:chat-chi-hien-cho": "node scripts/run-chat-chi-hien-cho-migration.mjs",
     "migrate:lop-chi-nhanh": "node scripts/run-lop-hoc-chi-nhanh-migration.mjs",
+    "migrate:org-chi-nhanh-cover": "node scripts/run-org-chi-nhanh-cover-id-migration.mjs",
     "migrate:bo-giao-trinh": "node scripts/run-bo-giao-trinh-migration.mjs",
     "migrate:tien-do-giao-trinh-chat": "node scripts/run-tien-do-giao-trinh-chat-migration.mjs",
     "migrate:lop-ngay-khai-giang-nullable": "node scripts/run-lop-hoc-ngay-khai-giang-nullable-migration.mjs",

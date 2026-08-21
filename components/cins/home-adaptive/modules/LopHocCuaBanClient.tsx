@@ -102,6 +102,7 @@ export function LopHocCuaBanPanel({
     return (
       <ModuleCard
         icon={DoorOpen}
+        moduleId="lop_hoc_cua_ban"
         title="Phòng học"
         className="ha-card--lop"
       >
@@ -113,6 +114,7 @@ export function LopHocCuaBanPanel({
   return (
     <ModuleCard
       icon={DoorOpen}
+      moduleId="lop_hoc_cua_ban"
       title="Phòng học"
       badge={soonCount > 0 ? String(soonCount) : undefined}
       className="ha-card--lop"

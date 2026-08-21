@@ -27,8 +27,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { MODULE_META } from "@/lib/cins/home-adaptive/module-meta";
 import type { ModuleId } from "@/lib/cins/home-adaptive/persona";
+import { tHomeModDesc, tHomeModLabel } from "@/lib/i18n/home-modules";
+import { useT } from "@/lib/i18n/use-t";
 import { avatarBg, avatarHueFromSeed } from "@/lib/chat/avatar";
 
 const TITLE_ICON: Partial<Record<ModuleId, LucideIcon>> = {
@@ -253,7 +254,7 @@ function MockShell({
   title?: string;
   children: React.ReactNode;
 }) {
-  const meta = MODULE_META[id];
+  const t = useT();
   const Icon = TITLE_ICON[id];
   const extra = CARD_CLASS[id];
   return (
@@ -263,7 +264,7 @@ function MockShell({
     >
       <div className="ha-card-head">
         {Icon ? <Icon size={15} strokeWidth={2} aria-hidden /> : null}
-        <span className="ha-card-title">{title ?? meta.label}</span>
+        <span className="ha-card-title">{title ?? tHomeModLabel(t, id)}</span>
       </div>
       {children}
     </section>
@@ -385,9 +386,10 @@ function MockChatRows({ rows }: { rows: MockRow[] }) {
 
 /** Mockup tĩnh giống khối sidebar — không query API. */
 export function HomeModuleMockCard({ id }: { id: ModuleId }) {
+  const t = useT();
   if (id === "kham_pha_linh_vuc") {
     return (
-      <MockShell id={id} title="Lĩnh vực">
+      <MockShell id={id}>
         {LV_MOCK.map((lv) => (
           <div key={lv.label} className="ha-cat">
             <span
@@ -530,7 +532,7 @@ export function HomeModuleMockCard({ id }: { id: ModuleId }) {
 
   return (
     <MockShell id={id}>
-      <p className="ha-card-empty">{MODULE_META[id].description}</p>
+      <p className="ha-card-empty">{tHomeModDesc(t, id)}</p>
     </MockShell>
   );
 }

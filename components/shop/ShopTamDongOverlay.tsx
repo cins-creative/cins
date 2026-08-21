@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 
+import { useT } from "@/lib/i18n/use-t";
+import { useLocale } from "@/lib/locale/context";
+import { intlLocale } from "@/lib/locale/types";
 import {
   formatShopCountdown,
   formatShopMoLaiLuc,
@@ -26,6 +29,8 @@ export function ShopTamDongOverlay({
   className = "",
   variant = "banner",
 }: Props) {
+  const t = useT();
+  const locale = useLocale();
   const [now, setNow] = useState(() => Date.now());
   const active = isShopTamDongActive(shop, now);
   const showCountdown = hasShopTamDongCountdown(shop, now);
@@ -54,19 +59,19 @@ export function ShopTamDongOverlay({
   if (variant === "badge") {
     if (!showCountdown || !shop?.tamDongDen) return null;
     const countdown = formatShopCountdown(remaining);
-    const moLai = formatShopMoLaiLuc(shop.tamDongDen);
+    const moLai = formatShopMoLaiLuc(shop.tamDongDen, intlLocale(locale));
     return (
       <span
         className={`j-shop-tam-dong-badge ${className}`.trim()}
         title={
           lyDo
-            ? `Shop tạm đóng — ${lyDo}. Mở lại ${moLai}`
-            : `Shop tạm đóng — mở lại ${moLai}`
+            ? t("shop.closed.badgeWithReason", { reason: lyDo, when: moLai })
+            : t("shop.closed.badgeUntil", { when: moLai })
         }
-        aria-label={`Mở lại sau ${countdown}`}
+        aria-label={t("shop.closed.reopenAfter", { countdown })}
       >
         <span className="j-shop-tam-dong-badge-count" aria-hidden>
-          Mở lại {countdown}
+          {t("shop.closed.reopenIn", { countdown })}
         </span>
       </span>
     );
@@ -74,7 +79,7 @@ export function ShopTamDongOverlay({
 
   if (showCountdown && shop?.tamDongDen) {
     const countdown = formatShopCountdown(remaining);
-    const moLai = formatShopMoLaiLuc(shop.tamDongDen);
+    const moLai = formatShopMoLaiLuc(shop.tamDongDen, intlLocale(locale));
     return (
       <div
         className={`j-shop-tam-dong-banner ${className}`.trim()}
@@ -82,15 +87,14 @@ export function ShopTamDongOverlay({
         aria-live="polite"
       >
         <p className="j-shop-tam-dong-banner-text">
-          Shop tạm đóng cửa, mở lại vào{" "}
-          <time dateTime={shop.tamDongDen}>{moLai}</time>
+          {t("shop.closed.bannerUntil", { when: moLai })}
         </p>
         {lyDo ? (
           <p className="j-shop-tam-dong-banner-ly-do">{lyDo}</p>
         ) : null}
         <p
           className="j-shop-tam-dong-banner-count"
-          aria-label={`Còn ${countdown}`}
+          aria-label={t("shop.closed.left", { countdown })}
         >
           {countdown}
         </p>
@@ -104,7 +108,7 @@ export function ShopTamDongOverlay({
       role="status"
       aria-live="polite"
     >
-      <p className="j-shop-tam-dong-banner-text">Shop tạm đóng cửa</p>
+      <p className="j-shop-tam-dong-banner-text">{t("shop.closed.banner")}</p>
       {lyDo ? <p className="j-shop-tam-dong-banner-ly-do">{lyDo}</p> : null}
     </div>
   );

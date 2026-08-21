@@ -121,6 +121,19 @@
   gap: 8px;
 }
 
+.j-shop-sf-guest-more {
+  display: none;
+}
+
+.j-shop-sf-guest-more-pop .j-share-link-menu {
+  display: block;
+  width: 100%;
+}
+
+.j-shop-sf-guest-more-pop .j-share-link-menu .j-m-menu-item {
+  width: 100%;
+}
+
 .j-shop-sf-guest-row .j-share-link-menu {
   display: inline-flex;
 }
@@ -2233,6 +2246,15 @@
     align-self: flex-start;
     justify-content: flex-end;
     padding-top: 0;
+  }
+
+  /* Mobile: 3 icon → nút 3 chấm, menu có chữ. */
+  .j-shop-sf-guest-row.is-icons {
+    display: none;
+  }
+
+  .j-shop-sf-guest-more {
+    display: inline-flex;
   }
 
   .j-shop-sf-section-head .j-shop-sf-actions,

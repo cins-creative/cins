@@ -25,9 +25,12 @@
 | O16 | Dedupe phòng nhóm trùng tập thành viên | **Defer** — quản lý nhóm cơ bản + project workspace đã có (L25/L28) | Khi có báo cáo spam hoặc nhiều phòng trùng thành viên từ cohort thật. |
 | O17 | Nhắc mốc chat (`chat_moc`) — tin system trong phòng khi tạo / tới lúc nhắc / đến hạn; tick client + `POST /api/chat/mocs/tick` | **Partial** — chưa push/email ngoài app | Mở rộng push/email khi có worker ổn định. |
 | O19 | Bán vé sự kiện / tồn kho / gắn `id_loai_ve` vào `org_dang_ky_su_kien` / QR check-in? | **Defer** — phase 1 chỉ catalog loại vé (`org_su_kien_loai_ve`) | Khi chốt mô hình tiền (P2P như shop hoặc ngoài CINs) + nhu cầu cohort thật. Không mở payment trên CINs trước đó. |
-| O20 | Tỷ lệ phí nền tảng (%) + giữ **trả sau** hay chuyển **trả trước / ký quỹ**? | Đề xuất **5% GMV, kỳ tháng, trả sau** (2026-07-30) | Chốt con số trước khi bật thu phí thật. Xem lại mô hình trả sau khi đo được tỉ lệ seller nợ phí thực tế — nếu thất thu cao thì chuyển trả trước (nạp credit). |
+| O20 | Tỷ lệ phí nền tảng (%) + giữ **trả sau** hay chuyển **trả trước / ký quỹ**? | Đề xuất **5% GMV, kỳ tháng, trả sau** (2026-07-30). ⚠️ **Xét lại từ gốc (2026-08-20):** định vị mới = hạ tầng SaaS, CINs không mang buyer và không cầm tiền → thu **% GMV** khó biện minh với seller ("tôi tự tìm khách, tự nhận tiền, sao trả % cho anh?") và khó thu (phải tin seller tự khai GMV). Cân nhắc **subscription / gói theo hạn mức** thay vì % GMV. | Chốt con số **và mô hình thu** trước khi bật thu phí thật. Xem lại trả sau khi đo được tỉ lệ seller nợ phí thực tế. |
 | O21 | Hạ tầng chạy job định kỳ (chốt kỳ phí tháng) — Cloudflare Workers `triggers` hay GitHub Actions? | **Chưa có cron trong repo**; ưu tiên Workers cron + route nội bộ `xacThucBearerSecret()` | Khi bật thu phí nền tảng thật. Đóng khi chạy thử được 1 kỳ chốt phí trên staging. |
 | O22 | Giấy phép MXH (NĐ 147/2024) yêu cầu **≥1 máy chủ đặt tại VN** — hiện chạy Cloudflare Workers | **Treo** — chưa có phương án | Khi nộp hồ sơ MXH. Cần quyết: thuê VPS VN làm node phụ/log, hay mô hình khác. |
+| O23 | Cold-start nhóm merch/wibu: chỉ **user VN** hay mở cả **ĐNÁ** ngay? | **VN-only về GTM, global-ready về surface** (2026-08-20): vòng giao dịch (VietQR + ship VN + đ) chỉ đóng được ở VN; nhưng trang portfolio/storefront public phải đọc được bằng tiếng Anh vì creator VN share ra X/Discord/ArtStation. Không seed cộng đồng ĐNÁ phase này. **Motion cold-start = dẫn đầu bằng wibu seller có khán giả quốc tế** → lát cắt bề mặt public tiếng Anh là **enabler gần, không hoãn**. **Phạm vi tiếng Anh = lát cắt hẹp:** profile / Journey / tác phẩm / storefront **chế độ xem**. KHÔNG dịch editor / dashboard seller / admin (user VN dùng tiếng Việt). Full i18n + đa tiền tệ + đa quốc gia vẫn **defer**. Sine Art (§1.3) vẫn là phễu chạy song song, không phải wedge chính. | Đóng khi đo được vòng lặp VN: seller quay lại đăng bán ≥2 lần, và tỉ lệ portfolio → đơn hàng. Mở ĐNÁ **chỉ sau khi** có tín hiệu cầu từ nước ngoài tập trung vào 1 nước cụ thể (đo qua analytics referrer/quốc gia), và **theo thứ tự cầu trước cung** (buyer nước ngoài mua của seller VN) — không seed supply nước mới trước. |
+| O24 | CSĐT (`co_so_dao_tao`) có phải module VN-only như hướng nghiệp/ĐH, hay là trụ thứ 3 cần global-ready? | **VN-first, không phải trụ — nhưng là *phễu acquisition* cho trụ portfolio** (FOUNDATIONS §1.3). Cohort thật đầu tiên = học viên luyện thi Sine Art (khối H/V, dân nghệ thuật) → sau này thành creator/seller. Không global-ready. | Khi có org CSĐT ngoài VN hỏi dùng, hoặc khi quyết đầu tư i18n cho luồng học phí. |
+| O25 | Kênh nhận yêu cầu gỡ nội dung từ **chủ sở hữu bản quyền không phải user CINs** | **Thiếu** — `POST /api/reports` trả **401 nếu chưa đăng nhập** (`app/api/reports/route.ts`), nên rights holder (studio Nhật, chủ IP) không có đường nào gửi yêu cầu. Máy móc xử lý thì đã có: loại `ban_quyen` (`lib/social/bao-cao-constants.ts`) + admin resolve `go_noi_dung` + `AdminTranhChapScreen`. Điều khoản cũng đã có nghĩa vụ không xâm phạm bản quyền + giới hạn trách nhiệm (`app/terms`). | Đóng **trước khi** mở bề mặt public tiếng Anh (O23) — bề mặt quốc tế làm tăng khả năng bị rights holder nhìn thấy. Cần: một địa chỉ/route công khai không cần đăng nhập + cam kết thời hạn xử lý. Rẻ nếu làm sớm. |
 
 > O7 (lớp "uy tín/hữu ích" cho `content_thao_luan`) → **đã đóng / không còn áp dụng** (xem L12): `content_thao_luan` đã bỏ, thảo luận giờ là comment trên cột mốc.
 
@@ -40,6 +43,48 @@
 ---
 
 ## LOG — quyết định đã chốt
+
+### Global surface = English chỉ để XEM; đa quốc gia/thanh toán ngoại = defer-gated (2026-08-21)
+
+- **Bối cảnh:** vòng tư duy mở rộng SEA + Đài Loan (địa chỉ đa nước bỏ ward, đa tiền tệ, QR nội địa từng nước, Lemon Squeezy ví trả trước cho seller ngoại, checkout xuyên biên A→B).
+- **Chốt:** **KHÔNG làm** — chưa kiểm chứng & quản lý nổi khi chưa có cầu ngoại thật. Củng cố **O23**. Phạm vi đúng lát cắt hẹp: khách ngoại **vào xem** portfolio/Journey/tác phẩm/storefront VN bằng **tiếng Anh** (chrome tĩnh + format + `<html lang>` + OG) = Phase 0 (xong) + Phase 1 chrome (đang làm).
+- **Giữ nguyên VN, không đụng:** địa chỉ `tinh_thanh_vn_enum` (không thêm quốc gia/không bỏ ward), thanh toán VietQR VND, ĐVVC VN, thu phí VietQR+Sepay. Content người dùng **để tiếng Việt** — chưa machine-translate (Phase 2 hoãn).
+- **Defer — gated theo cầu ngoại đo được:** địa chỉ đa nước · đa tiền tệ · QR nước khác · rail phí seller ngoại (Lemon Squeezy) · checkout/ship xuyên biên · Phase 2 content song ngữ. Điều kiện mở: traffic/signup/portfolio ngoại đáng kể từ English-view.
+- **Không dựng instance domain riêng từng nước** (`cins.jp`…) — chia nhỏ thanh khoản; nếu cần chỉ 1 domain trung tính toàn cầu trỏ cùng app, tính sau.
+- **Track song song:** VN retention qua **Web Push / PWA** ("Cài đặt ứng dụng") — ưu tiên cùng English-view.
+- *Hệ quả file:* `docs/PLAN_GLOBAL_SURFACE.md` §"CHỐT PHẠM VI (2026-08-21)" + §6/§8/§11.
+
+### Switch ngôn ngữ = nguồn sự thật; IP chỉ seed mặc định (2026-08-21)
+
+- **Chốt:** Chrome ngôn ngữ đi qua **một switch ở chân sidebar** (cờ; rail rút gọn = 1 cờ). Cookie `cins-locale` khi user chọn. `cf-ipcountry` (VN → vi, khác → en) **chỉ** seed mặc định khi chưa có cookie/`?lang=` — không ghi cookie, không đổi checkout/địa chỉ.
+- *Hệ quả file:* `middleware.ts` `detectLocale` · `components/cins/CinsLocaleSwitch.tsx` · `docs/PLAN_GLOBAL_SURFACE.md` §2.
+
+### Rule SSOT scan trước SQL/schema (2026-08-21)
+
+- **Chốt:** Trước mọi CREATE/ALTER/migration — scan Single Source of Truth (một sự kiện = một nguồn). Cùng grain thì không thêm bảng/cột/JSON mới.
+- *Hệ quả file:* `CINS_DEV_RULES.md` §1 · `CINS_FOUNDATIONS.md` §5 + §6 · `CINS_INSTRUCTION.md` luật 2/6 · `.cursor/rules/cins-ssot-schema.mdc`.
+
+### Gộp 3 nguồn sự thật lặp (2026-08-21)
+
+- **Chốt:** Gộp ba cụm dual-write cùng grain. Sáu cặp khác grain / cache (giá shop, tag lens, lớp–chi nhánh, metadata bài, nhãn loại, lĩnh vực chính) **giữ tách**.
+- **A — Chi nhánh CSĐT:** SoT = `org_chi_nhanh`. Ngừng đọc/ghi `cau_hinh.chi_nhanh` trên CSĐT. **A25 đã chạy** (`cover_id` + backfill). Cột liên hệ org giữ làm cache trụ sở. JSON cũ chưa xóa. **ĐH** (`lib/truong/queries.ts`) ngoài phạm vi.
+- **B — Phí kỳ:** SoT hóa đơn = `cins_hoa_don`. Tắt fallback `shop_phi_ky` / `org_phi_ky`. Giữ `shop_phi_dong` / `org_phi_dong` (dòng phát sinh). Giữ `ma_tham_chieu` Sepay. DROP bảng kỳ = bước cuối, brief riêng.
+- **C — Lộ trình khóa:** SoT = bộ `org_bo_giao_trinh` → `org_giao_trinh_bai` → `org_bai_tap`. **`org_bai_tap` không drop** (nội dung bài / nộp / tiến độ). Chỉ bỏ `org_giao_trinh` (lộ trình cũ trang public).
+- **Thứ tự:** A → B → C. Mỗi cụm: backfill → deploy tắt fallback → quan sát → mới drop.
+- *Hệ quả file:* `docs/PLAN_gop_nguon_su_that.md`. Chưa migration.
+
+### Định vị lại: 2 trụ Portfolio + Shop, hướng nghiệp/ĐH thành module VN-only (2026-08-20)
+
+- **Chốt:** CINs = **MXH portfolio + Shop**. Hai trụ này là key chính và phải **global-ready** ở tầng lõi. **Hướng nghiệp + Đại học/tuyển sinh** (`org_truong_dai_hoc`, `edu_*`, `/guidance`, `/majors`) hạ xuống **module dọc chỉ cho thị trường VN** — không đầu tư i18n/đa tiền tệ/địa chỉ đa quốc gia cho phần này. CSĐT: VN-first, chưa phải trụ (O24).
+- **Vì sao:** mảng tuyển sinh VN (tổ hợp môn, điểm chuẩn, THPT) không tồn tại ở nước khác nên không xuất khẩu được; còn nhu cầu "khoe tác phẩm + bán thành quả" là nhu cầu phổ quát. Giữ cả hai ở cùng độ ưu tiên sẽ kéo lõi sản phẩm dính chặt vào VN.
+- **Luật phái sinh:** feature mới trên trụ 1/trụ 2 **không được** hardcode khái niệm VN (`tinh_thanh_vn_enum`, `tien_te="VND"`, `vi-VN` format, `Asia/Ho_Chi_Minh`) ở tầng lõi — bọc sau adapter hoặc tham số hoá. Coupling cũ không phải sửa ngay, nhưng **không thêm mới**.
+- **Không đổi:** naming convention DB tiếng Việt không dấu (FOUNDATIONS §4) giữ nguyên — global hoá là tầng UI/dữ liệu người dùng thấy, không phải đổi tên bảng/cột.
+- **Cold-start:** nhóm mũi nhọn = người bán merch / fandom (wibu) / sản phẩm tự làm. Phạm vi địa lý → **O23** (đề xuất VN-only về GTM, global-ready về surface public).
+- **Mô hình = hạ tầng SaaS cho seller, KHÔNG marketplace:** pain point lõi là **sự phân mảnh** (sample ở Google Drive, chốt đơn/thanh toán qua Messenger, quảng bá ở timeline Facebook) — CINs gom về một mối. CINs **không hứa mang buyer mới**; seller mang khán giả sẵn có của họ về. Nhất quán với L33 (không cầm tiền). Chi tiết + hệ quả → FOUNDATIONS §1.2. Ảnh hưởng **O20** (phí % GMV).
+- **Verify: đóng băng phase cold-start:** nhóm indie seller không có org làm bên thứ hai nên verify không chạm tới họ. Giữ nguyên mức hiện tại, không đầu tư thêm, **không nới lỏng** để cố vừa nhóm indie. Xem FOUNDATIONS §2. **Đính chính (cùng ngày):** use case sống đầu tiên của verify = **Sine Art xác nhận học viên** (org `co_so_dao_tao`) — freeze không có nghĩa để mục; xem §1.3.
+- **Kill mảng ĐH/CSĐT? → KHÔNG.** Freeze như *sản phẩm*, giữ sống như *cổng vào*. Cohort thật đầu tiên (học viên luyện thi Sine Art, khối H/V) là phễu acquisition cho trụ portfolio: bài luyện thi = nội dung Journey đầu → đỗ ĐH → mở Shop, cùng một primitive. Kỷ luật xây/không-xây → FOUNDATIONS §1.3. Ảnh hưởng **O24**.
+- **Nav (chốt 2026-08-20, chưa thực hiện):** hạ độ hiện diện của hướng nghiệp/ĐH — nav chính chỉ nói **Portfolio + Shop**; hướng nghiệp/ĐH xuống mục phụ hoặc menu cấp 2. Lý do: user wibu/merch vào mà thấy menu đầy điểm chuẩn đại học sẽ không nhận ra đây là chỗ cho mình. Chưa sửa `lib/cins/mainNav.ts` — cần audit đủ các điểm xuất hiện (nav, home, guest home, metadata) trước khi đổi.
+- *Hệ quả doc:* `CINS_FOUNDATIONS.md` §1 + §1.1 (mới). Chưa có thay đổi code — trạng thái i18n hiện tại: 0 hạ tầng (không `next-intl`, `lang="vi"` hardcode, `openGraph.locale: "vi_VN"`, ~150 file dùng `vi-VN`, không hreflang).
 
 ### Tag ngầm + gỡ thư viện nghề (2026-08-16)
 
@@ -445,6 +490,7 @@
 | A22 | `shop_don_hang` | Thêm `tong_hang`, `tien_giam_combo`, `tien_giam_voucher`, `id_voucher`, `giam_snapshot` | `numeric` · uuid → `shop_voucher` · `jsonb` | YES (có DEFAULT 0 cho tiền giảm) | Snapshot giảm giá combo/voucher; `tong_tien` = buyer trả | Backfill `tong_hang = tong_tien` | **Đã duyệt + chạy** 2026-08-07 · `migration_shop_don_giam_gia.sql` · kèm bảng mới combo/voucher · `npm run migrate:shop-combo-voucher` |
 | A23 | `shop_don_hang` | Thêm `phien_id` | `text` NULL + index partial `shop_don_hang_phien_idx` | YES | Hash phiên client để đo xem→mua; không lưu UUID thô | Đơn cũ = NULL | **Đã chạy** 2026-08-09 · `migration_shop_don_phien_id.sql` |
 | A24 | `shop_don_hang` | Thêm `yeu_cau_huy_luc`, `yeu_cau_huy_ly_do`, `yeu_cau_huy_boi` | `timestamptz` · `text` · `uuid` → `user_nguoi_dung` ON DELETE SET NULL | YES | Shop nhờ khách hủy đơn `da_nhan_tien`; buyer bấm đồng ý | Đơn cũ = NULL (không có yêu cầu) | **Đã duyệt + chạy** 2026-08-13 · `migration_shop_don_yeu_cau_huy.sql` · `npm run migrate:shop-don-yeu-cau-huy` |
+| A25 | `org_chi_nhanh` | Thêm `cover_id` | `text` | YES | Ảnh CF chi nhánh — chuyển khỏi `cau_hinh.chi_nhanh[].cover_id` khi gộp SoT CSĐT | NULL; backfill từ JSON | **Đã duyệt + chạy** 2026-08-21 · `migration_org_chi_nhanh_cover_id.sql` · `npm run migrate:org-chi-nhanh-cover` |
 
 > Khi user duyệt một dòng → đổi **Trạng thái** thành `Đã duyệt YYYY-MM-DD` rồi mới viết/chạy file migration. Khi đã apply trên DB → `Đã chạy` + tên file SQL. Mọi ALTER phát sinh thêm ngoài bảng này → **thêm dòng mới vào inventory trước**, không lén vào migration khác.
 

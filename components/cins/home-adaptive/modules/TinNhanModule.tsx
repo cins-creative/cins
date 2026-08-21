@@ -394,7 +394,7 @@ function TinNhanModuleClient({
 
   if (rows.length === 0 && !showFilters) {
     return (
-      <ModuleCard icon={Icon} title={meta.title} className="ha-card--chat">
+      <ModuleCard icon={Icon} moduleId={VARIANT_MODULE_ID[variant]} title={meta.title} className="ha-card--chat">
         <ModuleEmpty>{meta.empty}</ModuleEmpty>
       </ModuleCard>
     );
@@ -403,6 +403,7 @@ function TinNhanModuleClient({
   return (
     <ModuleCard
       icon={Icon}
+      moduleId={VARIANT_MODULE_ID[variant]}
       title={meta.title}
       badge={unread > 0 ? String(unread) : undefined}
       headTrailing={tagFilterNode}

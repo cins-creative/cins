@@ -145,11 +145,31 @@
   color: var(--blue, var(--cins-blue, #2563eb));
 }
 
+.wj-ci-embed {
+  color: var(--amber-deep, #d97706);
+}
+
 .wj-ci-milestone {
   color: var(--violet, #7c3aed);
 }
 
-.wj-composer-icons .wj-ci-milestone:hover,
-.wj-composer-icons .wj-ci-milestone:focus-visible {
-  background: #f5f0ff;
+/* Tint theo icon — không dùng --neutral-100 (dark theme = #1c212c). */
+.wj-composer-icons .wj-icon-btn.wj-ci-image:hover,
+.wj-composer-icons .wj-icon-btn.wj-ci-image:focus-visible {
+  background: var(--cins-mint-soft);
+}
+
+.wj-composer-icons .wj-icon-btn.wj-ci-video:hover,
+.wj-composer-icons .wj-icon-btn.wj-ci-video:focus-visible {
+  background: var(--cins-blue-soft);
+}
+
+.wj-composer-icons .wj-icon-btn.wj-ci-embed:hover,
+.wj-composer-icons .wj-icon-btn.wj-ci-embed:focus-visible {
+  background: var(--cins-orange-soft);
+}
+
+.wj-composer-icons .wj-icon-btn.wj-ci-milestone:hover,
+.wj-composer-icons .wj-icon-btn.wj-ci-milestone:focus-visible {
+  background: var(--cins-violet-soft);
 }

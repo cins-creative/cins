@@ -115,6 +115,12 @@
   .wj-feed-header.wj-chrome-follow {
     transition: none !important;
     will-change: transform;
+    backface-visibility: hidden;
+  }
+
+  /* Glass đừng tạo layer transform riêng — lệch 1 frame so với thanh. */
+  .wj-feed-header.wj-chrome-follow::before {
+    transform: none;
   }
 }
 
@@ -4428,11 +4434,19 @@ body:has(.world-journey-home.view-video) .cins-shell-column {
   overflow: hidden;
 }
 
+/* Reels: ẩn topbar (cả desktop lẫn mobile) — hết khe 64px phía trên. */
+body:has(.world-journey-home.view-video) #app-topbar,
+body:has(.world-journey-home.view-video) .cins-app-topbar,
+body:has(.world-journey-home.view-video) .cins-app-topbar .topbar-inner {
+  display: none;
+}
+
 body:has(.world-journey-home.view-video) .cins-main {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  padding-top: 0;
   overflow: hidden;
 }
 
@@ -4446,10 +4460,12 @@ body:has(.world-journey-home.view-video) .cins-home-feed-root {
 }
 
 .world-journey-home.view-video {
+  --wj-sticky-top: 0px;
+  --site-nav-height: 0px;
   flex: 1;
   min-height: 0;
-  height: calc(100dvh - var(--site-nav-height, 64px));
-  max-height: calc(100dvh - var(--site-nav-height, 64px));
+  height: 100dvh;
+  max-height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -4457,15 +4473,26 @@ body:has(.world-journey-home.view-video) .cins-home-feed-root {
 }
 
 .world-journey-home.view-video .wj-feed-header {
+  position: relative;
+  top: 0;
+  flex: 0 0 auto;
   background: #000;
-  border-bottom-color: rgba(255, 255, 255, 0.14);
+  border-bottom-color: rgba(255, 255, 255, 0.16);
   box-shadow: none;
 }
-.world-journey-home.view-video .wj-vt-btn {
+.world-journey-home.view-video .wj-feed-header::before {
+  background: rgba(0, 0, 0, 0.72);
+}
+.world-journey-home.view-video .wj-vt-btn,
+.world-journey-home.view-video a.wj-vt-btn,
+.world-journey-home.view-video a.wj-vt-btn:link,
+.world-journey-home.view-video a.wj-vt-btn:visited {
   color: rgba(255, 255, 255, 0.72);
 }
 .world-journey-home.view-video .wj-vt-btn.active,
-.world-journey-home.view-video .wj-vt-btn:hover {
+.world-journey-home.view-video .wj-vt-btn:hover,
+.world-journey-home.view-video a.wj-vt-btn.active,
+.world-journey-home.view-video a.wj-vt-btn:hover {
   color: #fff;
 }
 
@@ -4486,6 +4513,7 @@ body:has(.world-journey-home.view-video) .cins-home-feed-root {
 .world-journey-home.view-video .wj-feed.view-video {
   gap: 0;
   max-width: none;
+  padding: 0;
   padding-top: 0;
   flex: 1;
   min-height: 0;
@@ -4512,9 +4540,10 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 }
 
 .wj-video-feed {
-  --wj-reel-pad-y: 28px;
-  --wj-reel-pad-x: 24px;
+  --wj-reel-pad-y: 0;
+  --wj-reel-pad-x: 0;
   --wj-reel-rail-w: 72px;
+  --wj-reel-row-pad-l: 24px;
   --wj-reel-pan-ms: 420ms;
   /* Dọc (9:16) vs ngang fill-W (16:9). */
   --wj-reel-max-w-portrait: 420px;
@@ -4524,13 +4553,8 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   position: relative;
   display: block;
   width: 100%;
-  height: min(
-    calc(100dvh - var(--site-nav-height, 64px) - var(--wj-feed-header-h, 58px)),
-    920px
-  );
-  max-height: calc(
-    100dvh - var(--site-nav-height, 64px) - var(--wj-feed-header-h, 58px)
-  );
+  height: min(calc(100dvh - var(--wj-feed-header-h, 58px)), 920px);
+  max-height: calc(100dvh - var(--wj-feed-header-h, 58px));
   overflow: hidden;
   overscroll-behavior: none;
   touch-action: none;
@@ -4630,92 +4654,89 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 .wj-reel-stage {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  align-items: center;
   justify-content: center;
   gap: 0;
+  width: 100%;
   height: 100%;
   max-height: 100%;
   min-height: 0;
 }
 
 .wj-reel-frame {
+  container-type: size;
   display: flex;
-  align-items: stretch;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 0;
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
+  height: 95%;
+  max-height: 95%;
 }
 
 .wj-reel-main {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  flex: 0 0 auto;
   min-width: 0;
   min-height: 0;
-  flex: 0 1 auto;
+  max-width: 100%;
+  max-height: 100%;
 }
 
-.wj-reel-stage[data-aspect="portrait"] {
-  width: min(
-    100%,
-    calc(var(--wj-reel-max-w-portrait) + var(--wj-reel-rail-w) + 12px)
+.wj-reel-video-row {
+  --reel-a: var(--wj-reel-aspect, 1.777777);
+  --reel-avail-w: calc(
+    100cqw - var(--wj-reel-rail-w) - 12px - var(--wj-reel-row-pad-l, 0px)
   );
-}
-
-.wj-reel-stage[data-aspect="landscape"] {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 12px;
   width: min(
-    100%,
-    calc(var(--wj-reel-max-w-landscape) + var(--wj-reel-rail-w) + 12px)
+    100cqw,
+    calc(
+      100cqh * var(--reel-a) + var(--wj-reel-rail-w) + 12px +
+        var(--wj-reel-row-pad-l, 0px)
+    )
   );
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  padding-left: var(--wj-reel-row-pad-l, 0px);
 }
 
 .wj-reel-slide {
   position: relative;
   isolation: isolate;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
+  width: min(var(--reel-avail-w), calc(100cqh * var(--reel-a)));
+  height: auto;
+  max-height: 100cqh;
+  min-width: 0;
   min-height: 0;
+  aspect-ratio: var(--wj-reel-aspect, 16 / 9);
   overflow: hidden;
   background: #0b0c0e;
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
-  aspect-ratio: var(--wj-reel-aspect, 16 / 9);
 }
 
-.wj-reel-stage[data-aspect="portrait"] .wj-reel-main {
+.wj-reel-slide:fullscreen,
+.wj-reel-slide:-webkit-full-screen {
+  width: 100%;
   height: 100%;
-  max-height: 100%;
-  width: auto;
-  max-width: min(
-    var(--wj-reel-max-w-portrait),
-    calc(100% - var(--wj-reel-rail-w) - 12px)
-  );
-}
-
-.wj-reel-stage[data-aspect="portrait"] .wj-reel-slide {
-  width: 100%;
-  flex: 1 1 auto;
-  min-height: 0;
-  height: auto;
-  aspect-ratio: var(--wj-reel-aspect, 9 / 16);
-}
-
-.wj-reel-stage[data-aspect="landscape"] .wj-reel-main {
-  width: min(
-    var(--wj-reel-max-w-landscape),
-    calc(100% - var(--wj-reel-rail-w) - 12px)
-  );
-  height: auto;
-  max-height: 100%;
-}
-
-.wj-reel-stage[data-aspect="landscape"] .wj-reel-slide {
-  width: 100%;
-  flex: 1 1 auto;
-  min-height: 0;
-  height: auto;
-  aspect-ratio: var(--wj-reel-aspect, 16 / 9);
+  max-width: none;
+  aspect-ratio: auto;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .wj-reel-media {
@@ -4725,22 +4746,31 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
   background: #0b0c0e;
 }
 
 .wj-reel-iframe {
-  position: relative;
-  z-index: 0;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   width: 100%;
   height: 100%;
   border: 0;
-  background: #000;
+  background: transparent;
   /* Tap/timeline nằm trên — iframe không nuốt pointer. */
   pointer-events: none;
 }
 
+.wj-reel-slide[data-paused] .wj-reel-iframe {
+  opacity: 0;
+}
+
 .wj-reel-poster,
 .wj-reel-poster-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -4766,48 +4796,6 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   touch-action: none;
 }
 
-.wj-reel-nav {
-  position: absolute;
-  right: 16px;
-  top: 50%;
-  z-index: 8;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  transform: translateY(-50%);
-}
-
-.wj-reel-nav-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 999px;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.35);
-  cursor: pointer;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.65));
-}
-
-.wj-reel-nav-btn:hover:not(:disabled),
-.wj-reel-nav-btn:focus-visible {
-  background: rgba(0, 0, 0, 0.55);
-  border-color: rgba(255, 255, 255, 0.7);
-}
-
-.wj-reel-nav-btn:focus-visible {
-  outline: 2px solid #fff;
-  outline-offset: 2px;
-}
-
-.wj-reel-nav-btn:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-
 .wj-reel-pause-badge {
   position: absolute;
   top: 50%;
@@ -4828,18 +4816,24 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 }
 
 .wj-reel-rail.jcard-actions {
+  position: relative;
+  left: auto;
+  right: auto;
+  bottom: auto;
   flex: 0 0 var(--wj-reel-rail-w);
   align-self: flex-end;
-  z-index: 2;
+  z-index: 5;
+  width: var(--wj-reel-rail-w);
+  height: auto;
+  margin: 0;
+  padding: 0 0 30px;
+  border: 0;
+  background: transparent;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
-  padding: 0 0 8px;
-  margin: 0;
-  border: 0;
-  background: transparent;
   overflow: visible;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
 }
@@ -4982,18 +4976,29 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   top: auto;
 }
 
+.wj-reel-video-box {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
 .wj-reel-meta {
-  position: static;
-  z-index: 2;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 52px;
+  z-index: 5;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 10px 2px 0;
+  padding: 12px 12px 4px;
   box-sizing: border-box;
   flex: 0 0 auto;
   background: none;
-  text-shadow: none;
-  pointer-events: auto;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.75),
+    0 0 8px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
 }
 
 .wj-reel-meta a,
@@ -5002,15 +5007,80 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 }
 
 .wj-reel-timeline {
-  position: relative;
-  z-index: 3;
-  flex: 0 0 auto;
-  height: 18px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 8px 0 0;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  height: auto;
+  min-height: 44px;
+  padding: 18px 10px 8px;
   box-sizing: border-box;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.62) 0%,
+    rgba(0, 0, 0, 0.2) 70%,
+    transparent 100%
+  );
+  opacity: 0;
+  pointer-events: none;
+  cursor: default;
+  touch-action: none;
+  outline: none;
+  transition: opacity 160ms ease;
+}
+
+.wj-reel-slide.is-chrome .wj-reel-timeline,
+.wj-reel-timeline.is-scrubbing {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .wj-reel-slide:hover .wj-reel-timeline,
+  .wj-reel-timeline:focus-within {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.wj-reel-timeline-btn {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  color: #fff;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.wj-reel-timeline-btn:hover,
+.wj-reel-timeline-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.wj-reel-timeline-btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.wj-reel-timeline-scrub {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 24px;
+  display: flex;
+  align-items: center;
   cursor: pointer;
   touch-action: none;
   outline: none;
@@ -5060,7 +5130,7 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 
 .wj-reel-scrub-preview {
   position: absolute;
-  bottom: 22px;
+  bottom: 28px;
   z-index: 4;
   width: 112px;
   transform: translateX(-50%);
@@ -5092,15 +5162,15 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 }
 
 .wj-reel-timeline-time {
-  position: absolute;
-  right: 0;
-  top: 0;
+  position: static;
+  flex: 0 0 auto;
   font-size: 11px;
   font-weight: 600;
   line-height: 1;
   color: rgba(255, 255, 255, 0.92);
   pointer-events: none;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .wj-reel-author {
@@ -5108,6 +5178,16 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   align-items: center;
   gap: 8px;
   min-width: 0;
+}
+
+.wj-reel-author .j-user-pop-wrap,
+.wj-reel-author .j-user-pop-trigger,
+.wj-reel-author-hit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .wj-reel-av {
@@ -5156,19 +5236,6 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   color: rgba(255, 255, 255, 0.78);
 }
 
-.wj-reel-follow {
-  flex: 0 0 auto;
-  margin-left: 4px;
-  padding: 5px 10px;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 700;
-  text-decoration: none;
-  background: transparent;
-}
-
 .wj-reel-caption {
   margin: 0;
   font-size: 13px;
@@ -5212,25 +5279,18 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 /* Desktop rộng: gutter lớn hơn quanh khung video. */
 @media (min-width: 981px) {
   .wj-video-feed {
-    --wj-reel-pad-y: 48px;
-    --wj-reel-pad-x: 32px;
+    --wj-reel-pad-y: 0;
+    --wj-reel-pad-x: 0;
     --wj-reel-max-w-portrait: 440px;
     --wj-reel-max-w-landscape: min(1080px, calc(100vw - 240px));
   }
 }
 
 @media (max-width: 780px) {
-  .wj-reel-nav {
-    right: auto;
-    left: 12px;
-    top: auto;
-    bottom: 96px;
-    transform: none;
-  }
-
   .wj-video-feed {
     --wj-reel-pad-y: 0;
     --wj-reel-pad-x: 0;
+    --wj-reel-row-pad-l: 0px;
     --wj-reel-rail-w: 56px;
     --wj-reel-max-w-portrait: 100%;
     --wj-reel-max-w-landscape: 100%;
@@ -5248,56 +5308,130 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   .wj-reel-stage[data-aspect="portrait"],
   .wj-reel-stage[data-aspect="landscape"] {
     width: 100%;
+    height: 100%;
     gap: 0;
     align-items: stretch;
+    justify-content: flex-start;
   }
 
   .wj-reel-frame {
     position: relative;
     flex: 1 1 auto;
     min-height: 0;
-  }
-
-  .wj-reel-stage[data-aspect="portrait"] .wj-reel-main,
-  .wj-reel-stage[data-aspect="landscape"] .wj-reel-main {
     width: 100%;
-    max-width: none;
     height: 100%;
-    max-height: none;
+    max-height: 100%;
+    justify-content: stretch;
+    align-items: stretch;
+    padding-bottom: 0;
+    box-sizing: border-box;
   }
 
-  .wj-reel-stage[data-aspect="portrait"] .wj-reel-slide,
-  .wj-reel-stage[data-aspect="landscape"] .wj-reel-slide {
+  .wj-reel-main {
     width: 100%;
-    max-width: none;
-    height: auto;
-    max-height: none;
+    height: 100%;
+    max-height: 100%;
+    justify-content: stretch;
+  }
+
+  .wj-reel-video-row {
+    --reel-avail-w: 100cqw;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    align-items: stretch;
+  }
+
+  .wj-reel-slide {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
     aspect-ratio: auto;
+    overflow: hidden;
+    background: #000;
     border: 0;
     border-radius: 0;
     box-shadow: none;
-    flex: 1 1 auto;
-    min-height: 0;
+  }
+
+  /* Ngang: khít tỉ lệ, căn giữa dọc — letterbox đen như Reels. */
+  .wj-reel-video-box {
+    position: relative;
+    inset: auto;
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: 100%;
+    aspect-ratio: var(--wj-reel-aspect, 16 / 9);
+    margin: 0 auto;
+  }
+
+  /* Dọc: phủ gần hết chiều cao khung. */
+  .wj-reel-stage[data-aspect="portrait"] .wj-reel-video-box {
+    width: auto;
+    height: 100%;
+    max-height: 100%;
+    aspect-ratio: var(--wj-reel-aspect, 9 / 16);
+  }
+
+  .wj-reel-media {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    aspect-ratio: auto;
+    background: #000;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .wj-reel-tap {
+    inset: 0;
+    width: auto;
+    height: auto;
+    aspect-ratio: auto;
   }
 
   .wj-reel-rail.jcard-actions {
-    position: static;
-    align-self: flex-end;
-    padding-bottom: 8px;
-    gap: 8px;
+    position: absolute;
+    left: auto;
+    right: 4px;
+    bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+    margin: 0;
+    z-index: 5;
+    padding-bottom: 0;
+    gap: 10px;
   }
 
   .wj-reel-meta {
-    padding: 10px 14px 12px;
+    position: absolute;
+    left: 0;
+    right: calc(var(--wj-reel-rail-w) + 8px);
+    bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+    z-index: 5;
+    margin: 0;
+    padding: 12px 12px 8px;
+    text-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.75),
+      0 0 8px rgba(0, 0, 0, 0.45);
   }
 
   .wj-reel-timeline {
-    height: 16px;
-    padding: 6px 12px 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: auto;
+    min-height: 36px;
+    padding: 10px 10px calc(8px + env(safe-area-inset-bottom, 0px));
   }
 
   .wj-reel-timeline-time {
-    right: 12px;
+    right: auto;
   }
 }
 

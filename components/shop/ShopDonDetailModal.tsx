@@ -10,17 +10,22 @@ import {
   invalidateBaoCaoCache,
   invalidateDonHangCache,
 } from "@/lib/shop/client-fetch-cache";
+import { formatDate, formatMoney } from "@/lib/format";
+import type { MessageKey } from "@/lib/i18n/messages";
+import type { TFn } from "@/lib/i18n/t";
+import { useT } from "@/lib/i18n/use-t";
+import { useLocale } from "@/lib/locale/context";
 import { formatDiaChiNhanCopy } from "@/lib/shop/export-viettelpost";
 import { printPhieuDongGoi } from "@/lib/shop/phieu-dong-goi";
 import {
   SHOP_DON_NHAC_GIO,
-  SHOP_LOAI_DON_LABEL,
+  shopLoaiDonLabel,
+  shopTrangThaiDonLabel,
   SHOP_LY_DO_HUY_MAX,
-  SHOP_TRANG_THAI_DON_LABEL,
   type ShopDonHang,
   type ShopTrangThaiDon,
 } from "@/lib/shop/types";
-import { SHOP_LY_DO_KHIEU_NAI_LABEL } from "@/lib/shop/khieu-nai-labels";
+import type { ShopLyDoKhieuNaiClient } from "@/lib/shop/khieu-nai-labels";
 import {
   buildTheoDoiUrl,
   detectDvvcTuLink,
@@ -31,24 +36,32 @@ import {
 
 import "./shop-don-detail-modal.css";
 
-const HUY_LY_DO_PRESETS_SELLER = [
-  "Không nhận được tiền / biên lai không hợp lệ",
-  "Hết hàng",
-  "Người mua yêu cầu hủy",
+const HUY_LY_DO_PRESETS_SELLER: Array<{ value: string; key: MessageKey }> = [
+  { value: "Không nhận được tiền / biên lai không hợp lệ", key: "shop.order.cancel.noPay" },
+  { value: "Hết hàng", key: "shop.order.cancel.soldOut" },
+  { value: "Người mua yêu cầu hủy", key: "shop.order.cancel.buyerAsked" },
 ];
 
-const HUY_LY_DO_PRESETS_YEU_CAU = [
-  "Hết hàng",
-  "Sai giá / sai mẫu",
-  "Không giao được tới địa chỉ",
+const HUY_LY_DO_PRESETS_YEU_CAU: Array<{ value: string; key: MessageKey }> = [
+  { value: "Hết hàng", key: "shop.order.cancel.soldOut" },
+  { value: "Sai giá / sai mẫu", key: "shop.order.cancel.wrongPrice" },
+  { value: "Không giao được tới địa chỉ", key: "shop.order.cancel.cantShip" },
 ];
 
-const HUY_LY_DO_PRESETS_BUYER = [
-  "Đặt nhầm",
-  "Đổi ý",
-  "Tìm được chỗ khác",
-  "Shop nhờ hủy",
+const HUY_LY_DO_PRESETS_BUYER: Array<{ value: string; key: MessageKey }> = [
+  { value: "Đặt nhầm", key: "shop.order.cancel.wrongOrder" },
+  { value: "Đổi ý", key: "shop.order.cancel.changedMind" },
+  { value: "Tìm được chỗ khác", key: "shop.order.cancel.foundElse" },
+  { value: "Shop nhờ hủy", key: "shop.order.cancel.shopAsked" },
 ];
+
+const DISPUTE_KEYS: Record<ShopLyDoKhieuNaiClient, MessageKey> = {
+  chua_giao: "shop.order.dispute.chua_giao",
+  huy_khong_hoan: "shop.order.dispute.huy_khong_hoan",
+  hang_sai: "shop.order.dispute.hang_sai",
+  hang_loi: "shop.order.dispute.hang_loi",
+  khac: "shop.order.dispute.khac",
+};
 
 type HuyPanel = "seller_huy" | "buyer_huy" | "yeu_cau_huy" | null;
 
@@ -66,11 +79,19 @@ function canEditVanChuyen(don: ShopDonHang): boolean {
 }
 
 /** Thời gian đã chờ từ khi tạo đơn + cờ "chờ quá lâu" (để nhắc seller). */
-function waitingSince(iso: string): { text: string; recent: boolean; long: boolean } {
+function waitingSince(
+  iso: string,
+  t: TFn,
+): { text: string; recent: boolean; long: boolean } {
   const ageH = (Date.now() - new Date(iso).getTime()) / 3_600_000;
   const days = Math.floor(ageH / 24);
   const recent = ageH < 1;
-  const text = days >= 1 ? `${days} ngày` : ageH >= 1 ? `${Math.floor(ageH)} giờ` : "";
+  const text =
+    days >= 1
+      ? t("shop.order.days", { count: days })
+      : ageH >= 1
+        ? t("shop.order.hours", { count: Math.floor(ageH) })
+        : "";
   return { text, recent, long: ageH >= SHOP_DON_NHAC_GIO };
 }
 
@@ -128,6 +149,8 @@ export function ShopDonDetailModal({
   onDonChange,
   onOpenChat,
 }: Props) {
+  const t = useT();
+  const locale = useLocale();
   const [don, setDon] = useState<ShopDonHang | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -148,7 +171,7 @@ export function ShopDonDetailModal({
   /** Hiện inline confirm trước khi thực sự chặn. */
   const [confirmBlock, setConfirmBlock] = useState(false);
   const [knOpen, setKnOpen] = useState(false);
-  const [knLyDo, setKnLyDo] = useState<keyof typeof SHOP_LY_DO_KHIEU_NAI_LABEL>("chua_giao");
+  const [knLyDo, setKnLyDo] = useState<ShopLyDoKhieuNaiClient>("chua_giao");
   const [knMoTa, setKnMoTa] = useState("");
   const [knBusy, setKnBusy] = useState(false);
   const [knMsg, setKnMsg] = useState<string | null>(null);
@@ -187,7 +210,7 @@ export function ShopDonDetailModal({
         setDon(null);
         setCanKhaoSat(false);
         setDongDonHint(null);
-        setErr(json?.error ?? "Không tải đơn.");
+        setErr(json?.error ?? t("shop.order.loadFail"));
         return;
       }
       setDon(json.don);
@@ -195,11 +218,19 @@ export function ShopDonDetailModal({
       const dd = json.dongDon;
       if (dd?.hoanDen) {
         setDongDonHint(
-          `Đã hoãn xác nhận — hỏi lại từ ${dd.hoanDen} (${dd.soLanHoan ?? 0}/${dd.soLanChoHoan ?? 2} lần).`,
+          t("shop.order.deferredHint", {
+            from: dd.hoanDen,
+            used: dd.soLanHoan ?? 0,
+            max: dd.soLanChoHoan ?? 2,
+          }),
         );
       } else if (dd?.ngayTuDong) {
         setDongDonHint(
-          `Có thể tự đóng từ ${dd.ngayTuDong}${dd.ngayKhaoSat ? ` · khảo sát từ ${dd.ngayKhaoSat}` : ""}.`,
+          `${t("shop.order.autoCloseHint", { from: dd.ngayTuDong })}${
+            dd.ngayKhaoSat
+              ? t("shop.order.surveyHint", { from: dd.ngayKhaoSat })
+              : ""
+          }.`,
         );
       } else {
         setDongDonHint(null);
@@ -212,11 +243,11 @@ export function ShopDonDetailModal({
       );
     } catch {
       setDon(null);
-      setErr("Không tải đơn.");
+      setErr(t("shop.order.loadFail"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (!open || !donId) {
@@ -255,10 +286,10 @@ export function ShopDonDetailModal({
         error?: string;
       } | null;
       if (!res.ok) {
-        setErr(json?.error ?? "Không mở được khiếu nại.");
+        setErr(json?.error ?? t("shop.order.disputeOpenFail"));
         return;
       }
-      setKnMsg("Đã gửi khiếu nại. CINs sẽ trọng tài — không hoàn tiền qua nền tảng.");
+      setKnMsg(t("shop.order.disputeSent"));
       setKnOpen(false);
       invalidateDonCaches();
     } finally {
@@ -332,7 +363,7 @@ export function ShopDonDetailModal({
         await navigator.clipboard.writeText(t);
         flashCopy(label);
       } catch {
-        setErr("Không copy được — kiểm tra quyền clipboard.");
+        setErr(t("shop.order.copyFail"));
       }
     },
     [flashCopy],
@@ -362,16 +393,14 @@ export function ShopDonDetailModal({
         ketQua?: string;
       } | null;
       if (!res.ok) {
-        setErr(json?.error ?? "Không cập nhật được.");
+        setErr(json?.error ?? t("shop.order.updateFail"));
         return;
       }
       invalidateDonCaches();
       if (json?.ketQua === "mo_khieu_nai") {
-        setKnMsg(
-          "Đã chuyển admin xử lý (báo chưa nhận quá số lần hoãn). Không phải cáo buộc tự động.",
-        );
+        setKnMsg(t("shop.order.escalatedAdmin"));
       } else if (json?.ketQua === "hoan") {
-        setKnMsg("Đã ghi nhận chưa nhận — sẽ hỏi lại sau vài ngày.");
+        setKnMsg(t("shop.order.notReceivedLogged"));
       }
       if (json?.don) {
         setDon(json.don);
@@ -397,7 +426,7 @@ export function ShopDonDetailModal({
       if (action !== "buyer_huy" || don.trangThai === "cho_xac_nhan") {
         const reason = (lyDo ?? "").trim();
         if (!reason) {
-          setErr("Cần nhập lý do hủy đơn.");
+          setErr(t("shop.order.cancelReasonRequired"));
           return;
         }
       }
@@ -417,7 +446,7 @@ export function ShopDonDetailModal({
         error?: string;
       } | null;
       if (!res.ok) {
-        setErr(json?.error ?? "Không cập nhật được đơn.");
+        setErr(json?.error ?? t("shop.order.updateOrderFail"));
         return;
       }
       invalidateDonCaches();
@@ -457,7 +486,7 @@ export function ShopDonDetailModal({
         error?: string;
       } | null;
       if (!res.ok) {
-        setErr(json?.error ?? "Không lưu được mã vận đơn.");
+        setErr(json?.error ?? t("shop.order.saveTrackingFail"));
         return;
       }
       invalidateDonCaches();
@@ -489,7 +518,7 @@ export function ShopDonDetailModal({
         const json = (await res.json().catch(() => null)) as {
           error?: string;
         } | null;
-        setErr(json?.error ?? "Không chặn được người mua.");
+        setErr(json?.error ?? t("shop.order.blockFail"));
       }
     } finally {
       setBusy(false);
@@ -510,7 +539,7 @@ export function ShopDonDetailModal({
         const json = (await res.json().catch(() => null)) as {
           error?: string;
         } | null;
-        setErr(json?.error ?? "Không bỏ chặn được.");
+        setErr(json?.error ?? t("shop.order.unblockFail"));
       }
     } finally {
       setBusy(false);
@@ -552,14 +581,16 @@ export function ShopDonDetailModal({
         <header className="shop-don-detail-hdr">
           <div>
             <p className="shop-don-detail-kicker">
-              {don?.maDon ? `Mã ${don.maDon}` : "Đơn hàng"}
+              {don?.maDon
+                ? t("shop.history.orderCode", { code: don.maDon })
+                : t("shop.order.fallback")}
             </p>
-            <h3 id="shop-don-detail-title">Chi tiết đơn</h3>
+            <h3 id="shop-don-detail-title">{t("shop.order.title")}</h3>
           </div>
           <button
             type="button"
             className="shop-don-detail-close"
-            aria-label="Đóng"
+            aria-label={t("actors.close")}
             onClick={onClose}
           >
             <X size={18} strokeWidth={2} aria-hidden />
@@ -568,7 +599,8 @@ export function ShopDonDetailModal({
 
         {loading ? (
           <p className="shop-don-detail-loading">
-            <Loader2 size={18} className="shop-spin" aria-hidden /> Đang tải…
+            <Loader2 size={18} className="shop-spin" aria-hidden />{" "}
+            {t("shop.loadingShort")}
           </p>
         ) : err && !don ? (
           <p className="shop-don-detail-err" role="alert">
@@ -580,27 +612,27 @@ export function ShopDonDetailModal({
               <span
                 className={`shop-don-detail-status shop-status--${don.trangThai}`}
               >
-                {SHOP_TRANG_THAI_DON_LABEL[don.trangThai]}
+                {shopTrangThaiDonLabel(don.trangThai, locale)}
               </span>
               <span className="shop-don-detail-loai">
                 {don.loaiDon === "mua_ngay"
-                  ? "Đã thanh toán"
-                  : "Thanh toán sau"}
+                  ? t("shop.order.paidNow")
+                  : t("shop.order.payLater")}
               </span>
               {don.trangThai === "cho_xac_nhan"
                 ? (() => {
-                    const { text, recent, long } = waitingSince(don.taoLuc);
+                    const { text, recent, long } = waitingSince(don.taoLuc, t);
                     return (
                       <span
                         className={`shop-don-detail-expiry${long ? " is-overdue" : ""}`}
-                        title="Đơn chờ xác nhận — bạn có thể xác nhận hoặc hủy"
+                        title={t("shop.order.waitingTitle")}
                       >
                         <Clock size={12} strokeWidth={2.2} aria-hidden />
                         {recent
-                          ? "Vừa đặt"
+                          ? t("shop.order.justPlaced")
                           : long
-                            ? `Chờ ${text} — nên xử lý`
-                            : `Chờ ${text}`}
+                            ? t("shop.order.waitShouldAct", { text })
+                            : t("shop.order.waitFor", { text })}
                       </span>
                     );
                   })()
@@ -610,7 +642,7 @@ export function ShopDonDetailModal({
             <p className="shop-don-detail-parties">
               {role === "buyer" ? (
                 <>
-                  Người bán:{" "}
+                  {t("shop.order.seller")}:{" "}
                   <PartyChip
                     slug={don.banSlug}
                     name={don.banTen}
@@ -619,7 +651,7 @@ export function ShopDonDetailModal({
                 </>
               ) : role === "seller" ? (
                 <>
-                  Người mua:{" "}
+                  {t("shop.order.buyer")}:{" "}
                   <PartyChip
                     slug={don.muaSlug}
                     name={don.muaTen}
@@ -630,13 +662,13 @@ export function ShopDonDetailModal({
                 <>
                   <PartyChip
                     slug={don.muaSlug}
-                    name={don.muaTen ?? "Người mua"}
+                    name={don.muaTen ?? t("shop.order.buyer")}
                     avatarUrl={don.muaAvatarUrl}
                   />
                   {" → "}
                   <PartyChip
                     slug={don.banSlug}
-                    name={don.banTen ?? "Người bán"}
+                    name={don.banTen ?? t("shop.order.seller")}
                     avatarUrl={don.banAvatarUrl}
                   />
                 </>
@@ -645,7 +677,7 @@ export function ShopDonDetailModal({
 
             <div className="shop-don-detail-body">
             <div className="shop-don-detail-main">
-            <ul className="shop-don-detail-lines" aria-label="Chi tiết đơn">
+            <ul className="shop-don-detail-lines" aria-label={t("shop.order.linesAria")}>
               {don.dong.map((line) => {
                 const nhan =
                   line.nhanSnapshot?.trim() &&
@@ -688,13 +720,16 @@ export function ShopDonDetailModal({
                     </span>
                     <span
                       className="shop-don-detail-line-qty"
-                      title={`Số lượng: ${line.soLuong}`}
+                      title={t("shop.order.qty", { count: line.soLuong })}
                     >
                       ×{line.soLuong}
                     </span>
                     <strong className="shop-don-detail-line-price">
-                      {(line.giaDonVi * line.soLuong).toLocaleString("vi-VN")}{" "}
-                      {don.tienTe}
+                      {formatMoney(
+                        line.giaDonVi * line.soLuong,
+                        locale,
+                        don.tienTe,
+                      )}
                     </strong>
                   </li>
                 );
@@ -702,43 +737,41 @@ export function ShopDonDetailModal({
             </ul>
 
             <div className="shop-don-detail-tong">
-              <span>Tiền hàng</span>
+              <span>{t("shop.order.subtotal")}</span>
               <strong>
-                {(don.tongHang ?? don.tongTien).toLocaleString("vi-VN")}{" "}
-                {don.tienTe}
+                {formatMoney(don.tongHang ?? don.tongTien, locale, don.tienTe)}
               </strong>
             </div>
             {(don.tienGiamCombo ?? 0) > 0 ? (
               <div className="shop-don-detail-tong is-discount">
                 <span>
-                  Giảm combo
+                  {t("shop.order.comboOff")}
                   {don.giamSnapshot?.combo?.length
                     ? ` (${don.giamSnapshot.combo.map((c) => c.ten).join(", ")})`
                     : ""}
                 </span>
                 <strong>
-                  −{(don.tienGiamCombo ?? 0).toLocaleString("vi-VN")} {don.tienTe}
+                  −{formatMoney(don.tienGiamCombo ?? 0, locale, don.tienTe)}
                 </strong>
               </div>
             ) : null}
             {(don.tienGiamVoucher ?? 0) > 0 ? (
               <div className="shop-don-detail-tong is-discount">
                 <span>
-                  Giảm voucher
+                  {t("shop.order.voucherOff")}
                   {don.giamSnapshot?.voucher?.ma
                     ? ` (${don.giamSnapshot.voucher.ma})`
                     : ""}
                 </span>
                 <strong>
-                  −{(don.tienGiamVoucher ?? 0).toLocaleString("vi-VN")}{" "}
-                  {don.tienTe}
+                  −{formatMoney(don.tienGiamVoucher ?? 0, locale, don.tienTe)}
                 </strong>
               </div>
             ) : null}
             <div className="shop-don-detail-tong is-final">
-              <span>Cần thanh toán</span>
+              <span>{t("shop.order.due")}</span>
               <strong>
-                {don.tongTien.toLocaleString("vi-VN")} {don.tienTe}
+                {formatMoney(don.tongTien, locale, don.tienTe)}
               </strong>
             </div>
             </div>
@@ -756,14 +789,16 @@ export function ShopDonDetailModal({
               don.trangThai === "huy" ||
               don.trangThai === "da_giao_tai_su_kien") ? (
               <div className="shop-don-detail-nhan">
-                <span className="shop-don-detail-note-label">Khiếu nại</span>
+                <span className="shop-don-detail-note-label">
+                  {t("shop.order.dispute")}
+                </span>
                 {!knOpen ? (
                   <button
                     type="button"
                     className="shop-don-detail-btn ghost"
                     onClick={() => setKnOpen(true)}
                   >
-                    Mở khiếu nại
+                    {t("shop.order.openDispute")}
                   </button>
                 ) : (
                   <div className="shop-don-detail-huy">
@@ -771,31 +806,26 @@ export function ShopDonDetailModal({
                       className="shop-don-detail-huy-input"
                       value={knLyDo}
                       onChange={(e) =>
-                        setKnLyDo(
-                          e.target.value as keyof typeof SHOP_LY_DO_KHIEU_NAI_LABEL,
-                        )
+                        setKnLyDo(e.target.value as ShopLyDoKhieuNaiClient)
                       }
                     >
                       {(
-                        Object.keys(SHOP_LY_DO_KHIEU_NAI_LABEL) as Array<
-                          keyof typeof SHOP_LY_DO_KHIEU_NAI_LABEL
-                        >
+                        Object.keys(DISPUTE_KEYS) as ShopLyDoKhieuNaiClient[]
                       ).map((k) => (
                         <option key={k} value={k}>
-                          {SHOP_LY_DO_KHIEU_NAI_LABEL[k]}
+                          {t(DISPUTE_KEYS[k])}
                         </option>
                       ))}
                     </select>
                     <textarea
                       className="shop-don-detail-huy-input"
                       rows={2}
-                      placeholder="Mô tả ngắn…"
+                      placeholder={t("shop.order.disputePlaceholder")}
                       value={knMoTa}
                       onChange={(e) => setKnMoTa(e.target.value)}
                     />
                     <p className="shop-don-detail-huy-hint">
-                      CINs trọng tài cấp 1, không hoàn tiền. Hai bên tự dàn xếp
-                      nếu cần chuyển lại tiền.
+                      {t("shop.order.disputeHint")}
                     </p>
                     <div className="shop-don-detail-actions-row">
                       <button
@@ -804,7 +834,7 @@ export function ShopDonDetailModal({
                         disabled={knBusy}
                         onClick={() => void moKhieuNai()}
                       >
-                        Gửi khiếu nại
+                        {t("shop.order.sendDispute")}
                       </button>
                       <button
                         type="button"
@@ -812,7 +842,7 @@ export function ShopDonDetailModal({
                         disabled={knBusy}
                         onClick={() => setKnOpen(false)}
                       >
-                        Hủy
+                        {t("shop.order.cancel")}
                       </button>
                     </div>
                   </div>
@@ -824,40 +854,38 @@ export function ShopDonDetailModal({
               <div className="shop-don-detail-nhan">
                 <div className="shop-don-detail-nhan-hdr">
                   <span className="shop-don-detail-note-label">
-                    Thông tin nhận hàng
+                    {t("shop.order.shipTo")}
                   </span>
                   <div className="shop-don-detail-nhan-tools">
                     <button
                       type="button"
                       className="shop-don-detail-btn ghost shop-don-detail-nhan-tool"
-                      title="Copy họ tên, SĐT, địa chỉ"
+                      title={t("shop.order.copyAll")}
                       onClick={() =>
                         void copyText(
                           formatDiaChiNhanCopy(don),
-                          "Đã copy thông tin nhận",
+                          t("shop.order.copiedShip"),
                         )
                       }
                     >
                       <Copy size={14} aria-hidden />
-                      Copy
+                      {t("shop.order.copy")}
                     </button>
                     {role === "seller" ? (
                       <button
                         type="button"
                         className="shop-don-detail-btn ghost shop-don-detail-nhan-tool"
-                        title="In phiếu đóng gói"
+                        title={t("shop.order.printSlip")}
                         onClick={() => {
                           try {
                             printPhieuDongGoi(don);
                           } catch {
-                            setErr(
-                              "Trình duyệt chặn cửa sổ in — cho phép popup rồi thử lại.",
-                            );
+                            setErr(t("shop.history.popupBlocked"));
                           }
                         }}
                       >
                         <Printer size={14} aria-hidden />
-                        Phiếu
+                        {t("shop.order.slip")}
                       </button>
                     ) : null}
                   </div>
@@ -869,14 +897,14 @@ export function ShopDonDetailModal({
                 ) : null}
                 {don.muaHoTen ? (
                   <p className="shop-don-detail-nhan-line">
-                    <span>Họ tên</span>
+                    <span>{t("shop.order.fullName")}</span>
                     <strong>{don.muaHoTen}</strong>
                     <button
                       type="button"
                       className="shop-don-detail-copy-one"
-                      aria-label="Copy họ tên"
+                      aria-label={t("shop.order.copyName")}
                       onClick={() =>
-                        void copyText(don.muaHoTen ?? "", "Đã copy họ tên")
+                        void copyText(don.muaHoTen ?? "", t("shop.order.copiedName"))
                       }
                     >
                       <Copy size={12} aria-hidden />
@@ -885,18 +913,18 @@ export function ShopDonDetailModal({
                 ) : null}
                 {don.muaSoDienThoai ? (
                   <p className="shop-don-detail-nhan-line">
-                    <span>SĐT</span>
+                    <span>{t("shop.order.phone")}</span>
                     <a href={`tel:${don.muaSoDienThoai.replace(/\s+/g, "")}`}>
                       {don.muaSoDienThoai}
                     </a>
                     <button
                       type="button"
                       className="shop-don-detail-copy-one"
-                      aria-label="Copy số điện thoại"
+                      aria-label={t("shop.order.copyPhone")}
                       onClick={() =>
                         void copyText(
                           don.muaSoDienThoai ?? "",
-                          "Đã copy SĐT",
+                          t("shop.order.copiedPhone"),
                         )
                       }
                     >
@@ -906,14 +934,17 @@ export function ShopDonDetailModal({
                 ) : null}
                 {don.muaDiaChi ? (
                   <p className="shop-don-detail-nhan-line">
-                    <span>Địa chỉ</span>
+                    <span>{t("shop.order.address")}</span>
                     <strong>{don.muaDiaChi}</strong>
                     <button
                       type="button"
                       className="shop-don-detail-copy-one"
-                      aria-label="Copy địa chỉ"
+                      aria-label={t("shop.order.copyAddress")}
                       onClick={() =>
-                        void copyText(don.muaDiaChi ?? "", "Đã copy địa chỉ")
+                        void copyText(
+                          don.muaDiaChi ?? "",
+                          t("shop.order.copiedAddress"),
+                        )
                       }
                     >
                       <Copy size={12} aria-hidden />
@@ -944,7 +975,7 @@ export function ShopDonDetailModal({
                   <div className="shop-don-detail-nhan shop-don-detail-vc">
                     <div className="shop-don-detail-nhan-hdr">
                       <span className="shop-don-detail-note-label">
-                        Thông tin đơn vận chuyển
+                        {t("shop.order.shipping")}
                       </span>
                     </div>
                     {showBuyerTrack && trackSafe ? (
@@ -955,11 +986,11 @@ export function ShopDonDetailModal({
                         className="shop-don-detail-vc-track"
                       >
                         <Truck size={14} strokeWidth={2.2} aria-hidden />
-                        Theo dõi đơn hàng
+                        {t("shop.order.track")}
                         <span className="shop-don-detail-vc-carrier">
                           {[don.vanChuyenDvvc, don.vanChuyenMa]
                             .filter(Boolean)
-                            .join(" · ") || "Tra cứu"}
+                            .join(" · ") || t("shop.order.lookup")}
                         </span>
                       </a>
                     ) : null}
@@ -979,10 +1010,10 @@ export function ShopDonDetailModal({
                             className="shop-don-detail-huy-input"
                             value={vcDvvcDraft}
                             disabled={busy}
-                            aria-label="Đơn vị vận chuyển"
+                            aria-label={t("shop.order.carrier")}
                             onChange={(e) => setVcDvvcDraft(e.target.value)}
                           >
-                            <option value="">Chọn ĐVVC</option>
+                            <option value="">{t("shop.order.pickCarrier")}</option>
                             {SHOP_DVVC_OPTIONS.map((opt) => (
                               <option key={opt} value={opt}>
                                 {opt}
@@ -994,9 +1025,9 @@ export function ShopDonDetailModal({
                             className="shop-don-detail-huy-input"
                             value={vcMaDraft}
                             maxLength={SHOP_VAN_CHUYEN_MA_MAX}
-                            placeholder="Mã vận đơn"
+                            placeholder={t("shop.order.trackingCode")}
                             disabled={busy}
-                            aria-label="Mã vận đơn"
+                            aria-label={t("shop.order.trackingCode")}
                             onChange={(e) => setVcMaDraft(e.target.value)}
                           />
                           <div className="shop-don-detail-actions-row">
@@ -1012,7 +1043,7 @@ export function ShopDonDetailModal({
                                   aria-hidden
                                 />
                               ) : null}
-                              Lưu
+                              {t("shop.order.save")}
                             </button>
                             {don.vanChuyenMa || don.vanChuyenDvvc ? (
                               <button
@@ -1023,14 +1054,14 @@ export function ShopDonDetailModal({
                                   void saveVanChuyen({ ma: "", dvvc: "" })
                                 }
                               >
-                                Xóa
+                                {t("shop.order.delete")}
                               </button>
                             ) : null}
                           </div>
                           {don.trangThai === "da_nhan_tien" ||
                           don.trangThai === "cho_lay_hang" ? (
                             <p className="shop-don-detail-huy-hint">
-                              Lưu ĐVVC + mã sẽ chuyển đơn sang «Đang giao».
+                              {t("shop.order.shippingHint")}
                             </p>
                           ) : null}
                         </form>
@@ -1038,20 +1069,20 @@ export function ShopDonDetailModal({
                         <>
                           {don.vanChuyenDvvc ? (
                             <p className="shop-don-detail-nhan-line">
-                              <span>ĐVVC</span>
+                              <span>{t("shop.order.carrierShort")}</span>
                               <strong>{don.vanChuyenDvvc}</strong>
                             </p>
                           ) : null}
                           {don.vanChuyenMa ? (
                             <p className="shop-don-detail-nhan-line">
-                              <span>Mã</span>
+                              <span>{t("shop.order.codeShort")}</span>
                               <strong>{don.vanChuyenMa}</strong>
                             </p>
                           ) : null}
                         </>
                       ) : don.trangThai === "cho_xac_nhan" ? (
                         <p className="shop-don-detail-huy-hint">
-                          Xác nhận đơn trước khi nhập mã vận chuyển.
+                          {t("shop.order.confirmBeforeShip")}
                         </p>
                       ) : null
                     ) : null}
@@ -1061,14 +1092,14 @@ export function ShopDonDetailModal({
 
             {noteText ? (
               <div className="shop-don-detail-note">
-                <span className="shop-don-detail-note-label">Lời nhắn</span>
+                <span className="shop-don-detail-note-label">{t("shop.order.note")}</span>
                 <p className="shop-don-detail-note-text">{noteText}</p>
               </div>
             ) : null}
 
             {don.trangThai === "huy" && don.lyDoHuy ? (
               <div className="shop-don-detail-note">
-                <span className="shop-don-detail-note-label">Lý do hủy</span>
+                <span className="shop-don-detail-note-label">{t("shop.order.cancelReason")}</span>
                 <p className="shop-don-detail-note-text">{don.lyDoHuy}</p>
               </div>
             ) : null}
@@ -1076,16 +1107,16 @@ export function ShopDonDetailModal({
             {don.bienLaiAnhUrl ? (
               <div className="shop-don-detail-bill">
                 <span className="shop-don-detail-note-label">
-                  Biên lai chuyển khoản
+                  {t("shop.order.receipt")}
                 </span>
                 <button
                   type="button"
                   className="shop-don-detail-bill-link"
                   onClick={() => setBillZoom(true)}
-                  aria-label="Phóng to biên lai chuyển khoản"
+                  aria-label={t("shop.order.zoomReceipt")}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={don.bienLaiAnhUrl} alt="Biên lai chuyển khoản" />
+                  <img src={don.bienLaiAnhUrl} alt={t("shop.order.receipt")} />
                 </button>
               </div>
             ) : null}
@@ -1100,8 +1131,8 @@ export function ShopDonDetailModal({
               <div className="shop-don-detail-huy">
                 <span className="shop-don-detail-note-label">
                   {huyPanel === "yeu_cau_huy"
-                    ? "Lý do nhờ khách hủy đơn"
-                    : "Lý do hủy đơn"}
+                    ? t("shop.order.askCancelReason")
+                    : t("shop.order.cancelReasonLabel")}
                 </span>
                 <div className="shop-don-detail-huy-presets">
                   {(huyPanel === "buyer_huy"
@@ -1111,12 +1142,12 @@ export function ShopDonDetailModal({
                       : HUY_LY_DO_PRESETS_SELLER
                   ).map((preset) => (
                     <button
-                      key={preset}
+                      key={preset.value}
                       type="button"
-                      className={`shop-don-detail-huy-chip${huyLyDo === preset ? " is-active" : ""}`}
-                      onClick={() => setHuyLyDo(preset)}
+                      className={`shop-don-detail-huy-chip${huyLyDo === preset.value ? " is-active" : ""}`}
+                      onClick={() => setHuyLyDo(preset.value)}
                     >
-                      {preset}
+                      {t(preset.key)}
                     </button>
                   ))}
                 </div>
@@ -1125,19 +1156,18 @@ export function ShopDonDetailModal({
                   value={huyLyDo}
                   maxLength={SHOP_LY_DO_HUY_MAX}
                   rows={2}
-                  placeholder="Nhập lý do (bắt buộc)…"
+                  placeholder={t("shop.order.cancelPlaceholder")}
                   onChange={(e) => setHuyLyDo(e.target.value)}
                 />
                 {huyPanel === "buyer_huy" && don.bienLaiAnhUrl ? (
                   <p className="shop-don-detail-huy-hint is-warn">
-                    Bạn đã gửi biên lai — nếu shop đã nhận tiền, tự liên hệ shop
-                    để nhận lại. CINs không giữ tiền.
+                    {t("shop.order.cancelPaidHint")}
                   </p>
                 ) : (
                   <p className="shop-don-detail-huy-hint">
                     {huyPanel === "yeu_cau_huy"
-                      ? "Người mua sẽ thấy yêu cầu trong chat và phải bấm Đồng ý hủy. CINs không giữ tiền."
-                      : "Hủy sẽ hoàn hàng về kho và báo đối phương. Nền tảng không giữ tiền — hai bên tự dàn xếp hoàn tiền."}
+                      ? t("shop.order.askCancelHint")
+                      : t("shop.order.cancelStockHint")}
                   </p>
                 )}
                 <div className="shop-don-detail-actions-row">
@@ -1156,8 +1186,8 @@ export function ShopDonDetailModal({
                     }}
                   >
                     {huyPanel === "yeu_cau_huy"
-                      ? "Gửi yêu cầu hủy"
-                      : "Xác nhận hủy"}
+                      ? t("shop.order.sendCancelAsk")
+                      : t("shop.order.confirmCancel")}
                   </button>
                   <button
                     type="button"
@@ -1165,7 +1195,7 @@ export function ShopDonDetailModal({
                     disabled={busy}
                     onClick={() => setHuyPanel(null)}
                   >
-                    Quay lại
+                    {t("shop.order.back")}
                   </button>
                 </div>
               </div>
@@ -1185,8 +1215,8 @@ export function ShopDonDetailModal({
                     }
                   >
                     {don.loaiDon === "mua_ngay"
-                      ? "Xác nhận đã nhận tiền"
-                      : "Đã giao / nhận hàng"}
+                      ? t("shop.order.confirmPaid")
+                      : t("shop.order.handedOver")}
                   </button>
                 ) : null}
 
@@ -1197,7 +1227,7 @@ export function ShopDonDetailModal({
                     disabled={busy}
                     onClick={() => void patch("hoan_thanh")}
                   >
-                    Hoàn thành
+                    {t("shop.order.complete")}
                   </button>
                 ) : null}
 
@@ -1209,7 +1239,7 @@ export function ShopDonDetailModal({
                       disabled={busy}
                       onClick={() => void patch("hoan_thanh")}
                     >
-                      Hoàn thành
+                      {t("shop.order.complete")}
                     </button>
                     <button
                       type="button"
@@ -1217,7 +1247,7 @@ export function ShopDonDetailModal({
                       disabled={busy}
                       onClick={() => void patch("hoan_tra")}
                     >
-                      Hoàn trả
+                      {t("shop.order.return")}
                     </button>
                   </>
                 ) : null}
@@ -1230,7 +1260,7 @@ export function ShopDonDetailModal({
                       disabled={busy}
                       onClick={() => void patch("hoan_thanh")}
                     >
-                      Hoàn thành
+                      {t("shop.order.complete")}
                     </button>
                     <button
                       type="button"
@@ -1238,7 +1268,7 @@ export function ShopDonDetailModal({
                       disabled={busy}
                       onClick={() => void patch("hoan_tra")}
                     >
-                      Hoàn trả
+                      {t("shop.order.return")}
                     </button>
                   </>
                 ) : null}
@@ -1250,7 +1280,7 @@ export function ShopDonDetailModal({
                     disabled={busy}
                     onClick={() => void patch("hoan_thanh")}
                   >
-                    Hoàn thành
+                    {t("shop.order.complete")}
                   </button>
                 ) : null}
 
@@ -1270,7 +1300,7 @@ export function ShopDonDetailModal({
                         disabled={busy}
                         onClick={() => void patch("buyer_da_nhan")}
                       >
-                        Đã nhận hàng
+                        {t("shop.order.received")}
                       </button>
                       {canKhaoSat ? (
                         <button
@@ -1279,7 +1309,7 @@ export function ShopDonDetailModal({
                           disabled={busy}
                           onClick={() => void patch("buyer_chua_nhan")}
                         >
-                          Chưa nhận
+                          {t("shop.order.notReceived")}
                         </button>
                       ) : null}
                     </div>
@@ -1292,7 +1322,7 @@ export function ShopDonDetailModal({
                 !anYeuCauBanner ? (
                   <div className="shop-don-detail-huy">
                     <span className="shop-don-detail-note-label">
-                      Shop đề nghị hủy đơn
+                      {t("shop.order.shopAskCancel")}
                     </span>
                     {don.yeuCauHuyLyDo?.trim() ? (
                       <p className="shop-don-detail-huy-hint">
@@ -1300,8 +1330,7 @@ export function ShopDonDetailModal({
                       </p>
                     ) : null}
                     <p className="shop-don-detail-huy-hint">
-                      Đồng ý hủy nghĩa là hai bên đã dàn xếp xong. CINs không giữ
-                      tiền.
+                      {t("shop.order.agreeCancelHint")}
                     </p>
                     <div className="shop-don-detail-actions-row">
                       <button
@@ -1310,7 +1339,7 @@ export function ShopDonDetailModal({
                         disabled={busy}
                         onClick={() => void patchHuy("buyer_huy")}
                       >
-                        Đồng ý hủy
+                        {t("shop.order.agreeCancel")}
                       </button>
                       <button
                         type="button"
@@ -1318,7 +1347,7 @@ export function ShopDonDetailModal({
                         disabled={busy}
                         onClick={() => setAnYeuCauBanner(true)}
                       >
-                        Không hủy
+                        {t("shop.order.keepOrder")}
                       </button>
                     </div>
                   </div>
@@ -1329,7 +1358,7 @@ export function ShopDonDetailModal({
                 don.yeuCauHuyLuc ? (
                   <div className="shop-don-detail-huy">
                     <span className="shop-don-detail-note-label">
-                      Đã gửi yêu cầu hủy — chờ người mua
+                      {t("shop.order.waitingBuyerCancel")}
                     </span>
                     {don.yeuCauHuyLyDo?.trim() ? (
                       <p className="shop-don-detail-huy-hint">
@@ -1343,7 +1372,7 @@ export function ShopDonDetailModal({
                         disabled={busy}
                         onClick={() => void patchHuy("bo_yeu_cau_huy")}
                       >
-                        Rút lại
+                        {t("shop.order.withdraw")}
                       </button>
                     </div>
                   </div>
@@ -1368,7 +1397,7 @@ export function ShopDonDetailModal({
                           onClose();
                         }}
                       >
-                        Chat người mua
+                        {t("shop.order.chatBuyer")}
                       </button>
                     ) : onOpenChat && role === "buyer" ? (
                       <button
@@ -1379,7 +1408,7 @@ export function ShopDonDetailModal({
                           onClose();
                         }}
                       >
-                        Chat người bán
+                        {t("shop.order.chatSeller")}
                       </button>
                     ) : null}
                     {don.trangThai === "cho_xac_nhan" && role === "seller" ? (
@@ -1392,7 +1421,7 @@ export function ShopDonDetailModal({
                           setHuyPanel("seller_huy");
                         }}
                       >
-                        Hủy đơn
+                        {t("shop.order.cancelOrder")}
                       </button>
                     ) : null}
                     {don.trangThai === "cho_xac_nhan" && role === "buyer" ? (
@@ -1405,7 +1434,7 @@ export function ShopDonDetailModal({
                           setHuyPanel("buyer_huy");
                         }}
                       >
-                        Hủy đơn
+                        {t("shop.order.cancelOrder")}
                       </button>
                     ) : null}
                     {don.trangThai === "da_nhan_tien" &&
@@ -1420,7 +1449,7 @@ export function ShopDonDetailModal({
                           setHuyPanel("yeu_cau_huy");
                         }}
                       >
-                        Nhờ khách hủy đơn
+                        {t("shop.order.askBuyerCancel")}
                       </button>
                     ) : null}
                   </div>
@@ -1431,7 +1460,7 @@ export function ShopDonDetailModal({
                     {confirmBlock ? (
                       <div className="shop-don-detail-confirm-block">
                         <span className="shop-don-detail-confirm-block-text">
-                          Chặn người mua này? Họ sẽ không thể mua hàng từ shop của bạn.
+                          {t("shop.order.blockConfirm")}
                         </span>
                         <div className="shop-don-detail-confirm-block-actions">
                           <button
@@ -1441,7 +1470,7 @@ export function ShopDonDetailModal({
                             onClick={() => void blockBuyer()}
                           >
                             <Ban size={14} strokeWidth={2} aria-hidden />
-                            Xác nhận chặn
+                            {t("shop.order.confirmBlock")}
                           </button>
                           <button
                             type="button"
@@ -1449,7 +1478,7 @@ export function ShopDonDetailModal({
                             disabled={busy}
                             onClick={() => setConfirmBlock(false)}
                           >
-                            Huỷ
+                            {t("shop.order.cancel")}
                           </button>
                         </div>
                       </div>
@@ -1463,7 +1492,7 @@ export function ShopDonDetailModal({
                             onClick={() => void unblockBuyer()}
                           >
                             <Ban size={14} strokeWidth={2} aria-hidden />
-                            Bỏ chặn
+                            {t("shop.order.unblock")}
                           </button>
                         ) : (
                           <button
@@ -1472,13 +1501,13 @@ export function ShopDonDetailModal({
                             disabled={busy || !hasReported}
                             title={
                               !hasReported
-                                ? "Hãy báo cáo người mua trước khi chặn"
+                                ? t("shop.order.blockNeedReport")
                                 : undefined
                             }
                             onClick={() => setConfirmBlock(true)}
                           >
                             <Ban size={14} strokeWidth={2} aria-hidden />
-                            Chặn
+                            {t("shop.order.block")}
                           </button>
                         )}
                         <button
@@ -1487,7 +1516,8 @@ export function ShopDonDetailModal({
                           onClick={() => setReportOpen(true)}
                         >
                           <Flag size={14} strokeWidth={2} aria-hidden />
-                          Báo cáo{hasReported ? " ✓" : ""}
+                          {t("shop.order.report")}
+                          {hasReported ? " ✓" : ""}
                         </button>
                       </>
                     )}
@@ -1499,8 +1529,14 @@ export function ShopDonDetailModal({
             </div>
 
             <p className="shop-don-detail-foot">
-              {SHOP_LOAI_DON_LABEL[don.loaiDon]} ·{" "}
-              {new Date(don.taoLuc).toLocaleString("vi-VN")}
+              {shopLoaiDonLabel(don.loaiDon, locale)} ·{" "}
+              {formatDate(don.taoLuc, locale, {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </p>
           </>
         ) : null}
@@ -1511,13 +1547,13 @@ export function ShopDonDetailModal({
           className="shop-don-detail-bill-zoom"
           role="dialog"
           aria-modal="true"
-          aria-label="Biên lai chuyển khoản"
+          aria-label={t("shop.order.receipt")}
           onMouseDown={() => setBillZoom(false)}
         >
           <button
             type="button"
             className="shop-don-detail-bill-zoom-close"
-            aria-label="Đóng"
+            aria-label={t("actors.close")}
             onClick={() => setBillZoom(false)}
           >
             <X size={20} strokeWidth={2} aria-hidden />
@@ -1525,7 +1561,7 @@ export function ShopDonDetailModal({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={don.bienLaiAnhUrl}
-            alt="Biên lai chuyển khoản"
+            alt={t("shop.order.receipt")}
             onMouseDown={(e) => e.stopPropagation()}
           />
         </div>

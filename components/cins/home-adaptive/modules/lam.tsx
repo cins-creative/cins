@@ -33,6 +33,7 @@ export async function HoSoCuaBanModule({ ctx }: { ctx: HomeModuleCtx }) {
   return (
     <ModuleCard
       icon={Route}
+      moduleId="ho_so_cua_ban"
       title="Hồ sơ của bạn"
       badge={`${percent}%`}
       className={
@@ -80,7 +81,7 @@ export async function NguoiCungNganhModule({ ctx }: { ctx: HomeModuleCtx }) {
   if (people.length === 0) return null;
 
   return (
-    <ModuleCard icon={Users} title="Người cùng ngành" className="ha-card--people">
+    <ModuleCard icon={Users} moduleId="nguoi_cung_nganh" title="Người cùng ngành" className="ha-card--people">
       <div className="ha-people-list">
         {people.map((p) => (
           <HaUserSuggestionRow
@@ -115,6 +116,7 @@ export async function GoiYStudioModule({ ctx }: { ctx: HomeModuleCtx }) {
   return (
     <ModuleCard
       icon={Building2}
+      moduleId="goi_y_studio"
       title="Studio đang tuyển dụng"
       moreHref="/jobs"
       moreLabel="Xem thêm"
@@ -189,6 +191,7 @@ export async function CoHoiModule({ ctx }: { ctx: HomeModuleCtx }) {
   return (
     <ModuleCard
       icon={Briefcase}
+      moduleId="co_hoi"
       title="Cơ hội cho bạn"
       className="ha-card--jobs"
       moreHref="/jobs"

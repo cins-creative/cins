@@ -1,5 +1,10 @@
 "use client";
 
+import { formatMoney } from "@/lib/format";
+import type { TFn } from "@/lib/i18n/t";
+import { useT } from "@/lib/i18n/use-t";
+import { useLocale } from "@/lib/locale/context";
+import type { CinsLocale } from "@/lib/locale/types";
 import type { ShopCombo, ShopComboPhamVi, ShopLoaiGiam } from "@/lib/shop/types";
 
 export type ShopComboOfferCardProps = {
@@ -18,25 +23,27 @@ export type ShopComboOfferCardProps = {
   shopBannerUrl?: string | null;
 };
 
-function phamViLabel(phamVi: ShopComboPhamVi): string {
-  if (phamVi === "loai_hang") return "Loại hàng";
-  if (phamVi === "san_pham") return "Mặt hàng";
-  return "Biến thể";
+function phamViLabel(phamVi: ShopComboPhamVi, t: TFn): string {
+  if (phamVi === "loai_hang") return t("shop.combo.scopeType");
+  if (phamVi === "san_pham") return t("shop.combo.scopeItem");
+  return t("shop.combo.scopeVariant");
 }
 
 function formatGiam(
   loaiGiam: ShopLoaiGiam,
   giaTri: number,
+  locale: CinsLocale,
+  t: TFn,
   giamToiDa?: number | null,
 ): string {
   if (loaiGiam === "phan_tram") {
     const cap =
       giamToiDa != null && giamToiDa > 0
-        ? ` (tối đa ${giamToiDa.toLocaleString("vi-VN")} ₫)`
+        ? ` (${t("shop.combo.max", { amount: formatMoney(giamToiDa, locale) })})`
         : "";
     return `${giaTri}%${cap}`;
   }
-  return `${giaTri.toLocaleString("vi-VN")} ₫`;
+  return formatMoney(giaTri, locale);
 }
 
 function shopInitial(ten: string | null | undefined): string {
@@ -57,9 +64,11 @@ export function ShopComboOfferCard({
   shopAvatarUrl,
   shopBannerUrl,
 }: ShopComboOfferCardProps) {
+  const t = useT();
+  const locale = useLocale();
   const showShopRow = Boolean(tenCuaHang || shopAvatarUrl || shopBannerUrl);
   const conditionLabels = dieuKien.map(
-    (dk) => `${dk.nhan?.trim() || phamViLabel(dk.phamVi)} ×${dk.soLuong}`,
+    (dk) => `${dk.nhan?.trim() || phamViLabel(dk.phamVi, t)} ×${dk.soLuong}`,
   );
 
   return (
@@ -101,7 +110,7 @@ export function ShopComboOfferCard({
               <p className="shop-voucher-card-ten">{ten}</p>
             </div>
             <p className="shop-voucher-card-giam">
-              {formatGiam(loaiGiam, giaTri, giamToiDa)}
+              {formatGiam(loaiGiam, giaTri, locale, t, giamToiDa)}
             </p>
           </div>
         </div>
@@ -114,7 +123,7 @@ export function ShopComboOfferCard({
               </p>
             ))}
             {apDungLap ? (
-              <p className="shop-voucher-card-meta">Áp dụng nhiều lần</p>
+              <p className="shop-voucher-card-meta">{t("shop.combo.repeat")}</p>
             ) : null}
           </div>
         ) : null}

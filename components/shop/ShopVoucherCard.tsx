@@ -3,6 +3,9 @@
 import { Copy } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 
+import { formatDate, formatMoney } from "@/lib/format";
+import { useT } from "@/lib/i18n/use-t";
+import { useLocale } from "@/lib/locale/context";
 import type {
   ShopLoaiGiam,
   ShopVoucherDesign,
@@ -36,26 +39,22 @@ export type ShopVoucherCardProps = {
   onCopy?: () => void;
 };
 
-const LY_DO_LABEL: Record<ShopVoucherLyDoHet, string> = {
-  het_luot: "Đã hết lượt",
-  het_han: "Hết hạn",
-  chua_bat_dau: "Chưa bắt đầu",
-  da_dung: "Bạn đã dùng",
-  tat: "Đã tắt",
-  xoa: "Đã xóa",
+const LY_DO_KEY: Record<
+  ShopVoucherLyDoHet,
+  | "shop.voucher.reason.het_luot"
+  | "shop.voucher.reason.het_han"
+  | "shop.voucher.reason.chua_bat_dau"
+  | "shop.voucher.reason.da_dung"
+  | "shop.voucher.reason.tat"
+  | "shop.voucher.reason.xoa"
+> = {
+  het_luot: "shop.voucher.reason.het_luot",
+  het_han: "shop.voucher.reason.het_han",
+  chua_bat_dau: "shop.voucher.reason.chua_bat_dau",
+  da_dung: "shop.voucher.reason.da_dung",
+  tat: "shop.voucher.reason.tat",
+  xoa: "shop.voucher.reason.xoa",
 };
-
-function formatGiam(loaiGiam: ShopLoaiGiam, giaTri: number): string {
-  if (loaiGiam === "phan_tram") return `${giaTri}%`;
-  return `${giaTri.toLocaleString("vi-VN")} ₫`;
-}
-
-function formatHetHan(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString("vi-VN");
-}
 
 function shopInitial(ten: string | null | undefined): string {
   const t = ten?.trim();
@@ -88,10 +87,19 @@ export function ShopVoucherCard({
   actions,
   onCopy,
 }: ShopVoucherCardProps) {
+  const t = useT();
+  const locale = useLocale();
   const disabled = !conHieuLuc;
-  const hetHanLabel = formatHetHan(ketThuc);
+  const hetHanLabel = ketThuc
+    ? (() => {
+        const d = new Date(ketThuc);
+        return Number.isNaN(d.getTime()) ? null : formatDate(d, locale);
+      })()
+    : null;
   const badgeLabel =
-    lyDoHetHieuLuc != null ? LY_DO_LABEL[lyDoHetHieuLuc] : null;
+    lyDoHetHieuLuc != null ? t(LY_DO_KEY[lyDoHetHieuLuc]) : null;
+  const giamLabel =
+    loaiGiam === "phan_tram" ? `${giaTri}%` : formatMoney(giaTri, locale);
 
   const bodyStyle =
     designKieu === "rieng"
@@ -165,12 +173,14 @@ export function ShopVoucherCard({
               <p className="shop-voucher-card-ten">{ten}</p>
             </div>
             <p className="shop-voucher-card-giam">
-              {formatGiam(loaiGiam, giaTri)}
+              {giamLabel}
             </p>
           </div>
 
           <div className="shop-voucher-card-code-block">
-            <span className="shop-voucher-card-code-label">Mã voucher</span>
+            <span className="shop-voucher-card-code-label">
+              {t("shop.voucher.code")}
+            </span>
             <div className="shop-voucher-card-ma-row">
               <code className="shop-voucher-card-ma">{ma}</code>
               {onCopy ? (
@@ -178,7 +188,7 @@ export function ShopVoucherCard({
                   type="button"
                   className="shop-voucher-card-copy"
                   onClick={onCopy}
-                  aria-label="Sao chép mã voucher"
+                  aria-label={t("shop.voucher.copy")}
                 >
                   <Copy size={16} aria-hidden />
                 </button>
@@ -190,24 +200,28 @@ export function ShopVoucherCard({
         <div className="shop-voucher-card-meta-list">
           {donToiThieu > 0 ? (
             <p className="shop-voucher-card-meta">
-              Đơn tối thiểu {donToiThieu.toLocaleString("vi-VN")} ₫
+              {t("shop.voucher.minOrder", {
+                amount: formatMoney(donToiThieu, locale),
+              })}
             </p>
           ) : null}
           {hetHanLabel ? (
-            <p className="shop-voucher-card-meta">HSD: {hetHanLabel}</p>
+            <p className="shop-voucher-card-meta">
+              {t("shop.voucher.expires", { date: hetHanLabel })}
+            </p>
           ) : null}
           {soLuongDaLuu != null ? (
             <p className="shop-voucher-card-meta">
-              Đã lưu {soLuongDaLuu}
+              {t("shop.voucher.savedCount", { count: soLuongDaLuu })}
             </p>
           ) : null}
           {soLuongTong != null ? (
             <>
               <p className="shop-voucher-card-meta">
-                Đã dùng {soLuongDaDung}
+                {t("shop.voucher.usedCount", { count: soLuongDaDung })}
               </p>
               <p className="shop-voucher-card-meta shop-voucher-card-meta--con-lai">
-                Còn lại{" "}
+                {t("shop.voucher.left")}{" "}
                 <strong className="shop-voucher-card-meta-highlight">
                   {conLai}
                 </strong>
@@ -220,7 +234,7 @@ export function ShopVoucherCard({
           ) : null}
         </div>
         {daLuu ? (
-          <span className="shop-voucher-card-saved">Đã lưu</span>
+          <span className="shop-voucher-card-saved">{t("shop.voucher.saved")}</span>
         ) : null}
         {badgeLabel ? (
           <span className="shop-voucher-card-badge">{badgeLabel}</span>

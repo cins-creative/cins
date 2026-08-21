@@ -8,8 +8,8 @@ import {
 
 export const SU_KIEN_LISTING_PATH = "/events";
 
-/** Chế độ xem tab Quầy — query `?quay=shop|mat-hang|hang`. */
-export const SU_KIEN_QUAY_VIEWS = ["shop", "mat-hang", "hang"] as const;
+/** Chế độ xem tab Quầy — query `?quay=shop|mat-hang`. `hang` cũ alias về `mat-hang`. */
+export const SU_KIEN_QUAY_VIEWS = ["shop", "mat-hang"] as const;
 export type SuKienQuayView = (typeof SU_KIEN_QUAY_VIEWS)[number];
 /** Mặc định: lưới mặt hàng (không phải danh sách shop). */
 export const SU_KIEN_QUAY_VIEW_DEFAULT: SuKienQuayView = "mat-hang";
@@ -18,7 +18,8 @@ export function parseSuKienQuayView(
   raw: string | null | undefined,
 ): SuKienQuayView | null {
   const v = raw?.trim().toLowerCase();
-  if (v === "shop" || v === "mat-hang" || v === "hang") return v;
+  if (v === "shop" || v === "mat-hang") return v;
+  if (v === "hang") return "mat-hang";
   return null;
 }
 
@@ -56,7 +57,7 @@ export function withoutSuKienQuayView(
 
 /**
  * Deep-link tab Quầy trên trang `/events/{slug}`.
- * VD: `/events/{slug}?quay=hang`
+ * VD: `/events/{slug}?quay=mat-hang`
  */
 export function suKienQuayViewHref(
   slugOrId: string,

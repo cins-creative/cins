@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { useT } from "@/lib/i18n/use-t";
+import type { MessageKey } from "@/lib/i18n/messages";
 import { JourneyBillingPinBanner } from "@/components/journey/JourneyBillingPinBanner";
 import { JourneyPendingConfirmationsStack } from "@/components/journey/JourneyPendingConfirmationsStack";
 import { JourneyCreateComposer } from "@/components/journey/JourneyCreateComposer";
@@ -137,6 +139,7 @@ export function JourneyTimeline({
   scrollLoad,
   billingPin,
 }: Props) {
+  const t = useT();
   const { adminSeedingEdit } = useJourneyCompose();
   const canManagePosts = isOwner || adminSeedingEdit;
   const personalFilter = useJourneyPersonalFilterOptional();
@@ -576,7 +579,7 @@ export function JourneyTimeline({
   return (
     <main
       className="j-timeline"
-      aria-label="Dòng thời gian Journey"
+      aria-label={t("journey.aria")}
       ref={rootRef}
     >
       <JourneyTimelineBar
@@ -645,7 +648,7 @@ export function JourneyTimeline({
                 year={yb.year}
                 milestones={yb.milestones}
                 metaLeft={
-                  yb.year === Number(yearNow) ? "Năm hiện tại" : undefined
+                  yb.year === Number(yearNow) ? t("journey.thisYear") : undefined
                 }
                 verifiedCount={
                   yb.milestones.filter((m) => m.variant === "verified").length
@@ -712,13 +715,13 @@ export function JourneyTimeline({
             className="j-timeline-load-retry"
             onClick={() => void loadMore()}
           >
-            Không tải được thêm cột mốc — thử lại
+            {t("journey.loadMoreFail")}
           </button>
         </div>
       ) : null}
 
       <div className="j-timeline-end" aria-hidden>
-        <div className="j-timeline-end-text">— bắt đầu hành trình —</div>
+        <div className="j-timeline-end-text">{t("journey.end")}</div>
       </div>
     </main>
   );
@@ -758,40 +761,34 @@ function OwnerEmptyState({
   ownerName: string;
   ownerAvatarUrl?: string | null;
 }) {
+  const t = useT();
   return (
-    <section className="j-empty" aria-label="Hành trình của bạn">
+    <section className="j-empty" aria-label={t("journey.ownerEmptyAria")}>
       <div className="j-empty-card">
-        <p className="j-empty-eyebrow">Journey · chưa có cột mốc</p>
-        <h2 className="j-empty-title">Đây là khởi đầu hành trình của bạn.</h2>
-        <p className="j-empty-body">
-          Mỗi cột mốc là một mảnh ghép của con đường sáng tạo — khóa học vừa
-          hoàn thành, dự án bạn đang làm, sự kiện bạn tham dự, hay đơn giản là
-          một suy nghĩ về định hướng. Bắt đầu từ một cột mốc nhỏ nhất cũng được.
-        </p>
+        <p className="j-empty-eyebrow">{t("journey.ownerEmptyEyebrow")}</p>
+        <h2 className="j-empty-title">{t("journey.ownerEmptyTitle")}</h2>
+        <p className="j-empty-body">{t("journey.ownerEmptyBody")}</p>
         <JourneyCreateComposer
           ownerSlug={ownerSlug}
           ownerName={ownerName}
           avatarUrl={ownerAvatarUrl ?? undefined}
         />
-        <p className="j-empty-hint">
-          Bài viết, ảnh hoặc video sẽ xuất hiện trên timeline Journey của bạn.
-        </p>
+        <p className="j-empty-hint">{t("journey.ownerEmptyHint")}</p>
       </div>
     </section>
   );
 }
 
 function GuestEmptyState({ ownerName }: { ownerName: string }) {
+  const t = useT();
   return (
     <section className="j-empty">
       <div className="j-empty-card">
-        <p className="j-empty-eyebrow">Journey trống</p>
+        <p className="j-empty-eyebrow">{t("journey.guestEmptyEyebrow")}</p>
         <h2 className="j-empty-title">
-          {ownerName} chưa chia sẻ cột mốc công khai.
+          {t("journey.guestEmptyTitle", { name: ownerName })}
         </h2>
-        <p className="j-empty-body">
-          Hành trình của họ vẫn đang được vun đắp. Quay lại sau nhé.
-        </p>
+        <p className="j-empty-body">{t("journey.guestEmptyBody")}</p>
       </div>
     </section>
   );
@@ -804,40 +801,36 @@ function FilteredEmptyState({
   filter: FilterGroup;
   personalLabelName?: string | null;
 }) {
-  const FILTER_LABELS: Record<FilterGroup, string> = {
-    all: "Tất cả",
-    hoc: "Học tập",
-    lam: "Công việc",
-    "du-an": "Dự án",
-    "su-kien": "Sự kiện",
-    "thanh-tuu": "Thành tựu",
-    "ca-nhan": "Cá nhân",
-    bookmark: "Lưu về",
-    verified: "Verified",
-    "cong-dong": "Cộng đồng",
+  const t = useT();
+  const FILTER_MSG: Record<FilterGroup, MessageKey> = {
+    all: "filter.all",
+    hoc: "filter.hoc",
+    lam: "filter.lam",
+    "du-an": "filter.du-an",
+    "su-kien": "filter.su-kien",
+    "thanh-tuu": "filter.thanh-tuu",
+    "ca-nhan": "filter.ca-nhan",
+    bookmark: "filter.bookmark",
+    verified: "filter.verified",
+    "cong-dong": "filter.cong-dong",
   };
+  const groupLabel = t(FILTER_MSG[filter] ?? "filter.all");
 
   return (
     <section className="j-empty">
       <div className="j-empty-card">
-        <p className="j-empty-eyebrow">Bộ lọc hiện tại</p>
+        <p className="j-empty-eyebrow">{t("journey.filterEmptyEyebrow")}</p>
         <h2 className="j-empty-title">
           {personalLabelName ? (
-            <>
-              Không có cột mốc công khai nào gắn nhãn{" "}
-              <em>{personalLabelName}</em>.
-            </>
+            t("journey.filterEmptyPersonal", { label: personalLabelName })
           ) : (
-            <>
-              Không có cột mốc thuộc nhóm{" "}
-              <em>{FILTER_LABELS[filter] ?? filter}</em>.
-            </>
+            t("journey.filterEmptyGroup", { label: groupLabel })
           )}
         </h2>
         <p className="j-empty-body">
           {personalLabelName
-            ? "Các bài gắn nhãn này có thể đang ở chế độ riêng tư trên từng cột mốc (badge trên card)."
-            : "Đổi bộ lọc khác hoặc chọn “Tất cả” để xem toàn bộ Journey."}
+            ? t("journey.filterEmptyPersonalHint")
+            : t("journey.filterEmptyHint")}
         </p>
       </div>
     </section>

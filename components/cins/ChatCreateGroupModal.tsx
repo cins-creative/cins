@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { avatarBg, avatarInitialFromName } from "@/lib/chat/avatar";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import type { ChatThread } from "@/lib/chat/types";
+import { useT } from "@/lib/i18n/use-t";
 
 type UserRow = {
   id: string;
@@ -99,6 +100,7 @@ export function ChatCreateGroupModal({
   initialTab = "chat",
   presetMembers,
 }: Props) {
+  const t = useT();
   const [tab, setTab] = useState<ModalTab>("chat");
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -298,23 +300,21 @@ export function ChatCreateGroupModal({
   if (!open) return null;
 
   const isChat = tab === "chat";
-  const title = isChat ? "Tin nhắn mới" : "Tạo nhóm chat";
-  const subtitle = isChat
-    ? "Tìm bạn bè hoặc mọi người trên CINs"
-    : "Chọn ít nhất 2 bạn bè";
+  const title = isChat ? t("chat.newMsg") : t("chat.menu.createGroup");
+  const subtitle = isChat ? t("chat.findPeople") : t("chat.pick2friends");
   const searchPlaceholder = isChat
-    ? "Tìm theo tên hoặc @slug"
-    : "Tìm bạn bè";
+    ? t("chat.searchNameSlug")
+    : t("chat.searchFriends");
 
   let emptyHint: string;
   if (isChat) {
     emptyHint = debouncedQuery
-      ? "Không tìm thấy người phù hợp."
-      : "Chưa có bạn bè hay người đang theo dõi. Hãy tìm theo tên.";
+      ? t("chat.emptyPeople")
+      : t("chat.emptyFollow");
   } else if (friends.length === 0) {
-    emptyHint = "Bạn chưa có bạn bè để thêm vào nhóm.";
+    emptyHint = t("chat.emptyFriendsAdd");
   } else {
-    emptyHint = "Không tìm thấy bạn bè phù hợp.";
+    emptyHint = t("chat.emptyFriendsSearch");
   }
 
   return (
@@ -322,7 +322,7 @@ export function ChatCreateGroupModal({
       <button
         type="button"
         className="cins-chat-group-modal-backdrop"
-        aria-label="Đóng"
+        aria-label={t("chat.close")}
         onClick={onClose}
       />
       <div
@@ -346,7 +346,7 @@ export function ChatCreateGroupModal({
           <button
             type="button"
             className="cins-chat-icon-btn"
-            aria-label="Đóng"
+            aria-label={t("chat.close")}
             onClick={onClose}
           >
             <X size={18} strokeWidth={1.8} aria-hidden />
@@ -356,7 +356,7 @@ export function ChatCreateGroupModal({
         <div
           className="cins-chat-create-tabs"
           role="tablist"
-          aria-label="Loại hội thoại"
+          aria-label={t("chat.threadTypeAria")}
         >
           <button
             type="button"
@@ -370,7 +370,7 @@ export function ChatCreateGroupModal({
               setDebouncedQuery("");
             }}
           >
-            Tạo chat
+            {t("chat.createChat")}
           </button>
           <button
             type="button"
@@ -384,18 +384,18 @@ export function ChatCreateGroupModal({
               setDebouncedQuery("");
             }}
           >
-            Tạo nhóm
+            {t("chat.createGroup")}
           </button>
         </div>
 
         {!isChat ? (
           <label className="cins-chat-group-name">
-            <span>Tên nhóm (tuỳ chọn)</span>
+            <span>{t("chat.groupNameOpt")}</span>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="VD: Team dự án cuối kỳ"
+              placeholder={t("chat.groupNamePh")}
               maxLength={80}
             />
           </label>
@@ -437,7 +437,7 @@ export function ChatCreateGroupModal({
           {loading ? (
             <p className="cins-chat-group-list-empty">
               <Loader2 size={16} className="cins-chat-spin" aria-hidden />
-              Đang tìm…
+              {t("chat.searching")}
             </p>
           ) : listUsers.length === 0 ? (
             <p className="cins-chat-group-list-empty">{emptyHint}</p>
@@ -521,10 +521,10 @@ export function ChatCreateGroupModal({
               {submitting ? (
                 <>
                   <Loader2 size={16} className="cins-chat-spin" aria-hidden />
-                  Đang tạo…
+                  {t("chat.creating")}
                 </>
               ) : (
-                `Tạo nhóm (${selected.length})`
+                t("chat.createGroupN", { n: selected.length })
               )}
             </button>
           </footer>

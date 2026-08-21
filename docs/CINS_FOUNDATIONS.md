@@ -9,7 +9,59 @@
 
 ## 1. Bản chất sản phẩm
 
-CINS là **mạng xã hội chuyên môn** cho ngành sáng tạo Việt Nam — portfolio đa định dạng, timeline, chat, follow-feed, **Shop** và **CSĐT**. Không phải encyclopedia nghề, job board thuần, Behance thuần tham khảo, feed thuật toán toàn cục, hay LMS.
+CINS là **mạng xã hội portfolio cho người sáng tạo** — trình bày tác phẩm và **bán hàng** ngay trên cùng một danh tính. Không phải encyclopedia nghề, job board thuần, Behance thuần tham khảo, feed thuật toán toàn cục, hay LMS.
+
+### 1.1 Hai trụ chính vs module theo vùng (chốt 2026-08-20)
+
+| | Vai trò | Phạm vi thị trường |
+|---|---|---|
+| **Portfolio / Journey** | Trụ 1 — nơi user trình bày năng lực & tích lũy danh tính | **Global-ready** |
+| **Shop** | Trụ 2 — nơi user bán thành quả của chính mình | **Global-ready** (rail tiền/ship theo từng nước) |
+| Hướng nghiệp + Đại học / tuyển sinh (`org_truong_dai_hoc`, `edu_*`, `/guidance`, `/majors`) | Module dọc, **không phải trụ** | **Chỉ Việt Nam** |
+| CSĐT (`co_so_dao_tao`) | Module dọc — lớp học vật lý, thu học phí | **VN-first** (bản chất local) |
+
+**Hệ quả cho mọi quyết định kỹ thuật sau ngày này:**
+
+- Trụ 1 + trụ 2 **không được** phụ thuộc vào khái niệm Việt Nam (tổ hợp môn, điểm chuẩn, tỉnh/thành enum, VND cứng) ở tầng lõi. Coupling phát hiện được → tách ra hoặc bọc sau adapter.
+- Module hướng nghiệp/ĐH **được phép** VN-only: không cần i18n, không cần đa tiền tệ, không cần địa chỉ đa quốc gia. Không đầu tư global hoá phần này.
+- Khi cân nhắc feature mới: nó phục vụ trụ nào? Nếu chỉ phục vụ module dọc VN → ưu tiên thấp hơn feature phục vụ 2 trụ.
+- Vẫn giữ nguyên naming convention DB tiếng Việt không dấu (§4) — global hoá là chuyện **UI/dữ liệu người dùng thấy**, không phải đổi tên bảng.
+
+### 1.2 Mô hình: hạ tầng cho seller, KHÔNG phải marketplace (chốt 2026-08-20)
+
+**Pain point lõi — sự phân mảnh:** artist/seller đang bán hàng bằng cách chắp vá — sample lưu ở Google Drive, chốt đơn & thanh toán qua Messenger, quảng bá trên timeline Facebook, ghi đơn ở Sheet. **CINs gom tất cả về một mối.**
+
+Hệ quả: **CINs không hứa mang buyer mới cho seller.** Seller mang khán giả sẵn có của họ (FB/TikTok/IG/event offline) về CINs; CINs cung cấp nơi trình bày, chốt, quản đơn. Nhất quán với việc **CINs không cầm tiền của buyer** (DECISIONS L33) — CINs là **hạ tầng SaaS**, không phải trung gian giao dịch.
+
+| | Vì đây là công cụ |
+|---|---|
+| Thanh khoản | Chỉ cần **một phía** (seller) là sản phẩm đã có giá trị. Không phải giải bài toán chicken-and-egg. |
+| Discovery xuyên shop (`/shopping`, `shop_danh_muc`) | **Bonus, không phải giá trị chính.** Không đánh giá sản phẩm thành/bại qua traffic hub. |
+| Thành công của một seller | Đo bằng "gom được việc bán về một chỗ", không bằng "CINs mang về bao nhiêu đơn". |
+| Thu phí | % GMV khó biện minh khi CINs không tạo ra đơn đó → xem lại **O20**. |
+| Bề mặt public tiếng Anh | Ưu tiên **cao**: nó là link-in-bio của seller, khán giả họ share tới là quốc tế. |
+
+Nhóm user mũi nhọn giai đoạn cold-start: **người bán merch / fandom (wibu) / sản phẩm tự làm** — họ cần đúng cả 2 trụ (khoe tác phẩm + bán) nên là phép thử tốt nhất cho định vị này. Phạm vi địa lý cold-start → **DECISIONS O23**.
+
+### 1.3 Mảng ĐH/CSĐT = phễu acquisition, KHÔNG kill (chốt 2026-08-20)
+
+Câu "nên kill mảng đại học/CSĐT không?" → **không.** Không kill (xoá là refactor rủi ro chạm code shop + mất SEO + đảo ngược đắt), mà **freeze như một *sản phẩm*, giữ sống như một *cổng vào*.**
+
+Lý do: cohort thật đầu tiên = **học viên luyện thi Sine Art (khối năng khiếu H/V — dân nghệ thuật)**. Đây không phải nhóm lệch thesis — đây là **nhóm thesis ở phiên bản sớm hơn trên trục thời gian**:
+
+| Giai đoạn | Cùng một primitive Journey |
+|---|---|
+| 17–18t luyện thi H/V | Bài vẽ ôn thi = nội dung Journey đầu tiên (luyện thi năng khiếu tự nó sản xuất portfolio) |
+| Đỗ ĐH mỹ thuật/thiết kế | Journey tiếp tục với bài trường |
+| Nhận commission / bán print / fanart | **Trụ 2 (Shop) bật lên** |
+
+Không di cư user sang sản phẩm khác ở bất kỳ bước nào → cùng Journey lớn dần theo người. Vì vậy mảng ĐH/CSĐT là **kênh acquisition cho trụ portfolio**, không phải rác.
+
+**Verify — đính chính freeze:** Sine Art là org (`co_so_dao_tao`) nên **use case sống đầu tiên của verify moat = Sine Art xác nhận "học viên"**. Freeze verify vẫn đúng ở nghĩa *không đầu tư thêm / không nới lỏng* (§2), nhưng không được để mục — đây là nơi moat chạy thật lần đầu.
+
+**Kỷ luật xây (chống lực kéo ngược về VN-vertical):**
+- **XÂY:** bài luyện thi rơi vào Journey dễ · Sine Art onboard cả lớp theo batch · org bấm verify học viên · cầu nối "thi xong → tiếp tục Journey → mở Shop".
+- **KHÔNG XÂY:** calculator điểm chuẩn / timeline tuyển sinh sâu hơn hiện có. Học viên cần CINs là *nơi tác phẩm sống*, không cần data tuyển sinh xịn hơn.
 
 **Ba tầng core (đã thu hẹp Canonical + hub thư viện):**
 - **Portfolio / Journey** — nơi user sống và sáng tạo. Tác phẩm đa định dạng (ảnh, video, 3D/Sketchfab, Rive, Figma, text…). Xem **Lưới** (visual-first) hoặc **Dòng thời gian** (MXH). Chat, follow, like, bình luận có context. *Hook acquisition & retention.*
@@ -33,7 +85,7 @@ Kết nối giữa người có chuyên môn là giá trị cốt lõi; **phân 
 - **Portfolio-first**: trình tạo nội dung tối ưu cho showcase đa định dạng; grid view là consumption mode mặc định cho visual. Portfolio chứng minh năng lực → động lực đóng góp canonical.
 - **Like là social proof thẩm mỹ**: "X người cũng thấy đẹp" = xác nhận sự đồng cảm, không phải vanity đua số. Hiển thị mặc định.
 - **Open model**: interaction (tuyển dụng, kết nối) xảy ra ở nơi khác. CINS verify và lưu kết quả.
-- **Verify là moat**: mọi quyết định thiết kế phải bảo vệ tính xác thực của timeline. Moat tồn tại *vì* có bên thứ hai phải đồng ý — bỏ bước đó để giảm tải là mất moat.
+- **Verify là moat**: mọi quyết định thiết kế phải bảo vệ tính xác thực của timeline. Moat tồn tại *vì* có bên thứ hai phải đồng ý — bỏ bước đó để giảm tải là mất moat. **Đóng băng phase cold-start (2026-08-20):** nhóm mũi nhọn là indie seller — không có org làm bên thứ hai, nên verify không chạm tới họ. Giữ verify ở mức hiện tại, **không đầu tư thêm**, không nới lỏng để cố vừa nhóm indie (nới = mất moat). Mở lại khi CINs phục vụ portfolio nghề nghiệp cho người đi làm studio.
 - **Chat phải có context — không inbox MXH tự do**: mọi phòng chat gắn một loại ngữ cảnh (`loai_phong_chat_enum`). **1-1** user ↔ user; **1_org** user ↔ org; **nhom** = nhóm **bạn bè đã kết bạn 2 chiều** (≥3 người gồm người tạo; cap app hiện tại 50) + project con / thẻ tài nguyên / mốc (L28) — không mở cho người lạ hay tìm kiếm công khai. Các loại còn lại (`du_an`, `lop_hoc`, `su_kien`…) gắn entity khi triển khai. Chi tiết → **§C**, **DECISIONS L25/L28**.
 - **Milestone không bao giờ tự sinh từ counter**: phải có xác nhận chủ động từ người có thẩm quyền.
 - **Verified milestone bất tử**: khi org đóng cửa, milestone đã verify không mất giá trị.
@@ -76,6 +128,8 @@ Kết nối giữa người có chuyên môn là giá trị cốt lõi; **phân 
 ---
 
 ## 5. Quy tắc kiến trúc cốt lõi (32 + verify)
+
+**SSOT (Single Source of Truth):** một sự kiện nghiệp vụ chỉ có **một** chỗ ghi/đọc chuẩn. Cache / denormalize / fallback phải ghi rõ “bản phụ, không SoT”. **Trước khi tạo SQL hay đổi schema** → scan trùng nguồn (DEV_RULES §1). Không thêm bảng/cột/JSON cùng grain với SoT đã có.
 
 1. Mọi thứ trên **Journey user** = 1 dòng `content_cot_moc` — source of truth thống nhất. (Journey *org* đi qua `org_bai_dang` + `thoi_diem`, KHÔNG dùng `content_cot_moc`; xem §O và quy tắc 29.)
 2. Milestone không bao giờ tự sinh từ counter — phải có xác nhận chủ động.
@@ -279,7 +333,7 @@ User soạn bản → trang_thai = cho_duyet
 - **Review 1 sample trước** rồi mới approve bulk.
 - Push back với reasoning cụ thể khi quyết định có hệ quả kiến trúc; không over-engineer; không hỏi clarifying lặp lại.
 - Câu trả lời ngắn gọn, không giải thích dài dòng.
-- **Schema là source of truth**: luôn query `information_schema` trước khi generate SQL; không assume field từ instruction cũ.
+- **Schema là source of truth**: luôn query `information_schema` trước khi generate SQL; không assume field từ instruction cũ. **SSOT scan** trước CREATE/ALTER — DEV_RULES §1.
 - SQL safety: apostrophe trong HTML/SQL string → `&apos;`/`&#39;`; dollar-quoting `$noidung$...$noidung$` cho nội dung dài. `CROSS JOIN` trong Supabase có thể fail silently → dùng scalar subquery. File SQL dài → split nhiều parts tránh context overflow.
 - Output path: `/mnt/user-data/outputs/`.
 

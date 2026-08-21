@@ -13,6 +13,7 @@ import {
   type MouseEvent,
 } from "react";
 
+import { useT } from "@/lib/i18n/use-t";
 import { NGANH_HOC_HUB_PATH } from "@/lib/cins/hubPaths";
 import { TIM_KIEM_PATH } from "@/lib/search/paths";
 import {
@@ -25,6 +26,7 @@ import {
 
 /** Ô tìm kiếm — đặt đầu sidebar (`sb-list`). Lưu tối đa 10 truy vấn gần đây. */
 export function CinsTopbarSearch() {
+  const t = useT();
   const pathname = usePathname() ?? "";
   const sp = useSearchParams();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -82,9 +84,9 @@ export function CinsTopbarSearch() {
     : recent;
   const showHistory = open && filtered.length > 0;
 
-  const placeholder = "Tìm kiếm";
+  const placeholder = t("search.placeholder");
 
-  const ariaLabel = isNganhHub ? "Tìm ngành học" : "Tìm kiếm trên CINs";
+  const ariaLabel = isNganhHub ? t("search.majors") : t("search.aria");
 
   function rememberAndClose(query: string) {
     const next = pushRecentSearch(query);
@@ -201,15 +203,15 @@ export function CinsTopbarSearch() {
       </form>
 
       {showHistory ? (
-        <div className="sb-search-history" id={listId} role="listbox" aria-label="Tìm gần đây">
+        <div className="sb-search-history" id={listId} role="listbox" aria-label={t("search.recent")}>
           <div className="sb-search-history-head">
-            <span>Tìm gần đây</span>
+            <span>{t("search.recent")}</span>
             <button
               type="button"
               className="sb-search-history-clear"
               onClick={onClearAll}
             >
-              Xóa hết
+              {t("search.clearAll")}
             </button>
           </div>
           <ul className="sb-search-history-list">
@@ -229,7 +231,7 @@ export function CinsTopbarSearch() {
                   <button
                     type="button"
                     className="sb-search-history-remove"
-                    aria-label={`Xóa «${item}» khỏi lịch sử`}
+                    aria-label={t("search.removeRecent", { query: item })}
                     onClick={(e) => onRemoveRecent(item, e)}
                   >
                     <X size={14} strokeWidth={2} aria-hidden />

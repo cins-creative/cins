@@ -10,12 +10,29 @@ import { CinsTopbarSearch } from "@/components/cins/CinsTopbarSearch";
 import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
 import { SidebarOrgFlyout } from "@/components/cins/SidebarOrgFlyout";
 import { useCinsSidebarNav } from "@/components/cins/useCinsSidebarNav";
+import { CinsLocaleSwitch } from "@/components/cins/CinsLocaleSwitch";
 import {
   MAIN_NAV_FOOT_ITEMS,
   MAIN_NAV_GROUP_BREAK_AFTER,
   MAIN_NAV_ITEMS,
   type MainNavItem,
 } from "@/lib/cins/mainNav";
+import {
+  MAIN_NAV_LABEL_KEY,
+  MAIN_NAV_TIP_KEY,
+} from "@/lib/cins/main-nav-i18n";
+import { useT } from "@/lib/i18n/use-t";
+import type { TFn } from "@/lib/i18n/t";
+
+function localizeNavItem(item: MainNavItem, t: TFn): MainNavItem {
+  const labelKey = MAIN_NAV_LABEL_KEY[item.id];
+  const tipKey = MAIN_NAV_TIP_KEY[item.id];
+  return {
+    ...item,
+    label: labelKey ? t(labelKey) : item.label,
+    tip: tipKey ? t(tipKey) : item.tip,
+  };
+}
 
 function SidebarItemContent({ item }: { item: MainNavItem }) {
   return (
@@ -102,10 +119,15 @@ function SidebarLink({
 }
 
 export function CinsAppSidebar() {
+  const t = useT();
   const pathname = usePathname() ?? "/";
   const [comingSoonOpen, setComingSoonOpen] = useState(false);
   const [pendingPath, setPendingPath] = useState<string | null>(null);
   const navPath = pendingPath ?? pathname;
+  const navItems = MAIN_NAV_ITEMS.map((item) => localizeNavItem(item, t));
+  const footItems = MAIN_NAV_FOOT_ITEMS.map((item) =>
+    localizeNavItem(item, t),
+  );
 
   useEffect(() => {
     setPendingPath(null);
@@ -116,7 +138,7 @@ export function CinsAppSidebar() {
       <aside
         className="sidebar cins-app-sidebar"
         id="app-sidebar"
-        aria-label="Điều hướng chính"
+        aria-label={t("nav.mainAria")}
       >
         <CinsSidebarRiveBrand sidebarId="app-sidebar" />
         <ul className="sb-list">
@@ -131,7 +153,7 @@ export function CinsAppSidebar() {
               <CinsTopbarSearch />
             </Suspense>
           </li>
-          {MAIN_NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <Fragment key={item.id}>
               <SidebarLink
                 item={item}
@@ -145,8 +167,9 @@ export function CinsAppSidebar() {
           ))}
         </ul>
         <div className="sb-foot">
-          <nav className="sb-foot-meta" aria-label="Liên kết phụ">
-            {MAIN_NAV_FOOT_ITEMS.map((item, index) => {
+          <CinsLocaleSwitch />
+          <nav className="sb-foot-meta" aria-label={t("nav.footAria")}>
+            {footItems.map((item, index) => {
               const active = item.isActive(navPath);
               return (
                 <Fragment key={item.id}>

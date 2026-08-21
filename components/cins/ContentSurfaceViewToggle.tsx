@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import { LayoutThumbIcon } from "@/components/editor/LayoutThumbIcon";
 import type { ContentSurfaceView } from "@/lib/cins/content-surface-view";
+import { useT } from "@/lib/i18n/use-t";
 
 type Props = {
   view: ContentSurfaceView;
@@ -18,33 +19,23 @@ type Props = {
   ariaLabel?: string;
 };
 
-const VIEW_OPTIONS: ReadonlyArray<{
-  id: ContentSurfaceView;
-  label: string;
-  icon: ReactNode;
-}> = [
-  {
-    id: "timeline",
-    label: "Dòng thời gian",
-    icon: <Waypoints size={15} strokeWidth={2} aria-hidden />,
-  },
-  {
-    id: "grid",
-    label: "Dạng thẻ",
-    icon: <Grid3X3 size={15} strokeWidth={2} aria-hidden />,
-  },
-  {
-    id: "masonry",
-    label: "Lưới gọn",
-    icon: (
-      <LayoutThumbIcon
-        layout="masonry"
-        variant="stroke"
-        size={15}
-        masonryColumns={2}
-      />
-    ),
-  },
+const VIEW_ICONS: Record<ContentSurfaceView, ReactNode> = {
+  timeline: <Waypoints size={15} strokeWidth={2} aria-hidden />,
+  grid: <Grid3X3 size={15} strokeWidth={2} aria-hidden />,
+  masonry: (
+    <LayoutThumbIcon
+      layout="masonry"
+      variant="stroke"
+      size={15}
+      masonryColumns={2}
+    />
+  ),
+};
+
+const VIEW_KEYS = [
+  { id: "timeline" as const, key: "surface.timeline" as const },
+  { id: "grid" as const, key: "surface.grid" as const },
+  { id: "masonry" as const, key: "surface.masonry" as const },
 ];
 
 /**
@@ -58,12 +49,15 @@ export function ContentSurfaceViewToggle({
   className = "j-surface-view-toggle",
   buttonClassName = "j-svt-btn",
   activeClassName = "active",
-  ariaLabel = "Chế độ xem",
+  ariaLabel,
 }: Props) {
+  const t = useT();
+  const groupLabel = ariaLabel ?? t("surface.viewMode");
   return (
-    <div className={className} role="group" aria-label={ariaLabel}>
-      {VIEW_OPTIONS.map((opt) => {
+    <div className={className} role="group" aria-label={groupLabel}>
+      {VIEW_KEYS.map((opt) => {
         const isOn = view === opt.id;
+        const label = t(opt.key);
         const prefetch =
           (opt.id === "grid" || opt.id === "masonry") && onPrefetchGrid
             ? {
@@ -80,13 +74,13 @@ export function ContentSurfaceViewToggle({
                 .filter(Boolean)
                 .join(" ") || undefined
             }
-            aria-label={opt.label}
+            aria-label={label}
             aria-pressed={isOn}
-            title={opt.label}
+            title={label}
             onClick={() => onViewChange(opt.id)}
             {...prefetch}
           >
-            {opt.icon}
+            {VIEW_ICONS[opt.id]}
           </button>
         );
       })}

@@ -41,9 +41,11 @@ const PhongHocMeeting = dynamic(
   { ssr: false },
 );
 import { addChatMessageToCanvas } from "@/lib/chat/canvas/add-message-client";
+import { useChatConvoSwipe } from "@/lib/chat/use-chat-convo-swipe";
 import { canvasBridge } from "@/components/cins/canvas/canvas-bridge";
 import { avatarBg, avatarHueFromSeed, avatarInitialFromName } from "@/lib/chat/avatar";
 import { patchChatThreadUnreadInCache, writeChatThreadsCache, writeRoomMessagesCache } from "@/lib/chat/chat-session-cache";
+import { threadMessagesAreStale } from "@/lib/chat/thread-merge";
 import { sumUnreadExcludingRoom } from "@/lib/chat/unread-focus";
 import {
   revokeDraftImageUrls,
@@ -105,9 +107,11 @@ import type {
   ChatReadCursor,
   ChatThread,
 } from "@/lib/chat/types";
+import { replaceChatEmoticons } from "@/lib/chat/emoticon-to-emoji";
 import { userEmojiDeliveryUrl } from "@/lib/user-emoji/delivery-url";
 import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
 import type { UserEmojiMuc } from "@/lib/user-emoji/types";
+import { useT } from "@/lib/i18n/use-t";
 
 function messageToReplyPreview(msg: ChatMessage): ChatMessageReplyPreview {
   return {
@@ -370,6 +374,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     clearPendingBubble,
     unpinRoom,
   } = useCinsChat();
+  const t = useT();
   const pinnedRoomIdSet = useMemo(
     () => new Set(pinnedRoomIds),
     [pinnedRoomIds],
@@ -557,7 +562,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
           thread.peerUserId === row.id_nguoi_dung
             ? thread.name
             : null) ||
-          "Thành viên";
+          t("chat.member");
         const nextCursor: ChatReadCursor = {
           userId: row.id_nguoi_dung,
           messageId,
@@ -1148,8 +1153,6 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
 
   useEffect(() => {
     return subscribeChatMessages((event) => {
-      if (open) return;
-
       const message = applyChatViewerPerspective(
         [event.message],
         viewerProfileId,
@@ -1223,6 +1226,23 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         return;
       }
 
+      const hydrated = roomStatesRef.current[event.roomId];
+      if (hydrated?.hydrated) {
+        const nextMessages =
+          event.event === "update"
+            ? mergeChatMessageUpdate(hydrated.messages, message)
+            : appendChatMessageIfNew(hydrated.messages, message);
+        if (viewerProfileId) {
+          writeRoomMessagesCache(viewerProfileId, event.roomId, nextMessages);
+        }
+        setRoomStates((prev) => ({
+          ...prev,
+          [event.roomId]: { ...hydrated, messages: nextMessages },
+        }));
+      }
+
+      if (open) return;
+
       if (event.senderId === viewerProfileId) return;
 
       if (miniOpenRef.current) {
@@ -1275,9 +1295,13 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   const loadRecentMessages = useCallback(
     async (thread: ChatThread) => {
       const { roomId } = thread;
-      if (hydratedRoomsRef.current.has(roomId)) {
+      const hydratedMessages = roomStatesRef.current[roomId]?.messages ?? [];
+      if (
+        hydratedRoomsRef.current.has(roomId) &&
+        !threadMessagesAreStale(hydratedMessages, thread)
+      ) {
         viewedRoomsRef.current.add(roomId);
-        const lastId = roomStatesRef.current[roomId]?.messages.at(-1)?.id;
+        const lastId = hydratedMessages.at(-1)?.id;
         persistPeekRoomRead(roomId, lastId, viewerProfileId);
         setPeekThreads((prev) =>
           prev.map((t) => (t.roomId === roomId ? { ...t, unread: 0 } : t)),
@@ -1481,7 +1505,12 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         hydratedRoomsRef.current.delete(thread.roomId);
       }
 
-      if (!hydratedRoomsRef.current.has(thread.roomId)) {
+      const existingMsgs =
+        roomStatesRef.current[thread.roomId]?.messages ?? [];
+      if (
+        !hydratedRoomsRef.current.has(thread.roomId) ||
+        threadMessagesAreStale(existingMsgs, thread)
+      ) {
         void loadRecentMessages(thread);
       } else {
         viewedRoomsRef.current.add(thread.roomId);
@@ -1705,6 +1734,11 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     [openChat, saveComposeForRoom, viewerProfileId],
   );
 
+  useChatConvoSwipe(messagesContainerRef, {
+    enabled: Boolean(miniThread) && !miniLeaving,
+    onSwipeLeft: () => expandMiniToFullChat(),
+  });
+
   const finishCloseMini = useCallback(() => {
     if (!miniLeavingRef.current) return;
     miniLeavingRef.current = false;
@@ -1896,7 +1930,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     async (mode: MediaCallMode = "audio") => {
       const roomId = miniThread?.roomId;
       if (!roomId || isPendingRoomId(roomId) || phongHocBusy) return;
-      const title = miniThread?.name?.trim() || "Cuộc gọi";
+      const title = miniThread?.name?.trim() || t("chat.callTitle");
       beginCallTrace("caller", { roomId, mode, via: "mini" });
       setPhongHocBusy(true);
       setPhongHocErr(null);
@@ -1966,7 +2000,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         roomId: pending.roomId,
         token: pending.token,
         mode: pending.mode,
-        title: pending.title || miniThread?.name?.trim() || "Cuộc gọi",
+        title: pending.title || miniThread?.name?.trim() || t("chat.callTitle"),
         callMessageId: pending.callMessageId,
       });
     };
@@ -2090,15 +2124,23 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
           throw new Error(json.error ?? "Không gửi được tin nhắn.");
         }
 
+        const confirmed = applyChatViewerPerspective(
+          [json.message],
+          viewerProfileId,
+        )[0]!;
+
         setRoomStates((prev) => {
           const current = prev[roomId] ?? {
             messages: [],
             hasMore: false,
             hydrated: true,
           };
+          const withoutOptimistic = current.messages.filter(
+            (m) => m.id !== optimisticId,
+          );
           const nextMessages = reconcileChatMessage(
-            current.messages,
-            json.message!,
+            withoutOptimistic,
+            confirmed,
           );
           if (viewerProfileId) {
             writeRoomMessagesCache(viewerProfileId, roomId, nextMessages);
@@ -2113,8 +2155,8 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
           prev && prev.roomId === roomId
             ? {
                 ...prev,
-                preview: messagePreviewText(json.message!),
-                lastAt: json.message!.sentAt,
+                preview: messagePreviewText(confirmed),
+                lastAt: confirmed.sentAt,
               }
             : prev,
         );
@@ -2407,6 +2449,8 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     if (!miniOpen || miniLeaving || open) return;
     function onKey(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
+      const lightbox = document.querySelector("dialog.cins-chat-lightbox");
+      if (lightbox instanceof HTMLDialogElement && lightbox.open) return;
       if (stickerPickerOpen) {
         setStickerPickerOpen(false);
         return;
@@ -2446,7 +2490,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
             .filter(Boolean)
             .join(" ")}
           role="dialog"
-          aria-label={`Chat với ${miniDisplayTitle}`}
+          aria-label={t("chat.miniWith", { name: miniDisplayTitle })}
           onAnimationEnd={(e) => {
             if (e.target !== e.currentTarget) return;
             if (miniLeaving) finishCloseMini();
@@ -2461,8 +2505,8 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
               .join(" ")}
             role="button"
             tabIndex={0}
-            aria-label={`Mở bảng tin nhắn với ${miniDisplayTitle}`}
-            title="Mở bảng tin nhắn"
+            aria-label={t("chat.miniOpen", { name: miniDisplayTitle })}
+            title={t("chat.miniOpenTitle")}
             onClick={(event) => expandMiniToFullChat(event)}
             onKeyDown={(event) => {
               if (event.key !== "Enter" && event.key !== " ") return;
@@ -2476,7 +2520,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
             />
             <div className="j-chat-mini-meta">
               <strong>{miniDisplayTitle}</strong>
-              <span>{miniThread.role || "Tin nhắn trực tiếp"}</span>
+              <span>{miniThread.role || t("chat.dmRole")}</span>
             </div>
             <div
               className="j-chat-mini-actions"
@@ -2486,8 +2530,8 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
               <button
                 type="button"
                 className="j-chat-mini-icon-btn"
-                aria-label="Mở cửa sổ tin nhắn đầy đủ"
-                title="Mở rộng"
+                aria-label={t("chat.miniExpand")}
+                title={t("chat.expand")}
                 onClick={(event) => expandMiniToFullChat(event)}
               >
                 <Maximize2 size={15} strokeWidth={2} aria-hidden />
@@ -2495,7 +2539,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
               <button
                 type="button"
                 className="j-chat-mini-icon-btn"
-                aria-label="Đóng"
+                aria-label={t("chat.close")}
                 onClick={closeMini}
               >
                 <X size={16} strokeWidth={2} aria-hidden />
@@ -2510,16 +2554,16 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
           >
             {loadingOlder ? (
               <p className="j-chat-mini-empty j-chat-mini-load-more">
-                Đang tải tin cũ hơn…
+                {t("chat.loadingOlder")}
               </p>
             ) : null}
             {loadingMessages && messages.length === 0 ? (
-              <p className="j-chat-mini-empty">Đang tải tin nhắn…</p>
+              <p className="j-chat-mini-empty">{t("chat.loadingMsgs")}</p>
             ) : loadError && messages.length === 0 ? (
               <p className="j-chat-mini-empty">{loadError}</p>
             ) : messages.length === 0 ? (
               <p className="j-chat-mini-empty">
-                Bắt đầu trò chuyện với <strong>{miniThread.name}</strong>
+                {t("chat.startWith", { name: miniThread.name })}
               </p>
             ) : null}
             {messages.length > 0 ? (
@@ -2597,7 +2641,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                       <button
                         type="button"
                         className="j-chat-mini-compose-remove"
-                        aria-label="Bỏ ảnh đính kèm"
+                        aria-label={t("chat.removeAttach")}
                         onClick={() => removePendingImage(image.localId)}
                       >
                         <X size={12} strokeWidth={2.5} aria-hidden />
@@ -2665,7 +2709,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                 onAttachImage={() => fileInputRef.current?.click()}
                 onAttachVideo={() => {
                   setLoadError(
-                    "Gửi video đính kèm: mở cửa sổ tin nhắn đầy đủ (nút Maximize).",
+                    t("chat.videoFull"),
                   );
                 }}
                 onCreatePoll={handleMiniCreatePoll}
@@ -2680,7 +2724,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                 type="button"
                 className="cins-chat-attach cins-chat-attach-meme"
                 data-sticker-trigger
-                aria-label="Meme của tôi"
+                aria-label={t("chat.myMeme")}
                 aria-expanded={stickerPickerOpen}
                 onClick={() => setStickerPickerOpen((open) => !open)}
               >
@@ -2691,12 +2735,26 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                 rows={1}
                 value={draft}
                 onChange={(e) => {
-                  setDraft(e.target.value);
-                  requestAnimationFrame(() => syncAtMentionFromTextarea());
+                  const el = e.currentTarget;
+                  const next = replaceChatEmoticons(
+                    el.value,
+                    el.selectionStart ?? el.value.length,
+                  );
+                  const replaced = next.value !== el.value;
+                  setDraft(next.value);
+                  requestAnimationFrame(() => {
+                    if (replaced) {
+                      inputRef.current?.setSelectionRange(
+                        next.caret,
+                        next.caret,
+                      );
+                    }
+                    syncAtMentionFromTextarea();
+                  });
                 }}
                 onSelect={() => syncAtMentionFromTextarea()}
                 onClick={() => syncAtMentionFromTextarea()}
-                placeholder="Viết tin nhắn…"
+                placeholder={t("chat.composePh")}
                 onPaste={handleComposePaste}
                 onKeyDown={(e) => {
                   if (atMentionTrigger && filteredAtMembers.length > 0) {
@@ -2740,7 +2798,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
               <button
                 type="button"
                 className="j-chat-mini-send"
-                aria-label="Gửi"
+                aria-label={t("chat.send")}
                 disabled={!canSend}
                 onClick={() => void sendMessage()}
               >
@@ -2757,7 +2815,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
             className="j-chat-bubbles"
             role="status"
             aria-live="polite"
-            aria-label={`${peekThreads.length} cuộc trò chuyện`}
+            aria-label={t("chat.peeksAria", { n: peekThreads.length })}
           >
             {peekThreads.map((thread) => {
               const isActive =
@@ -2824,12 +2882,15 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                     className="j-chat-bubble-btn"
                     aria-label={
                       isActive
-                        ? `Thu chat với ${displayTitle}`
+                        ? t("chat.bubbleCollapse", { name: displayTitle })
                         : thread.unread > 0
-                          ? `${thread.unread} tin nhắn chưa đọc từ ${displayTitle}`
+                          ? t("chat.bubbleUnread", {
+                              n: thread.unread,
+                              name: displayTitle,
+                            })
                           : isPinned
-                            ? `Chat đã ghim với ${displayTitle}`
-                            : `Mở chat với ${displayTitle}`
+                            ? t("chat.bubblePinned", { name: displayTitle })
+                            : t("chat.bubbleOpen", { name: displayTitle })
                     }
                     aria-pressed={isActive}
                     title={displayTitle}
@@ -2879,8 +2940,11 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                       ].join(" ")}
                       aria-label={
                         showCount
-                          ? `${thread.unread} tin nhắn chưa đọc từ ${thread.name}`
-                          : `Đóng chat ${thread.name}`
+                          ? t("chat.bubbleUnread", {
+                              n: thread.unread,
+                              name: thread.name,
+                            })
+                          : t("chat.bubbleClose", { name: thread.name })
                       }
                       onClick={(e) => {
                         e.stopPropagation();
@@ -2925,7 +2989,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
             <div
               className="cins-call-fullscreen"
               role="dialog"
-              aria-label="Cuộc gọi"
+              aria-label={t("chat.callTitle")}
             >
               <PhongHocMeeting
                 authToken={phongHoc.token}

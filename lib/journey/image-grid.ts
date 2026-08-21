@@ -241,26 +241,14 @@ export const SQUARE_ASPECT_TOLERANCE = 1.05;
 export const MASONRY_MIN_PORTRAIT_SHARE = 0.8;
 /** Số cột Masonry tối đa. */
 export const MASONRY_MAX_COLUMNS = 3;
-/** Số ảnh tối đa trên một hàng Justified. */
+/** Số ảnh trên một hàng Justified (album ≥3, trừ nhánh 4 = 2×2 và 5 = 2+3). */
 export const JUSTIFIED_MAX_PER_ROW = 3;
 /**
- * Mục tiêu tổng aspect (Σ width/height) mỗi hàng Justified khi chunk album ≥6.
- * Hàng cao ≈ W / 3.9 ≈ 0.256·W. Chọn k ∈ {1,2,3} sao cho k·avgAspect gần nhất
- * (không gian log) → ngưỡng avgAspect: ≤1.59 giữ 3, 1.59–2.76 → 2, >2.76 → 1.
- * Bảo thủ: 4:3 / 3:2 vẫn 3 ảnh/hàng; screenshot ~16:9+ mới xuống 2.
+ * Ô dọc bị “cắt” khi đứng cạnh ảnh ngang: width ≈ aspect / Σaspect.
+ * 0.61 / (0.61+1.78) ≈ 25% — quá hẹp. Tách hàng nếu bất kỳ ảnh dọc nào
+ * chiếm dưới ngưỡng này.
  */
-export const TARGET_JUSTIFIED_ROW_ASPECT_SUM = 3.9;
-/**
- * Canvas album: tách hàng khi một hàng thấp hơn khung 16:9 (tránh album dẹp lép).
- * Chiều cao từng hàng sau tách vẫn theo tỉ lệ ảnh (`justifiedRowStyle`) —
- * không ép lại canvas 16:9 (ép sẽ crop ảnh user).
- */
-export const JUSTIFIED_MIN_CANVAS_HEIGHT_RATIO = 9 / 16;
-/**
- * Ceiling chiều cao hàng (height/width). Tách 1+2 với ảnh dọc tạo hàng đơn
- * ~0.7 aspect → cao hơn khung vuông — từ chối split đó, giữ 1 hàng.
- */
-export const JUSTIFIED_MAX_ROW_HEIGHT_RATIO = 1;
+export const JUSTIFIED_PORTRAIT_MIN_WIDTH_FRACTION = 0.36;
 
 /** Aspect ratio = width / height. Thiếu số liệu → null (đừng giả 1200×800). */
 export function gridImageAspectOrNull(image: GridImage): number | null {
@@ -347,9 +335,45 @@ function toCell(image: GridImage, index: number): AlbumCell {
   return { image, index, aspect: gridImageAspect(image) };
 }
 
-function justifiedRowHeightRatio(cells: AlbumCell[]): number {
+/** Ảnh dọc bị ép quá hẹp trên hàng justified (đứng cạnh ảnh ngang/rộng). */
+export function justifiedRowCrampsPortrait(
+  cells: ReadonlyArray<{ aspect: number }>,
+): boolean {
+  if (cells.length < 2) return false;
   const aspectSum = cells.reduce((sum, cell) => sum + cell.aspect, 0);
-  return aspectSum > 0 ? 1 / aspectSum : 1;
+  if (!(aspectSum > 0)) return false;
+  return cells.some((cell) => {
+    if (cell.aspect >= 1 / SQUARE_ASPECT_TOLERANCE) return false;
+    return cell.aspect / aspectSum < JUSTIFIED_PORTRAIT_MIN_WIDTH_FRACTION;
+  });
+}
+
+/** Tách hàng chèn ảnh dọc: giữ thứ tự, gói greedy đến khi hàng bắt đầu chèn. */
+function unpackCrampedJustifiedRow(cells: AlbumCell[]): AlbumCell[][] {
+  /* Hàng đủ 3 cột — giữ grid, không tách 2+1 / 1+1+1 (3 ảnh dọc đều ~33%). */
+  if (cells.length >= JUSTIFIED_MAX_PER_ROW) {
+    return [cells];
+  }
+  if (cells.length <= 1 || !justifiedRowCrampsPortrait(cells)) {
+    return [cells];
+  }
+  const rows: AlbumCell[][] = [];
+  let current: AlbumCell[] = [];
+  for (const cell of cells) {
+    const trial = [...current, cell];
+    if (
+      current.length > 0 &&
+      (trial.length > JUSTIFIED_MAX_PER_ROW ||
+        justifiedRowCrampsPortrait(trial))
+    ) {
+      rows.push(current);
+      current = [cell];
+    } else {
+      current = trial;
+    }
+  }
+  if (current.length > 0) rows.push(current);
+  return rows;
 }
 
 /**
@@ -377,93 +401,37 @@ export function justifiedRowStyle(
   };
 }
 
-/** Tách một hàng thành hai phần liên tiếp có tổng aspect cân bằng nhất. */
-function splitBalancedJustifiedRow(cells: AlbumCell[]): AlbumCell[][] {
-  if (cells.length < 2) return [cells];
-
-  const totalAspect = cells.reduce((sum, cell) => sum + cell.aspect, 0);
-  let leftAspect = 0;
-  let bestSplit = 1;
-  let bestDifference = Number.POSITIVE_INFINITY;
-
-  for (let index = 1; index < cells.length; index++) {
-    leftAspect += cells[index - 1]!.aspect;
-    const difference = Math.abs(leftAspect - (totalAspect - leftAspect));
-    if (difference < bestDifference) {
-      bestDifference = difference;
-      bestSplit = index;
-    }
-  }
-
-  return [cells.slice(0, bestSplit), cells.slice(bestSplit)];
-}
-
-/**
- * Số ảnh/hàng cho nhánh chunk album ≥6: chọn k ∈ {1,2,3} sao cho
- * k·avgAspect gần TARGET_JUSTIFIED_ROW_ASPECT_SUM nhất (đo trong không gian log).
- */
-export function justifiedPerRow(
-  cells: ReadonlyArray<{ aspect: number }>,
-): 1 | 2 | 3 {
-  if (cells.length === 0) return JUSTIFIED_MAX_PER_ROW;
-  const aspectSum = cells.reduce((sum, cell) => sum + cell.aspect, 0);
-  const avgAspect = aspectSum / cells.length;
-  if (!(avgAspect > 0)) return JUSTIFIED_MAX_PER_ROW;
-
-  let bestK: 1 | 2 | 3 = JUSTIFIED_MAX_PER_ROW;
-  let bestDistance = Number.POSITIVE_INFINITY;
-  for (const k of [1, 2, 3] as const) {
-    const distance = Math.abs(Math.log((k * avgAspect) / TARGET_JUSTIFIED_ROW_ASPECT_SUM));
-    if (distance < bestDistance) {
-      bestDistance = distance;
-      bestK = k;
-    }
-  }
-  return bestK;
-}
-
 /**
  * Chia cells thành các hàng Justified (khớp icon editor: 5 → 2+3).
  * Export để ImageGrid tách lại khi đo được tỉ lệ intrinsic (metadata hay sai).
  */
 export function splitJustifiedRows(cells: AlbumCell[]): AlbumCell[][] {
-  // Album 2 ảnh luôn đặt cạnh nhau theo chiều ngang.
+  let rows: AlbumCell[][];
+  // Album 2 ảnh: cạnh nhau trừ khi ảnh dọc bị ép hẹp cạnh ảnh ngang.
   if (cells.length === 2) {
-    return [cells];
+    rows = [cells];
+  } else if (cells.length === 3) {
+    /* Luôn 1 hàng × 3 cột — không tách 1+2 vì hàng “dẹp” (ảnh ngang/screenshot). */
+    rows = [cells];
+  } else if (cells.length === 4) {
+    // 4 ảnh: 2×2 cân bằng — tránh hàng 3+1 lệch.
+    rows = [cells.slice(0, 2), cells.slice(2, 4)];
+  } else if (cells.length === 5) {
+    // 5 ảnh: 2 trên + 3 dưới (khớp pictogram Hàng cân).
+    rows = [cells.slice(0, 2), cells.slice(2, 5)];
+  } else {
+    rows = [];
+    for (let i = 0; i < cells.length; i += JUSTIFIED_MAX_PER_ROW) {
+      rows.push(cells.slice(i, i + JUSTIFIED_MAX_PER_ROW));
+    }
   }
-  // Một hàng thấp hơn canvas 16:9 → thử tách hai hàng, tránh album dẹp lép.
-  // Từ chối split nếu tạo hàng cao hơn khung vuông (điển hình: 3 ảnh dọc → 1+2).
-  if (
-    cells.length <= JUSTIFIED_MAX_PER_ROW &&
-    justifiedRowHeightRatio(cells) < JUSTIFIED_MIN_CANVAS_HEIGHT_RATIO
-  ) {
-    const split = splitBalancedJustifiedRow(cells);
-    const splitIsSane = split.every(
-      (row) => justifiedRowHeightRatio(row) <= JUSTIFIED_MAX_ROW_HEIGHT_RATIO,
-    );
-    if (splitIsSane) return split;
-    return [cells];
-  }
-  // 4 ảnh: 2×2 cân bằng — tránh hàng 3+1 lệch.
-  if (cells.length === 4) {
-    return [cells.slice(0, 2), cells.slice(2, 4)];
-  }
-  // 5 ảnh: 2 trên + 3 dưới (khớp pictogram Hàng cân).
-  if (cells.length === 5) {
-    return [cells.slice(0, 2), cells.slice(2, 5)];
-  }
-  const perRow = justifiedPerRow(cells);
-  const rows: AlbumCell[][] = [];
-  for (let i = 0; i < cells.length; i += perRow) {
-    rows.push(cells.slice(i, i + perRow));
-  }
-  return rows;
+  return rows.flatMap(unpackCrampedJustifiedRow);
 }
 
 /**
  * Album layout theo preset user (mặc định justified):
  * - 1 ảnh: luôn single (giữ tỉ lệ gốc)
- * - justified: hàng cân (2 / 2+2 / 2+3 / …)
+ * - justified: hàng cân (2 / 3 / 2+2 / 2+3 / 3+3 / …)
  * - masonry: cột dọc theo tỉ lệ ảnh
  * - columns2: lưới vuông 2 cột cố định
  * - square: lưới ô vuông (2–6 / compose 7+)

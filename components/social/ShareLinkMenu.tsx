@@ -13,6 +13,7 @@ import { createPortal } from "react-dom";
 
 import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
 import { SharePostToFriendsPanel } from "@/components/social/SharePostToFriendsPanel";
+import { useT } from "@/lib/i18n/use-t";
 import {
   buildSocialShareItems,
   copyTextToClipboard,
@@ -32,6 +33,8 @@ type Props = {
   triggerClassName?: string;
   triggerLabel?: string;
   triggerIcon?: ReactNode;
+  /** Thay icon mặc định — vd. hàng menu có chữ. */
+  triggerContent?: ReactNode;
   /** Popover mở lên trên (popover user) hay xuống dưới. */
   placement?: "up" | "down";
   className?: string;
@@ -55,13 +58,16 @@ export function ShareLinkMenu({
   shareTitle,
   viewerLoggedIn,
   triggerClassName = "j-friend-link is-icon",
-  triggerLabel = "Chia sẻ",
+  triggerLabel,
   triggerIcon,
+  triggerContent,
   placement = "up",
   className,
   onCloseParent,
 }: Props) {
+  const t = useT();
   const authGate = useOptionalAuthGate();
+  const triggerText = triggerLabel ?? t("social.share");
   const [open, setOpen] = useState(false);
   const [panel, setPanel] = useState<Panel>("share");
   const [copied, setCopied] = useState(false);
@@ -170,7 +176,7 @@ export function ShareLinkMenu({
       window.setTimeout(() => setCopied(false), 1500);
       return;
     }
-    window.prompt("Sao chép URL:", shareUrl);
+    window.prompt(t("share.copyLink"), shareUrl);
   }
 
   async function nativeShare() {
@@ -207,7 +213,10 @@ export function ShareLinkMenu({
         onFacebookShare: () => void openFacebookShare(shareUrl, title),
       }).map((item) =>
         item.id === "copy"
-          ? { ...item, label: copied ? "Đã sao chép link!" : "Sao chép link" }
+          ? {
+              ...item,
+              label: copied ? t("share.copiedLink") : t("share.copyLink"),
+            }
           : item,
       )
     : [];
@@ -258,7 +267,7 @@ export function ShareLinkMenu({
                   <span className="j-m-menu-ico" aria-hidden>
                     <ChevronLeft size={14} strokeWidth={1.7} />
                   </span>
-                  <span className="j-m-menu-lbl">Quay lại</span>
+                  <span className="j-m-menu-lbl">{t("shop.order.back")}</span>
                 </button>
                 <div className="j-m-menu-sep" aria-hidden />
                 {flash ? (
@@ -292,7 +301,7 @@ export function ShareLinkMenu({
                   >
                     <MessageCircle size={12} strokeWidth={2.2} />
                   </span>
-                  <span className="j-m-menu-lbl">Gửi bạn bè, nhóm, tổ chức</span>
+                  <span className="j-m-menu-lbl">{t("share.toFriends")}</span>
                 </button>
 
                 <div className="j-m-menu-sep" aria-hidden />
@@ -363,8 +372,8 @@ export function ShareLinkMenu({
         ref={triggerRef}
         type="button"
         className={triggerClassName}
-        title={triggerLabel}
-        aria-label={triggerLabel}
+        title={triggerText}
+        aria-label={triggerText}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={(e) => {
@@ -377,7 +386,8 @@ export function ShareLinkMenu({
           }
         }}
       >
-        {triggerIcon ?? <Share2 size={17} strokeWidth={2} aria-hidden />}
+        {triggerContent ??
+          (triggerIcon ?? <Share2 size={17} strokeWidth={2} aria-hidden />)}
       </button>
       {menuPop}
     </div>

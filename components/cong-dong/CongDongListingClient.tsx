@@ -23,7 +23,12 @@ import type { PendingCongDongInviteNotification } from "@/lib/cong-dong/invite";
 import { getCoverUrl } from "@/lib/articles/cover";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import type { CongDongListingFacet, CongDongOrg } from "@/lib/cong-dong/types";
-import { listingRoleLabel } from "@/lib/cong-dong/vai-tro";
+import {
+  listingRoleLabel,
+  type CongDongVaiTro,
+} from "@/lib/cong-dong/vai-tro";
+import type { TFn } from "@/lib/i18n/t";
+import { useT } from "@/lib/i18n/use-t";
 import { labelTinhThanh } from "@/lib/truong/contact";
 
 type Props = {
@@ -37,6 +42,25 @@ type Props = {
   /** Hiện filter «Cộng đồng của tôi» khi đã đăng nhập. */
   canFilterMine?: boolean;
 };
+
+function tListingRole(
+  t: TFn,
+  vaiTro: CongDongVaiTro | null | undefined,
+): string | null {
+  if (!vaiTro) return listingRoleLabel(vaiTro);
+  switch (vaiTro) {
+    case "thanh_vien":
+      return t("community.role.member");
+    case "quan_ly_noi_dung":
+      return t("community.role.mod");
+    case "admin":
+      return t("community.role.admin");
+    case "owner":
+      return t("community.role.owner");
+    default:
+      return listingRoleLabel(vaiTro);
+  }
+}
 
 function formatMemberCount(count: number): string {
   if (count < 1000) return String(count);
@@ -65,7 +89,8 @@ function CongDongFilterDropdown({
   const rootRef = useRef<HTMLDivElement>(null);
   const listId = useId();
   const active = facets.find((f) => f.slug === valueSlug) ?? null;
-  const display = active?.ten ?? "Tất cả";
+  const t = useT();
+  const display = active?.ten ?? t("community.all");
 
   useEffect(() => {
     if (!open) return;
@@ -126,7 +151,7 @@ function CongDongFilterDropdown({
               onOpenChange(false);
             }}
           >
-            <span className="cd-list-dd-option-name">Tất cả</span>
+            <span className="cd-list-dd-option-name">{t("community.all")}</span>
             {!active ? (
               <Check size={15} strokeWidth={2.5} aria-hidden />
             ) : null}
@@ -170,7 +195,8 @@ function CongDongListCard({ org }: { org: CongDongOrg }) {
   const avatarUrl = getAvatarUrl(org.avatarId);
   const location = labelTinhThanh(org.tinhThanh);
   const showPrivacyBadge = org.cheDo !== CONG_DONG_CHE_DO.CONG_KHAI;
-  const roleLabel = listingRoleLabel(org.viewerVaiTro);
+  const t = useT();
+  const roleLabel = tListingRole(t, org.viewerVaiTro);
 
   return (
     <Link href={`/community/${org.slug}`} className="cd-list-card">
@@ -214,14 +240,14 @@ function CongDongListCard({ org }: { org: CongDongOrg }) {
         <div className="cd-list-card-foot">
           <div className="cd-list-card-metric">
             <strong>{formatMemberCount(org.soThanhVien)}</strong>
-            <span>thành viên</span>
+            <span>{t("community.members")}</span>
           </div>
           <span className="cd-list-card-metric-sep" aria-hidden />
           <div
             className="cd-list-card-metric"
           >
-            <strong>{org.soBaiMoi7Ngay} bài viết</strong>
-            <span>trong 7 ngày qua</span>
+            <strong>{t("community.posts", { count: org.soBaiMoi7Ngay })}</strong>
+            <span>{t("community.posts7d")}</span>
           </div>
         </div>
       </div>
@@ -250,6 +276,7 @@ export function CongDongListingClient({
   initialMine = false,
   canFilterMine = false,
 }: Props) {
+  const t = useT();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -377,15 +404,15 @@ export function CongDongListingClient({
               <Search size={16} strokeWidth={2} aria-hidden />
               <input
                 type="search"
-                placeholder="Tìm cộng đồng..."
+                placeholder={t("community.searchPh")}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                aria-label="Tìm cộng đồng"
+                aria-label={t("community.searchAria")}
               />
             </label>
             <Link href="/community/create" className="cd-list-create-btn">
               <Plus size={16} strokeWidth={2.25} aria-hidden />
-              Tạo cộng đồng
+              {t("community.create")}
             </Link>
           </div>
 
@@ -395,7 +422,7 @@ export function CongDongListingClient({
             <div
               className="cd-list-toolbar-filters"
               role="toolbar"
-              aria-label="Bộ lọc cộng đồng"
+              aria-label={t("community.filtersAria")}
             >
               {canFilterMine ? (
                 <button
@@ -409,7 +436,7 @@ export function CongDongListingClient({
                   onClick={() => setFilterParam("mine", mineOnly ? null : "1")}
                 >
                   <UsersRound size={14} strokeWidth={2.25} aria-hidden />
-                  Cộng đồng của tôi
+                  {t("community.mine")}
                   {myCommunityCount > 0 ? (
                     <span className="cd-list-mine-chip-count">
                       {myCommunityCount}
@@ -441,8 +468,8 @@ export function CongDongListingClient({
 
               {linhVucFacets.length > 0 ? (
                 <CongDongFilterDropdown
-                  label="Lĩnh vực"
-                  ariaLabel="Lọc theo lĩnh vực"
+                  label={t("community.field")}
+                  ariaLabel={t("community.fieldAria")}
                   facets={linhVucFacets}
                   valueSlug={activeLinhVuc?.slug ?? null}
                   open={openFilter === "linh_vuc"}
@@ -455,8 +482,8 @@ export function CongDongListingClient({
 
               {nganhFacets.length > 0 ? (
                 <CongDongFilterDropdown
-                  label="Ngành"
-                  ariaLabel="Lọc theo ngành đào tạo"
+                  label={t("community.major")}
+                  ariaLabel={t("community.majorAria")}
                   facets={nganhFacets}
                   valueSlug={activeNganh?.slug ?? null}
                   open={openFilter === "nganh"}
@@ -487,7 +514,7 @@ export function CongDongListingClient({
           ) : hasActiveFilters ? (
             <p className="cd-list-toolbar-meta-text">
               {visible.length} kết quả
-              {mineOnly ? " · Cộng đồng của tôi" : ""}
+              {mineOnly ? ` · ${t("community.mine")}` : ""}
               {activeLinhVuc ? ` · ${activeLinhVuc.ten}` : ""}
               {activeNganh ? ` · ${activeNganh.ten}` : ""}
             </p>
@@ -572,7 +599,7 @@ export function CongDongListingClient({
                 className="cd-list-create-btn cd-list-create-btn--inline"
               >
                 <Plus size={16} strokeWidth={2.25} aria-hidden />
-                Tạo cộng đồng
+                {t("community.create")}
               </Link>
             ) : hasActiveFilters ? (
               <button

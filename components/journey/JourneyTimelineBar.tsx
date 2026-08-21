@@ -46,6 +46,9 @@ import {
   type LoaiMocFilterKey,
   type LoaiMocVisibilityMap,
 } from "@/lib/journey/filter-visibility";
+import { useT } from "@/lib/i18n/use-t";
+import { useChromeStuck } from "@/lib/ui/use-chrome-stuck";
+import type { MessageKey } from "@/lib/i18n/messages";
 import { computeFixedMenuPosition } from "@/lib/ui/clamp-fixed-menu-position";
 
 export type FilterGroup = "all" | MilestoneType | "verified" | "cong-dong";
@@ -94,17 +97,17 @@ type Props = {
   embed?: boolean;
 };
 
-const GROUP_LABELS: Record<FilterGroup, string> = {
-  all: "Tất cả",
-  hoc: "Học tập",
-  lam: "Công việc",
-  "du-an": "Dự án",
-  "su-kien": "Sự kiện",
-  "thanh-tuu": "Thành tựu",
-  "ca-nhan": "Cá nhân",
-  bookmark: "Lưu về",
-  verified: "Verified",
-  "cong-dong": "Cộng đồng",
+const GROUP_MSG: Record<FilterGroup, MessageKey> = {
+  all: "filter.all",
+  hoc: "filter.hoc",
+  lam: "filter.lam",
+  "du-an": "filter.du-an",
+  "su-kien": "filter.su-kien",
+  "thanh-tuu": "filter.thanh-tuu",
+  "ca-nhan": "filter.ca-nhan",
+  bookmark: "filter.bookmark",
+  verified: "filter.verified",
+  "cong-dong": "filter.cong-dong",
 };
 
 const DOT_COLOR: Record<FilterGroup, string> = {
@@ -126,10 +129,11 @@ const MENU_EST_HEIGHT = 400;
 function timelineFilterButtonLabel(
   group: FilterGroup,
   personalName: string | null,
+  t: ReturnType<typeof useT>,
 ): string {
   if (personalName) return personalName;
-  if (group === "all") return "Bộ lọc";
-  return GROUP_LABELS[group];
+  if (group === "all") return t("filter.filter");
+  return t(GROUP_MSG[group]);
 }
 
 function selectTimelineFilter(
@@ -161,6 +165,7 @@ export function JourneyTimelineBar({
   filterVisibility,
   embed = false,
 }: Props) {
+  const t = useT();
   const personalFilter = useJourneyPersonalFilterOptional();
   const journeyView = useJourneyViewOptional();
   const showSurfaceToggle = Boolean(journeyView) && !embed;
@@ -176,7 +181,9 @@ export function JourneyTimelineBar({
     left: number;
   } | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
+  useChromeStuck(barRef);
   const menuRef = useRef<HTMLDivElement>(null);
 
   /* Local optimistic copy của visibility map — server-side revalidatePath
@@ -271,6 +278,7 @@ export function JourneyTimelineBar({
   const currentLabel = timelineFilterButtonLabel(
     filter,
     activePersonalFilter?.ten ?? null,
+    t,
   );
   const isDefaultFilter = !activePersonalFilter && filter === "all";
   const dotColor = activePersonalFilter
@@ -420,7 +428,7 @@ export function JourneyTimelineBar({
   }
 
   return (
-    <div className="j-tlb">
+    <div ref={barRef} className="j-tlb">
       <span className="j-tlb-streak-slow" aria-hidden="true" />
       {filterControl}
       {showSurfaceToggle ? <JourneySurfaceViewToggle /> : null}
@@ -448,7 +456,9 @@ function DropdownItem({
   onToggleVis?: () => void;
   onShareMenuClose?: () => void;
 }) {
+  const t = useT();
   const filterShare = useJourneyFilterShareOptional();
+  const groupLabel = t(GROUP_MSG[opt.group]);
   const cls = [
     "j-dd-opt",
     opt.modifier === "verified" && "j-dd-opt--verified",
@@ -473,10 +483,10 @@ function DropdownItem({
         <span className="j-dd-ico" aria-hidden>
           <Icon size={13} strokeWidth={1.7} />
         </span>
-        <span className="j-dd-lbl">{opt.label}</span>
+        <span className="j-dd-lbl">{groupLabel}</span>
       </button>
       <JourneyFilterShareButton
-        label={opt.label}
+        label={groupLabel}
         onShare={
           filterShare
             ? () => {
@@ -486,7 +496,7 @@ function DropdownItem({
                     : {
                         kind: "group",
                         group: opt.group,
-                        label: opt.label,
+                        label: groupLabel,
                       },
                 );
                 onShareMenuClose?.();

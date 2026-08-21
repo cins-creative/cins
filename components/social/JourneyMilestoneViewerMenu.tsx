@@ -20,6 +20,7 @@ import {
 import { createPortal } from "react-dom";
 
 import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
+import { useT } from "@/lib/i18n/use-t";
 import { ReportModal } from "@/components/social/ReportModal";
 import { SharePostToFriendsPanel } from "@/components/social/SharePostToFriendsPanel";
 import {
@@ -57,6 +58,7 @@ export function JourneyMilestoneViewerMenu({
   viewerLoggedIn,
   className,
 }: Props) {
+  const t = useT();
   const authGate = useOptionalAuthGate();
   const [open, setOpen] = useState(false);
   const [panel, setPanel] = useState<MenuPanel>("main");
@@ -206,7 +208,7 @@ export function JourneyMilestoneViewerMenu({
     go();
   }
 
-  const shareTitle = reportTargetTitle?.trim() || "Bài viết trên CINs";
+  const shareTitle = reportTargetTitle?.trim() || t("profile.postOnCins");
   const shareUrl = absoluteHref() ?? "";
   const shareItems =
     shareUrl && panel === "share"
@@ -216,7 +218,7 @@ export function JourneyMilestoneViewerMenu({
           onFacebookShare: () => void openFacebookShare(shareUrl, shareTitle),
         }).map((item) =>
           item.id === "copy"
-            ? { ...item, label: copied ? "Đã sao chép link!" : "Sao chép link" }
+            ? { ...item, label: copied ? t("share.copiedLink") : t("share.copyLink") }
             : item,
         )
       : [];
@@ -236,7 +238,7 @@ export function JourneyMilestoneViewerMenu({
           <span className="j-m-menu-ico" aria-hidden>
             <ChevronLeft size={14} strokeWidth={1.7} />
           </span>
-          <span className="j-m-menu-lbl">Quay lại</span>
+          <span className="j-m-menu-lbl">{t("action.back")}</span>
         </button>
         <div className="j-m-menu-sep" aria-hidden />
         {flash ? (
@@ -268,7 +270,7 @@ export function JourneyMilestoneViewerMenu({
             <button
               type="button"
               className="j-m-share-friends-overlay-backdrop"
-              aria-label="Đóng"
+              aria-label={t("actors.close")}
               onClick={closeMenu}
             />
             <div
@@ -332,7 +334,7 @@ export function JourneyMilestoneViewerMenu({
                   <span className="j-m-menu-ico" aria-hidden>
                     <ChevronLeft size={14} strokeWidth={1.7} />
                   </span>
-                  <span className="j-m-menu-lbl">Quay lại</span>
+                  <span className="j-m-menu-lbl">{t("action.back")}</span>
                 </button>
                 <div className="j-m-menu-sep" aria-hidden />
 
@@ -348,7 +350,7 @@ export function JourneyMilestoneViewerMenu({
                   >
                     <MessageCircle size={12} strokeWidth={2.2} />
                   </span>
-                  <span className="j-m-menu-lbl">Gửi bạn bè, nhóm, tổ chức</span>
+                  <span className="j-m-menu-lbl">{t("action.sendFriends")}</span>
                 </button>
 
                 <div className="j-m-menu-sep" aria-hidden />
@@ -409,7 +411,7 @@ export function JourneyMilestoneViewerMenu({
                     <span className="j-m-menu-ico" aria-hidden>
                       <ExternalLink size={14} strokeWidth={1.7} />
                     </span>
-                    <span className="j-m-menu-lbl">Mở bài viết</span>
+                    <span className="j-m-menu-lbl">{t("action.openPost")}</span>
                   </a>
                 ) : null}
 
@@ -423,7 +425,7 @@ export function JourneyMilestoneViewerMenu({
                     <span className="j-m-menu-ico" aria-hidden>
                       <Share2 size={14} strokeWidth={1.7} />
                     </span>
-                    <span className="j-m-menu-lbl">Chia sẻ</span>
+                    <span className="j-m-menu-lbl">{t("social.share")}</span>
                   </button>
                 ) : null}
 
@@ -441,7 +443,7 @@ export function JourneyMilestoneViewerMenu({
                   <span className="j-m-menu-ico" aria-hidden>
                     <AlertTriangle size={14} strokeWidth={1.7} />
                   </span>
-                  <span className="j-m-menu-lbl">Báo cáo</span>
+                  <span className="j-m-menu-lbl">{t("action.report")}</span>
                 </button>
               </>
             )}

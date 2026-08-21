@@ -42,7 +42,7 @@ export async function OrgInboxModule({ ctx }: { ctx: HomeModuleCtx }) {
   const unread = items.reduce((s, t) => s + (t.unread || 0), 0);
   if (items.length === 0) {
     return (
-      <ModuleCard icon={Inbox} title="Hộp thư tổ chức">
+      <ModuleCard icon={Inbox} moduleId="org_inbox" title="Hộp thư tổ chức">
         <ModuleEmpty>Chưa có tin nhắn tới tổ chức.</ModuleEmpty>
       </ModuleCard>
     );
@@ -51,6 +51,7 @@ export async function OrgInboxModule({ ctx }: { ctx: HomeModuleCtx }) {
   return (
     <ModuleCard
       icon={Inbox}
+      moduleId="org_inbox"
       title="Hộp thư tổ chức"
       badge={unread > 0 ? String(unread) : undefined}
     >
@@ -116,7 +117,7 @@ export async function QuanLySuKienModule({ ctx }: { ctx: HomeModuleCtx }) {
   );
   if (items.length === 0) {
     return (
-      <ModuleCard icon={CalendarCheck} title="Quản lý sự kiện">
+      <ModuleCard icon={CalendarCheck} moduleId="quan_ly_su_kien" title="Quản lý sự kiện">
         <ModuleEmpty>Chưa có sự kiện sắp tới để quản lý.</ModuleEmpty>
       </ModuleCard>
     );
@@ -127,6 +128,7 @@ export async function QuanLySuKienModule({ ctx }: { ctx: HomeModuleCtx }) {
   return (
     <ModuleCard
       icon={CalendarCheck}
+      moduleId="quan_ly_su_kien"
       title="Quản lý sự kiện"
       badge={pendingQuay > 0 ? String(pendingQuay) : undefined}
       className="ha-card--notify"
@@ -170,7 +172,7 @@ export async function UngVienMoiModule({ ctx }: { ctx: HomeModuleCtx }) {
   );
   if (items.length === 0) {
     return (
-      <ModuleCard icon={UserRoundSearch} title="Ứng viên mới">
+      <ModuleCard icon={UserRoundSearch} moduleId="ung_vien_moi" title="Ứng viên mới">
         <ModuleEmpty>Chưa có ứng viên mới.</ModuleEmpty>
       </ModuleCard>
     );
@@ -179,6 +181,7 @@ export async function UngVienMoiModule({ ctx }: { ctx: HomeModuleCtx }) {
   return (
     <ModuleCard
       icon={UserRoundSearch}
+      moduleId="ung_vien_moi"
       title="Ứng viên mới"
       badge={String(items.length)}
     >
@@ -226,7 +229,7 @@ export async function ToChucCuaBanModule({ ctx }: { ctx: HomeModuleCtx }) {
   if (items.length === 0) return null;
 
   return (
-    <ModuleCard icon={Building2} title="Tổ chức của bạn">
+    <ModuleCard icon={Building2} moduleId="to_chuc_cua_ban" title="Tổ chức của bạn">
       {items.map((o) => {
         const inner = (
           <>

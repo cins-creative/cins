@@ -30,6 +30,10 @@ import {
 import { ShopImageProtect } from "@/components/shop/ShopImageProtect";
 import { ShopStorefrontComboStrip } from "@/components/shop/ShopStorefrontComboStrip";
 import { ShopTamDongOverlay } from "@/components/shop/ShopTamDongOverlay";
+import { formatMoney } from "@/lib/format";
+import { useT } from "@/lib/i18n/use-t";
+import { useLocale } from "@/lib/locale/context";
+import type { CinsLocale } from "@/lib/locale/types";
 import {
   fetchMatHangCached,
   fetchQuaySapCoMatCached,
@@ -87,17 +91,8 @@ type Props = {
   tamDongLyDo?: string | null;
 };
 
-function formatGia(gia: number, tienTe: string): string {
-  const n = Number.isFinite(gia) ? gia : 0;
-  try {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: tienTe === "VND" ? "VND" : tienTe || "VND",
-      maximumFractionDigits: tienTe === "VND" ? 0 : 2,
-    }).format(n);
-  } catch {
-    return `${n.toLocaleString("vi-VN")} ${tienTe || "VND"}`;
-  }
+function formatGia(gia: number, tienTe: string, locale: CinsLocale): string {
+  return formatMoney(gia, locale, tienTe || "VND");
 }
 
 function CardMoTa({ moTa }: { moTa: string }) {
@@ -123,14 +118,18 @@ function TypeCard({
   featureChrome?: boolean;
   protect?: boolean;
 }) {
+  const t = useT();
+  const locale = useLocale();
   const giaLabel =
     card.giaMacDinh != null
-      ? formatGia(card.giaMacDinh, card.tienTe)
+      ? formatGia(card.giaMacDinh, card.tienTe, locale)
       : card.giaTu != null
         ? card.giaDen != null && card.giaDen !== card.giaTu
-          ? `Từ ${formatGia(card.giaTu, card.tienTe)}`
-          : formatGia(card.giaTu, card.tienTe)
-        : "Chưa có giá";
+          ? t("shop.from", {
+              price: formatGia(card.giaTu, card.tienTe, locale),
+            })
+          : formatGia(card.giaTu, card.tienTe, locale)
+        : t("shop.noPrice");
   const href =
     card.href?.trim() || shopLoaiHref(ownerSlug, shopSlug, card.id);
   const showFeature = featureChrome && card.noiBat;
@@ -161,14 +160,14 @@ function TypeCard({
           </span>
         ) : null}
         {card.hetHang ? (
-          <span className="j-shop-sf-soldout">Hết hàng</span>
+          <span className="j-shop-sf-soldout">{t("shop.outOfStock")}</span>
         ) : null}
       </span>
       <span className="j-shop-sf-card-body">
         <span className="j-shop-sf-card-name">{card.nhan}</span>
         {card.moTa ? <CardMoTa moTa={card.moTa} /> : null}
         <span className="j-shop-sf-type-meta">
-          <span>{card.soMau} mẫu</span>
+          <span>{t("shop.variants", { count: card.soMau })}</span>
           {card.diemTrungBinh != null ? (
             <span
               className="j-shop-sf-type-rating"
@@ -213,12 +212,14 @@ function ItemCard({
   featured?: boolean;
   protect?: boolean;
 }) {
+  const t = useT();
+  const locale = useLocale();
   const nhomId = item.idNhom?.trim() || SHOP_STOREFRONT_KHAC_SLUG;
   const href = shopLoaiMauHref(ownerSlug, shopSlug, nhomId, item.sanPhamId);
   const giaLabel =
     item.giaHienThi != null
-      ? formatGia(item.giaHienThi, item.tienTe)
-      : "Chưa có giá";
+      ? formatGia(item.giaHienThi, item.tienTe, locale)
+      : t("shop.noPrice");
   const sub = [item.phanLoai, item.nhanBienThe]
     .map((t) => t?.trim())
     .filter((t): t is string => Boolean(t) && t !== "Mặc định")
@@ -269,7 +270,7 @@ function ItemCard({
             </span>
           ) : null}
           {item.hetHang ? (
-            <span className="j-shop-sf-soldout">Hết hàng</span>
+            <span className="j-shop-sf-soldout">{t("shop.outOfStock")}</span>
           ) : null}
         </span>
       </Link>
@@ -282,7 +283,7 @@ function ItemCard({
           <span className="j-shop-sf-card-price-row">
             {item.giaGoc != null ? (
               <span className="j-shop-sf-card-price-goc">
-                {formatGia(item.giaGoc, item.tienTe)}
+                {formatGia(item.giaGoc, item.tienTe, locale)}
               </span>
             ) : null}
             <span
@@ -296,7 +297,7 @@ function ItemCard({
               <span className="j-shop-sf-qty">
                 <button
                   type="button"
-                  aria-label="Bớt"
+                  aria-label={t("shop.qtyMinus")}
                   disabled={qty <= 0}
                   onClick={() => onQtyChange(item, qty - 1)}
                 >
@@ -305,7 +306,7 @@ function ItemCard({
                 <span>{qty}</span>
                 <button
                   type="button"
-                  aria-label="Thêm"
+                  aria-label={t("shop.qtyPlus")}
                   disabled={qty >= maxQty}
                   onClick={() => onQtyChange(item, qty + 1)}
                 >
@@ -317,7 +318,7 @@ function ItemCard({
                 type="button"
                 className="j-shop-sf-add"
                 disabled={!canBuy}
-                aria-label={`Thêm ${item.tenSanPham} vào giỏ`}
+                aria-label={t("shop.addNamed", { name: item.tenSanPham })}
                 onClick={() => onQtyChange(item, 1)}
               >
                 <Plus size={15} strokeWidth={2.5} aria-hidden />
@@ -547,6 +548,7 @@ export function JourneyShopStorefront({
   tamDongDen = null,
   tamDongLyDo = null,
 }: Props) {
+  const t = useT();
   const { openAuthModal } = useAuthGate();
   const [cards, setCards] = useState<ShopStorefrontNhomCard[] | null>(null);
   const [items, setItems] = useState<ShopStorefrontItem[]>([]);
@@ -637,7 +639,7 @@ export function JourneyShopStorefront({
         } | null;
         if ((qtyEpochRef.current.get(idBienThe) ?? 0) !== epoch) return;
         if (!res.ok || !json?.gio) {
-          setAddErr(json?.error ?? "Không cập nhật giỏ.");
+          setAddErr(json?.error ?? t("shop.cartUpdateFail"));
           invalidateMatHangCache(ownerSlug);
           try {
             const fresh = await fetchMatHangCached(ownerSlug, { force: true });
@@ -653,17 +655,17 @@ export function JourneyShopStorefront({
         window.dispatchEvent(new Event(GIO_CHUNG_CHANGED_EVENT));
       } catch {
         if ((qtyEpochRef.current.get(idBienThe) ?? 0) !== epoch) return;
-        setAddErr("Không cập nhật giỏ.");
+        setAddErr(t("shop.cartUpdateFail"));
         await refreshGio();
       }
     },
-    [applyGio, refreshGio, ownerSlug],
+    [applyGio, refreshGio, ownerSlug, t],
   );
 
   const patchQty = useCallback(
     (item: ShopStorefrontItem, soLuong: number) => {
       if (!viewerProfileId) {
-        openAuthModal("Đăng nhập để thêm vào giỏ.");
+        openAuthModal(t("shop.authCart"));
         return;
       }
       if (!item.idBienThe || item.giaHienThi == null) return;
@@ -671,9 +673,9 @@ export function JourneyShopStorefront({
       const cap = Math.max(0, item.soLuongTon);
       const qty = Math.min(Math.max(0, Math.trunc(soLuong)), cap);
       if (soLuong > qty && item.soLuongTon > 0) {
-        setAddErr(`Chỉ còn ${item.soLuongTon} trong kho.`);
+        setAddErr(t("shop.stockLeft", { count: item.soLuongTon }));
       } else if (item.soLuongTon <= 0 && soLuong > 0) {
-        setAddErr("Hết hàng — không thêm vào giỏ được.");
+        setAddErr(t("shop.cartSoldOut"));
       } else {
         setAddErr(null);
       }
@@ -707,7 +709,7 @@ export function JourneyShopStorefront({
         }, QTY_SYNC_MS),
       );
     },
-    [viewerProfileId, openAuthModal, flushQtySync],
+    [viewerProfileId, openAuthModal, flushQtySync, t],
   );
 
   useEffect(() => {
@@ -861,48 +863,13 @@ export function JourneyShopStorefront({
         />
       ) : null}
 
-      <JourneyShopSectionHead>
-        <span className="j-tlb-streak-slow" aria-hidden="true" />
-        <div className="j-shop-sf-section-tools">
-          {!loading && hasCards && !shopClosed ? (
-            <div className="j-shop-sf-dd-row">
-              <label className="j-shop-sf-search">
-                <Search size={14} strokeWidth={2.25} aria-hidden />
-                <input
-                  type="search"
-                  value={search}
-                  placeholder="Tìm hàng…"
-                  aria-label="Tìm hàng bán"
-                  autoComplete="off"
-                  spellCheck={false}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-                {search ? (
-                  <button
-                    type="button"
-                    className="j-shop-sf-search-clear"
-                    aria-label="Xóa tìm kiếm"
-                    onClick={() => setSearch("")}
-                  >
-                    <X size={13} strokeWidth={2.25} aria-hidden />
-                  </button>
-                ) : null}
-              </label>
-            </div>
-          ) : (
-            <span className="j-shop-sf-section-spacer" aria-hidden />
-          )}
-          {isOwner ? ownerChrome?.actions : null}
-        </div>
-      </JourneyShopSectionHead>
-
       {!loading && upcomingEvents.length > 0 && !searchActive ? (
         <section
           className="j-shop-sf-group j-shop-sf-group--events"
-          aria-label="Các sự kiện sắp có mặt"
+          aria-label={t("shop.upcomingEvents")}
         >
           <div className="j-shop-sf-group-head">
-            <p className="j-shop-sf-group-kicker">Các sự kiện sắp có mặt</p>
+            <p className="j-shop-sf-group-kicker">{t("shop.upcomingEvents")}</p>
           </div>
           <ul className="j-shop-sf-events">
             {upcomingEvents.map((ev) => {
@@ -929,7 +896,9 @@ export function JourneyShopStorefront({
                         {dateLbl}
                         {dateLbl && ev.orgTen ? " · " : null}
                         {ev.orgTen}
-                        {ev.status === "active" ? " · Đang diễn ra" : null}
+                        {ev.status === "active"
+                          ? ` · ${t("shop.eventLive")}`
+                          : null}
                       </span>
                     </span>
                   </Link>
@@ -940,17 +909,50 @@ export function JourneyShopStorefront({
         </section>
       ) : null}
 
+      <JourneyShopSectionHead>
+        <span className="j-tlb-streak-slow" aria-hidden="true" />
+        <div className="j-shop-sf-section-tools">
+          {!loading && hasCards && !shopClosed ? (
+            <div className="j-shop-sf-dd-row">
+              <label className="j-shop-sf-search">
+                <Search size={14} strokeWidth={2.25} aria-hidden />
+                <input
+                  type="search"
+                  value={search}
+                  placeholder={t("shop.searchPlaceholder")}
+                  aria-label={t("shop.searchAria")}
+                  autoComplete="off"
+                  spellCheck={false}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+                {search ? (
+                  <button
+                    type="button"
+                    className="j-shop-sf-search-clear"
+                    aria-label={t("shop.clearSearch")}
+                    onClick={() => setSearch("")}
+                  >
+                    <X size={13} strokeWidth={2.25} aria-hidden />
+                  </button>
+                ) : null}
+              </label>
+            </div>
+          ) : (
+            <span className="j-shop-sf-section-spacer" aria-hidden />
+          )}
+          {isOwner ? ownerChrome?.actions : null}
+        </div>
+      </JourneyShopSectionHead>
+
       {loading ? (
         <div className="j-shop-sf-loading" aria-busy="true">
           <Loader2 size={18} className="shop-spin" aria-hidden />
-          Đang tải hàng…
+          {t("shop.loadingItems")}
         </div>
       ) : hasCatalog ? (
         catalogEmpty && !shopClosed ? (
           <p className="j-shop-sf-empty">
-            {searchActive
-              ? "Không tìm thấy hàng khớp."
-              : "Không có loại hàng."}
+            {searchActive ? t("shop.searchEmpty") : t("shop.noTypes")}
           </p>
         ) : (
           <div
@@ -968,7 +970,7 @@ export function JourneyShopStorefront({
               <section className="j-shop-sf-group j-shop-sf-group--feature">
                 <div className="j-shop-sf-group-head">
                   <p className="j-shop-sf-group-kicker">
-                    Các mặt hàng phổ biến
+                    {t("shop.popularTypes")}
                   </p>
                 </div>
                 <ul className="j-shop-sf-grid">
@@ -997,7 +999,9 @@ export function JourneyShopStorefront({
             {hasFeaturedItems ? (
               <section className="j-shop-sf-group j-shop-sf-group--feature-items">
                 <div className="j-shop-sf-group-head">
-                  <p className="j-shop-sf-group-kicker">Sản phẩm nổi bật</p>
+                  <p className="j-shop-sf-group-kicker">
+                    {t("shop.featuredProducts")}
+                  </p>
                 </div>
                 {addErr && !showItemResults ? (
                   <p className="j-shop-sf-empty" role="alert">
@@ -1058,7 +1062,7 @@ export function JourneyShopStorefront({
               <section className="j-shop-sf-group">
                 <div className="j-shop-sf-group-head">
                   <p className="j-shop-sf-group-kicker">
-                    {searchActive ? "Các loại hàng" : "Các hàng bán chạy"}
+                    {searchActive ? t("shop.types") : t("shop.bestSellers")}
                   </p>
                 </div>
                 <ul className="j-shop-sf-grid">

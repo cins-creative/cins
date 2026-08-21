@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { Phone, PhoneOff } from "lucide-react";
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
+import { useT } from "@/lib/i18n/use-t";
 import type { MediaCallMode } from "@/lib/media/call-mode";
 import {
   beginCallTrace,
@@ -114,6 +115,7 @@ type ActiveCall = {
 };
 
 export function ChatIncomingCallHost() {
+  const t = useT();
   const { subscribeChatMessages, viewerProfileId, isRoomMuted } = useCinsChat();
   const [offer, setOffer] = useState<IncomingCallOffer | null>(null);
   const [activeCall, setActiveCall] = useState<ActiveCall | null>(null);
@@ -408,7 +410,7 @@ export function ChatIncomingCallHost() {
       <div
         className="cins-call-fullscreen"
         role="dialog"
-        aria-label="Cuộc gọi"
+        aria-label={t("chat.callTitle")}
       >
         <PhongHocMeeting
           authToken={activeCall.token}
@@ -426,10 +428,10 @@ export function ChatIncomingCallHost() {
   if (!offer) return null;
 
   return createPortal(
-    <div className="cins-incoming-call" role="dialog" aria-label="Cuộc gọi đến">
+    <div className="cins-incoming-call" role="dialog" aria-label={t("chat.callIncoming")}>
       <div className="cins-incoming-call-card">
         <div className="cins-incoming-call-pulse" aria-hidden />
-        <p className="cins-incoming-call-eyebrow">Cuộc gọi đến</p>
+        <p className="cins-incoming-call-eyebrow">{t("chat.callIncoming")}</p>
         <p className="cins-incoming-call-name">{offer.callerName}</p>
         <div className="cins-incoming-call-actions">
           <button
@@ -439,7 +441,7 @@ export function ChatIncomingCallHost() {
             onClick={() => void decline()}
           >
             <PhoneOff size={20} strokeWidth={1.9} />
-            <span>Từ chối</span>
+            <span>{t("chat.callDecline")}</span>
           </button>
           <button
             type="button"
@@ -448,7 +450,7 @@ export function ChatIncomingCallHost() {
             onClick={() => void accept()}
           >
             <Phone size={20} strokeWidth={1.9} />
-            <span>Trả lời</span>
+            <span>{t("chat.callAnswer")}</span>
           </button>
         </div>
       </div>

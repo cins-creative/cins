@@ -6,13 +6,12 @@ import {
 } from "@/lib/cong-dong/org-slug";
 import { LOAI_CO_SO_SET } from "@/lib/to-chuc/constants";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { replaceChiNhanhList } from "@/lib/co-so/ops-dashboard";
 import {
   hydrateChiNhanhFromSchool,
-  mergeChiNhanhIntoCauHinh,
   mergeFacebookIntoCauHinh,
   normalizeChiNhanhList,
   orgContactFromPrimaryChiNhanh,
-  parseChiNhanhFromCauHinh,
   parseFacebookFromCauHinh,
 } from "@/lib/truong/chi-nhanh";
 import { normalizeTinhThanhForDb } from "@/lib/truong/contact";
@@ -123,29 +122,16 @@ async function buildViewer(
 
 async function loadOrgChiNhanhRows(orgId: string): Promise<TruongChiNhanh[]> {
   const admin = createServiceRoleClient();
-  const [{ data }, { data: org }] = await Promise.all([
-    admin
-      .from("org_chi_nhanh")
-      .select(
-        "id, ten, dia_chi, tinh_thanh, dien_thoai, email, dang_hoat_dong, thu_tu",
-      )
-      .eq("id_to_chuc", orgId)
-      .eq("dang_hoat_dong", true)
-      .order("thu_tu")
-      .order("tao_luc"),
-    admin.from("org_to_chuc").select("cau_hinh").eq("id", orgId).maybeSingle(),
-  ]);
+  const { data } = await admin
+    .from("org_chi_nhanh")
+    .select(
+      "id, ten, dia_chi, tinh_thanh, dien_thoai, email, cover_id, dang_hoat_dong, thu_tu",
+    )
+    .eq("id_to_chuc", orgId)
+    .eq("dang_hoat_dong", true)
+    .order("thu_tu")
+    .order("tao_luc");
   if (!data?.length) return [];
-  const prev = parseChiNhanhFromCauHinh(org?.cau_hinh) ?? [];
-  const coverById = new Map(
-    prev.map((p) => [p.id, p.cover_id?.trim() || null] as const),
-  );
-  const coverByKey = new Map(
-    prev.map(
-      (p) =>
-        [`${p.ten.trim()}|${p.dia_chi.trim()}`, p.cover_id?.trim() || null] as const,
-    ),
-  );
   return data
     .filter((r) => (r.ten as string)?.trim() && (r.dia_chi as string)?.trim())
     .map((r) => {
@@ -160,10 +146,7 @@ async function loadOrgChiNhanhRows(orgId: string): Promise<TruongChiNhanh[]> {
         email: (r.email as string | null) ?? null,
         website: null,
         facebook: null,
-        cover_id:
-          coverById.get(r.id as string) ??
-          coverByKey.get(`${ten.trim()}|${dia_chi.trim()}`) ??
-          null,
+        cover_id: ((r.cover_id as string | null) ?? "").trim() || null,
       };
     });
 }
@@ -175,7 +158,7 @@ function buildChiNhanhForSettings(
   if (fromTable.length > 0) return fromTable;
   const ext = org.org_co_so_dao_tao!;
   return hydrateChiNhanhFromSchool({
-    chi_nhanh: parseChiNhanhFromCauHinh(org.cau_hinh) ?? undefined,
+    chi_nhanh: undefined,
     dia_chi: org.dia_chi,
     tinh_thanh: org.tinh_thanh,
     dien_thoai: org.dien_thoai,
@@ -291,15 +274,15 @@ export async function updateCoSoSettings(
         error: "Cần ít nhất một chi nhánh có tên và địa chỉ.",
       };
     }
-    orgPatch.cau_hinh = mergeChiNhanhIntoCauHinh(cauHinhBase, normalized);
-    cauHinhBase = orgPatch.cau_hinh;
+    const replaced = await replaceChiNhanhList(orgId, normalized);
+    if (!replaced.ok) return replaced;
     const orgContact = orgContactFromPrimaryChiNhanh(normalized);
     orgPatch.dia_chi = orgContact.dia_chi;
     orgPatch.tinh_thanh = normalizeTinhThanhForDb(orgContact.tinh_thanh);
     orgPatch.dien_thoai = orgContact.dien_thoai;
     orgPatch.email_lien_he = orgContact.email_lien_he;
     orgPatch.cau_hinh = mergeFacebookIntoCauHinh(
-      orgPatch.cau_hinh,
+      cauHinhBase,
       orgContact.facebook,
     );
     cauHinhBase = orgPatch.cau_hinh;

@@ -33,10 +33,11 @@ import {
   DonHangHomeList,
 } from "@/components/cins/home-adaptive/modules/DonCanXuLyClient";
 import { giaiDoanLabel } from "@/lib/cins/home-adaptive/labels";
-import { MODULE_META } from "@/lib/cins/home-adaptive/module-meta";
 import type { ModulePreviewPayload } from "@/lib/cins/home-adaptive/module-preview-types";
 import type { ModuleId } from "@/lib/cins/home-adaptive/persona";
 import { linhVucHubHref } from "@/lib/cins/worldJourneyGuestAside";
+import { tHomeModLabel } from "@/lib/i18n/home-modules";
+import { useT } from "@/lib/i18n/use-t";
 import { coSoKhoaHocDetailPath } from "@/lib/to-chuc/co-so-routes";
 
 const TITLE_ICON: Partial<Record<ModuleId, LucideIcon>> = {
@@ -69,13 +70,13 @@ function PreviewShell({
   title?: string;
   children: React.ReactNode;
 }) {
-  const meta = MODULE_META[id];
+  const t = useT();
   const Icon = TITLE_ICON[id];
   return (
     <section className={`ha-card${className ? ` ${className}` : ""}`}>
       <div className="ha-card-head">
         {Icon ? <Icon size={16} strokeWidth={2} aria-hidden /> : null}
-        <span className="ha-card-title">{title ?? meta.label}</span>
+        <span className="ha-card-title">{title ?? tHomeModLabel(t, id)}</span>
       </div>
       {children}
     </section>
@@ -107,7 +108,6 @@ export function HomeModuleLivePreview({
           allItems={payload.allItems}
           myItems={payload.myItems}
           myEventsTotal={payload.myEventsTotal}
-          title={MODULE_META.theo_doi_org.label}
         />
       );
     case "goi_y_theo_doi":
@@ -162,7 +162,7 @@ export function HomeModuleLivePreview({
       );
     case "kham_pha_linh_vuc":
       return (
-        <PreviewShell id={payload.id} title="Lĩnh vực">
+        <PreviewShell id={payload.id}>
           {payload.linhVucs.map((lv) => (
             <Link
               key={lv.slug}
@@ -492,11 +492,11 @@ export function HomeModuleLivePreview({
 }
 
 export function HomeModulePreviewSkeleton({ id }: { id: ModuleId }) {
-  const meta = MODULE_META[id];
+  const t = useT();
   return (
     <section className="ha-card ha-card--placeholder">
       <div className="ha-card-head">
-        <span className="ha-card-title">{meta.label}</span>
+        <span className="ha-card-title">{tHomeModLabel(t, id)}</span>
       </div>
       <p className="ha-card-empty ha-card-empty--loading">
         <Loader2 size={14} className="ha-spin" aria-hidden />

@@ -1,12 +1,16 @@
 import { type LucideIcon } from "lucide-react";
 
+import { HomeModTitle } from "@/components/cins/home-adaptive/HomeModTitle";
 import { CinsArrowIos } from "@/components/icons/CinsArrowIos";
+import type { ModuleId } from "@/lib/cins/home-adaptive/persona";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
 type ModuleCardProps = {
   icon?: LucideIcon;
   title: string;
+  /** Khi EN: dùng catalog module, giữ nguyên `title` khi VI. */
+  moduleId?: ModuleId;
   /** Pill nhỏ cạnh tiêu đề (vd. «Đang mở»). */
   badge?: string;
   /** Nội dung góc phải header (vd. bộ lọc thẻ) — trước `moreHref` nếu có. */
@@ -22,6 +26,7 @@ type ModuleCardProps = {
 export function ModuleCard({
   icon: Icon,
   title,
+  moduleId,
   badge,
   headTrailing,
   moreHref,
@@ -33,7 +38,9 @@ export function ModuleCard({
     <section className={`ha-card${className ? ` ${className}` : ""}`}>
       <div className="ha-card-head">
         {Icon ? <Icon size={16} strokeWidth={2} aria-hidden /> : null}
-        <span className="ha-card-title">{title}</span>
+        <span className="ha-card-title">
+          <HomeModTitle moduleId={moduleId} fallback={title} />
+        </span>
         {badge ? <span className="ha-card-badge">{badge}</span> : null}
         {headTrailing ? (
           <div className="ha-card-head-trailing">{headTrailing}</div>

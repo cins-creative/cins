@@ -13,6 +13,7 @@ import {
   type SetStateAction,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useT } from "@/lib/i18n/use-t";
 
 import { CinsChatDock } from "@/components/cins/CinsChatDock";
 import { ChatIncomingCallHost } from "@/components/cins/ChatIncomingCallHost";
@@ -189,6 +190,7 @@ export function CinsChatProvider({
   children: ReactNode;
   viewerProfileId: string | null;
 }) {
+  const t = useT();
   const router = useRouter();
   const pathname = usePathname() ?? "";
   const [open, setOpen] = useState(false);
@@ -796,12 +798,12 @@ export function CinsChatProvider({
           id: `org:${options.orgId}`,
           roomId: `org:${options.orgId}`,
           orgId: options.orgId,
-          name: options.orgPreview?.name ?? "Tổ chức",
+          name: options.orgPreview?.name ?? t("org.loai.org"),
           group: "to_chuc",
           kind: "org",
           orgKind: options.orgPreview?.orgKind,
           verified: true,
-          role: "Tổ chức",
+          role: t("org.loai.org"),
           avatarInitial: (options.orgPreview?.name ?? "T").slice(0, 1).toUpperCase(),
           avatarHue: 210,
           avatarUrl: options.orgPreview?.avatarUrl ?? null,

@@ -21,6 +21,7 @@ export async function ChoBanDuyetModule({ ctx }: { ctx: HomeModuleCtx }) {
   return (
     <ModuleCard
       icon={ClipboardCheck}
+      moduleId="cho_ban_duyet"
       title="Chờ bạn duyệt"
       badge={String(pending.length)}
       moreHref="/admin"
@@ -60,7 +61,7 @@ export async function HocVienCuaBanModule({ ctx }: { ctx: HomeModuleCtx }) {
   if (students.length === 0) return null;
 
   return (
-    <ModuleCard icon={GraduationCap} title="Học viên của bạn" moreHref="/organizations">
+    <ModuleCard icon={GraduationCap} moduleId="hoc_vien_cua_ban" title="Học viên của bạn" moreHref="/organizations">
       {students.map((s) => (
         <Link key={s.userId} href={`/${s.slug}`} className="ha-row" prefetch={false}>
           {s.avatarUrl ? (
@@ -96,7 +97,7 @@ export async function ScoutTaiNangModule({ ctx }: { ctx: HomeModuleCtx }) {
   if (talents.length === 0) return null;
 
   return (
-    <ModuleCard icon={Search} title="Scout tài năng">
+    <ModuleCard icon={Search} moduleId="scout_tai_nang" title="Scout tài năng">
       {talents.map((t) => (
         <Link key={t.userId} href={`/${t.slug}`} className="ha-row" prefetch={false}>
           {t.avatarUrl ? (

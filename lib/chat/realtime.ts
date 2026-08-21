@@ -233,6 +233,31 @@ function sameOutgoingPayload(a: ChatMessage, b: ChatMessage): boolean {
   return a.body.trim() === b.body.trim();
 }
 
+/** GIF optimistic: preview URL, chưa có Cloudflare id — không khớp imageId tin thật. */
+function isPendingPreviewMedia(message: ChatMessage): boolean {
+  return (
+    isOptimisticMessageId(message.id) &&
+    message.kind === "media" &&
+    !message.imageId &&
+    !message.videoUrl &&
+    !message.albumImages?.length &&
+    Boolean(message.imageUrl)
+  );
+}
+
+function matchesPendingPreviewMedia(
+  optimistic: ChatMessage,
+  confirmed: ChatMessage,
+): boolean {
+  return (
+    isPendingPreviewMedia(optimistic) &&
+    confirmed.from === "me" &&
+    confirmed.kind === "media" &&
+    Boolean(confirmed.imageId) &&
+    !confirmed.videoUrl
+  );
+}
+
 export type ReconcileChatMessageOptions = {
   /** Album optimistic đang gửi (ref đồng bộ) — bỏ qua ảnh self từ realtime trước khi React kịp render optimistic. */
   pendingAlbumOptimisticId?: string | null;
@@ -294,6 +319,7 @@ export function reconcileChatMessage(
       (m) =>
         isOptimisticMessageId(m.id) &&
         (sameOutgoingPayload(m, message) ||
+          matchesPendingPreviewMedia(m, message) ||
           (isSelfStickerMessage(message) &&
             isSelfStickerMessage(m) &&
             (m.imageId ?? null) === (message.imageId ?? null))),

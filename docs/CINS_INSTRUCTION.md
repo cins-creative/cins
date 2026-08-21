@@ -44,7 +44,7 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 
 1. **Nhắc cập nhật tài liệu.** Nếu quyết định/thay đổi chạm FOUNDATIONS / IMPLEMENTATION / DECISIONS → trước khi kết thúc: chỉ rõ **file + mục**, tóm tắt 1–2 câu, **hỏi xác nhận** "cập nhật vào [file] chứ?". Đặc biệt: bảng/cột/enum → **đối chiếu DB trực tiếp** (không còn file schema chép tay); quy tắc kiến trúc → FOUNDATIONS; chốt câu OPEN → DECISIONS.
 
-2. **Schema là source of truth.** Đọc trực tiếp từ DB (Prisma/Supabase MCP hoặc `information_schema`) trước khi generate SQL. Không assume field name từ trí nhớ hay instruction cũ.
+2. **Schema là source of truth.** Đọc trực tiếp từ DB (Prisma/Supabase MCP hoặc `information_schema`) trước khi generate SQL. Không assume field name từ trí nhớ hay instruction cũ. **Trước CREATE/ALTER:** scan SSOT (một sự kiện = một nguồn) — DEV_RULES §1 · FOUNDATIONS §5. Không thêm bảng/cột/JSON trùng grain với chỗ đã có.
 
 3. **Làm việc bằng tiếng Việt.** English giữ cho technical terms, tên phần mềm, tên nghề.
 
@@ -52,7 +52,7 @@ Thứ tự ưu tiên khi xung đột: **DB thật (đọc trực tiếp) > CINS_
 
 5. **Đọc DEV_RULES trước khi code** — security, performance, streaming, design tokens.
 
-6. **ALTER cột/bảng cũ:** mọi sửa schema trên bảng đã có → **báo cáo user trước** + ghi DECISIONS (inventory ALTER) → chỉ migration sau khi được xác nhận. Xem DEV_RULES §1 + DECISIONS **L34**.
+6. **ALTER cột/bảng cũ:** mọi sửa schema trên bảng đã có → **báo cáo user trước** + ghi DECISIONS (inventory ALTER) → chỉ migration sau khi được xác nhận. Xem DEV_RULES §1 + DECISIONS **L34**. Kèm **SSOT scan** (luật 2) trước khi viết file SQL.
 
 7. **Không tự ý xóa / clean ổ `C:\`.** Chỉ xóa đúng path user chỉ định; không Disk Cleanup / dọn Temp / AppData / “giải phóng dung lượng”. Chi tiết: DEV_RULES §2 · rule Cursor `cins-project-instruction.mdc`.
 

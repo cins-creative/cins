@@ -16,7 +16,7 @@ export async function GoiYTheoDoiModule({ ctx }: { ctx: HomeModuleCtx }) {
   if (people.length === 0) return null;
 
   return (
-    <ModuleCard icon={UserRoundPlus} title="Gợi ý theo dõi">
+    <ModuleCard icon={UserRoundPlus} moduleId="goi_y_theo_doi" title="Gợi ý theo dõi">
       {people.map((s) => (
         <HaUserSuggestionRow
           key={s.id}

@@ -26,6 +26,9 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+import type { TFn } from "@/lib/i18n/t";
+import { useT } from "@/lib/i18n/use-t";
+
 export type ChatThreadMenuAction = {
   id: string;
   label: string;
@@ -153,6 +156,7 @@ export function ChatThreadRowMenu({
   onOpenChange,
   actions,
 }: ChatThreadRowMenuProps) {
+  const t = useT();
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -234,7 +238,7 @@ export function ChatThreadRowMenu({
         ref={triggerRef}
         type="button"
         className="cins-chat-thread-menu-trigger"
-        aria-label="Tùy chọn hội thoại"
+        aria-label={t("chat.threadOpts")}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={(event) => {
@@ -249,7 +253,9 @@ export function ChatThreadRowMenu({
   );
 }
 
-export function buildThreadMenuActions(options: {
+export function buildThreadMenuActions(
+  t: TFn,
+  options: {
   isListPinned: boolean;
   isMuted: boolean;
   isGroup: boolean;
@@ -279,12 +285,13 @@ export function buildThreadMenuActions(options: {
   /** true khi là project con (đổi nhãn menu). */
   isProjectChild?: boolean;
 }): ChatThreadMenuAction[] {
+  if (!options) return [];
   const actions: ChatThreadMenuAction[] = [];
 
   if (options.canViewProfile && options.onViewProfile) {
     actions.push({
       id: "view-profile",
-      label: "Xem người dùng",
+      label: t("chat.menu.viewUser"),
       icon: <User size={15} strokeWidth={2.1} />,
       onSelect: options.onViewProfile,
     });
@@ -293,7 +300,7 @@ export function buildThreadMenuActions(options: {
   if (options.canCreateGroup && options.onCreateGroup) {
     actions.push({
       id: "create-group",
-      label: "Tạo nhóm chat",
+      label: t("chat.menu.createGroup"),
       icon: <Users size={15} strokeWidth={2.1} />,
       onSelect: options.onCreateGroup,
     });
@@ -302,13 +309,17 @@ export function buildThreadMenuActions(options: {
   actions.push(
     {
       id: "list-pin",
-      label: options.isListPinned ? "Bỏ ghim lên đầu" : "Ghim lên đầu danh sách",
+      label: options.isListPinned
+        ? t("chat.menu.unpinTop")
+        : t("chat.menu.pinTop"),
       icon: <ArrowUpToLine size={15} strokeWidth={2.1} />,
       onSelect: options.onToggleListPin,
     },
     {
       id: "mute",
-      label: options.isMuted ? "Bật thông báo" : "Tắt thông báo",
+      label: options.isMuted
+        ? t("chat.menu.notifyOn")
+        : t("chat.menu.notifyOff"),
       icon: options.isMuted ? (
         <Bell size={15} strokeWidth={2.1} />
       ) : (
@@ -322,7 +333,9 @@ export function buildThreadMenuActions(options: {
     if (options.canRenameGroup && options.onRenameGroup) {
       actions.push({
         id: "rename-group",
-        label: options.isProjectChild ? "Đổi tên project" : "Đổi tên nhóm",
+        label: options.isProjectChild
+          ? t("chat.menu.renameProject")
+          : t("chat.menu.renameGroup"),
         icon: <Pencil size={15} strokeWidth={2.1} />,
         onSelect: options.onRenameGroup,
       });
@@ -330,7 +343,7 @@ export function buildThreadMenuActions(options: {
     if (options.canCreateProject && options.onCreateProject) {
       actions.push({
         id: "create-project",
-        label: "Tạo project",
+        label: t("chat.menu.createProject"),
         icon: <FolderKanban size={15} strokeWidth={2.1} />,
         onSelect: options.onCreateProject,
       });
@@ -338,21 +351,21 @@ export function buildThreadMenuActions(options: {
     if (options.onManageGroup) {
       actions.push({
         id: "manage-group",
-        label: "Quản lý nhóm",
+        label: t("chat.manageGroup"),
         icon: <Settings2 size={15} strokeWidth={2.1} />,
         onSelect: options.onManageGroup,
       });
     }
     actions.push({
       id: "leave-group",
-      label: "Rời nhóm",
+      label: t("chat.menu.leave"),
       icon: <LogOut size={15} strokeWidth={2.1} />,
       onSelect: options.onLeaveGroup,
     });
     if (options.isGroupOwner) {
       actions.push({
         id: "delete-group",
-        label: "Xóa nhóm chat",
+        label: t("chat.menu.deleteGroup"),
         icon: <Trash2 size={15} strokeWidth={2.1} />,
         destructive: true,
         onSelect: options.onDeleteGroup,
@@ -361,14 +374,14 @@ export function buildThreadMenuActions(options: {
   } else {
     actions.push({
       id: "hide",
-      label: "Ẩn hội thoại",
+      label: t("chat.menu.hide"),
       icon: <EyeOff size={15} strokeWidth={2.1} />,
       onSelect: options.onHideThread,
     });
     if (options.canBlock && options.onBlockUser) {
       actions.push({
         id: "block",
-        label: "Chặn người dùng này",
+        label: t("chat.menu.block"),
         icon: <Ban size={15} strokeWidth={2.1} />,
         destructive: true,
         onSelect: options.onBlockUser,

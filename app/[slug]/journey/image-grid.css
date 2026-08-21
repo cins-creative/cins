@@ -377,6 +377,36 @@
   width: 100%;
 }
 
+/* Hàng 1 ảnh dọc — cùng clamp 3:4 / 9:16 như album 1 ảnh: đủ khung, không crop. */
+.image-grid-jrow.is-solo-portrait {
+  --media-canvas-max-aspect: 0.75; /* 3:4 */
+  width: min(
+    100%,
+    calc(
+      100% * var(--jrow-aspect-sum, var(--media-canvas-max-aspect)) /
+        var(--media-canvas-max-aspect)
+    )
+  );
+  max-width: 100%;
+  margin-inline: auto;
+  height: auto;
+  aspect-ratio: var(--jrow-aspect-sum, var(--media-canvas-max-aspect));
+  overflow: hidden;
+}
+.image-grid-jrow.is-solo-portrait .image-grid-cell {
+  width: 100%;
+  height: 100%;
+  flex: 1 1 100%;
+}
+.image-grid-jrow.is-solo-portrait .image-grid-cell img {
+  object-fit: contain;
+}
+@media (max-width: 767px) {
+  .image-grid-jrow.is-solo-portrait {
+    --media-canvas-max-aspect: 0.5625; /* 9:16 */
+  }
+}
+
 .grid-overlay {
   position: absolute;
   inset: 0;

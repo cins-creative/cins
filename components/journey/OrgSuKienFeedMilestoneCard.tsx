@@ -10,6 +10,9 @@ import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { OrgSuKienFriendsChips } from "@/components/journey/OrgSuKienFriendsChips";
 import type { MilestoneAttribution, MilestoneItem } from "@/components/journey/milestone-types";
 import { SuKienPhanHoiActions } from "@/components/to-chuc/SuKienPhanHoiActions";
+import { formatDate } from "@/lib/format";
+import type { CinsLocale } from "@/lib/locale/types";
+import { useLocale } from "@/lib/locale/context";
 import { useImpressionTracker } from "@/lib/social/track-su-kien";
 import type { LoaiPhanHoiSuKien } from "@/lib/to-chuc/su-kien-phan-hoi-types";
 import { getStepStatus } from "@/lib/truong/timeline";
@@ -18,11 +21,6 @@ type Props = {
   milestone: MilestoneItem;
   entityLens?: boolean;
 };
-
-const MONTHS = [
-  "Th1", "Th2", "Th3", "Th4", "Th5", "Th6",
-  "Th7", "Th8", "Th9", "Th10", "Th11", "Th12",
-];
 
 function orgKindForPopover(
   kind: MilestoneAttribution["orgKind"],
@@ -37,26 +35,32 @@ function dateBadgeParts(
   year: number,
   month: number,
   day: number,
+  locale: CinsLocale,
 ): { month: string; day: string } {
   return {
-    month: MONTHS[month - 1] ?? "",
+    month: formatDate(new Date(year, month - 1, day), locale, {
+      month: "short",
+    }),
     day: String(day).padStart(2, "0"),
   };
 }
 
-function formatEventWhen(iso: string): { time: string; date: string } | null {
+function formatEventWhen(
+  iso: string,
+  locale: CinsLocale,
+): { time: string; date: string } | null {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
-  const time = new Intl.DateTimeFormat("vi-VN", {
+  const time = formatDate(d, locale, {
     hour: "2-digit",
     minute: "2-digit",
-  }).format(d);
-  const date = new Intl.DateTimeFormat("vi-VN", {
+  });
+  const date = formatDate(d, locale, {
     weekday: "short",
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-  }).format(d);
+  });
   return { time, date };
 }
 
@@ -65,6 +69,7 @@ export function OrgSuKienFeedMilestoneCard({
   milestone,
   entityLens = false,
 }: Props) {
+  const locale = useLocale();
   const ref = milestone.orgSuKienRef;
   const attr = milestone.attribution;
   const [phanHoi, setPhanHoi] = useState<LoaiPhanHoiSuKien | null>(null);
@@ -86,8 +91,13 @@ export function OrgSuKienFeedMilestoneCard({
 
   const cover = milestone.media?.[0];
   const popoverKind = orgKindForPopover(attr.orgKind);
-  const when = formatEventWhen(ref.batDau);
-  const badge = dateBadgeParts(milestone.year, milestone.month, milestone.day);
+  const when = formatEventWhen(ref.batDau, locale);
+  const badge = dateBadgeParts(
+    milestone.year,
+    milestone.month,
+    milestone.day,
+    locale,
+  );
   const stepStatus = getStepStatus(ref.batDau, ref.ketThuc ?? null);
   const countdownStatus =
     stepStatus === "active" ? ("active" as const) : ("upcoming" as const);

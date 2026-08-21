@@ -1,0 +1,15 @@
+---
+description: Scan Single Source of Truth before any SQL / schema change
+alwaysApply: true
+---
+
+# SSOT trước SQL / schema
+
+Trước khi viết `CREATE TABLE`, `ALTER`, migration, cột jsonb mới, hoặc dual-write:
+
+1. Đọc **DB thật** (`information_schema` / Prisma / Supabase MCP) — không đoán tên cột.
+2. Scan đã có bảng / cột / junction / `cau_hinh` key nào giữ **cùng sự thật** không.
+3. Cùng grain → dùng SoT sẵn hoặc gộp; **cấm** thêm nguồn thứ ba. Khác grain hoặc cache có trigger → được tách, phải nói rõ SoT vs bản phụ.
+4. Báo user: SoT · chỗ trùng · tách/gộp · ALTER (nếu có) — **rồi mới** viết SQL.
+
+Chi tiết: `docs/CINS_DEV_RULES.md` §1 · `docs/CINS_FOUNDATIONS.md` §5 · inventory gộp dở dang: `docs/PLAN_gop_nguon_su_that.md`.

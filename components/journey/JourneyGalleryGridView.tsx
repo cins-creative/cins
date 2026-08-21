@@ -14,6 +14,8 @@ import {
   type CSSProperties,
 } from "react";
 
+import { useT } from "@/lib/i18n/use-t";
+import { useChromeStuck } from "@/lib/ui/use-chrome-stuck";
 import { WorldBoostToggle } from "@/components/cins/world-journey/WorldBoostToggle";
 import { useWorldBoostAdminOptional } from "@/components/cins/world-journey/WorldBoostAdminContext";
 import { MoTaMarkdown } from "@/components/editor/compose/MoTaMarkdown";
@@ -456,6 +458,7 @@ export function JourneyGalleryGridView({
   pinned = [],
   items = [],
 }: Props) {
+  const t = useT();
   const personalFilter = useJourneyPersonalFilterOptional();
   const filterShare = useJourneyFilterShareOptional();
   const journeyView = useJourneyViewOptional();
@@ -587,7 +590,9 @@ export function JourneyGalleryGridView({
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const tlbRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
+  useChromeStuck(tlbRef);
 
   useEffect(() => {
     if (legacyAll) return;
@@ -803,19 +808,19 @@ export function JourneyGalleryGridView({
         <span className="j-main-gallery-create-plus" aria-hidden>
           <Plus size={20} strokeWidth={2.4} />
         </span>
-        <span className="j-main-gallery-create-label">Thêm bài viết</span>
+        <span className="j-main-gallery-create-label">{t("gallery.addPost")}</span>
       </button>
       <div className="j-main-gallery-create-actions">
         <button
           type="button"
-          aria-label="Thêm ảnh"
+          aria-label={t("gallery.addPhoto")}
           onClick={() => createPhotoInputRef.current?.click()}
         >
           <ImageIcon size={16} />
         </button>
         <button
           type="button"
-          aria-label="Thêm video"
+          aria-label={t("gallery.addVideo")}
           onClick={() => createVideoInputRef.current?.click()}
         >
           <Video size={16} />
@@ -846,18 +851,19 @@ export function JourneyGalleryGridView({
   const emptyFilterLabel = activePersonalFilter?.ten
     ? activePersonalFilter.ten
     : typeFilter === "all"
-      ? "Nhãn"
-      : typeOptions.find((o) => o.group === typeFilter)?.label ?? "đã chọn";
+      ? t("gallery.labelFallback")
+      : typeOptions.find((o) => o.group === typeFilter)?.label ??
+        t("gallery.selected");
 
   return (
     <div
       className={
         hideToolbar ? "wj-feed-grid-panel" : "j-main-panel j-gallery-main"
       }
-      aria-label="Gallery tác phẩm"
+      aria-label={t("gallery.aria")}
     >
       {!hideToolbar ? (
-        <div className="j-tlb">
+        <div ref={tlbRef} className="j-tlb">
           <span className="j-tlb-streak-slow" aria-hidden="true" />
           {hasData || journeyView ? (
             <div className="j-tlb-filters">
@@ -880,17 +886,16 @@ export function JourneyGalleryGridView({
 
       {!hasData && !showCreateTile ? (
         <div className="j-main-empty">
-          Chưa có tác phẩm công khai. Ảnh, video và bài có cover sẽ hiện ở đây.
+          {t("gallery.empty")}
         </div>
       ) : filtered.length === 0 && !showCreateTile ? (
         <div className="j-main-empty">
-          Không có tác phẩm thuộc loại{" "}
-          <em>{emptyFilterLabel}</em>. Đổi bộ lọc hoặc chọn “Tất cả”.
+          {t("gallery.filterEmpty", { label: emptyFilterLabel })}
         </div>
       ) : (
         <>
           {portraitRailItems.length > 0 ? (
-            <div className="j-gallery-portrait-rail" aria-label="Video dọc">
+            <div className="j-gallery-portrait-rail" aria-label={t("gallery.portraitRail")}>
               <div className="j-gallery-portrait-rail__track">
                 {portraitRailItems.map((item) => (
                   <GalleryMainItemTile
@@ -985,7 +990,7 @@ export function JourneyGalleryGridView({
             className="j-timeline-load-retry"
             onClick={() => void loadMore()}
           >
-            Không tải được thêm tác phẩm — thử lại
+            {t("gallery.loadMoreFail")}
           </button>
         </div>
       ) : null}

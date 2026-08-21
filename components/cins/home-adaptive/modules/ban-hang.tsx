@@ -30,6 +30,7 @@ export async function DonCanXuLyModule({ ctx }: { ctx: HomeModuleCtx }) {
     return (
       <ModuleCard
         icon={ClipboardList}
+        moduleId="don_can_xu_ly"
         title="Đơn chờ xử lý"
         moreHref="/seller/orders"
         moreLabel="Xem đơn hàng"
@@ -53,6 +54,7 @@ export async function DonMuaCuaToiModule({ ctx }: { ctx: HomeModuleCtx }) {
     return (
       <ModuleCard
         icon={ShoppingBag}
+        moduleId="don_mua_cua_toi"
         title="Đơn tôi đặt"
         className="ha-card--don"
       >
@@ -64,6 +66,7 @@ export async function DonMuaCuaToiModule({ ctx }: { ctx: HomeModuleCtx }) {
   return (
     <ModuleCard
       icon={ShoppingBag}
+      moduleId="don_mua_cua_toi"
       title="Đơn tôi đặt"
       badge={String(total)}
       className="ha-card--don"
@@ -90,6 +93,7 @@ export async function QuanLyKhoModule({ ctx }: { ctx: HomeModuleCtx }) {
     return (
       <ModuleCard
         icon={Package}
+        moduleId="quan_ly_kho"
         title="Quản lý kho hàng"
         moreHref="/seller/inventory"
         moreLabel="Mở kho"

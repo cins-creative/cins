@@ -18,6 +18,7 @@ import { EmbedPlatformPicker } from "@/components/cins/EmbedPlatformPicker";
 import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
 import { getNameInitials } from "@/lib/journey/profile";
+import { useT } from "@/lib/i18n/use-t";
 
 function dataTransferHasFiles(dt: DataTransfer | null): boolean {
   if (!dt) return false;
@@ -42,11 +43,13 @@ export function CinsFeedComposer({
   ownerName: ownerNameProp,
   avatarUrl: avatarUrlProp,
   avatar,
-  placeholder = "Thêm bài viết",
+  placeholder,
   showMilestone = true,
   layout = "feed",
 }: Props) {
+  const t = useT();
   const router = useRouter();
+  const ph = placeholder ?? t("gallery.addPost");
   const {
     openCompose,
     openComposeWithPhotos,
@@ -193,13 +196,13 @@ export function CinsFeedComposer({
           className="wj-ph"
           onClick={openMinimal}
         >
-          {placeholder}
+          {ph}
         </button>
         <div className="wj-composer-icons">
           <button
             type="button"
             className="wj-icon-btn wj-ci-image"
-            aria-label="Thêm ảnh"
+            aria-label={t("gallery.addPhoto")}
             onClick={() => photoInputRef.current?.click()}
           >
             <ImageIcon size={16} />
@@ -207,7 +210,7 @@ export function CinsFeedComposer({
           <button
             type="button"
             className="wj-icon-btn wj-ci-video"
-            aria-label="Thêm video"
+            aria-label={t("gallery.addVideo")}
             onClick={() => videoInputRef.current?.click()}
           >
             <CirclePlay size={16} strokeWidth={2} aria-hidden />
@@ -215,8 +218,8 @@ export function CinsFeedComposer({
           <button
             type="button"
             className="wj-icon-btn wj-ci-embed"
-            aria-label="Nhúng tác phẩm"
-            title="Nhúng từ YouTube, Sketchfab, Figma…"
+            aria-label={t("composer.embed")}
+            title={t("composer.embedHint")}
             onClick={() => {
               if (canCompose) {
                 setEmbedPickerOpen(true);
@@ -231,8 +234,8 @@ export function CinsFeedComposer({
             <button
               type="button"
               className="wj-icon-btn wj-ci-milestone"
-              aria-label="Thêm cột mốc"
-              title="Thêm cột mốc"
+              aria-label={t("composer.addMilestone")}
+              title={t("composer.addMilestone")}
               onClick={openMilestone}
             >
               <Flag size={16} strokeWidth={1.9} aria-hidden />
