@@ -1546,6 +1546,7 @@ function CommentRow({
   const moreBtnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLTextAreaElement>(null);
+  const t = useT();
 
   const display = commentDisplayAuthor(comment, {
     org: t("comment.org"),
