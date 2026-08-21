@@ -133,7 +133,7 @@ export type BoardHandle = {
   /** Đổi tên frame đang chọn. */
   renameSelectedFrame: (name: string) => void;
   /** Gom các card đang chọn thành nhóm mới. */
-  groupSelection: (mau: string) => Promise<void>;
+  groupSelection: (mau: string) => void;
   /** Tách frame đang chọn — giữ các card con. */
   ungroupSelection: () => Promise<void>;
   /** Xóa các node đang chọn (undo được). */
