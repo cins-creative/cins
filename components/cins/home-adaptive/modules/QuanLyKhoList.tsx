@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import type { QuanLyKhoItem } from "@/lib/cins/home-adaptive/quan-ly-kho-types";
+import { manageSellerHref } from "@/lib/cins/manage-site";
 
 function khoTonLabel(item: QuanLyKhoItem): string {
   if (item.mucDo === "het") return "Hết hàng";
@@ -14,7 +15,7 @@ export function QuanLyKhoList({ items }: { items: QuanLyKhoItem[] }) {
       {items.map((it) => (
         <Link
           key={it.bienTheId}
-          href="/seller/inventory"
+          href={manageSellerHref("/seller/inventory")}
           className={`ha-kho-row ha-kho-row--${it.mucDo}`}
           prefetch={false}
         >

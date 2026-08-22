@@ -16,6 +16,7 @@ import {
 
 import { useDraftModuleItemLimit } from "@/components/cins/home-adaptive/draft-module-limit";
 import type { HomeDonHangItem } from "@/lib/cins/home-adaptive/role-types";
+import { manageSellerHref } from "@/lib/cins/manage-site";
 
 const STILL_ACTIONABLE = new Set([
   "cho_xac_nhan",
@@ -456,7 +457,7 @@ export function DonCanXuLyPanel({
           counts={counts}
         />
         <Link
-          href="/seller/orders"
+          href={manageSellerHref("/seller/orders")}
           className="ha-card-more"
           prefetch={false}
           aria-label="Xem tất cả đơn"

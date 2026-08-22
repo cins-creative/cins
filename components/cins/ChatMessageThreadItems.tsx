@@ -32,6 +32,8 @@ import {
   chatClusterRole,
   chatListItemStampAt,
   isChatClusterHead,
+  isChatSenderBreak,
+  shouldShowChatItemTime,
   type ChatClusterRole,
 } from "@/lib/chat/bubble-time-cluster";
 import {
@@ -725,6 +727,7 @@ function SingleMessageBubble({
   orgBrand = null,
   showSenderIdentity = true,
   clusterRole = "only",
+  senderBreak = false,
 }: {
   msg: ChatMessage;
   seenBy?: ChatReadCursor[];
@@ -746,6 +749,7 @@ function SingleMessageBubble({
   orgBrand?: { ten?: string | null; anh?: string | null } | null;
   showSenderIdentity?: boolean;
   clusterRole?: ChatClusterRole;
+  senderBreak?: boolean;
 }) {
   const isMe = msg.from === "me";
   const isEditing = editingMessageId === msg.id;
@@ -883,6 +887,7 @@ function SingleMessageBubble({
     useSenderCluster ? "has-sender-cluster" : "",
     useSenderCluster && !showIdentity ? "is-sender-follow" : "",
     `is-cluster-${clusterRole}`,
+    senderBreak ? "is-sender-break" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -1203,7 +1208,8 @@ export function ChatMessageThreadItems({
       {items.map((item, index) => {
         const clusterHead = isChatClusterHead(items, index);
         const clusterRole = chatClusterRole(items, index);
-        const sessionStamp = clusterHead ? (
+        const senderBreak = isChatSenderBreak(items, index);
+        const sessionStamp = shouldShowChatItemTime(items, index) ? (
           <ChatSessionStamp sentAt={chatListItemStampAt(item)} />
         ) : null;
         if (item.type === "single") {
@@ -1232,6 +1238,7 @@ export function ChatMessageThreadItems({
                 orgBrand={orgBrand}
                 showSenderIdentity={clusterHead}
                 clusterRole={clusterRole}
+                senderBreak={senderBreak}
               />
             </Fragment>
           );
@@ -1262,7 +1269,7 @@ export function ChatMessageThreadItems({
             {caption ? (
               <div
                 id={captionMsg ? messageRowId(captionMsg.id) : undefined}
-                className={`cins-chat-bubble-row ${isMe ? "is-me" : "is-them"}${captionMsg?.pinned ? " is-pinned-row" : ""}${useSenderCluster ? " has-sender-cluster" : ""}${useSenderCluster && !showAlbumIdentity ? " is-sender-follow" : ""} is-cluster-${clusterRole}`}
+                className={`cins-chat-bubble-row ${isMe ? "is-me" : "is-them"}${captionMsg?.pinned ? " is-pinned-row" : ""}${useSenderCluster ? " has-sender-cluster" : ""}${useSenderCluster && !showAlbumIdentity ? " is-sender-follow" : ""} is-cluster-${clusterRole}${senderBreak ? " is-sender-break" : ""}`}
               >
                 {useSenderCluster ? (
                   <div className="cins-chat-msg-stack">
@@ -1353,7 +1360,7 @@ export function ChatMessageThreadItems({
                   ? messageRowId(albumActionMsg.id)
                   : undefined
               }
-              className={`cins-chat-bubble-row is-media-row is-bare-media-row ${isMe ? "is-me" : "is-them"}${!isMe && caption ? " is-album-follow" : ""}${!caption && albumActionMsg?.pinned ? " is-pinned-row" : ""}${useSenderCluster && !caption ? " has-sender-cluster" : ""}${useSenderCluster && !caption && !showAlbumIdentity ? " is-sender-follow" : ""} is-cluster-${clusterRole}`}
+              className={`cins-chat-bubble-row is-media-row is-bare-media-row ${isMe ? "is-me" : "is-them"}${!isMe && caption ? " is-album-follow" : ""}${!caption && albumActionMsg?.pinned ? " is-pinned-row" : ""}${useSenderCluster && !caption ? " has-sender-cluster" : ""}${useSenderCluster && !caption && !showAlbumIdentity ? " is-sender-follow" : ""} is-cluster-${clusterRole}${!caption && senderBreak ? " is-sender-break" : ""}`}
             >
               {useSenderCluster && !caption ? (
                 <div className="cins-chat-msg-stack">

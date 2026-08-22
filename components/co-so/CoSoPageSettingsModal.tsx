@@ -32,6 +32,7 @@ import type {
   CoSoMemberAdmin,
   CoSoSettingsViewer,
 } from "@/lib/to-chuc/co-so-settings-types";
+import { manageHref, navigateManageHref } from "@/lib/cins/manage-site";
 
 import "@/styles/article-draft-tiptap.css";
 
@@ -327,8 +328,12 @@ export function CoSoPageSettingsModal({
       emitSaved(json.settings);
       if (json.settings.slug !== prevSlug) {
         if (variant === "page") {
-          router.replace(
-            `/academy/${encodeURIComponent(json.settings.slug)}/manage/facilities`,
+          navigateManageHref(
+            manageHref(
+              `/academy/${encodeURIComponent(json.settings.slug)}/manage/facilities`,
+            ),
+            router,
+            "replace",
           );
         } else {
           router.replace(coSoTabPath(json.settings.slug, CO_SO_DEFAULT_TAB));

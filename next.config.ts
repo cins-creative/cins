@@ -84,9 +84,58 @@ const nextConfig: NextConfig = {
           destination: "https://manage.cins.vn/api/admin/:path*",
           permanent: false,
         },
+        {
+          source: "/seller",
+          destination: "https://manage.cins.vn/seller",
+          permanent: true,
+        },
+        {
+          source: "/seller/:path*",
+          destination: "https://manage.cins.vn/seller/:path*",
+          permanent: true,
+        },
+        {
+          source: "/academy/:slug/manage",
+          destination: "https://manage.cins.vn/academy/:slug",
+          permanent: true,
+        },
+        {
+          source: "/academy/:slug/manage/:path*",
+          destination: "https://manage.cins.vn/academy/:slug/:path*",
+          permanent: true,
+        },
+        {
+          source: "/studio/:slug/manage",
+          destination: "https://manage.cins.vn/studio/:slug",
+          permanent: true,
+        },
+        {
+          source: "/studio/:slug/manage/:path*",
+          destination: "https://manage.cins.vn/studio/:slug/:path*",
+          permanent: true,
+        },
+        {
+          source: "/university/:slug/manage",
+          destination: "https://manage.cins.vn/university/:slug",
+          permanent: true,
+        },
+        {
+          source: "/university/:slug/manage/:path*",
+          destination: "https://manage.cins.vn/university/:slug/:path*",
+          permanent: true,
+        },
       );
     }
     return redirects;
+  },
+  async rewrites() {
+    if (cinsSurface !== "manage") return [];
+    /* Org pretty URL (`/academy/:slug/students`) do middleware rewrite
+     * — next.config không loại được path đã có `/manage`. */
+    return [
+      { source: "/shop/:slug", destination: "/seller/store" },
+      { source: "/shop/:slug/:path*", destination: "/seller/:path*" },
+    ];
   },
   /**
    * Build theo bề mặt park `app/` — file ngoài surface vẫn bị tsc quét

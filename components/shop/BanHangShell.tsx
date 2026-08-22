@@ -12,11 +12,14 @@ import { ShopPhiGateBanner } from "@/components/shop/ShopPhiGateBanner";
 import "./shop-dashboard.css";
 
 function tabFromPath(pathname: string): ShopDashTab {
-  if (pathname.includes("/seller/orders")) return "don";
-  if (pathname.includes("/seller/events")) return "su-kien";
-  if (pathname.includes("/seller/store")) return "cua-hang";
-  if (pathname.includes("/seller/reports")) return "bao-cao";
-  if (pathname.includes("/seller/promotions")) return "uu-dai";
+  const rest = pathname.startsWith("/shop/")
+    ? pathname.split("/").slice(3).join("/")
+    : pathname.replace(/^\/seller\/?/, "");
+  if (rest.startsWith("orders")) return "don";
+  if (rest.startsWith("events")) return "su-kien";
+  if (rest.startsWith("store")) return "cua-hang";
+  if (rest.startsWith("reports")) return "bao-cao";
+  if (rest.startsWith("promotions")) return "uu-dai";
   return "kho";
 }
 

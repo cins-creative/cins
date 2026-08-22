@@ -179,6 +179,7 @@ Nhóm gọn nhất, ít phụ thuộc public nhất ⇒ dùng làm phép thử. 
 
 **Phase 4 — chuyển `*/quan-ly/*`, `ban-hang`, `tao-to-chuc` + API tương ứng**
 Chốt cách xử lý API dùng chung (§3.3) trước khi bắt đầu.
+→ Chi tiết implement: [`PLAN_tach_manage_phase4.md`](./PLAN_tach_manage_phase4.md) (seller · academy/manage · studio/manage + API).
 
 **Phase 5 — dọn**
 Xoá route đã chuyển khỏi `apps/web`, thêm redirect `cins.vn/admin/*` → `quan-ly.cins.vn/*` để link cũ không chết. Đo lại cả hai worker, ghi số vào file này.

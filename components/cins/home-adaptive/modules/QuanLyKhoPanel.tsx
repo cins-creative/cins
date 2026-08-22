@@ -13,6 +13,7 @@ import {
 import { CinsArrowIos } from "@/components/icons/CinsArrowIos";
 import { QuanLyKhoList } from "@/components/cins/home-adaptive/modules/QuanLyKhoList";
 import { useDraftModuleItemLimit } from "@/components/cins/home-adaptive/draft-module-limit";
+import { manageSellerHref } from "@/lib/cins/manage-site";
 import type {
   QuanLyKhoFilter,
   QuanLyKhoItem,
@@ -162,7 +163,7 @@ export function QuanLyKhoPanel({
           counts={counts}
         />
         <Link
-          href="/seller/inventory"
+          href={manageSellerHref("/seller/inventory")}
           className="ha-card-more"
           prefetch={false}
           aria-label="Quản lý kho"

@@ -8,6 +8,7 @@ import {
   listDonHangForUser,
 } from "@/lib/shop/don-hang";
 import { listQuayCuaToi } from "@/lib/shop/quay";
+import { manageHref, manageSellerHref } from "@/lib/cins/manage-site";
 import {
   SHOP_TRANG_THAI_DON_LABEL,
   SHOP_TRANG_THAI_QUAY_LABEL,
@@ -161,7 +162,7 @@ export async function loadDonCanXuLy(
       sub: maDon,
       trangThai: d.trangThai,
       trangThaiLabel: shortDonStatusLabel(d.trangThai),
-      href: `/seller/orders?id=${d.id}`,
+      href: `${manageSellerHref("/seller/orders")}?id=${encodeURIComponent(d.id)}`,
       avatarUrl: d.muaAvatarUrl ?? null,
       tongTien: d.tongTien,
       tienTe: d.tienTe,
@@ -524,7 +525,9 @@ export async function loadUngVienMoi(
     const orgSlug = org?.slug?.trim();
     const jobSlug = (job?.slug as string | null)?.trim() || (job?.id as string);
     if (orgSlug && jobSlug) {
-      href = `/studio/${encodeURIComponent(orgSlug)}/manage/jobs/${encodeURIComponent(jobSlug)}`;
+      href = manageHref(
+        `/studio/${encodeURIComponent(orgSlug)}/manage/jobs/${encodeURIComponent(jobSlug)}`,
+      );
     }
     return {
       userId: a.id_nguoi_dung as string,

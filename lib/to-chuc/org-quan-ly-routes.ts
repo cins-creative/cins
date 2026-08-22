@@ -1,6 +1,7 @@
 import { coSoRootPath } from "@/lib/to-chuc/co-so-routes";
 import { studioRootPath } from "@/lib/to-chuc/studio-routes";
 import { truongRootPath } from "@/lib/truong/truong-routes";
+import { manageHref } from "@/lib/cins/manage-site";
 
 /** Các loại org có dashboard `/manage`. */
 export type OrgQuanLyKind =
@@ -161,7 +162,7 @@ export function orgQuanLyPath(
 ): string {
   const base = orgQuanLyBasePath(kind, slug);
   const resolved = resolveOrgQuanLySection(kind, section);
-  return `${base}/${resolved}`;
+  return manageHref(`${base}/${resolved}`);
 }
 
 /** Org kind có dashboard quản lý (ẩn nút «Mở» với cong_dong). */

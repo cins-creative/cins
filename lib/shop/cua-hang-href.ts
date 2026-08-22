@@ -1,4 +1,4 @@
-/** URL storefront công khai — client-safe (không import server-only). */
+import { manageSellerHref } from "@/lib/cins/manage-site";
 
 const MAX_SHOP_SLUG_LEN = 64;
 
@@ -63,14 +63,14 @@ export function shopLoaiMauHref(
   return `${base}?variant=${encodeURIComponent(id)}`;
 }
 
-/** Owner setup / quản lý cửa hàng — trang /ban-hang/cua-hang. */
+/** Owner setup / quản lý cửa hàng. */
 export function shopSetupHref(_slug?: string): string {
-  return "/seller/store";
+  return manageSellerHref("/seller/store");
 }
 
 /** Hub quản lý kho — `/seller/inventory`. */
 export function shopKhoHubHref(): string {
-  return "/seller/inventory";
+  return manageSellerHref("/seller/inventory");
 }
 
 /** Segment URL cho loại chưa gán trên Kho. */

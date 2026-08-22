@@ -21,11 +21,29 @@ function sameChatSender(a: ChatMessage, b: ChatMessage): boolean {
   return true;
 }
 
+/** Đổi người gửi so với tin ngay trước — nới gap cụm. */
+export function isChatSenderBreak(
+  items: ChatMessageListItem[],
+  index: number,
+): boolean {
+  const curr = items[index];
+  const prev = items[index - 1];
+  if (!curr || !prev) return false;
+  return !sameChatSender(listItemTail(prev), listItemHead(curr));
+}
+
+function timeGapMs(prev: ChatMessage, next: ChatMessage): number {
+  const gap = Date.parse(next.sentAt) - Date.parse(prev.sentAt);
+  return Number.isNaN(gap) ? Number.POSITIVE_INFINITY : gap;
+}
+
+function isChatTimeSessionBreak(prev: ChatMessage, next: ChatMessage): boolean {
+  return timeGapMs(prev, next) >= CHAT_BUBBLE_TIME_CLUSTER_MS;
+}
+
 function clusterBreaks(prev: ChatMessage, next: ChatMessage): boolean {
   if (!sameChatSender(prev, next)) return true;
-  const gap = Date.parse(next.sentAt) - Date.parse(prev.sentAt);
-  if (Number.isNaN(gap)) return true;
-  return gap >= CHAT_BUBBLE_TIME_CLUSTER_MS;
+  return isChatTimeSessionBreak(prev, next);
 }
 
 /** Đầu cụm mới: tin đầu, đổi người gửi, hoặc ≥ 5 phút. */
@@ -66,12 +84,24 @@ export function chatClusterRole(
   return "middle";
 }
 
-/** Mốc ngày/giờ giữa khung — đầu cụm mới. */
+/**
+ * Mốc session giữa khung: chỉ khi im ≥ 5 phút so với tin trước
+ * (không tách vì đổi người gửi). Đầu list: ẩn nếu tin còn trong 5 phút vừa rồi.
+ */
 export function shouldShowChatItemTime(
   items: ChatMessageListItem[],
   index: number,
+  nowMs: number = Date.now(),
 ): boolean {
-  return isChatClusterHead(items, index);
+  const curr = items[index];
+  if (!curr) return false;
+  const prev = items[index - 1];
+  if (!prev) {
+    const sent = Date.parse(listItemHead(curr).sentAt);
+    if (Number.isNaN(sent)) return false;
+    return nowMs - sent >= CHAT_BUBBLE_TIME_CLUSTER_MS;
+  }
+  return isChatTimeSessionBreak(listItemTail(prev), listItemHead(curr));
 }
 
 export function chatListItemStampAt(item: ChatMessageListItem): string {

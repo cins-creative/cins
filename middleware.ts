@@ -13,6 +13,14 @@ import {
   getTrimmedSupabaseUrl,
 } from "@/lib/supabase/env";
 import { MANAGE_ORIGIN } from "@/lib/cins/manage-site";
+import {
+  isAcademyManageApiPath,
+  isOrgManagePath,
+  isSellerPath,
+  isStudioManageApiPath,
+  toInternalManagePath,
+  toManagePublicPath,
+} from "@/lib/cins/manage-path";
 import { appendSetCookieHeaders } from "@/lib/supabase/route-handler";
 
 /** Đổi thành `false` trước khi deploy production bình thường. */
@@ -70,6 +78,16 @@ function isProtectedPath(pathname: string): boolean {
     return true;
   }
   if (pathname === "/admin" || pathname.startsWith("/admin/")) return true;
+  if (isSellerPath(pathname) || pathname === "/shop" || pathname.startsWith("/shop/")) {
+    return true;
+  }
+  if (isOrgManagePath(pathname)) return true;
+  if (
+    process.env.CINS_SURFACE === "manage" &&
+    /^\/(academy|studio|university)\/[^/]+/.test(pathname)
+  ) {
+    return true;
+  }
 
   /* Trình tạo / sửa bài: `/{slug}/p/new` hoặc `/{slug}/p/{postSlug}/edit`. */
   const postEditorMatch = pathname.match(
@@ -351,32 +369,56 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(canonicalHost.url, canonicalHost.status);
   }
 
+  const hostEarly = request.nextUrl.hostname.toLowerCase();
+  const onManageEarly =
+    hostEarly === "manage.cins.vn" || process.env.CINS_SURFACE === "manage";
+
   const legacyNganh = redirectLegacyNganhHubTab(request);
   if (legacyNganh) return legacyNganh;
   const legacyUrl = redirectLegacyUrl(request);
   if (legacyUrl) return legacyUrl;
   const legacyJourney = redirectLegacyJourneyPath(request);
   if (legacyJourney) return legacyJourney;
-  const coSoRoot = redirectCoSoRootToDefaultTab(request);
-  if (coSoRoot) return coSoRoot;
-  const studioRoot = redirectStudioRootToDefaultTab(request);
-  if (studioRoot) return studioRoot;
-  const truongRoot = redirectTruongRootToDefaultTab(request);
-  if (truongRoot) return truongRoot;
+  if (!onManageEarly) {
+    const coSoRoot = redirectCoSoRootToDefaultTab(request);
+    if (coSoRoot) return coSoRoot;
+    const studioRoot = redirectStudioRootToDefaultTab(request);
+    if (studioRoot) return studioRoot;
+    const truongRoot = redirectTruongRootToDefaultTab(request);
+    if (truongRoot) return truongRoot;
+  }
 
   const { pathname } = request.nextUrl;
   const host = request.nextUrl.hostname.toLowerCase();
 
-  if (
-    process.env.CINS_SURFACE === "web" &&
-    (pathname === "/admin" || pathname.startsWith("/admin/"))
-  ) {
-    const dest = new URL(pathname + request.nextUrl.search, MANAGE_ORIGIN);
-    return NextResponse.redirect(dest, 308);
+  if (process.env.CINS_SURFACE === "web") {
+    if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+      const dest = new URL(pathname + request.nextUrl.search, MANAGE_ORIGIN);
+      return NextResponse.redirect(dest, 308);
+    }
+    if (isSellerPath(pathname) || isOrgManagePath(pathname)) {
+      const pretty = toManagePublicPath(pathname) ?? pathname;
+      const dest = new URL(pretty + request.nextUrl.search, MANAGE_ORIGIN);
+      return NextResponse.redirect(dest, 308);
+    }
+    if (isAcademyManageApiPath(pathname) || isStudioManageApiPath(pathname)) {
+      const dest = new URL(pathname + request.nextUrl.search, MANAGE_ORIGIN);
+      return NextResponse.redirect(dest, 307);
+    }
   }
 
-  if (host === "manage.cins.vn" && pathname === "/") {
+  const onManageHost =
+    host === "manage.cins.vn" || process.env.CINS_SURFACE === "manage";
+  if (onManageHost && pathname === "/") {
     return NextResponse.redirect(new URL("/admin", request.url), 308);
+  }
+  if (onManageHost) {
+    const internal = toInternalManagePath(pathname);
+    if (internal && internal !== pathname) {
+      const url = request.nextUrl.clone();
+      url.pathname = internal;
+      return NextResponse.rewrite(url);
+    }
   }
 
   if (isBypassedPath(pathname)) {

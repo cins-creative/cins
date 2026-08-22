@@ -35,6 +35,7 @@ import {
   useShopPhiGate,
 } from "@/lib/shop/use-shop-phi-gate";
 import { useShopReadyGate } from "@/lib/shop/use-shop-ready-gate";
+import { manageSellerHref, navigateManageHref } from "@/lib/cins/manage-site";
 
 import "./shop-topbar.css";
 
@@ -67,7 +68,7 @@ export function ShopTopbarButton() {
   const goBanHang = useCallback(
     (href: string) => {
       setOpen(false);
-      router.push(href);
+      navigateManageHref(href, router);
     },
     [router],
   );
@@ -253,7 +254,7 @@ export function ShopTopbarButton() {
               </div>
               {shopReady ? (
                 <a
-                  href="/seller/orders"
+                  href={manageSellerHref("/seller/orders")}
                   target="_blank"
                   rel="noreferrer"
                   className="shop-topbar-ext"
@@ -286,11 +287,11 @@ export function ShopTopbarButton() {
               <div className="shop-topbar-shortcuts">
                 <div className="shop-topbar-shortcut">
                   <Link
-                    href={shopSetupHref || "/seller/store"}
+                    href={shopSetupHref || manageSellerHref("/seller/store")}
                     className="shop-topbar-shortcut-main"
                     onClick={(e) => {
                       e.preventDefault();
-                      goBanHang(shopSetupHref || "/seller/store");
+                      goBanHang(shopSetupHref || manageSellerHref("/seller/store"));
                     }}
                   >
                     <Store size={16} strokeWidth={2} aria-hidden />
@@ -302,18 +303,18 @@ export function ShopTopbarButton() {
               <div className="shop-topbar-shortcuts">
                 <div className="shop-topbar-shortcut">
                   <Link
-                    href="/seller/inventory"
+                    href={manageSellerHref("/seller/inventory")}
                     className="shop-topbar-shortcut-main"
                     onClick={(e) => {
                       e.preventDefault();
-                      goBanHang("/seller/inventory");
+                      goBanHang(manageSellerHref("/seller/inventory"));
                     }}
                   >
                     <Package size={16} strokeWidth={2} aria-hidden />
                     Kho hàng
                   </Link>
                   <a
-                    href="/seller/inventory"
+                    href={manageSellerHref("/seller/inventory")}
                     target="_blank"
                     rel="noreferrer"
                     className="shop-topbar-shortcut-ext"
@@ -326,18 +327,18 @@ export function ShopTopbarButton() {
                 </div>
                 <div className="shop-topbar-shortcut">
                   <Link
-                    href="/seller/orders"
+                    href={manageSellerHref("/seller/orders")}
                     className="shop-topbar-shortcut-main"
                     onClick={(e) => {
                       e.preventDefault();
-                      goBanHang("/seller/orders");
+                      goBanHang(manageSellerHref("/seller/orders"));
                     }}
                   >
                     <ClipboardList size={16} strokeWidth={2} aria-hidden />
                     Đơn hàng
                   </Link>
                   <a
-                    href="/seller/orders"
+                    href={manageSellerHref("/seller/orders")}
                     target="_blank"
                     rel="noreferrer"
                     className="shop-topbar-shortcut-ext"
@@ -437,11 +438,11 @@ export function ShopTopbarButton() {
             )}
 
             <Link
-              href="/seller/orders"
+              href={manageSellerHref("/seller/orders")}
               className="shop-topbar-footer"
               onClick={(e) => {
                 e.preventDefault();
-                goBanHang("/seller/orders");
+                goBanHang(manageSellerHref("/seller/orders"));
               }}
             >
               Xem tất cả đơn

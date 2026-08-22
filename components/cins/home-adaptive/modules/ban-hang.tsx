@@ -17,6 +17,7 @@ import {
   loadDonCanXuLy,
   loadDonMuaCuaToi,
 } from "@/lib/cins/home-adaptive/role-fetches";
+import { manageSellerHref } from "@/lib/cins/manage-site";
 
 /** Shop · Đơn chờ xử lý. */
 export async function DonCanXuLyModule({ ctx }: { ctx: HomeModuleCtx }) {
@@ -32,7 +33,7 @@ export async function DonCanXuLyModule({ ctx }: { ctx: HomeModuleCtx }) {
         icon={ClipboardList}
         moduleId="don_can_xu_ly"
         title="Đơn chờ xử lý"
-        moreHref="/seller/orders"
+        moreHref={manageSellerHref("/seller/orders")}
         moreLabel="Xem đơn hàng"
         className="ha-card--don"
       >
@@ -95,7 +96,7 @@ export async function QuanLyKhoModule({ ctx }: { ctx: HomeModuleCtx }) {
         icon={Package}
         moduleId="quan_ly_kho"
         title="Quản lý kho hàng"
-        moreHref="/seller/inventory"
+        moreHref={manageSellerHref("/seller/inventory")}
         moreLabel="Mở kho"
         className="ha-card--kho"
       >

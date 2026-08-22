@@ -22,8 +22,11 @@ import { JourneyShopStorefront } from "@/components/journey/JourneyShopStorefron
 import { useJourneyViewOptional } from "@/components/journey/JourneyViewContext";
 import {
   shopPublicHref,
+  shopSetupHref,
+  shopKhoHubHref,
   shopSlugFromTen,
 } from "@/lib/shop/cua-hang-href";
+import { manageSellerHref } from "@/lib/cins/manage-site";
 
 import "@/components/shop/shop-dashboard.css";
 import "./journey-shop-view.css";
@@ -186,7 +189,7 @@ export function JourneyShopView({
             <p>
               Mở{" "}
               <Link
-                href="/seller/store"
+                href={shopSetupHref()}
                 onMouseEnter={warmPrefetchBanHang}
                 onFocus={warmPrefetchBanHang}
               >
@@ -230,7 +233,7 @@ export function JourneyShopView({
                       {ready ? (
                         <>
                           <Link
-                            href="/seller/inventory"
+                            href={shopKhoHubHref()}
                             className="j-shop-action-btn"
                             aria-label="Kho hàng"
                             onMouseEnter={warmPrefetchBanHang}
@@ -242,7 +245,7 @@ export function JourneyShopView({
                             </span>
                           </Link>
                           <Link
-                            href="/seller/orders"
+                            href={manageSellerHref("/seller/orders")}
                             className="j-shop-action-btn"
                             aria-label="Đơn hàng"
                             onMouseEnter={warmPrefetchBanHang}
@@ -268,7 +271,7 @@ export function JourneyShopView({
                         </span>
                       )}
                       <Link
-                        href="/seller/store"
+                        href={shopSetupHref()}
                         className="j-shop-action-btn"
                         aria-label="Quản lý cửa hàng"
                         onMouseEnter={warmPrefetchBanHang}

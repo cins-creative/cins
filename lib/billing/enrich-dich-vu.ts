@@ -3,6 +3,7 @@ import "server-only";
 import { getCsdtPhiGate } from "@/lib/co-so/phi-gate";
 import { tinhPhiLuyKeChuaVaoKy } from "@/lib/co-so/phi";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { manageHref, manageSellerHref } from "@/lib/cins/manage-site";
 
 import type {
   CinsDichVu,
@@ -171,7 +172,7 @@ async function dangTichLuyCsdt(
 async function quanLyHrefFor(dv: CinsDichVu): Promise<string | null> {
   const admin = createServiceRoleClient();
   if (dv.loai === "shop_phi") {
-    return "/seller/store";
+    return manageSellerHref("/seller/store");
   }
   if (dv.loai === "csdt_phi") {
     const { data } = await admin
@@ -180,7 +181,7 @@ async function quanLyHrefFor(dv: CinsDichVu): Promise<string | null> {
       .eq("id", dv.thamChieuId)
       .maybeSingle<{ slug: string | null }>();
     const slug = data?.slug?.trim();
-    return slug ? `/academy/${slug}/manage` : null;
+    return slug ? manageHref(`/academy/${slug}/manage`) : null;
   }
   return null;
 }

@@ -4,6 +4,7 @@ import { openDirectRoom, sendRoomMessage } from "@/lib/chat/direct-message";
 import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
 import { getQuanHe } from "@/lib/social/ket-ban";
 import { getAvatarUrl } from "@/lib/journey/profile";
+import { manageSellerHref } from "@/lib/cins/manage-site";
 import { getGio, getGioCuaHang } from "@/lib/shop/gio";
 import { clearGioChungCuaSeller, getGioChung } from "@/lib/shop/gio-chung";
 import {
@@ -1733,7 +1734,7 @@ export function donHangToChatContext(don: ShopDonHang): {
     id: don.id,
     tieuDe: `Đơn ${ma}`,
     moTa: parts.filter(Boolean).join("\n"),
-    href: `/seller/orders?id=${don.id}`,
+    href: `${manageSellerHref("/seller/orders")}?id=${encodeURIComponent(don.id)}`,
     ...(bienLaiAnh ? { anh: bienLaiAnh } : {}),
     ...(yeuCauHuy ? { yeuCauHuy } : {}),
   };

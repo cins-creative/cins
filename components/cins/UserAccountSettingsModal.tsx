@@ -63,6 +63,7 @@ import {
 } from "@/lib/journey/journey-default-view";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { useT } from "@/lib/i18n/use-t";
+import { manageSellerHref } from "@/lib/cins/manage-site";
 
 import "./user-account-settings-modal.css";
 
@@ -1384,7 +1385,7 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
           {enabled ? (
             <div>
               {shopReady ? (
-                <Link href="/seller/inventory" className="uas-btn primary">
+                <Link href={manageSellerHref("/seller/inventory")} className="uas-btn primary">
                   {t("account.settings.selling.manage")}
                 </Link>
               ) : shopSetupHref ? (

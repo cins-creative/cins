@@ -70,6 +70,7 @@ import {
   shopPublicHref,
   shopSlugFromTen,
 } from "@/lib/shop/cua-hang-href";
+import { manageSellerHref } from "@/lib/cins/manage-site";
 import { parseShopNhomMoTa } from "@/lib/shop/nhom-mo-ta";
 import { isShopTamDongActive } from "@/lib/shop/tam-dong";
 import {
@@ -1205,7 +1206,7 @@ export function JourneyShopLoaiClient({
             <span className="j-shop-action-btn-label">Kho hàng</span>
           </Link>
           <Link
-            href="/seller/orders"
+            href={manageSellerHref("/seller/orders")}
             className="j-shop-action-btn"
             aria-label="Đơn hàng"
             onMouseEnter={warmPrefetchBanHang}
@@ -1227,7 +1228,7 @@ export function JourneyShopLoaiClient({
         </span>
       )}
       <Link
-        href="/seller/store"
+        href={manageSellerHref("/seller/store")}
         className="j-shop-action-btn"
         aria-label="Quản lý cửa hàng"
         onMouseEnter={warmPrefetchBanHang}

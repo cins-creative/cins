@@ -446,6 +446,8 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const shouldScrollToBottomRef = useRef(true);
+  const highlightTimerRef = useRef<number | null>(null);
+  const jumpLockRef = useRef(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingImagesRef = useRef<PendingImageDraft[]>([]);
@@ -1434,6 +1436,92 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     },
     [loadingOlder, patchRoomState, roomStates],
   );
+
+  const highlightMessage = useCallback((messageId: string) => {
+    const el = document.getElementById(`cins-chat-msg-${messageId}`);
+    if (!el) return false;
+    const container = messagesContainerRef.current;
+    if (container && container.contains(el)) {
+      const cRect = container.getBoundingClientRect();
+      const eRect = el.getBoundingClientRect();
+      const offset = eRect.top - cRect.top - (cRect.height - eRect.height) / 2;
+      container.scrollTo({
+        top: Math.max(0, container.scrollTop + offset),
+        behavior: "smooth",
+      });
+    } else {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    el.classList.add("is-msg-highlight");
+    if (highlightTimerRef.current) {
+      window.clearTimeout(highlightTimerRef.current);
+    }
+    highlightTimerRef.current = window.setTimeout(() => {
+      el.classList.remove("is-msg-highlight");
+      highlightTimerRef.current = null;
+    }, 1800);
+    return true;
+  }, []);
+
+  const runHighlightWhenReady = useCallback(
+    (messageId: string) => {
+      const tryHighlight = (attempt: number) => {
+        if (highlightMessage(messageId)) return;
+        if (attempt >= 12) return;
+        requestAnimationFrame(() => tryHighlight(attempt + 1));
+      };
+      requestAnimationFrame(() => tryHighlight(0));
+    },
+    [highlightMessage],
+  );
+
+  const scrollToMessage = useCallback(
+    async (messageId: string) => {
+      const roomId = miniRoomIdRef.current;
+      if (!roomId || isPendingRoomId(roomId)) return;
+      shouldScrollToBottomRef.current = false;
+
+      const state = roomStatesRef.current[roomId];
+      if (state?.messages.some((m) => m.id === messageId)) {
+        runHighlightWhenReady(messageId);
+        return;
+      }
+
+      if (jumpLockRef.current) return;
+      jumpLockRef.current = true;
+      setLoadingOlder(true);
+      try {
+        let msgs = state?.messages ?? [];
+        let hasMore = state?.hasMore ?? false;
+        while (hasMore) {
+          const before = msgs[0]?.id;
+          if (!before) break;
+          const page = await fetchRoomMessagesPage(roomId, { before });
+          if (!page?.messages.length) break;
+          msgs = [...page.messages, ...msgs];
+          hasMore = page.hasMore;
+          patchRoomState(roomId, { messages: msgs, hasMore });
+          if (msgs.some((m) => m.id === messageId)) {
+            runHighlightWhenReady(messageId);
+            return;
+          }
+        }
+        setLoadError("Không tìm thấy tin nhắn trong hội thoại.");
+      } finally {
+        jumpLockRef.current = false;
+        setLoadingOlder(false);
+      }
+    },
+    [patchRoomState, runHighlightWhenReady],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current) {
+        window.clearTimeout(highlightTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleMessagesScroll = useCallback(() => {
     const el = messagesContainerRef.current;
@@ -2584,6 +2672,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                 }}
                 roomId={miniThread.roomId}
                 viewerUserId={viewerProfileId}
+                onJumpToMessage={(id) => void scrollToMessage(id)}
                 canConfirmHocPhi={Boolean(
                   miniThread.isOrgStaffInbox || miniThread.viewerIsOrgMember,
                 )}
