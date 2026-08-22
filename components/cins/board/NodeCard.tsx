@@ -6,8 +6,9 @@
  * phụ (mở tin gốc, mở link, edit sticky) dừng propagation.
  */
 
-import { Eye, GripHorizontal, Link2, Minus, Plus } from "lucide-react";
+import { Eye, GripHorizontal, Link2, PanelLeft, PanelTop, Plus, X } from "lucide-react";
 import {
+  memo,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -25,13 +26,19 @@ import {
 } from "@/components/cins/board/board-types";
 import {
   addTableCol,
+  addTableHeaderCol,
+  addTableHeaderRow,
   addTableRow,
+  insertTableColAfter,
+  insertTableRowAfter,
   normalizeContentKind,
   parseDraw,
   parseTable,
   pointsToSvgPath,
-  removeTableCol,
-  removeTableRow,
+  removeTableColAt,
+  removeTableHeaderCol,
+  removeTableHeaderRow,
+  removeTableRowAt,
   serializeTable,
   suggestTableSize,
   TABLE_MAX_DIM,
@@ -104,37 +111,164 @@ export function isTextStickyNode(
   return (node.layout.mau?.trim() ?? STICKY_PALETTE[0]) === TEXT_STICKY_MAU;
 }
 
+/** Bubble bình luận trên canvas (`contentKind=comment`). */
+export function isCommentNode(
+  node: Pick<BoardNode, "loai" | "layout">,
+): boolean {
+  return (
+    node.loai === "sticky" &&
+    normalizeContentKind(node.layout.contentKind) === "comment"
+  );
+}
+
 export function isAreaTextNode(
   node: Pick<BoardNode, "loai" | "layout">,
 ): boolean {
   return isTextStickyNode(node) && node.layout.textKind === "area";
 }
 
-/** Đo khung ôm chữ (point text) — không wrap. */
+/** Khớp `--sticky-pad-x/y` + slack caret, tránh đo canvas hẹp hơn chữ render. */
+const TEXT_PAD_X = 16;
+const TEXT_PAD_Y = 6;
+const TEXT_FIT_SLACK = 6;
+const TEXT_LINE_RATIO = 1.35;
+
+function canvasTextFont(size: number): string {
+  const family =
+    typeof document !== "undefined"
+      ? getComputedStyle(document.body).fontFamily || "sans-serif"
+      : "sans-serif";
+  return `600 ${size}px ${family}`;
+}
+
+/** Đo khung ôm chữ (line / point text) — không wrap, chỉ xuống dòng khi Enter. */
 export function measureFitTextSize(
   text: string,
   fontSize = DEFAULT_TEXT_SIZE,
 ): { w: number; h: number } {
   const size = normalizeTextSize(fontSize);
-  const padX = 10;
-  const padY = 8;
-  const lineH = Math.round(size * 1.35);
+  const lineH = Math.round(size * TEXT_LINE_RATIO);
   const lines = (text.length > 0 ? text : " ").split("\n");
   let maxW = size;
   if (typeof document !== "undefined") {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.font = `600 ${size}px ${getComputedStyle(document.body).fontFamily || "sans-serif"}`;
-      for (const line of lines) {
-        maxW = Math.max(maxW, ctx.measureText(line.length > 0 ? line : " ").width);
-      }
+    const probe = document.createElement("span");
+    const family = getComputedStyle(document.body).fontFamily || "sans-serif";
+    probe.style.cssText = [
+      "position:absolute",
+      "left:-9999px",
+      "top:0",
+      "visibility:hidden",
+      "white-space:pre",
+      `font:600 ${size}px ${family}`,
+      `line-height:${TEXT_LINE_RATIO}`,
+    ].join(";");
+    document.body.appendChild(probe);
+    for (const line of lines) {
+      probe.textContent = line.length > 0 ? line : " ";
+      maxW = Math.max(maxW, probe.offsetWidth);
     }
+    probe.remove();
   }
   return {
-    w: Math.max(48, Math.ceil(maxW + padX * 2)),
-    h: Math.max(lineH + padY * 2, lines.length * lineH + padY * 2),
+    w: Math.max(48, Math.ceil(maxW + TEXT_PAD_X * 2 + TEXT_FIT_SLACK)),
+    h: Math.max(
+      lineH + TEXT_PAD_Y * 2,
+      Math.ceil(lines.length * lineH + TEXT_PAD_Y * 2 + 2),
+    ),
   };
+}
+
+function FitTextLabel({
+  text,
+  style,
+  fontSize,
+  nodeId,
+  onTextFitSize,
+}: {
+  text: string;
+  style?: { color?: string; fontSize?: number };
+  fontSize?: number | null;
+  nodeId: string;
+  onTextFitSize?: (nodeId: string, size: { w: number; h: number }) => void;
+}) {
+  useLayoutEffect(() => {
+    if (!text.trim()) return;
+    onTextFitSize?.(nodeId, measureFitTextSize(text, fontSize ?? undefined));
+  }, [text, fontSize, nodeId, onTextFitSize]);
+  return (
+    <span className="cins-canvas-sticky-text" style={style}>
+      {text}
+    </span>
+  );
+}
+
+function wrapTextLines(
+  text: string,
+  maxWidth: number,
+  measure: (s: string) => number,
+): string[] {
+  const out: string[] = [];
+  for (const para of text.split("\n")) {
+    if (!para) {
+      out.push("");
+      continue;
+    }
+    let current = "";
+    for (const word of para.split(" ")) {
+      const next = current ? `${current} ${word}` : word;
+      if (!current || measure(next) <= maxWidth) {
+        current = next;
+      } else {
+        out.push(current);
+        current = word;
+      }
+    }
+    out.push(current);
+  }
+  return out.length > 0 ? out : [""];
+}
+
+/** Cỡ chữ để đoạn (wrap) vừa khít vùng area. */
+export function measureAreaTextFontSize(
+  text: string,
+  boxW: number,
+  boxH: number,
+): number {
+  const innerW = Math.max(4, boxW - TEXT_PAD_X * 2);
+  const innerH = Math.max(4, boxH - TEXT_PAD_Y * 2);
+  const sample = text.length > 0 ? text : "Ag";
+  const min = 6;
+  const max = Math.max(min, Math.min(280, innerH / 1.05));
+  let lo = min;
+  let hi = max;
+  let best = min;
+  const ctx =
+    typeof document !== "undefined"
+      ? document.createElement("canvas").getContext("2d")
+      : null;
+  const fits = (size: number) => {
+    const lineH = size * TEXT_LINE_RATIO;
+    if (!ctx) return lineH <= innerH;
+    ctx.font = canvasTextFont(size);
+    const measure = (s: string) => ctx.measureText(s).width;
+    const lines = wrapTextLines(sample, innerW, measure);
+    const height = lines.length * lineH;
+    let maxLineW = 0;
+    for (const line of lines) {
+      maxLineW = Math.max(maxLineW, measure(line.length > 0 ? line : " "));
+    }
+    return height <= innerH + 0.5 && maxLineW <= innerW + 0.5;
+  };
+  for (let i = 0; i < 16; i++) {
+    const mid = (lo + hi) / 2;
+    if (fits(mid)) {
+      best = mid;
+      lo = mid;
+    } else {
+      hi = mid;
+    }
+  }
+  return Math.round(best * 10) / 10;
 }
 
 export type BoardShapeKind = "rect" | "ellipse" | "diamond";
@@ -556,32 +690,76 @@ function StickyEditor({
   textColor,
   textSize,
   area = false,
+  areaBox,
 }: Pick<NodeCardProps, "node" | "onCommitText" | "onCancelEdit"> & {
   onInputGrow?: (value: string) => void;
   tone?: "sticky" | "comment";
   textColor?: string | null;
   textSize?: number | null;
   area?: boolean;
+  areaBox?: { w: number; h: number };
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
+  const commitRef = useRef(onCommitText);
+  const skipUnmountCommitRef = useRef(false);
+  /** Giữ chữ đang gõ — unmount khi click nền có thể xóa DOM ref trước khi commit. */
+  const liveValueRef = useRef(node.noiDung ?? "");
+  const mountedAtRef = useRef(0);
+  commitRef.current = onCommitText;
+
+  const applyAreaFont = (value: string) => {
+    const el = ref.current;
+    if (!el || !area || !areaBox) return;
+    const size = measureAreaTextFontSize(value, areaBox.w, areaBox.h);
+    el.style.fontSize = `${size}px`;
+    el.style.lineHeight = String(TEXT_LINE_RATIO);
+  };
 
   const syncHeight = () => {
     const el = ref.current;
     if (!el) return;
+    liveValueRef.current = el.value;
+    if (area) {
+      el.style.height = "100%";
+      applyAreaFont(el.value);
+      return;
+    }
+    el.style.overflow = "hidden";
     el.style.height = "auto";
-    el.style.height = `${Math.max(el.scrollHeight, tone === "comment" ? 20 : 40)}px`;
+    el.style.width = "auto";
+    const nextH = Math.max(el.scrollHeight, tone === "comment" ? 20 : 40);
+    el.style.height = `${nextH}px`;
     onInputGrow?.(el.value);
   };
 
   useEffect(() => {
+    liveValueRef.current = node.noiDung ?? "";
+    mountedAtRef.current = Date.now();
     const el = ref.current;
     if (el) {
-      el.focus();
+      el.focus({ preventScroll: true });
       el.setSelectionRange(el.value.length, el.value.length);
       syncHeight();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ khi mount / đổi node
   }, [node.id]);
+
+  useEffect(() => {
+    const id = node.id;
+    return () => {
+      if (skipUnmountCommitRef.current) return;
+      const value = liveValueRef.current;
+      // Luôn keepEditing khi unmount: Strict Mode remount / đổi focus không được
+      // xóa bubble trống hay tắt phiên soạn. Xóa trống chỉ blur/Escape/discardBlank.
+      commitRef.current(id, value, { keepEditing: true });
+    };
+  }, [node.id]);
+
+  useEffect(() => {
+    if (!area || !areaBox) return;
+    applyAreaFont(ref.current?.value ?? node.noiDung ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ khi đổi khung area
+  }, [area, areaBox?.w, areaBox?.h]);
 
   return (
     <textarea
@@ -600,16 +778,103 @@ function StickyEditor({
         e.stopPropagation();
         if (e.key === "Escape") {
           e.preventDefault();
+          skipUnmountCommitRef.current = true;
           onCancelEdit();
         }
         if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
           e.preventDefault();
+          liveValueRef.current = e.currentTarget.value;
           onCommitText(node.id, e.currentTarget.value);
         }
       }}
-      onBlur={(e) => onCommitText(node.id, e.currentTarget.value)}
+      onBlur={(e) => {
+        liveValueRef.current = e.currentTarget.value;
+        const empty = !e.currentTarget.value.trim();
+        // Mất focus không do click sang control khác (camera / Strict Mode) —
+        // giữ ô soạn, đừng xóa comment trống.
+        if (empty && !e.relatedTarget) {
+          requestAnimationFrame(() => {
+            ref.current?.focus({ preventScroll: true });
+          });
+          return;
+        }
+        onCommitText(node.id, e.currentTarget.value);
+      }}
     />
   );
+}
+
+function TableIconBtn({
+  label,
+  disabled,
+  onClick,
+  onHover,
+  className,
+  children,
+}: {
+  label: string;
+  disabled?: boolean;
+  onClick: () => void;
+  onHover?: (active: boolean) => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      className={"cins-canvas-table-icon" + (className ? ` ${className}` : "")}
+      aria-label={label}
+      title={label}
+      disabled={disabled}
+      data-table-ui
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerEnter={() => onHover?.(true)}
+      onPointerLeave={() => onHover?.(false)}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!disabled) onClick();
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+type TableHover = {
+  col: number | null;
+  row: number | null;
+  mark: null | {
+    axis: "col" | "row";
+    at: number;
+    kind: "insert" | "delete" | "end";
+  };
+};
+
+const EMPTY_TABLE_HOVER: TableHover = { col: null, row: null, mark: null };
+
+function tableHoverHint(
+  hover: TableHover,
+  dims: { r: number; c: number },
+): string | null {
+  const mark = hover.mark;
+  if (!mark) {
+    if (hover.col != null && hover.row != null) {
+      return `Cột ${hover.col + 1} · Hàng ${hover.row + 1}`;
+    }
+    if (hover.col != null) return `Cột ${hover.col + 1}`;
+    if (hover.row != null) return `Hàng ${hover.row + 1}`;
+    return null;
+  }
+  if (mark.axis === "col") {
+    if (mark.kind === "delete") return `Xóa cột ${mark.at + 1}`;
+    if (mark.kind === "end") return `Thêm cột sau cột ${dims.c}`;
+    if (mark.at >= dims.c - 1) return `Chèn sau cột ${mark.at + 1}`;
+    return `Chèn giữa cột ${mark.at + 1} và ${mark.at + 2}`;
+  }
+  if (mark.kind === "delete") return `Xóa hàng ${mark.at + 1}`;
+  if (mark.kind === "end") return `Thêm hàng sau hàng ${dims.r}`;
+  if (mark.at >= dims.r - 1) return `Chèn sau hàng ${mark.at + 1}`;
+  return `Chèn giữa hàng ${mark.at + 1} và ${mark.at + 2}`;
 }
 
 function TableBody({
@@ -646,6 +911,7 @@ function TableBody({
   const [focusCell, setFocusCell] = useState<{ r: number; c: number } | null>(
     null,
   );
+  const [hover, setHover] = useState<TableHover>(EMPTY_TABLE_HOVER);
   const cellRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
   if (prevRaw !== node.noiDung) {
@@ -654,7 +920,8 @@ function TableBody({
     if (next) setDraft(next);
   }
 
-  const interactive = !locked && (editing || Boolean(selected));
+  const interactive = !locked && editing;
+  const showChrome = !locked && (interactive || selected);
 
   useEffect(() => {
     if (!interactive || !focusCell) return;
@@ -699,170 +966,403 @@ function TableBody({
     else cellRefs.current.delete(key);
   };
 
+  const hint = showChrome
+    ? tableHoverHint(hover, { r: draft.r, c: draft.c })
+    : null;
+  const delCol =
+    hover.mark?.kind === "delete" && hover.mark.axis === "col"
+      ? hover.mark.at
+      : null;
+  const delRow =
+    hover.mark?.kind === "delete" && hover.mark.axis === "row"
+      ? hover.mark.at
+      : null;
+  const insCol =
+    hover.mark &&
+    hover.mark.axis === "col" &&
+    (hover.mark.kind === "insert" || hover.mark.kind === "end")
+      ? hover.mark.at
+      : null;
+  const insRow =
+    hover.mark &&
+    hover.mark.axis === "row" &&
+    (hover.mark.kind === "insert" || hover.mark.kind === "end")
+      ? hover.mark.at
+      : null;
+
   return (
     <div
       className={
         "cins-canvas-card cins-canvas-card-table" +
-        (interactive ? " is-interactive" : "")
+        (interactive ? " is-interactive" : "") +
+        (showChrome ? " has-rails" : "")
       }
+      onPointerLeave={() => setHover(EMPTY_TABLE_HOVER)}
     >
-      {interactive ? (
-        <div
-          className="cins-canvas-table-drag"
-          data-table-drag
-          title="Kéo để di chuyển bảng"
-          aria-label="Kéo để di chuyển bảng"
-        >
-          <GripHorizontal size={14} strokeWidth={2} aria-hidden />
+      {showChrome ? (
+        <div className="cins-canvas-table-chrome" aria-label="Sửa bảng">
+          <div
+            className="cins-canvas-table-drag"
+            data-table-drag
+            title="Kéo để di chuyển bảng"
+            aria-label="Kéo để di chuyển bảng"
+          >
+            <GripHorizontal size={14} strokeWidth={2} aria-hidden />
+            {hint ? (
+              <span className="cins-canvas-table-hint">{hint}</span>
+            ) : null}
+          </div>
+          <div className="cins-canvas-table-corner">
+            <TableIconBtn
+              label={
+                draft.headerRow
+                  ? "Gỡ hàng header"
+                  : draft.r >= TABLE_MAX_DIM
+                    ? `Tối đa ${TABLE_MAX_DIM} hàng`
+                    : "Thêm hàng header (ngang)"
+              }
+              className={"is-toggle" + (draft.headerRow ? " is-on" : "")}
+              disabled={!draft.headerRow && draft.r >= TABLE_MAX_DIM}
+              onClick={() => {
+                const next = draft.headerRow
+                  ? removeTableHeaderRow(draft)
+                  : addTableHeaderRow(draft);
+                if (next) persist(next, true, true);
+              }}
+            >
+              <PanelTop size={11} strokeWidth={2.2} aria-hidden />
+            </TableIconBtn>
+            <TableIconBtn
+              label={
+                draft.headerCol
+                  ? "Gỡ cột header"
+                  : draft.c >= TABLE_MAX_DIM
+                    ? `Tối đa ${TABLE_MAX_DIM} cột`
+                    : "Thêm cột header (dọc)"
+              }
+              className={"is-toggle" + (draft.headerCol ? " is-on" : "")}
+              disabled={!draft.headerCol && draft.c >= TABLE_MAX_DIM}
+              onClick={() => {
+                const next = draft.headerCol
+                  ? removeTableHeaderCol(draft)
+                  : addTableHeaderCol(draft);
+                if (next) persist(next, true, true);
+              }}
+            >
+              <PanelLeft size={11} strokeWidth={2.2} aria-hidden />
+            </TableIconBtn>
+          </div>
+          <div className="cins-canvas-table-col-rail">
+            {draft.cells[0]?.map((_, ci) => (
+              <div
+                key={ci}
+                className={
+                  "cins-canvas-table-col-slot" +
+                  (hover.col === ci ? " is-hot" : "")
+                }
+                onPointerEnter={() =>
+                  setHover((prev) => ({
+                    ...prev,
+                    col: ci,
+                    mark: prev.mark?.axis === "col" ? prev.mark : null,
+                  }))
+                }
+              >
+                <TableIconBtn
+                  label={
+                    draft.c <= 1
+                      ? "Giữ ít nhất 1 cột"
+                      : draft.headerCol && ci === 0
+                        ? "Xóa cột header"
+                        : `Xóa cột ${ci + 1}`
+                  }
+                  disabled={draft.c <= 1}
+                  onHover={(active) =>
+                    setHover((prev) => ({
+                      col: ci,
+                      row: prev.row,
+                      mark: active
+                        ? { axis: "col", at: ci, kind: "delete" }
+                        : null,
+                    }))
+                  }
+                  onClick={() => {
+                    const next = removeTableColAt(draft, ci);
+                    if (next) persist(next, true, true);
+                  }}
+                >
+                  <X size={10} strokeWidth={2.4} aria-hidden />
+                </TableIconBtn>
+                <TableIconBtn
+                  label={
+                    draft.c >= TABLE_MAX_DIM
+                      ? `Tối đa ${TABLE_MAX_DIM} cột`
+                      : `Thêm cột sau cột ${ci + 1}`
+                  }
+                  disabled={draft.c >= TABLE_MAX_DIM}
+                  onHover={(active) =>
+                    setHover((prev) => ({
+                      col: ci,
+                      row: prev.row,
+                      mark: active
+                        ? { axis: "col", at: ci, kind: "insert" }
+                        : null,
+                    }))
+                  }
+                  onClick={() => {
+                    const next = insertTableColAfter(draft, ci);
+                    if (next) persist(next, true, true);
+                  }}
+                >
+                  <Plus size={11} strokeWidth={2.4} aria-hidden />
+                </TableIconBtn>
+              </div>
+            ))}
+            <TableIconBtn
+              label={
+                draft.c >= TABLE_MAX_DIM
+                  ? `Tối đa ${TABLE_MAX_DIM} cột`
+                  : "Thêm cột cuối"
+              }
+              className="is-edge is-edge-col"
+              disabled={draft.c >= TABLE_MAX_DIM}
+              onHover={(active) =>
+                setHover((prev) => ({
+                  col: prev.col,
+                  row: prev.row,
+                  mark: active
+                    ? { axis: "col", at: draft.c - 1, kind: "end" }
+                    : null,
+                }))
+              }
+              onClick={() => {
+                const next = addTableCol(draft);
+                if (next) persist(next, true, true);
+              }}
+            >
+              <Plus size={12} strokeWidth={2.4} aria-hidden />
+            </TableIconBtn>
+          </div>
+          <div className="cins-canvas-table-row-rail">
+            {draft.cells.map((_, ri) => (
+              <div
+                key={ri}
+                className={
+                  "cins-canvas-table-row-slot" +
+                  (hover.row === ri ? " is-hot" : "")
+                }
+                onPointerEnter={() =>
+                  setHover((prev) => ({
+                    ...prev,
+                    row: ri,
+                    mark: prev.mark?.axis === "row" ? prev.mark : null,
+                  }))
+                }
+              >
+                <TableIconBtn
+                  label={
+                    draft.r <= 1
+                      ? "Giữ ít nhất 1 hàng"
+                      : draft.headerRow && ri === 0
+                        ? "Xóa hàng header"
+                        : `Xóa hàng ${ri + 1}`
+                  }
+                  disabled={draft.r <= 1}
+                  onHover={(active) =>
+                    setHover((prev) => ({
+                      col: prev.col,
+                      row: ri,
+                      mark: active
+                        ? { axis: "row", at: ri, kind: "delete" }
+                        : null,
+                    }))
+                  }
+                  onClick={() => {
+                    const next = removeTableRowAt(draft, ri);
+                    if (next) persist(next, true, true);
+                  }}
+                >
+                  <X size={10} strokeWidth={2.4} aria-hidden />
+                </TableIconBtn>
+                <TableIconBtn
+                  label={
+                    draft.r >= TABLE_MAX_DIM
+                      ? `Tối đa ${TABLE_MAX_DIM} hàng`
+                      : `Thêm hàng dưới hàng ${ri + 1}`
+                  }
+                  disabled={draft.r >= TABLE_MAX_DIM}
+                  onHover={(active) =>
+                    setHover((prev) => ({
+                      col: prev.col,
+                      row: ri,
+                      mark: active
+                        ? { axis: "row", at: ri, kind: "insert" }
+                        : null,
+                    }))
+                  }
+                  onClick={() => {
+                    const next = insertTableRowAfter(draft, ri);
+                    if (next) persist(next, true, true);
+                  }}
+                >
+                  <Plus size={11} strokeWidth={2.4} aria-hidden />
+                </TableIconBtn>
+              </div>
+            ))}
+            <TableIconBtn
+              label={
+                draft.r >= TABLE_MAX_DIM
+                  ? `Tối đa ${TABLE_MAX_DIM} hàng`
+                  : "Thêm hàng cuối"
+              }
+              className="is-edge is-edge-row"
+              disabled={draft.r >= TABLE_MAX_DIM}
+              onHover={(active) =>
+                setHover((prev) => ({
+                  col: prev.col,
+                  row: prev.row,
+                  mark: active
+                    ? { axis: "row", at: draft.r - 1, kind: "end" }
+                    : null,
+                }))
+              }
+              onClick={() => {
+                const next = addTableRow(draft);
+                if (next) persist(next, true, true);
+              }}
+            >
+              <Plus size={12} strokeWidth={2.4} aria-hidden />
+            </TableIconBtn>
+          </div>
         </div>
       ) : null}
 
       <div className="cins-canvas-table-scroll">
-        <table className="cins-canvas-table">
-          <tbody>
-            {draft.cells.map((row, ri) => (
-              <tr key={ri}>
-                {row.map((cell, ci) => (
-                  <td key={ci}>
-                    {interactive ? (
-                      <input
-                        ref={(el) => setCellRef(ri, ci, el)}
-                        className="cins-canvas-table-cell"
-                        value={cell}
-                        aria-label={`Ô hàng ${ri + 1}, cột ${ci + 1}`}
-                        onChange={(e) => {
-                          const cells = draft.cells.map((r) => [...r]);
-                          cells[ri]![ci] = e.target.value;
-                          setDraft({ ...draft, cells });
-                        }}
-                        onFocus={() => onRequestEdit?.(node.id)}
-                        onBlur={(e) => {
-                          const cells = draft.cells.map((r) => [...r]);
-                          cells[ri]![ci] = e.target.value;
-                          persist({ ...draft, cells });
-                        }}
-                        onKeyDown={(e) => {
-                          e.stopPropagation();
-                          if (e.key === "Escape") {
-                            e.preventDefault();
-                            onCancelEdit();
-                            (e.target as HTMLInputElement).blur();
+        <div className="cins-canvas-table-inner">
+            <table className="cins-canvas-table">
+              <tbody>
+                {draft.cells.map((row, ri) => (
+                  <tr key={ri}>
+                    {row.map((cell, ci) => {
+                      const isHeaderCol = Boolean(draft.headerCol && ci === 0);
+                      const isHeaderRow = Boolean(draft.headerRow && ri === 0);
+                      const isHeader = isHeaderCol || isHeaderRow;
+                      const isCorner = isHeaderCol && isHeaderRow;
+                      const Cell = isHeader ? "th" : "td";
+                      const cellClass = [
+                        isCorner
+                          ? "is-header-corner"
+                          : isHeaderRow
+                            ? "is-header-row"
+                            : isHeaderCol
+                              ? "is-header-col"
+                              : "",
+                        hover.col === ci ? "is-hot-col" : "",
+                        hover.row === ri ? "is-hot-row" : "",
+                        delCol === ci ? "is-delete-col" : "",
+                        delRow === ri ? "is-delete-row" : "",
+                        insCol === ci ? "is-insert-after-col" : "",
+                        insRow === ri ? "is-insert-after-row" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ");
+                      return (
+                        <Cell
+                          key={ci}
+                          className={cellClass || undefined}
+                          scope={
+                            isHeaderRow
+                              ? "col"
+                              : isHeaderCol
+                                ? "row"
+                                : undefined
                           }
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            const cells = draft.cells.map((r) => [...r]);
-                            cells[ri]![ci] = e.currentTarget.value;
-                            persist({ ...draft, cells });
-                            const nextR = Math.min(draft.r - 1, ri + 1);
-                            if (nextR !== ri) enterCell(nextR, ci);
-                            else (e.target as HTMLInputElement).blur();
-                          }
-                          if (e.key === "Tab") {
-                            // Cho phép Tab chuyển ô — không thoát canvas.
-                            e.stopPropagation();
-                          }
-                        }}
-                        onPointerDown={(e) => {
-                          e.stopPropagation();
-                          enterCell(ri, ci);
-                        }}
-                      />
-                    ) : (
-                      <button
-                        type="button"
-                        className="cins-canvas-table-cell-text"
-                        onPointerDown={(e) => {
-                          e.stopPropagation();
-                          enterCell(ri, ci);
-                        }}
-                      >
-                        {cell || "\u00a0"}
-                      </button>
-                    )}
-                  </td>
+                          onPointerEnter={() => {
+                            if (!showChrome) return;
+                            setHover({ col: ci, row: ri, mark: null });
+                          }}
+                        >
+                          {interactive ? (
+                            <input
+                              ref={(el) => setCellRef(ri, ci, el)}
+                              className={
+                                "cins-canvas-table-cell" +
+                                (isHeader ? " is-header" : "") +
+                                (isHeaderRow ? " is-header-row" : "") +
+                                (isHeaderCol ? " is-header-col" : "")
+                              }
+                              value={cell}
+                              aria-label={
+                                isCorner
+                                  ? "Header góc"
+                                  : isHeaderRow
+                                    ? `Header cột ${ci + 1}`
+                                    : isHeaderCol
+                                      ? `Header hàng ${ri + 1}`
+                                      : `Ô hàng ${ri + 1}, cột ${ci + 1}`
+                              }
+                              onChange={(e) => {
+                                const cells = draft.cells.map((r) => [...r]);
+                                cells[ri]![ci] = e.target.value;
+                                setDraft({ ...draft, cells });
+                              }}
+                              onFocus={() => onRequestEdit?.(node.id)}
+                              onBlur={(e) => {
+                                const cells = draft.cells.map((r) => [...r]);
+                                cells[ri]![ci] = e.target.value;
+                                persist({ ...draft, cells });
+                              }}
+                              onKeyDown={(e) => {
+                                e.stopPropagation();
+                                if (e.key === "Escape") {
+                                  e.preventDefault();
+                                  onCancelEdit();
+                                  (e.target as HTMLInputElement).blur();
+                                }
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                  e.preventDefault();
+                                  const cells = draft.cells.map((r) => [...r]);
+                                  cells[ri]![ci] = e.currentTarget.value;
+                                  persist({ ...draft, cells });
+                                  const nextR = Math.min(draft.r - 1, ri + 1);
+                                  if (nextR !== ri) enterCell(nextR, ci);
+                                  else (e.target as HTMLInputElement).blur();
+                                }
+                                if (e.key === "Tab") {
+                                  e.stopPropagation();
+                                }
+                              }}
+                              onPointerDown={(e) => {
+                                e.stopPropagation();
+                                enterCell(ri, ci);
+                              }}
+                            />
+                          ) : (
+                            <button
+                              type="button"
+                              className={
+                                "cins-canvas-table-cell-text" +
+                                (isHeader ? " is-header" : "") +
+                                (isHeaderRow ? " is-header-row" : "") +
+                                (isHeaderCol ? " is-header-col" : "")
+                              }
+                              onPointerDown={(e) => {
+                                e.stopPropagation();
+                                enterCell(ri, ci);
+                              }}
+                            >
+                              {cell || "\u00a0"}
+                            </button>
+                          )}
+                        </Cell>
+                      );
+                    })}
+                  </tr>
                 ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {interactive ? (
-        <div className="cins-canvas-table-tools" role="toolbar" aria-label="Sửa bảng">
-          <button
-            type="button"
-            className="cins-canvas-table-tool"
-            title={
-              draft.r >= TABLE_MAX_DIM
-                ? `Tối đa ${TABLE_MAX_DIM} hàng`
-                : "Thêm hàng"
-            }
-            aria-label="Thêm hàng"
-            disabled={draft.r >= TABLE_MAX_DIM}
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              const next = addTableRow(draft);
-              if (next) persist(next, true, true);
-            }}
-          >
-            <Plus size={13} strokeWidth={2.2} aria-hidden />
-            Hàng
-          </button>
-          <button
-            type="button"
-            className="cins-canvas-table-tool"
-            title={
-              draft.c >= TABLE_MAX_DIM
-                ? `Tối đa ${TABLE_MAX_DIM} cột`
-                : "Thêm cột"
-            }
-            aria-label="Thêm cột"
-            disabled={draft.c >= TABLE_MAX_DIM}
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              const next = addTableCol(draft);
-              if (next) persist(next, true, true);
-            }}
-          >
-            <Plus size={13} strokeWidth={2.2} aria-hidden />
-            Cột
-          </button>
-          <button
-            type="button"
-            className="cins-canvas-table-tool"
-            title={draft.r <= 1 ? "Giữ ít nhất 1 hàng" : "Xóa hàng cuối"}
-            aria-label="Xóa hàng cuối"
-            disabled={draft.r <= 1}
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              const next = removeTableRow(draft);
-              if (next) persist(next, true, true);
-            }}
-          >
-            <Minus size={13} strokeWidth={2.2} aria-hidden />
-            Hàng
-          </button>
-          <button
-            type="button"
-            className="cins-canvas-table-tool"
-            title={draft.c <= 1 ? "Giữ ít nhất 1 cột" : "Xóa cột cuối"}
-            aria-label="Xóa cột cuối"
-            disabled={draft.c <= 1}
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              const next = removeTableCol(draft);
-              if (next) persist(next, true, true);
-            }}
-          >
-            <Minus size={13} strokeWidth={2.2} aria-hidden />
-            Cột
-          </button>
+              </tbody>
+            </table>
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }
@@ -1056,7 +1556,7 @@ function CommentBody({
   );
 }
 
-export function NodeCard({
+export const NodeCard = memo(function NodeCard({
   node,
   editing,
   locked,
@@ -1141,7 +1641,22 @@ export function NodeCard({
     const paperMau = stickyPaperColor(mau);
     const textColor = isText ? node.layout.textColor : null;
     const textSize = isText ? node.layout.textSize : null;
-    const textStyle = isText ? textBlockStyle(textColor, textSize) : undefined;
+    const areaFont = isArea
+      ? measureAreaTextFontSize(
+          text,
+          node.layout.w ?? 160,
+          node.layout.h ?? 80,
+        )
+      : null;
+    const textStyle = isText
+      ? isArea
+        ? {
+            ...(textColor ? { color: textColor } : {}),
+            fontSize: areaFont ?? DEFAULT_TEXT_SIZE,
+            lineHeight: TEXT_LINE_RATIO,
+          }
+        : textBlockStyle(textColor, textSize)
+      : undefined;
     if (shapeKind) {
       body = (
         <div className={`cins-canvas-card cins-canvas-card-shape is-${shapeKind}`}>
@@ -1180,8 +1695,16 @@ export function NodeCard({
               onCommitText={onCommitText}
               onCancelEdit={onCancelEdit}
               textColor={textColor}
-              textSize={textSize}
+              textSize={isArea ? areaFont : textSize}
               area={isArea}
+              areaBox={
+                isArea
+                  ? {
+                      w: node.layout.w ?? 160,
+                      h: node.layout.h ?? 80,
+                    }
+                  : undefined
+              }
               onInputGrow={
                 isText && !isArea && onTextFitSize
                   ? (value) =>
@@ -1192,9 +1715,17 @@ export function NodeCard({
                   : undefined
               }
             />
+          ) : isText && !isArea ? (
+            <FitTextLabel
+              text={text.trim() ? text : ""}
+              style={textStyle}
+              fontSize={textSize}
+              nodeId={node.id}
+              onTextFitSize={onTextFitSize}
+            />
           ) : (
             <span className="cins-canvas-sticky-text" style={textStyle}>
-              {text || (isText ? "Chữ" : "Ghi chú")}
+              {text || "Ghi chú"}
             </span>
           )}
         </div>
@@ -1236,4 +1767,4 @@ export function NodeCard({
       ) : null}
     </>
   );
-}
+});

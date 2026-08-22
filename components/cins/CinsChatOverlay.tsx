@@ -69,6 +69,7 @@ import {
   filterChatAtMembers,
   isChatAtMentionAll,
 } from "@/components/cins/ChatAtMentionMenu";
+import { ChatCaptureEditOverlay } from "@/components/cins/ChatCaptureEditOverlay";
 import { ChatComposeToolsMenu } from "@/components/cins/ChatComposeToolsMenu";
 import { EmojiPickerPopover } from "@/components/editor/compose/EmojiPickerPopover";
 import { replaceChatEmoticons } from "@/lib/chat/emoticon-to-emoji";
@@ -1107,6 +1108,7 @@ export function CinsChatOverlay({
   const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
   const [forwardTarget, setForwardTarget] = useState<ChatMessage | null>(null);
   const [stickerPickerOpen, setStickerPickerOpen] = useState(false);
+  const [captureEditFile, setCaptureEditFile] = useState<File | null>(null);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const emojiBtnRef = useRef<HTMLButtonElement>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -5822,7 +5824,8 @@ export function CinsChatOverlay({
                 aria-hidden
                 onChange={(e) => {
                   const files = [...(e.target.files ?? [])];
-                  if (files.length > 0) sendCapturedPhotos(files);
+                  const shot = files[0];
+                  if (shot) setCaptureEditFile(shot);
                   e.target.value = "";
                 }}
               />
@@ -6515,6 +6518,16 @@ export function CinsChatOverlay({
   return (
     <ChatPresenceContext.Provider value={globalOnlineUserIds}>
       {createPortal(panel, document.body)}
+      {captureEditFile ? (
+        <ChatCaptureEditOverlay
+          file={captureEditFile}
+          onCancel={() => setCaptureEditFile(null)}
+          onSend={(edited) => {
+            setCaptureEditFile(null);
+            sendCapturedPhotos([edited]);
+          }}
+        />
+      ) : null}
       {phongHoc
         ? createPortal(
             <div

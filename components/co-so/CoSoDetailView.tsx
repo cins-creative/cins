@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
 import { CoSoAdminToolbar } from "@/components/co-so/CoSoAdminToolbar";
@@ -37,6 +37,7 @@ import {
 import { isKhoaHocMuted } from "@/lib/to-chuc/khoa-hoc-labels";
 import { coSoQuanLyPath, coSoTabPath } from "@/lib/to-chuc/co-so-routes";
 import { useCoSoTabNav } from "@/lib/to-chuc/use-co-so-tab-nav";
+import { useChromeStuck } from "@/lib/ui/use-chrome-stuck";
 import { useOrgStudioJobs } from "@/lib/to-chuc/use-org-studio-jobs";
 import { coSoToInlinePayload } from "@/lib/to-chuc/co-so-inline-payload";
 
@@ -89,6 +90,8 @@ function CoSoDetailViewInner({
   );
   const editableMedia = canEdit && Boolean(ctx?.canEdit);
   const { isMobileShell } = useCoSoMobileShell();
+  const tabsBarRef = useRef<HTMLDivElement>(null);
+  useChromeStuck(tabsBarRef);
 
   const activeJobCount = useMemo(() => countActiveStudioJobs(jobs), [jobs]);
 
@@ -174,7 +177,7 @@ function CoSoDetailViewInner({
           </div>
         ) : null}
 
-        <div className="tdh-v6-tabs-bar">
+        <div ref={tabsBarRef} className="tdh-v6-tabs-bar">
           <div
             className="tdh-v6-tabs"
             role="tablist"

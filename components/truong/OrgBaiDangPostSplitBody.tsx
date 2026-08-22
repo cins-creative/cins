@@ -5,6 +5,7 @@ import { useCallback, useContext, useMemo, useState, type MouseEvent as ReactMou
 
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
 import { JourneyCommentLink } from "@/components/journey/JourneyCommentLink";
+import { JourneyDislikeButton } from "@/components/journey/JourneyDislikeButton";
 import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { PostOverlayCloseContext } from "@/components/journey/post-overlay-close";
 import { JourneyUnfoldArticleContent } from "@/components/journey/JourneyUnfoldArticleContent";
@@ -195,35 +196,44 @@ export function OrgBaiDangPostSplitBody({
   };
 
   const actionsRail = contentOnly ? null : (
-    <div className="jcard-actions post-rail-actions">
-      <OrgBaiDangLikeButton postId={post.id} />
-      <JourneyCommentLink
-        commentCount={commentCount}
-        viewerCommented={viewerCommented}
-        idDoiTuong={post.id}
-        loaiDoiTuong={SOCIAL_LOAI_ORG_BAI_DANG}
-        disableActorsReveal
-        onOpenComments={() => {
-          document
-            .getElementById(`org-post-comments-${post.id}`)
-            ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        }}
-      />
-      <OrgBaiDangBookmarkButton
-        postId={post.id}
-        title={post.tieu_de}
-        initialSaved={post.viewerBookmarked}
-        initialCount={post.bookmarkCount}
-      />
-      <span className="action-spacer" />
-      {sharePath ? (
-        <PostShareMenu
-          sharePath={sharePath}
-          shareTitle={post.tieu_de}
-          className="jcard-share"
-          buttonClassName="share-btn"
+    <div className="jcard-actions jcard-actions--clusters post-rail-actions">
+      <div className="jcard-actions-cluster jcard-actions-cluster--start">
+        {sharePath ? (
+          <PostShareMenu
+            sharePath={sharePath}
+            shareTitle={post.tieu_de}
+            className="jcard-share"
+            buttonClassName="share-btn"
+          />
+        ) : null}
+        <JourneyDislikeButton
+          milestoneId={post.id}
+          loaiDoiTuong={SOCIAL_LOAI_ORG_BAI_DANG}
+          showCount
+          disableActorsReveal
         />
-      ) : null}
+      </div>
+      <div className="jcard-actions-cluster jcard-actions-cluster--end">
+        <OrgBaiDangBookmarkButton
+          postId={post.id}
+          title={post.tieu_de}
+          initialSaved={post.viewerBookmarked}
+          initialCount={post.bookmarkCount}
+        />
+        <JourneyCommentLink
+          commentCount={commentCount}
+          viewerCommented={viewerCommented}
+          idDoiTuong={post.id}
+          loaiDoiTuong={SOCIAL_LOAI_ORG_BAI_DANG}
+          disableActorsReveal
+          onOpenComments={() => {
+            document
+              .getElementById(`org-post-comments-${post.id}`)
+              ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }}
+        />
+        <OrgBaiDangLikeButton postId={post.id} />
+      </div>
     </div>
   );
 

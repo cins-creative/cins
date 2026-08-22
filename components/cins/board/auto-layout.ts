@@ -70,11 +70,33 @@ function layoutMembersInFrame(members: BoardNode[]): {
   };
 }
 
+export type AutoLayoutOptions = {
+  /**
+   * Chỉ xếp các node này (+ cả nhóm nếu chọn frame hoặc thành viên nhóm).
+   * Bỏ trống = xếp toàn board.
+   */
+  onlyIds?: Set<string>;
+};
+
 /** Trả bản nodes mới (connector giữ nguyên) — tọa độ tuyệt đối trong engine. */
-export function applyAutoLayout(nodes: BoardNode[]): BoardNode[] {
+export function applyAutoLayout(
+  nodes: BoardNode[],
+  options?: AutoLayoutOptions,
+): BoardNode[] {
   const base = nodes.map((n) => ({ ...n, layout: { ...n.layout } }));
   const layoutNodes = base.filter((n) => n.loai !== "connector");
-  const frames = layoutNodes.filter((n) => n.loai === "frame");
+  const onlyIds = options?.onlyIds;
+  const scoped = Boolean(onlyIds && onlyIds.size > 0);
+
+  const allFrames = layoutNodes.filter((n) => n.loai === "frame");
+  const frames = scoped
+    ? allFrames.filter((f) => {
+        if (onlyIds!.has(f.id)) return true;
+        return layoutNodes.some(
+          (n) => onlyIds!.has(n.id) && n.layout.groupId === f.id,
+        );
+      })
+    : allFrames;
   const frameIds = new Set(frames.map((f) => f.id));
   const clusters: Cluster[] = [];
 
@@ -109,6 +131,7 @@ export function applyAutoLayout(nodes: BoardNode[]): BoardNode[] {
 
   for (const n of layoutNodes) {
     if (n.loai === "frame") continue;
+    if (scoped && !onlyIds!.has(n.id)) continue;
     const gid = n.layout.groupId;
     if (gid && frameIds.has(gid)) continue;
     const r = nodeRect(n);
@@ -122,18 +145,30 @@ export function applyAutoLayout(nodes: BoardNode[]): BoardNode[] {
     });
   }
 
+  if (clusters.length === 0) return base;
+
   clusters.sort((a, b) => a.sortY - b.sortY || a.sortX - b.sortX);
 
+  const originX = scoped
+    ? Math.min(...clusters.map((c) => c.sortX))
+    : AUTO_LAYOUT_ORIGIN;
+  const originY = scoped
+    ? Math.min(...clusters.map((c) => c.sortY))
+    : AUTO_LAYOUT_ORIGIN;
+  const cols = scoped
+    ? Math.min(AUTO_LAYOUT_COLS, Math.max(1, clusters.length))
+    : AUTO_LAYOUT_COLS;
+
   const updates = new Map<string, Partial<BoardNode["layout"]>>();
-  let px = AUTO_LAYOUT_ORIGIN;
-  let py = AUTO_LAYOUT_ORIGIN;
+  let px = originX;
+  let py = originY;
   let col = 0;
   let rowH = 0;
 
   for (const c of clusters) {
-    if (col >= AUTO_LAYOUT_COLS) {
+    if (col >= cols) {
       col = 0;
-      px = AUTO_LAYOUT_ORIGIN;
+      px = originX;
       py += rowH + AUTO_LAYOUT_GAP;
       rowH = 0;
     }

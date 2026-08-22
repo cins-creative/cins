@@ -39,6 +39,9 @@ yarn-error.log*
 # video migration mapping artifact (Bunny → Stream backfill)
 scripts/.stream-migration-map.json
 
+# surface park (deploy:web / deploy:manage)
+.cins-surface-park/
+
 # cloudflare / opennext
 .open-next/
 .wrangler/

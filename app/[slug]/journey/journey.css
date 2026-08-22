@@ -4701,21 +4701,65 @@ button.j-main-gallery-info-title {
 }
 .jcard-content.is-article-depth {
   position: relative;
+  container-type: inline-size;
+  container-name: j-article-depth;
 }
 .j-m-card.jcard--article.has-unfold.is-collapsed .jcard-content.is-article-depth {
-  /* Teaser chữ thuần: tối thiểu 16:9; dài hơn thì cao tới --j-article-peek-h. */
-  min-aspect-ratio: 16 / 9;
+  /* Teaser chữ thuần: tối thiểu 16:9 (cqi = bề ngang card); dài hơn thì cao tới peek. */
+  min-height: min(var(--j-article-peek-h, 480px), calc(100cqi * 9 / 16));
   max-height: var(--j-article-peek-h, 480px);
   overflow: hidden;
   padding-bottom: 2px;
 }
+@supports not (min-height: 1cqi) {
+  .j-m-card.jcard--article.has-unfold.is-collapsed .jcard-content.is-article-depth {
+    aspect-ratio: 16 / 9;
+    min-height: 0;
+  }
+}
 .j-m-card.jcard--article.has-unfold.is-collapsed
   .jcard-content.is-article-depth
-  .jcard-desc {
+  .jcard-text {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  padding-bottom: 56px;
+}
+.j-m-card.jcard--article.has-unfold.is-collapsed
+  .jcard-content.is-article-depth
+  .jcard-media-zone:not(:has(.preview, .jcard-video-player, .image-grid, .jcard-video-root)) {
+  display: none;
+}
+.j-m-card.jcard--article.has-unfold.is-collapsed
+  .jcard-content.is-article-depth
+  .jcard-desc,
+.j-m-card.jcard--article.has-unfold.is-collapsed
+  .jcard-content.is-article-depth
+  .jcard-lead.is-caption-collapsed
+  .jcard-desc,
+.j-m-card.jcard--article.has-unfold.is-collapsed
+  .jcard-content.is-article-depth
+  .jcard-lead.is-caption-collapsed
+  .jcard-desc.sub-in,
+.j-m-card.jcard--article.has-unfold.is-collapsed
+  .jcard-content.is-article-depth
+  .jcard-lead.is-caption-expand-inline.is-caption-collapsed
+  .jcard-desc,
+.j-m-card.jcard--article.has-unfold.is-collapsed
+  .jcard-content.is-article-depth
+  .jcard-lead.is-caption-expand-inline.is-caption-collapsed
+  .jcard-desc.sub-in {
   display: block;
+  -webkit-box-orient: unset;
   -webkit-line-clamp: unset;
   line-clamp: unset;
   overflow: visible;
+  max-height: none;
+}
+.j-m-card.jcard--article.has-unfold.is-collapsed
+  .jcard-content.is-article-depth
+  .jcard-caption-more {
+  display: none;
 }
 .j-m-card.jcard--article.has-unfold.is-collapsed {
   /* Trần peek khi chưa «Xem đầy đủ» — không force chiều cao cố định. */
@@ -5313,10 +5357,12 @@ button.j-main-gallery-info-title {
   margin-bottom: 8px;
   padding: 0;
 }
-.jcard-content.is-article-depth .jcard-lead {
+.j-m-card.jcard--article.has-unfold.is-collapsed
+  .jcard-content.is-article-depth
+  .jcard-lead {
   position: relative;
-  max-height: calc(var(--j-article-peek-h, 480px) - 4em);
-  overflow: hidden;
+  max-height: none;
+  overflow: visible;
 }
 /* Chỉ ẩn CTA khi đã xổ nội dung bài — mở bình luận vẫn giữ «Xem đầy đủ». */
 .jcard-body.is-content-open .jcard-expand-cta {
@@ -10941,7 +10987,7 @@ select.j-edit-input {
     justify-content: space-between;
     gap: 2px;
     width: 100%;
-    padding: 4px;
+    padding: 4px 12px;
     border: none;
     border-radius: 12px;
     background: var(--neutral-50, #f5f6f8);
@@ -11025,8 +11071,14 @@ select.j-edit-input {
 
   .j-post-overlay
     .j-post-sheet:has(.post-canvas--split)
-    .post-rail-blk--actions:has(.post-byline-share-wrap.is-open) {
-    z-index: 24;
+    .post-rail-blk--actions:has(.post-byline-share-wrap.is-open),
+  .j-post-overlay
+    .j-post-sheet:has(.post-canvas--split)
+    .post-rail-blk--actions:has(.j-reaction-picker),
+  .j-post-overlay
+    .j-post-sheet:has(.post-canvas--split)
+    .post-rail-blk--actions:has(.is-picker-open) {
+    z-index: 30;
   }
 
   .j-post-overlay .j-post-sheet:has(.post-canvas--split) .post-rail-blk--comments {
@@ -14411,7 +14463,6 @@ select.j-edit-input {
 .j-m-card.jcard:has(.j-m-menu-btn[aria-expanded="true"]),
 .j-m-card.jcard:has(.j-inline-control-trigger[aria-expanded="true"]),
 .j-m-card.jcard:has(.is-picker-open),
-.j-m-card.jcard:has(.post-byline-share-wrap.is-open),
 .j-m-card.jcard:has(.post-comments-identity.is-open) {
   overflow: visible;
   z-index: 20;
@@ -14420,8 +14471,7 @@ select.j-edit-input {
   z-index: 20;
 }
 .j-m-card.jcard.is-expanded:has(.j-m-menu-btn[aria-expanded="true"]),
-.j-m-card.jcard.is-expanded:has(.j-inline-control-trigger[aria-expanded="true"]),
-.j-m-card.jcard.is-expanded:has(.post-byline-share-wrap.is-open) {
+.j-m-card.jcard.is-expanded:has(.j-inline-control-trigger[aria-expanded="true"]) {
   overflow: visible;
 }
 /* Bo góc dưới khi xổ — phần tử cuối (actions / tags) khớp radius card. */
@@ -14433,7 +14483,6 @@ select.j-edit-input {
   overflow: hidden;
 }
 /* Share/reaction popover mở lên trên peek — không clip trong actions. */
-.j-m-card.jcard.is-expanded:has(.post-byline-share-wrap.is-open) > .jcard-actions,
 .j-m-card.jcard.is-expanded:has(.is-picker-open) > .jcard-actions {
   overflow: visible;
 }
@@ -18913,6 +18962,22 @@ button.j-user-pop-close svg {
   background: var(--bg-surface);
   overflow: visible;
 }
+.jcard-actions--clusters {
+  justify-content: space-between;
+}
+.jcard-actions-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.jcard-actions-cluster--start .jcard-share {
+  margin-left: 0;
+}
+.jcard-actions-cluster--start .jcard-share .post-byline-share {
+  left: 0;
+  right: auto;
+}
 .org-baidang-comments {
   border-top: 1px solid var(--jcard-border2);
   background: var(--bg-surface);
@@ -18959,7 +19024,7 @@ a.action-btn {
   background: #fff1f2;
 }
 
-/* Bảng emoji trên nút Thích — click 1 mở, click emoji xác nhận. */
+/* Bảng emoji trên nút Thích — desktop hover mở; click emoji xác nhận. */
 .j-reaction-wrap {
   position: relative;
   display: inline-flex;
@@ -18983,33 +19048,58 @@ a.action-btn {
   z-index: 0;
 }
 .j-reaction-picker {
+  --j-reaction-bar-h: 40px;
   position: absolute;
   left: 0;
   bottom: calc(100% + 6px);
-  display: grid;
-  grid-template-columns: repeat(5, 32px);
-  gap: 3px;
-  padding: 8px 8px 6px;
-  background: var(--bg-surface, #fff);
-  border: 1px solid var(--border, transparent);
-  border-radius: 12px;
-  box-shadow: 0 10px 28px color-mix(in srgb, var(--ink1, #0f172a) 18%, transparent);
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  box-sizing: border-box;
+  width: max-content;
+  height: var(--j-reaction-bar-h);
+  gap: 2px;
+  padding: 0 8px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
   z-index: 60;
+  overflow: visible;
   -webkit-font-smoothing: auto;
 }
+
+/* Khung BG cố định — emoji hover scale tràn ra ngoài, không kéo cao khung. */
+.j-reaction-picker::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, transparent);
+  border-radius: 999px;
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--ink1, #0f172a) 18%, transparent);
+}
+
 .j-reaction-picker-opt {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex: 0 0 32px;
   width: 32px;
   height: 32px;
   padding: 0;
   border: none;
   border-radius: 8px;
-  background: var(--bg-surface, #fff);
+  background: transparent;
   color: inherit;
   opacity: 1;
   cursor: pointer;
+  transform-origin: center bottom;
+  will-change: transform;
 }
 .j-reaction-btn-emoji {
   display: inline-flex;
@@ -19026,9 +19116,284 @@ a.action-btn {
   color: initial;
   -webkit-text-fill-color: initial;
 }
-.j-reaction-picker-opt:hover:not(:disabled),
 .j-reaction-picker-opt.is-active {
-  background: var(--neutral-100, #f5f5f5);
+  background: transparent;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .j-reaction-picker-opt {
+    transition: transform 0.16s ease;
+  }
+
+  .j-reaction-picker-opt:hover:not(:disabled) {
+    transform: scale(1.74);
+    z-index: 1;
+  }
+}
+
+.j-reaction-wrap.is-picking {
+  touch-action: none;
+}
+
+/* Option 2 — overlay bắt vuốt; kính chỉ ôm cụm emoji. */
+.j-reaction-picker--opt2 {
+  position: fixed;
+  inset: 0;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  /* Trên .j-post-overlay (9000 / stacked 10120); dưới actors (10850). */
+  z-index: 10820;
+  width: auto;
+  height: 100vh;
+  height: 100svh;
+  min-height: 100svh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+  display: block;
+  background: transparent;
+  overflow: visible;
+  isolation: auto;
+  touch-action: none;
+}
+
+.j-reaction-picker--opt2::before {
+  display: none;
+}
+
+.j-reaction-picker--opt2 .j-reaction-picker-opt2-glass,
+.j-reaction-picker--opt2 .j-reaction-picker-opt--opt2,
+.j-reaction-picker--opt2 .j-reaction-picker-opt2-actors {
+  opacity: 0;
+}
+
+.j-reaction-picker--opt2.is-in .j-reaction-picker-opt2-glass {
+  opacity: 1;
+  transition: opacity 0.24s ease;
+}
+
+.j-reaction-picker--opt2.is-in .j-reaction-picker-opt--opt2 {
+  opacity: 1;
+  transition:
+    transform 0.22s ease,
+    opacity 0.22s ease;
+}
+
+.j-reaction-picker--opt2.is-in .j-reaction-picker-opt2-actors {
+  opacity: 1;
+  transition:
+    transform 0.22s ease,
+    opacity 0.22s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    padding 0.15s ease;
+}
+
+.j-reaction-picker--opt2:not(.is-in) .j-reaction-picker-opt2-glass {
+  transition: opacity 0.2s ease;
+}
+
+.j-reaction-picker--opt2:not(.is-in) .j-reaction-picker-opt--opt2,
+.j-reaction-picker--opt2:not(.is-in) .j-reaction-picker-opt2-actors {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.j-reaction-picker-opt2-stage {
+  --opt2-slot: min(26vw, 118px);
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.j-reaction-picker-opt2-glass {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* Không dùng transform — Chrome drop backdrop-filter khi ancestor bị flatten. */
+  top: calc(46% - 175px);
+  z-index: 0;
+  width: 100vw;
+  max-width: none;
+  height: 350px;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--bg-page, #f4f5f8) 42%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  backdrop-filter: blur(20px) saturate(1.6);
+  /* overflow:visible không làm blur tràn box — feather bằng mask. */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 52px,
+    #000 calc(100% - 52px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 52px,
+    #000 calc(100% - 52px),
+    transparent 100%
+  );
+}
+
+:root[data-theme="dark"] .j-reaction-picker-opt2-glass {
+  background: color-mix(in srgb, #070b14 48%, transparent);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .j-reaction-picker-opt2-glass {
+    background: color-mix(in srgb, var(--bg-page, #f4f5f8) 88%, transparent);
+  }
+
+  :root[data-theme="dark"] .j-reaction-picker-opt2-glass {
+    background: color-mix(in srgb, #070b14 88%, transparent);
+  }
+}
+
+.j-reaction-picker--opt2 .j-reaction-picker-opt--opt2 {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  z-index: 2;
+  flex: none;
+  width: 68px;
+  height: 68px;
+  pointer-events: auto;
+  transform: translate(-50%, -50%)
+    translateX(calc(var(--off, 0) * var(--opt2-slot)))
+    translateY(var(--arc-y, 0px));
+  transform-origin: center center;
+  transition: transform 0.2s ease;
+}
+
+.j-reaction-picker--opt2 .j-reaction-picker-opt--opt2 .j-reaction-picker-opt-emoji {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 48px;
+  opacity: 1;
+  filter: none;
+  color: initial;
+  -webkit-text-fill-color: initial;
+  font-variant-emoji: emoji;
+}
+
+.j-reaction-picker--opt2 .j-reaction-picker-opt--opt2.is-hot {
+  z-index: 3;
+  transform: translate(-50%, -50%)
+    translateX(0)
+    translateY(0)
+    scale(2.2);
+}
+
+.j-reaction-picker--opt2 .j-reaction-picker-opt--opt2.is-hot .j-reaction-picker-opt-emoji {
+  background: transparent;
+  box-shadow: none;
+  font-size: 48px;
+}
+
+.j-reaction-picker--opt2.is-actors .j-reaction-picker-opt--opt2 {
+  opacity: 0.72;
+}
+
+.j-reaction-picker-opt2-actors {
+  position: absolute;
+  left: 50%;
+  top: calc(46% + 58px);
+  z-index: 9;
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 4px 2px;
+  border: 0;
+  border-radius: var(--radius-pill, 999px);
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink-title, #334155);
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+  transform-origin: center top;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: var(--weight-bold, 700);
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    padding 0.15s ease;
+  cursor: pointer;
+}
+
+:root[data-theme="dark"] .j-reaction-picker-opt2-actors {
+  color: #e2e8f0;
+}
+
+.j-reaction-picker-opt2-actors.is-hot {
+  z-index: 10;
+  padding: 10px 16px;
+  color: #fff;
+  background: var(--cins-blue, #1f74c9);
+  border: 1.5px solid var(--cins-blue, #1f74c9);
+  border-radius: var(--radius-pill, 999px);
+  box-shadow:
+    var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08)),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.j-reaction-picker-opt2-actors.is-hot .j-reaction-picker-actors-ico,
+.j-reaction-picker-opt2-actors.is-hot .j-reaction-picker-actors-count,
+.j-reaction-picker-opt2-actors.is-hot .j-reaction-picker-opt2-actors-label {
+  color: #fff;
+  -webkit-text-fill-color: #fff;
+}
+
+.j-reaction-picker-opt2-actors .j-reaction-picker-actors-ico {
+  flex: none;
+  color: inherit;
+}
+
+.j-reaction-picker-opt2-actors .j-reaction-picker-actors-count {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  color: inherit;
+}
+
+.j-reaction-picker-opt2-actors-label {
+  display: none;
+  flex: none;
+  max-width: none;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: inherit;
+  letter-spacing: 0;
+  line-height: 1;
+  text-align: center;
+  color: inherit;
+  white-space: nowrap;
+}
+
+.j-reaction-picker-opt2-actors.is-hot .j-reaction-picker-opt2-actors-label {
+  display: inline;
 }
 .j-reaction-picker-opt:disabled {
   /* Giữ emoji rõ; chỉ báo chờ bằng cursor. */
@@ -19201,9 +19566,15 @@ a.action-btn-part {
     padding-top: 6px;
     padding-bottom: 8px;
   }
+  .jcard-actions-cluster {
+    gap: 10px;
+  }
   .jcard-actions > .action-btn,
   .jcard-actions > .action-btn--split,
-  .jcard-actions > a.action-btn {
+  .jcard-actions > a.action-btn,
+  .jcard-actions-cluster > .action-btn,
+  .jcard-actions-cluster > .action-btn--split,
+  .jcard-actions-cluster > a.action-btn {
     flex: none;
   }
   .jcard-actions .action-btn--split {
@@ -19270,7 +19641,8 @@ a.action-btn-part {
   justify-content: center;
   padding-inline: 8px;
 }
-.jcard-actions .jcard-share .post-byline-share {
+.jcard-actions .jcard-share .post-byline-share,
+.post-byline-share--portal {
   position: absolute;
   bottom: calc(100% + 8px);
   top: auto;
@@ -19288,6 +19660,17 @@ a.action-btn-part {
   flex-direction: column;
   gap: 2px;
   z-index: 40;
+}
+
+.post-byline-share--portal {
+  position: fixed;
+  right: auto;
+  width: min(280px, calc(100vw - 24px));
+  max-width: min(280px, calc(100vw - 24px));
+  max-height: min(420px, calc(100dvh - 24px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  z-index: 11010;
 }
 .jcard-actions .jcard-share .post-byline-share--friends {
   width: min(300px, calc(100vw - 24px));
@@ -19318,7 +19701,8 @@ a.action-btn-part {
     box-shadow: var(--shadow-md, 0 16px 40px rgba(15, 23, 42, 0.22));
   }
 }
-.jcard-actions .jcard-share .post-byline-share-item {
+.jcard-actions .jcard-share .post-byline-share-item,
+.post-byline-share--portal .post-byline-share-item {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -19336,10 +19720,12 @@ a.action-btn-part {
   width: 100%;
   transition: background 120ms ease;
 }
-.jcard-actions .jcard-share .post-byline-share-item:hover {
+.jcard-actions .jcard-share .post-byline-share-item:hover,
+.post-byline-share--portal .post-byline-share-item:hover {
   background: var(--neutral-100, #f1f2f5);
 }
-.jcard-actions .jcard-share .post-byline-share-ic {
+.jcard-actions .jcard-share .post-byline-share-ic,
+.post-byline-share--portal .post-byline-share-ic {
   width: 28px;
   height: 28px;
   border-radius: 8px;
@@ -19351,49 +19737,60 @@ a.action-btn-part {
   color: #fff;
   flex-shrink: 0;
 }
-.jcard-actions .jcard-share .post-byline-share-ic--native {
+.jcard-actions .jcard-share .post-byline-share-ic--native,
+.post-byline-share--portal .post-byline-share-ic--native {
   background: var(--cins-blue, #2563eb);
 }
-.jcard-actions .jcard-share .post-byline-share-ic--copy {
+.jcard-actions .jcard-share .post-byline-share-ic--copy,
+.post-byline-share--portal .post-byline-share-ic--copy {
   background: var(--neutral-200, #e5e7eb);
   color: var(--jcard-ink, var(--ink-title));
 }
-.jcard-actions .jcard-share .post-byline-share-ic--friends {
+.jcard-actions .jcard-share .post-byline-share-ic--friends,
+.post-byline-share--portal .post-byline-share-ic--friends {
   background: var(--cins-blue, #1f74c9);
   color: #fff;
 }
-.jcard-actions .jcard-share .post-byline-share-ic--community {
+.jcard-actions .jcard-share .post-byline-share-ic--community,
+.post-byline-share--portal .post-byline-share-ic--community {
   background: #5b4fcf;
   color: #fff;
 }
-.jcard-actions .jcard-share .post-byline-share-ic--back {
+.jcard-actions .jcard-share .post-byline-share-ic--back,
+.post-byline-share--portal .post-byline-share-ic--back {
   background: var(--neutral-200, #e5e7eb);
   color: var(--jcard-ink, var(--ink-title));
   font-size: 12px;
 }
-.jcard-actions .jcard-share .post-byline-share-ic--fb {
+.jcard-actions .jcard-share .post-byline-share-ic--fb,
+.post-byline-share--portal .post-byline-share-ic--fb {
   background: #1877f2;
   font-family: Georgia, serif;
   font-size: 16px;
 }
-.jcard-actions .jcard-share .post-byline-share-ic--x {
+.jcard-actions .jcard-share .post-byline-share-ic--x,
+.post-byline-share--portal .post-byline-share-ic--x {
   background: #000;
   font-size: 13px;
 }
-.jcard-actions .jcard-share .post-byline-share-ic--in {
+.jcard-actions .jcard-share .post-byline-share-ic--in,
+.post-byline-share--portal .post-byline-share-ic--in {
   background: #0a66c2;
   font-size: 11px;
   letter-spacing: -0.5px;
 }
-.jcard-actions .jcard-share .post-byline-share-ic--zalo {
+.jcard-actions .jcard-share .post-byline-share-ic--zalo,
+.post-byline-share--portal .post-byline-share-ic--zalo {
   background: #0068ff;
   font-size: 13px;
 }
-.jcard-actions .jcard-share .post-byline-share-ic--wa {
+.jcard-actions .jcard-share .post-byline-share-ic--wa,
+.post-byline-share--portal .post-byline-share-ic--wa {
   background: #25d366;
   font-size: 13px;
 }
-.jcard-actions .jcard-share .post-byline-share-ic--pin {
+.jcard-actions .jcard-share .post-byline-share-ic--pin,
+.post-byline-share--portal .post-byline-share-ic--pin {
   background: #e60023;
   font-size: 13px;
 }
@@ -19405,9 +19802,9 @@ a.action-btn-part {
   position: fixed;
   inset: 0;
   z-index: 10800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
   padding: 20px;
   background: rgba(15, 23, 42, 0.42);
 }
@@ -19421,17 +19818,30 @@ a.action-btn-part {
   box-shadow: 0 28px 80px rgba(15, 23, 42, 0.24);
   color: var(--ink-body);
 }
+/* Demo khung bài đã lưu — rộng gần card Journey, cuộn khi viewport thấp. */
+.j-bookmark-confirm.is-preview {
+  width: min(520px, 100%);
+  max-height: min(90dvh, 860px);
+  padding: 44px 16px 16px;
+  overflow: auto;
+  container-type: inline-size;
+}
 .j-bookmark-confirm-close {
   position: absolute;
   top: 14px;
   right: 14px;
   width: 32px;
   height: 32px;
+  padding: 0;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--bg-surface);
   color: var(--ink-muted);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
 }
 .j-bookmark-confirm-icon {
   width: 42px;
@@ -19577,6 +19987,127 @@ a.action-btn-part {
 .j-bookmark-confirm-actions button:disabled {
   cursor: wait;
   opacity: 0.65;
+}
+
+.j-bookmark-save-demo {
+  margin-top: 10px;
+}
+.j-bookmark-save-demo.is-private {
+  --j-bf-bg: color-mix(in srgb, var(--neutral-200, #e5e7eb) 22%, var(--bg-surface));
+}
+.j-bookmark-save-demo .j-bookmark-frame-head {
+  padding-right: 8px;
+}
+.j-bookmark-save-vis {
+  position: relative;
+}
+.j-bookmark-save-vis-btn {
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+.j-bookmark-save-vis-btn svg:last-child {
+  opacity: 0.7;
+}
+.j-bookmark-save-vis-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  min-width: 168px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-surface);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
+}
+.j-bookmark-save-vis-pop button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: transparent;
+  color: var(--ink-display);
+  font-size: 13px;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+}
+.j-bookmark-save-vis-pop button.is-active,
+.j-bookmark-save-vis-pop button:hover {
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue);
+}
+.j-bookmark-save-note {
+  display: block;
+  padding: 0 10px 8px;
+}
+.j-bookmark-save-note textarea {
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink-display);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.45;
+  resize: none;
+}
+.j-bookmark-save-note textarea:focus {
+  outline: none;
+  background: color-mix(in srgb, var(--bg-surface) 80%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cins-blue) 28%, var(--border));
+}
+.j-bookmark-save-note textarea:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+.j-bookmark-save-origin .jcard-datebar {
+  padding: 10px 12px 8px;
+}
+.j-bookmark-save-origin-cover {
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  max-height: 200px;
+  background: var(--neutral-100, #f1f2f5);
+}
+.j-bookmark-save-origin-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.j-bookmark-save-origin-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--ink-display);
+}
+@container (max-width: 360px) {
+  .j-bookmark-save-demo .j-bookmark-frame-head {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .j-bookmark-save-demo .j-bf-toolbar {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+@media (max-width: 520px) {
+  .j-bookmark-confirm-backdrop {
+    padding: 12px;
+  }
+  .j-bookmark-confirm.is-preview {
+    width: min(520px, 100%);
+    max-height: min(90dvh, 100%);
+    border-radius: 24px;
+  }
 }
 
 /* Modal xác nhận rời feed cộng đồng — cover + avatar org, cảnh báo đỏ. */

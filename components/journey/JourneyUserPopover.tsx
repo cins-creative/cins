@@ -166,6 +166,10 @@ export function JourneyUserPopover({
         aria-expanded={open}
         onPointerEnter={() => prefetchUserPreview(slug)}
         onFocus={() => prefetchUserPreview(slug)}
+        onMouseDown={(event) => {
+          /* Tránh focus → scrollIntoView kéo sticky author về đầu bài. */
+          event.preventDefault();
+        }}
         onClick={(event) => {
           event.stopPropagation();
           event.preventDefault();

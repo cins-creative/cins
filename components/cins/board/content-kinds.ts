@@ -9,6 +9,10 @@ export type CanvasTableData = {
   r: number;
   c: number;
   cells: string[][];
+  /** Cột đầu là header dọc (nhãn hàng). */
+  headerCol?: boolean;
+  /** Hàng đầu là header ngang (nhãn cột). */
+  headerRow?: boolean;
 };
 
 export type CanvasDrawData = {
@@ -42,42 +46,169 @@ export function createEmptyTable(rows = 3, cols = 3): CanvasTableData {
 export const TABLE_MAX_DIM = 12;
 export const TABLE_CELL_MIN_W = 72;
 export const TABLE_CELL_MIN_H = 32;
-/** Thanh kéo + toolbar thêm hàng/cột. */
-export const TABLE_CHROME_H = 56;
+/** Chrome edit nằm ngoài node — không cộng vào chiều cao bảng. */
+export const TABLE_CHROME_H = 0;
+
+function withHeaderMeta(
+  data: CanvasTableData,
+  next: Pick<CanvasTableData, "r" | "c" | "cells">,
+): CanvasTableData {
+  return {
+    ...next,
+    ...(data.headerCol ? { headerCol: true } : {}),
+    ...(data.headerRow ? { headerRow: true } : {}),
+  };
+}
 
 export function addTableRow(data: CanvasTableData): CanvasTableData | null {
   if (data.r >= TABLE_MAX_DIM) return null;
-  return {
+  return withHeaderMeta(data, {
     r: data.r + 1,
     c: data.c,
     cells: [...data.cells.map((row) => [...row]), Array(data.c).fill("")],
-  };
+  });
 }
 
 export function addTableCol(data: CanvasTableData): CanvasTableData | null {
   if (data.c >= TABLE_MAX_DIM) return null;
-  return {
+  return withHeaderMeta(data, {
     r: data.r,
     c: data.c + 1,
     cells: data.cells.map((row) => [...row, ""]),
-  };
+  });
 }
 
 export function removeTableRow(data: CanvasTableData): CanvasTableData | null {
   if (data.r <= 1) return null;
-  return {
+  return withHeaderMeta(data, {
     r: data.r - 1,
     c: data.c,
     cells: data.cells.slice(0, -1).map((row) => [...row]),
-  };
+  });
 }
 
 export function removeTableCol(data: CanvasTableData): CanvasTableData | null {
   if (data.c <= 1) return null;
-  return {
+  return withHeaderMeta(data, {
     r: data.r,
     c: data.c - 1,
     cells: data.cells.map((row) => row.slice(0, -1)),
+  });
+}
+
+function clampIndex(value: number, maxExclusive: number): number {
+  return Math.max(0, Math.min(maxExclusive - 1, Math.floor(value)));
+}
+
+/** Chèn hàng trống ngay sau `afterIndex` (−1 = đầu bảng). */
+export function insertTableRowAfter(
+  data: CanvasTableData,
+  afterIndex: number,
+): CanvasTableData | null {
+  if (data.r >= TABLE_MAX_DIM) return null;
+  const insertAt = Math.max(0, Math.min(data.r, Math.floor(afterIndex) + 1));
+  const cells = data.cells.map((row) => [...row]);
+  cells.splice(insertAt, 0, Array(data.c).fill(""));
+  return withHeaderMeta(data, { r: data.r + 1, c: data.c, cells });
+}
+
+/** Chèn cột trống ngay sau `afterIndex` (−1 = đầu bảng). */
+export function insertTableColAfter(
+  data: CanvasTableData,
+  afterIndex: number,
+): CanvasTableData | null {
+  if (data.c >= TABLE_MAX_DIM) return null;
+  const insertAt = Math.max(0, Math.min(data.c, Math.floor(afterIndex) + 1));
+  return withHeaderMeta(data, {
+    r: data.r,
+    c: data.c + 1,
+    cells: data.cells.map((row) => {
+      const next = [...row];
+      next.splice(insertAt, 0, "");
+      return next;
+    }),
+  });
+}
+
+/** Xóa hàng tại index — gỡ cờ header ngang nếu xóa hàng đầu. */
+export function removeTableRowAt(
+  data: CanvasTableData,
+  index: number,
+): CanvasTableData | null {
+  if (data.r <= 1) return null;
+  const i = clampIndex(index, data.r);
+  return {
+    r: data.r - 1,
+    c: data.c,
+    cells: data.cells.filter((_, idx) => idx !== i).map((row) => [...row]),
+    ...(data.headerCol ? { headerCol: true } : {}),
+    ...(data.headerRow && i !== 0 ? { headerRow: true } : {}),
+  };
+}
+
+/** Xóa cột tại index — gỡ cờ header dọc nếu xóa cột đầu. */
+export function removeTableColAt(
+  data: CanvasTableData,
+  index: number,
+): CanvasTableData | null {
+  if (data.c <= 1) return null;
+  const i = clampIndex(index, data.c);
+  return {
+    r: data.r,
+    c: data.c - 1,
+    cells: data.cells.map((row) => row.filter((_, idx) => idx !== i)),
+    ...(data.headerRow ? { headerRow: true } : {}),
+    ...(data.headerCol && i !== 0 ? { headerCol: true } : {}),
+  };
+}
+
+/** Chèn cột header dọc ở đầu — một lần. */
+export function addTableHeaderCol(data: CanvasTableData): CanvasTableData | null {
+  if (data.headerCol || data.c >= TABLE_MAX_DIM) return null;
+  return {
+    r: data.r,
+    c: data.c + 1,
+    headerCol: true,
+    ...(data.headerRow ? { headerRow: true } : {}),
+    cells: data.cells.map((row) => ["", ...row]),
+  };
+}
+
+/** Gỡ cột header dọc (cột đầu). */
+export function removeTableHeaderCol(
+  data: CanvasTableData,
+): CanvasTableData | null {
+  if (!data.headerCol || data.c <= 1) return null;
+  return {
+    r: data.r,
+    c: data.c - 1,
+    ...(data.headerRow ? { headerRow: true } : {}),
+    cells: data.cells.map((row) => row.slice(1)),
+  };
+}
+
+/** Chèn hàng header ngang ở đầu — một lần. */
+export function addTableHeaderRow(data: CanvasTableData): CanvasTableData | null {
+  if (data.headerRow || data.r >= TABLE_MAX_DIM) return null;
+  return {
+    r: data.r + 1,
+    c: data.c,
+    headerRow: true,
+    ...(data.headerCol ? { headerCol: true } : {}),
+    cells: [Array(data.c).fill(""), ...data.cells.map((row) => [...row])],
+  };
+}
+
+/** Gỡ hàng header ngang (hàng đầu). */
+export function removeTableHeaderRow(
+  data: CanvasTableData,
+): CanvasTableData | null {
+  if (!data.headerRow || data.r <= 1) return null;
+  return {
+    r: data.r - 1,
+    c: data.c,
+    ...(data.headerCol ? { headerCol: true } : {}),
+    cells: data.cells.slice(1).map((row) => [...row]),
   };
 }
 
@@ -120,7 +251,13 @@ export function parseTable(raw: string | null | undefined): CanvasTableData | nu
         ),
       );
     }
-    return { r, c, cells };
+    return {
+      r,
+      c,
+      cells,
+      headerCol: obj.headerCol === true,
+      headerRow: obj.headerRow === true,
+    };
   } catch {
     return null;
   }

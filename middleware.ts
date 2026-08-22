@@ -12,6 +12,7 @@ import {
   getTrimmedSupabaseAnonKey,
   getTrimmedSupabaseUrl,
 } from "@/lib/supabase/env";
+import { MANAGE_ORIGIN } from "@/lib/cins/manage-site";
 import { appendSetCookieHeaders } from "@/lib/supabase/route-handler";
 
 /** Đổi thành `false` trước khi deploy production bình thường. */
@@ -280,6 +281,27 @@ function corsResponseForLocalApp(
   return response;
 }
 
+/** Xoá cookie phiên host-only (trước khi có Domain=.cins.vn) — tránh hai cookie trùng tên. */
+function expireHostOnlyAuthCookies(
+  request: NextRequest,
+  response: NextResponse,
+) {
+  if (process.env.NODE_ENV !== "production") return;
+  const host = request.nextUrl.hostname.toLowerCase();
+  if (host !== "cins.vn" && host !== "www.cins.vn" && host !== "manage.cins.vn") {
+    return;
+  }
+  for (const cookie of request.cookies.getAll()) {
+    if (!cookie.name.startsWith("sb-") && cookie.name !== "cins-oauth-intent") {
+      continue;
+    }
+    response.headers.append(
+      "Set-Cookie",
+      `${cookie.name}=; Path=/; Max-Age=0; SameSite=Lax; Secure`,
+    );
+  }
+}
+
 function redirectToLogin(
   request: NextRequest,
   sessionResponse: NextResponse,
@@ -343,6 +365,19 @@ export async function middleware(request: NextRequest) {
   if (truongRoot) return truongRoot;
 
   const { pathname } = request.nextUrl;
+  const host = request.nextUrl.hostname.toLowerCase();
+
+  if (
+    process.env.CINS_SURFACE === "web" &&
+    (pathname === "/admin" || pathname.startsWith("/admin/"))
+  ) {
+    const dest = new URL(pathname + request.nextUrl.search, MANAGE_ORIGIN);
+    return NextResponse.redirect(dest, 308);
+  }
+
+  if (host === "manage.cins.vn" && pathname === "/") {
+    return NextResponse.redirect(new URL("/admin", request.url), 308);
+  }
 
   if (isBypassedPath(pathname)) {
     return NextResponse.next();
@@ -395,6 +430,8 @@ export async function middleware(request: NextRequest) {
   /* TODO(2026-09): gỡ block này — dọn cookie kho đa tài khoản cũ
    * (~4 tuần sau deploy 2026-08-02). Chỉ xóa khi request mang cookie;
    * không đụng `sb-*-auth-token` (phiên đăng nhập chuẩn). */
+  expireHostOnlyAuthCookies(request, sessionResponse);
+
   if (request.cookies.has("cins-accounts")) {
     sessionResponse.cookies.delete("cins-accounts");
   }
@@ -410,6 +447,7 @@ export async function middleware(request: NextRequest) {
       path: "/",
       maxAge: 60 * 60 * 24 * 365,
       sameSite: "lax",
+      ...(process.env.NODE_ENV === "production" ? { domain: ".cins.vn" } : {}),
     });
   }
 

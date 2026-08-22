@@ -24,6 +24,10 @@ type Props = {
   onLongPress?: () => void;
   /** Gợi ý trong aria khi có long-press (vd. "Giữ để xem người thích"). */
   longPressHint?: string;
+  /** Cho phép rê ngón trước khi long-press kích hoạt (vd. mở cung emoji). */
+  moveThresholdPx?: number;
+  /** Chờ trước khi mở picker (mặc định hook 480ms). */
+  delayMs?: number;
   sheetTitle?: string;
   sheetItems?: JourneyActionSheetItem[];
   children: ReactNode;
@@ -44,6 +48,8 @@ export function JourneyActionTouchChip({
   onPress,
   onLongPress,
   longPressHint,
+  moveThresholdPx,
+  delayMs,
   sheetTitle,
   sheetItems = [],
   children,
@@ -56,6 +62,8 @@ export function JourneyActionTouchChip({
 
   const longPress = useLongPress({
     disabled: disabled || !canLongPress,
+    moveThresholdPx,
+    delayMs,
     onLongPress: () => {
       if (onLongPress) {
         onLongPress();

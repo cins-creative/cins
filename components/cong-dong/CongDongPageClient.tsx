@@ -1410,6 +1410,9 @@ function CongDongJourneyPostCard({
           canInteract={canInteract}
           initialSaved={post.viewerBookmarked}
           milestoneId={post.id}
+          previewAuthorName={post.author.tenHienThi}
+          previewAuthorAvatarUrl={avatarUrl}
+          previewCoverSrc={congDongFeedPostCoverUrl(post)}
         />
         <span className="action-spacer" />
         {sharePath ? (

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useCoSoMobileShell } from "@/components/co-so/useCoSoMobileShell";
 import {
@@ -35,6 +35,7 @@ import {
 } from "@/components/org/org-tab-lazy-views";
 import { YearFilterProvider } from "@/components/truong/YearFilterProvider";
 import { useTruongTabNav } from "@/lib/truong/use-truong-tab-nav";
+import { useChromeStuck } from "@/lib/ui/use-chrome-stuck";
 import { formatHocPhiLabel } from "@/lib/truong/display";
 import { resolveInitialDisplayYear } from "@/lib/truong/pin-display-year";
 import {
@@ -122,6 +123,8 @@ function TruongDetailViewInner({
   );
   const [notifyCount, setNotifyCount] = useState(0);
   const { isMobileShell } = useCoSoMobileShell();
+  const tabsBarRef = useRef<HTMLDivElement>(null);
+  useChromeStuck(tabsBarRef);
 
   useEffect(() => {
     setMountedTabs((prev) => {
@@ -248,6 +251,7 @@ function TruongDetailViewInner({
           ) : null}
 
           <div
+            ref={tabsBarRef}
             className={`tdh-v6-tabs-bar${
               tab === "do-an-sinh-vien" ? " tdh-v6-tabs-bar--doan" : ""
             }`}

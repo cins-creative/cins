@@ -14,7 +14,7 @@ const SNAP = 0.32;
 const FLICK = 0.55;
 const DRAWER_MS = 320;
 const IGNORE =
-  ".shop-kiosk-ticker-hit, .shop-kiosk-ticker, .shop-kiosk-ticker-track, .wj-feed-promo-rail-track";
+  ".shop-kiosk-ticker-hit, .shop-kiosk-ticker, .shop-kiosk-ticker-track, .wj-feed-promo-rail-track, .j-reaction-wrap";
 
 function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
@@ -124,6 +124,10 @@ export function useWorldJourneyAsideSwipe({
       if (e.touches.length !== 1) {
         drag = null;
         unbindMove();
+        return;
+      }
+      if (document.documentElement.hasAttribute("data-cins-reaction-picking")) {
+        drag = null;
         return;
       }
       const el = e.target;

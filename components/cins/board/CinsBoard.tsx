@@ -3,7 +3,8 @@
 /**
  * CinsBoard — infinite canvas engine tự viết (thay tldraw).
  *
- * - Camera pan/zoom bằng CSS transform trên một world layer.
+ * - Camera pan/zoom bằng CSS transform trên world layer (ghi DOM trực tiếp;
+ *   React chỉ flush 1 lần/frame cho lưới / thanh chọn — không re-render card).
  *   Desktop: wheel / pinch trackpad. Cảm ứng: 2 ngón pinch zoom + pan.
  * - Node render HTML tuyệt đối (NodeCard) — kéo, resize, multi-select,
  *   marquee, group/frame, undo/redo command stack.
@@ -32,6 +33,7 @@ import {
   AlignHorizontalJustifyCenter,
   AlignHorizontalJustifyEnd,
   AlignHorizontalJustifyStart,
+  AlignHorizontalSpaceAround,
   AlignVerticalJustifyCenter,
   AlignVerticalJustifyEnd,
   AlignVerticalJustifyStart,
@@ -56,8 +58,11 @@ import {
   TEXT_SIZE_PRESETS,
   TEXT_STICKY_MAU,
   hexToGroupTint,
+  isAreaTextNode,
+  isCommentNode,
   isPresetPaletteColor,
   isTextStickyNode,
+  measureFitTextSize,
   normalizeTextSize,
   normalizeShapeKind,
   type BoardShapeKind,
@@ -84,10 +89,13 @@ import {
   fitBoardImageSize,
   fitBoardLinkVideoSize,
   nodeRect,
+  isBoardPlaceTool,
   type BoardCamera,
+  type BoardCreateNodeInput,
   type BoardHandle,
   type BoardNode,
   type BoardPersistAdapter,
+  type BoardPlaceOpts,
   type BoardSelectionSummary,
   type BoardTool,
 } from "@/components/cins/board/board-types";
@@ -128,7 +136,20 @@ const GRID_FACTOR = 4;
 const GRID_MIN_PX = 4;
 const GROUP_PAD = 24;
 const GROUP_TITLE_H = 34;
+/** Tỉ lệ diện tích card chồng lên frame để snap vào nhóm. */
+const GROUP_SNAP_OVERLAP = 0.28;
+/** Halo (page units) quanh frame — tâm gần mép vẫn có xu hướng vào nhóm. */
+const GROUP_SNAP_MARGIN = 36;
+/** Đang là con: chỉ rời khi chồng dưới ngưỡng này và tâm ngoài halo. */
+const GROUP_SNAP_LEAVE_OVERLAP = 0.2;
+/** Halo giữ membership khi rê trong / sát mép nhóm. */
+const GROUP_SNAP_LEAVE_MARGIN = 56;
+/** Frame không còn con — giữ khung tối thiểu. */
+const GROUP_EMPTY_MIN_W = 160;
+const GROUP_EMPTY_MIN_H = GROUP_TITLE_H + GROUP_PAD * 2 + 48;
 const DRAG_THRESHOLD_PX = 3;
+/** Zoom khi đặt ô chữ — trần cố định, không nhân thêm mỗi lần tạo. */
+const TEXT_PLACE_ZOOM = 1.2;
 
 function isLocalBoardNodeId(id: string): boolean {
   return id.startsWith("local-");
@@ -385,6 +406,13 @@ type Gesture =
       color: string;
       width: number;
       points: Array<{ x: number; y: number }>;
+    }
+  | {
+      /** Tool chữ: thả không kéo = line text; kéo vùng = area text. */
+      type: "place-text";
+      pointerId: number;
+      startPage: { x: number; y: number };
+      startClient: { x: number; y: number };
     };
 
 type PinchGesture = {
@@ -648,30 +676,28 @@ function resolveWirePortSnap(
   };
 }
 
+function cameraWorldTransform(cam: BoardCamera): string {
+  return `scale(${cam.z}) translate(${cam.x}px, ${cam.y}px)`;
+}
+
 function hitNodeAt(
   list: BoardNode[],
   p: { x: number; y: number },
   excludeId?: string,
 ): BoardNode | null {
-  return (
-    [...list]
-      .filter((n) => n.loai !== "connector" && n.id !== excludeId)
-      .sort((a, b) => {
-        const fa = a.loai === "frame" ? 0 : 1;
-        const fb = b.loai === "frame" ? 0 : 1;
-        return fa - fb || (a.layout.z ?? 0) - (b.layout.z ?? 0);
-      })
-      .reverse()
-      .find((n) => {
-        const r = nodeRect(n);
-        return (
-          p.x >= r.x &&
-          p.x <= r.x + r.w &&
-          p.y >= r.y &&
-          p.y <= r.y + r.h
-        );
-      }) ?? null
-  );
+  let best: BoardNode | null = null;
+  let bestScore = -Infinity;
+  for (const n of list) {
+    if (n.loai === "connector" || n.id === excludeId) continue;
+    const r = nodeRect(n);
+    if (!pointInRect(p, r)) continue;
+    const score = (n.loai === "frame" ? 0 : 1_000_000) + (n.layout.z ?? 0);
+    if (score >= bestScore) {
+      bestScore = score;
+      best = n;
+    }
+  }
+  return best;
 }
 
 function rectsIntersect(
@@ -680,6 +706,175 @@ function rectsIntersect(
 ): boolean {
   return (
     a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
+  );
+}
+
+type BoardRect = { x: number; y: number; w: number; h: number };
+
+function pointInRect(p: { x: number; y: number }, r: BoardRect): boolean {
+  return p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
+}
+
+function rectIntersectionArea(a: BoardRect, b: BoardRect): number {
+  const w = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x));
+  const h = Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+  return w * h;
+}
+
+function cardOverlapRatio(card: BoardRect, frame: BoardRect): number {
+  const area = Math.max(1, card.w * card.h);
+  return rectIntersectionArea(card, frame) / area;
+}
+
+/** Frame host khi kéo card từ ngoài vào nhóm (tâm trong / chồng đủ / gần mép). */
+function findGroupSnapHost(
+  card: BoardRect,
+  frames: BoardNode[],
+): BoardNode | null {
+  let best: { frame: BoardNode; score: number } | null = null;
+  const cx = card.x + card.w / 2;
+  const cy = card.y + card.h / 2;
+  for (const frame of frames) {
+    const fr = nodeRect(frame);
+    const overlap = cardOverlapRatio(card, fr);
+    const centerIn = pointInRect({ x: cx, y: cy }, fr);
+    const halo: BoardRect = {
+      x: fr.x - GROUP_SNAP_MARGIN,
+      y: fr.y - GROUP_SNAP_MARGIN,
+      w: fr.w + GROUP_SNAP_MARGIN * 2,
+      h: fr.h + GROUP_SNAP_MARGIN * 2,
+    };
+    const nearEdge =
+      overlap > 0.08 && pointInRect({ x: cx, y: cy }, halo);
+    if (!centerIn && overlap < GROUP_SNAP_OVERLAP && !nearEdge) continue;
+    const score =
+      (centerIn ? 2 : 0) +
+      overlap * 3 +
+      (nearEdge ? 0.4 : 0) +
+      (frame.layout.z ?? 0) * 0.001;
+    if (!best || score > best.score) best = { frame, score };
+  }
+  return best?.frame ?? null;
+}
+
+function inflateRect(r: BoardRect, pad: number): BoardRect {
+  return {
+    x: r.x - pad,
+    y: r.y - pad,
+    w: r.w + pad * 2,
+    h: r.h + pad * 2,
+  };
+}
+
+function cardCenter(card: BoardRect): { x: number; y: number } {
+  return { x: card.x + card.w / 2, y: card.y + card.h / 2 };
+}
+
+/** Còn dính nhóm — chỉ coi là rời khi tâm ngoài halo và chồng rất ít. */
+function hasClearlyLeftGroup(card: BoardRect, frame: BoardRect): boolean {
+  const overlap = cardOverlapRatio(card, frame);
+  if (overlap >= GROUP_SNAP_LEAVE_OVERLAP) return false;
+  if (pointInRect(cardCenter(card), inflateRect(frame, GROUP_SNAP_LEAVE_MARGIN))) {
+    return false;
+  }
+  return true;
+}
+
+/** Gán / giữ / rời groupId — ưu tiên giữ nhóm hiện tại khi rê bên trong. */
+function resolveGroupSnapId(
+  card: BoardRect,
+  frames: BoardNode[],
+  currentGid: string | null,
+): string | null {
+  const host = findGroupSnapHost(card, frames);
+  if (currentGid) {
+    const cur = frames.find((f) => f.id === currentGid);
+    if (cur && !hasClearlyLeftGroup(card, nodeRect(cur))) {
+      if (!host || host.id === currentGid) return currentGid;
+      const hostFr = nodeRect(host);
+      const curFr = nodeRect(cur);
+      const c = cardCenter(card);
+      if (
+        pointInRect(c, hostFr) &&
+        cardOverlapRatio(card, hostFr) > cardOverlapRatio(card, curFr) + 0.15
+      ) {
+        return host.id;
+      }
+      return currentGid;
+    }
+  }
+  return host?.id ?? null;
+}
+
+/** Nở frame để ôm hết member (chỉ to ra, không thu). */
+function frameCoverRect(frame: BoardRect, members: BoardRect[]): BoardRect {
+  let { x: minX, y: minY, w, h } = frame;
+  let maxX = minX + w;
+  let maxY = minY + h;
+  for (const r of members) {
+    minX = Math.min(minX, r.x - GROUP_PAD);
+    minY = Math.min(minY, r.y - GROUP_PAD - GROUP_TITLE_H);
+    maxX = Math.max(maxX, r.x + r.w + GROUP_PAD);
+    maxY = Math.max(maxY, r.y + r.h + GROUP_PAD);
+  }
+  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+}
+
+/** Co frame ôm sát member còn lại (kéo object ra ngoài). */
+function frameFitMembers(
+  members: BoardRect[],
+  fallback: BoardRect,
+): BoardRect {
+  if (members.length === 0) {
+    return {
+      x: fallback.x,
+      y: fallback.y,
+      w: GROUP_EMPTY_MIN_W,
+      h: GROUP_EMPTY_MIN_H,
+    };
+  }
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const r of members) {
+    minX = Math.min(minX, r.x - GROUP_PAD);
+    minY = Math.min(minY, r.y - GROUP_PAD - GROUP_TITLE_H);
+    maxX = Math.max(maxX, r.x + r.w + GROUP_PAD);
+    maxY = Math.max(maxY, r.y + r.h + GROUP_PAD);
+  }
+  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+}
+
+function sameBoardRect(a: BoardRect, b: BoardRect): boolean {
+  return a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h;
+}
+
+/** Frame ôm sát toàn bộ block con (kéo / resize). */
+function refitParentFrame(list: BoardNode[], childId: string): BoardNode[] {
+  const child = list.find((n) => n.id === childId);
+  const gid = child?.layout.groupId;
+  if (!child || child.loai === "frame" || !gid) return list;
+  const frame = list.find((n) => n.id === gid && n.loai === "frame");
+  if (!frame) return list;
+  const members = list.filter(
+    (n) => n.layout.groupId === gid && n.loai !== "frame",
+  );
+  const cover = frameFitMembers(members.map(nodeRect), nodeRect(frame));
+  if (sameBoardRect(cover, nodeRect(frame))) return list;
+  return list.map((n) =>
+    n.id === gid
+      ? {
+          ...n,
+          layout: {
+            ...n.layout,
+            x: cover.x,
+            y: cover.y,
+            w: cover.w,
+            h: cover.h,
+          },
+        }
+      : n,
   );
 }
 
@@ -729,6 +924,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
     handleRef,
   ) {
     const rootRef = useRef<HTMLDivElement>(null);
+    const worldRef = useRef<HTMLDivElement>(null);
     const [nodes, setNodes] = useState<BoardNode[]>([]);
     const [camera, setCamera] = useState<BoardCamera>({ x: 0, y: 0, z: 1 });
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -738,6 +934,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       y: number;
       w: number;
       h: number;
+      kind?: "place";
     } | null>(null);
     const [spaceHeld, setSpaceHeld] = useState(false);
     const [panning, setPanning] = useState(false);
@@ -775,6 +972,10 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
     const [uploadingIds, setUploadingIds] = useState<Set<string>>(
       () => new Set(),
     );
+    const [justPlacedIds, setJustPlacedIds] = useState<Set<string>>(
+      () => new Set(),
+    );
+    const justPlacedIdsRef = useRef<Set<string>>(new Set());
 
     const nodesRef = useRef<BoardNode[]>([]);
     const toolRef = useRef<BoardTool>("select");
@@ -792,6 +993,9 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       editingRef.current = editingId;
     }, [editingId]);
     useEffect(() => {
+      justPlacedIdsRef.current = justPlacedIds;
+    }, [justPlacedIds]);
+    useEffect(() => {
       inkColorRef.current = inkColor;
     }, [inkColor]);
 
@@ -801,10 +1005,24 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
     const zCounterRef = useRef(1);
     /** Paste/upload bị user xóa giữa chừng — chặn create xong hiện lại. */
     const cancelledLocalIdsRef = useRef<Set<string>>(new Set());
+    /** Node chữ local đang sửa — chỉ đổi id DB sau khi blur (tránh remount textarea). */
+    const pendingPromoteRef = useRef(new Map<string, BoardNode>());
+    const camAnimRafRef = useRef(0);
+    const cameraFlushRafRef = useRef(0);
     /** DOM node để kéo mượt (không setState mỗi pointermove). */
     const nodeElByIdRef = useRef(new Map<string, HTMLDivElement>());
     const wireElByIdRef = useRef(new Map<string, SVGGElement>());
     const movePreviewRafRef = useRef(0);
+    /** Frame đang là đích snap khi kéo card từ ngoài vào — chỉ đụng DOM. */
+    const groupSnapHostRef = useRef<string | null>(null);
+    /** Kích thước gốc các frame đã preview nở/co — restore nếu hủy kéo. */
+    const groupSnapFrameBoxesRef = useRef(new Map<string, BoardRect>());
+    const colorPreviewRafRef = useRef(0);
+    const colorPreviewMauRef = useRef<string | null>(null);
+    const colorStrokeRef = useRef<{
+      before: BoardLayoutSnapshot[];
+      mau: string;
+    } | null>(null);
 
     const history = useBoardHistory();
 
@@ -817,17 +1035,120 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
 
     // Wheel events dồn dập giữa hai render — ref phải sync ngay, không chờ effect.
     const commitCamera = useCallback(
-      (next: BoardCamera) => {
+      (next: BoardCamera, opts?: { fromAnim?: boolean }) => {
+        if (!opts?.fromAnim && camAnimRafRef.current) {
+          cancelAnimationFrame(camAnimRafRef.current);
+          camAnimRafRef.current = 0;
+        }
         cameraRef.current = next;
-        setCamera(next);
+        const world = worldRef.current;
+        if (world) world.style.transform = cameraWorldTransform(next);
         onCameraChange?.(next);
+        // Coalesce React state (grid / selbar) — 1 render/frame, không chặn pan/zoom.
+        if (cameraFlushRafRef.current) return;
+        cameraFlushRafRef.current = requestAnimationFrame(() => {
+          cameraFlushRafRef.current = 0;
+          setCamera(cameraRef.current);
+        });
       },
       [onCameraChange],
     );
 
+    useEffect(() => {
+      return () => {
+        if (cameraFlushRafRef.current) {
+          cancelAnimationFrame(cameraFlushRafRef.current);
+          cameraFlushRafRef.current = 0;
+        }
+        if (camAnimRafRef.current) {
+          cancelAnimationFrame(camAnimRafRef.current);
+          camAnimRafRef.current = 0;
+        }
+      };
+    }, []);
+
+    useLayoutEffect(() => {
+      const world = worldRef.current;
+      if (world) world.style.transform = cameraWorldTransform(cameraRef.current);
+    }, []);
+
+    const animateCameraTo = useCallback(
+      (to: BoardCamera, ms = 340) => {
+        if (camAnimRafRef.current) {
+          cancelAnimationFrame(camAnimRafRef.current);
+          camAnimRafRef.current = 0;
+        }
+        const from = cameraRef.current;
+        if (
+          Math.abs(from.x - to.x) < 0.15 &&
+          Math.abs(from.y - to.y) < 0.15 &&
+          Math.abs(from.z - to.z) < 0.004
+        ) {
+          return;
+        }
+        const t0 = performance.now();
+        const easeOut = (t: number) => 1 - (1 - t) ** 3;
+        const tick = (now: number) => {
+          const u = Math.min(1, (now - t0) / ms);
+          const e = easeOut(u);
+          commitCamera(
+            {
+              x: from.x + (to.x - from.x) * e,
+              y: from.y + (to.y - from.y) * e,
+              z: from.z + (to.z - from.z) * e,
+            },
+            { fromAnim: true },
+          );
+          if (u < 1) camAnimRafRef.current = requestAnimationFrame(tick);
+          else camAnimRafRef.current = 0;
+        };
+        camAnimRafRef.current = requestAnimationFrame(tick);
+      },
+      [commitCamera],
+    );
+
+    /** Đưa ô chữ vào giữa viewport; zoom chỉ nâng tới TEXT_PLACE_ZOOM, không nhân thêm. */
+    const centerTextBoxInView = useCallback(
+      (box: { x: number; y: number; w: number; h: number }) => {
+        const rect = rootRef.current?.getBoundingClientRect();
+        if (!rect || rect.width <= 0) return;
+        const cam = cameraRef.current;
+        const cx = box.x + box.w / 2;
+        const cy = box.y + box.h / 2;
+        const nextZ = Math.min(
+          BOARD_MAX_ZOOM,
+          Math.max(cam.z, TEXT_PLACE_ZOOM),
+        );
+        const to = {
+          x: rect.width / 2 / nextZ - cx,
+          y: rect.height / 2 / nextZ - cy,
+          z: nextZ,
+        };
+        if (
+          typeof window !== "undefined" &&
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ) {
+          commitCamera(to);
+          return;
+        }
+        animateCameraTo(to);
+      },
+      [animateCameraTo, commitCamera],
+    );
+
+    const placeOptsRef = useRef<BoardPlaceOpts>({
+      mau: STICKY_PALETTE[0],
+      shapeKind: "rect",
+      rows: 3,
+      cols: 3,
+    });
+
     const setTool = useCallback(
-      (next: BoardTool) => {
+      (next: BoardTool, opts?: BoardPlaceOpts) => {
         toolRef.current = next;
+        if (opts) {
+          placeOptsRef.current = { ...placeOptsRef.current, ...opts };
+        }
         setToolState(next);
         onToolChange?.(next);
       },
@@ -875,14 +1196,17 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           return { ...r, x: start.x + dx, y: start.y + dy };
         };
 
+        const liveById = new Map<string, BoardNode>();
+        for (const n of nodesRef.current) liveById.set(n.id, n);
+
         for (const w of nodesRef.current) {
           if (w.loai !== "connector") continue;
           const fromId = w.layout.from;
           const toId = w.layout.to;
           if (!fromId || !toId) continue;
           if (!idSet.has(fromId) && !idSet.has(toId)) continue;
-          const a = nodesRef.current.find((n) => n.id === fromId);
-          const b = nodesRef.current.find((n) => n.id === toId);
+          const a = liveById.get(fromId);
+          const b = liveById.get(toId);
           if (!a || !b) continue;
           const path = wirePathBetween(
             liveRect(a),
@@ -898,6 +1222,134 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         }
       },
       [],
+    );
+
+    const restoreGroupSnapFrameBox = useCallback((onlyId?: string) => {
+      const boxes = groupSnapFrameBoxesRef.current;
+      const ids = onlyId ? [onlyId] : [...boxes.keys()];
+      for (const id of ids) {
+        const prev = boxes.get(id);
+        if (!prev) continue;
+        const el = nodeElByIdRef.current.get(id);
+        if (el) {
+          el.style.transform = `translate(${prev.x}px, ${prev.y}px)`;
+          el.style.width = `${prev.w}px`;
+          el.style.height = `${prev.h}px`;
+        }
+        boxes.delete(id);
+      }
+    }, []);
+
+    const setGroupSnapHighlight = useCallback((frameId: string | null) => {
+      const prev = groupSnapHostRef.current;
+      if (prev === frameId) return;
+      if (prev) {
+        nodeElByIdRef.current.get(prev)?.classList.remove("is-group-snap");
+      }
+      if (frameId) {
+        nodeElByIdRef.current.get(frameId)?.classList.add("is-group-snap");
+      }
+      groupSnapHostRef.current = frameId;
+    }, []);
+
+    const clearGroupSnapUi = useCallback(
+      (restoreFrame: boolean) => {
+        setGroupSnapHighlight(null);
+        if (restoreFrame) restoreGroupSnapFrameBox();
+        else groupSnapFrameBoxesRef.current.clear();
+      },
+      [restoreGroupSnapFrameBox, setGroupSnapHighlight],
+    );
+
+    const previewGroupSnapHost = useCallback(
+      (g: Extract<Gesture, { type: "move" }>) => {
+        const movingIds = new Set(g.nodeIds);
+        const movingFrame = nodesRef.current.find(
+          (n) => n.loai === "frame" && movingIds.has(n.id),
+        );
+        if (movingFrame) {
+          restoreGroupSnapFrameBox();
+          setGroupSnapHighlight(movingFrame.id);
+          return;
+        }
+        const frames = nodesRef.current.filter(
+          (n) => n.loai === "frame" && !movingIds.has(n.id),
+        );
+        const rectsByHost = new Map<string, BoardRect[]>();
+        const leftFrameIds = new Set<string>();
+        const liveIds = new Set(g.nodeIds);
+        for (const id of g.nodeIds) {
+          const n = nodesRef.current.find((x) => x.id === id);
+          if (!n || n.loai === "frame") continue;
+          const start = g.startPos.get(id);
+          if (!start) continue;
+          const r = {
+            ...nodeRect(n),
+            x: start.x + g.lastDx,
+            y: start.y + g.lastDy,
+          };
+          const currentGid = n.layout.groupId ?? null;
+          const nextGid = resolveGroupSnapId(r, frames, currentGid);
+          if (currentGid && currentGid !== nextGid) {
+            leftFrameIds.add(currentGid);
+          }
+          if (!nextGid) continue;
+          const list = rectsByHost.get(nextGid) ?? [];
+          list.push(r);
+          rectsByHost.set(nextGid, list);
+        }
+        const hostId = rectsByHost.keys().next().value ?? null;
+        setGroupSnapHighlight(hostId);
+
+        const desired = new Map<string, BoardRect>();
+        for (const [fid, incoming] of rectsByHost) {
+          const frame = nodesRef.current.find((n) => n.id === fid);
+          if (!frame) continue;
+          const base = nodeRect(frame);
+          const memberRects = [
+            ...nodesRef.current
+              .filter(
+                (n) =>
+                  n.layout.groupId === fid &&
+                  n.loai !== "frame" &&
+                  !liveIds.has(n.id),
+              )
+              .map(nodeRect),
+            ...incoming,
+          ];
+          desired.set(fid, frameFitMembers(memberRects, base));
+        }
+        for (const fid of leftFrameIds) {
+          if (desired.has(fid)) continue;
+          const frame = nodesRef.current.find((n) => n.id === fid);
+          if (!frame) continue;
+          const remaining = nodesRef.current
+            .filter(
+              (n) =>
+                n.layout.groupId === fid &&
+                n.loai !== "frame" &&
+                !liveIds.has(n.id),
+            )
+            .map(nodeRect);
+          desired.set(fid, frameFitMembers(remaining, nodeRect(frame)));
+        }
+
+        for (const id of [...groupSnapFrameBoxesRef.current.keys()]) {
+          if (!desired.has(id)) restoreGroupSnapFrameBox(id);
+        }
+        for (const [fid, box] of desired) {
+          const frame = nodesRef.current.find((n) => n.id === fid);
+          const el = nodeElByIdRef.current.get(fid);
+          if (!frame || !el) continue;
+          if (!groupSnapFrameBoxesRef.current.has(fid)) {
+            groupSnapFrameBoxesRef.current.set(fid, nodeRect(frame));
+          }
+          el.style.transform = `translate(${box.x}px, ${box.y}px)`;
+          el.style.width = `${box.w}px`;
+          el.style.height = `${box.h}px`;
+        }
+      },
+      [restoreGroupSnapFrameBox, setGroupSnapHighlight],
     );
 
     const pageFromClient = useCallback((clientX: number, clientY: number) => {
@@ -929,7 +1381,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
 
     const persistNodeLayout = useCallback(
       (node: BoardNode, extra?: { noiDung?: string }) => {
-        if (node.loai === "connector" || isLocalBoardNodeId(node.id)) return;
+        if (isLocalBoardNodeId(node.id)) return;
         void persist.patchNode(node.id, {
           layout: toStoredLayout(node),
           ...(extra?.noiDung !== undefined ? { noiDung: extra.noiDung } : {}),
@@ -941,7 +1393,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
     const persistLayoutBatch = useCallback(
       async (nodesToPersist: BoardNode[]) => {
         const patches = nodesToPersist
-          .filter((n) => n.loai !== "connector" && !isLocalBoardNodeId(n.id))
+          .filter((n) => !isLocalBoardNodeId(n.id))
           .map((n) => ({ nodeId: n.id, layout: toStoredLayout(n) }));
         if (patches.length === 0) return;
 
@@ -1096,46 +1548,70 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       zoomToRect({ x: minX, y: minY, w: maxX - minX, h: maxY - minY });
     }, [commitCamera, zoomToRect]);
 
-    const autoLayout = useCallback(() => {
-      void (async () => {
-        if (lockedRef.current) return;
-        const current = nodesRef.current;
-        const layoutable = current.filter((n) => n.loai !== "connector");
-        if (layoutable.length === 0) return;
-        const before = layoutable.map(snapshotOf);
-        const next = applyAutoLayout(current);
-        commitNodes(next);
-        const after = before.map((s) => {
-          const n = next.find((x) => x.id === s.nodeId)!;
-          return snapshotOf(n);
-        });
-        history.push({ type: "layout", before, after });
-
-        const beforeById = new Map(before.map((s) => [s.nodeId, s.layout]));
-        const changed = next.filter((n) => {
-          if (n.loai === "connector" || isLocalBoardNodeId(n.id)) return false;
-          const prev = beforeById.get(n.id);
-          if (!prev) return true;
-          return (
-            prev.x !== n.layout.x ||
-            prev.y !== n.layout.y ||
-            prev.w !== n.layout.w ||
-            prev.h !== n.layout.h
+    const runAutoLayout = useCallback(
+      (scope: "board" | "selection") => {
+        void (async () => {
+          if (lockedRef.current) return;
+          const current = nodesRef.current;
+          const onlyIds =
+            scope === "selection"
+              ? new Set(
+                  [...selectedRef.current].filter((id) => {
+                    const n = current.find((x) => x.id === id);
+                    return n && n.loai !== "connector";
+                  }),
+                )
+              : undefined;
+          if (scope === "selection" && (!onlyIds || onlyIds.size === 0)) return;
+          const layoutable = current.filter((n) => n.loai !== "connector");
+          if (layoutable.length === 0) return;
+          const next = applyAutoLayout(
+            current,
+            onlyIds ? { onlyIds } : undefined,
           );
-        });
+          const beforeById = new Map(
+            layoutable.map((n) => [n.id, n.layout] as const),
+          );
+          const changed = next.filter((n) => {
+            if (n.loai === "connector") return false;
+            const prev = beforeById.get(n.id);
+            if (!prev) return true;
+            return (
+              prev.x !== n.layout.x ||
+              prev.y !== n.layout.y ||
+              prev.w !== n.layout.w ||
+              prev.h !== n.layout.h
+            );
+          });
+          if (changed.length === 0) return;
+          const changedIds = new Set(changed.map((n) => n.id));
+          const before = current
+            .filter((n) => changedIds.has(n.id))
+            .map(snapshotOf);
+          commitNodes(next);
+          const after = next
+            .filter((n) => changedIds.has(n.id))
+            .map(snapshotOf);
+          history.push({ type: "layout", before, after });
+          await persistLayoutBatch(
+            next.filter((n) => changedIds.has(n.id) && !isLocalBoardNodeId(n.id)),
+          );
+          if (scope === "board") {
+            requestAnimationFrame(() => zoomToFit());
+          }
+          emitSelection();
+        })();
+      },
+      [commitNodes, emitSelection, history, persistLayoutBatch, zoomToFit],
+    );
 
-        await persistLayoutBatch(changed);
+    const autoLayout = useCallback(() => {
+      runAutoLayout("board");
+    }, [runAutoLayout]);
 
-        requestAnimationFrame(() => zoomToFit());
-        emitSelection();
-      })();
-    }, [
-      commitNodes,
-      emitSelection,
-      history,
-      persistLayoutBatch,
-      zoomToFit,
-    ]);
+    const autoLayoutSelection = useCallback(() => {
+      runAutoLayout("selection");
+    }, [runAutoLayout]);
 
     const zoomToNode = useCallback(
       (node: BoardNode) => {
@@ -1271,38 +1747,238 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       [commitNodes, emitSelection, history, setSelection, zoomToNode],
     );
 
+    const markJustPlaced = useCallback((id: string) => {
+      justPlacedIdsRef.current = new Set(justPlacedIdsRef.current).add(id);
+      setJustPlacedIds(new Set(justPlacedIdsRef.current));
+      // Comment cần lâu hơn chữ thường — user kịp focus + gõ.
+      window.setTimeout(() => {
+        if (!justPlacedIdsRef.current.has(id)) return;
+        const next = new Set(justPlacedIdsRef.current);
+        next.delete(id);
+        justPlacedIdsRef.current = next;
+        setJustPlacedIds(next);
+      }, 3000);
+    }, []);
+
+    const promoteLocalNode = useCallback(
+      (tempId: string, created: BoardNode) => {
+        const latest = nodesRef.current.find((n) => n.id === tempId);
+        pendingPromoteRef.current.delete(tempId);
+        if (!latest) {
+          void persist.deleteNode(created);
+          return;
+        }
+        // Chỉ xóa sticky chữ trống khi đã thoát soạn. Comment trống giữ lại
+        // để user kịp gõ — discardBlank dọn sau.
+        if (
+          isTextStickyNode(latest) &&
+          !isCommentNode(latest) &&
+          !(latest.noiDung ?? "").trim() &&
+          editingRef.current !== tempId
+        ) {
+          void persist.deleteNode(created);
+          commitNodes(nodesRef.current.filter((n) => n.id !== tempId));
+          if (selectedRef.current.has(tempId)) setSelection(new Set());
+          emitSelection();
+          return;
+        }
+        const finalNode: BoardNode = {
+          ...created,
+          layout: {
+            ...created.layout,
+            ...latest.layout,
+            // Giữ author từ server nếu optimistic chưa có.
+            ...(created.layout.commentAuthor && !latest.layout.commentAuthor
+              ? { commentAuthor: created.layout.commentAuthor }
+              : {}),
+          },
+          noiDung: latest.noiDung,
+        };
+        commitNodes(
+          nodesRef.current.map((n) => (n.id === tempId ? finalNode : n)),
+        );
+        history.push({ type: "create", node: finalNode });
+        if (selectedRef.current.has(tempId)) {
+          setSelection(new Set([finalNode.id]));
+        }
+        if (editingRef.current === tempId) {
+          editingRef.current = finalNode.id;
+          setEditingId(finalNode.id);
+          // Giữ justPlaced qua đổi id để grace xóa trống vẫn đúng.
+          if (justPlacedIdsRef.current.has(tempId)) {
+            const next = new Set(justPlacedIdsRef.current);
+            next.delete(tempId);
+            next.add(finalNode.id);
+            justPlacedIdsRef.current = next;
+            setJustPlacedIds(next);
+          }
+        }
+        const layoutChanged =
+          latest.layout.x !== created.layout.x ||
+          latest.layout.y !== created.layout.y ||
+          latest.layout.w !== created.layout.w ||
+          latest.layout.h !== created.layout.h;
+        if ((latest.noiDung ?? "") !== (created.noiDung ?? "") || layoutChanged) {
+          void persist.patchNode(finalNode.id, {
+            layout: toStoredLayout(finalNode),
+            noiDung: latest.noiDung ?? "",
+          });
+        }
+        emitSelection();
+      },
+      [commitNodes, emitSelection, history, persist, setSelection, toStoredLayout],
+    );
+
+    const pageOrViewport = useCallback(
+      (page: { x: number; y: number } | undefined, w: number, h: number) => {
+        if (page) return { x: page.x, y: page.y };
+        const rect = rootRef.current?.getBoundingClientRect();
+        const cam = cameraRef.current;
+        const cx = (rect?.width ?? 800) / 2 / cam.z - cam.x;
+        const cy = (rect?.height ?? 600) / 2 / cam.z - cam.y;
+        return { x: cx - w / 2, y: cy - h / 2 };
+      },
+      [],
+    );
+
+    const spawnOptimisticSticky = useCallback(
+      (input: BoardCreateNodeInput, opts?: { center?: boolean }) => {
+        if (lockedRef.current) return;
+        const tempId = `local-place-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+        const canvasId =
+          nodesRef.current.find((n) => n.canvasId)?.canvasId ?? "";
+        const now = new Date().toISOString();
+        const layout = {
+          ...input.layout,
+          z: ++zCounterRef.current,
+        };
+        const optimistic: BoardNode = {
+          id: tempId,
+          canvasId,
+          loai: input.loai,
+          messageId: input.messageId ?? null,
+          url: input.url ?? null,
+          noiDung: input.noiDung ?? "",
+          layout,
+          idNguoiTao: "",
+          taoLuc: now,
+          capNhatLuc: now,
+        };
+        commitNodes([...nodesRef.current, optimistic]);
+        setSelection(new Set([tempId]));
+        // Sync ref ngay — createNode có thể xong trước useEffect editingId.
+        editingRef.current = tempId;
+        setEditingId(tempId);
+        markJustPlaced(tempId);
+        emitSelection();
+        if (opts?.center !== false) {
+          centerTextBoxInView({
+            x: layout.x,
+            y: layout.y,
+            w: layout.w ?? 160,
+            h: layout.h ?? 80,
+          });
+        }
+
+        void (async () => {
+          const created = await persist.createNode(input);
+          const gone =
+            cancelledLocalIdsRef.current.has(tempId) ||
+            !nodesRef.current.some((n) => n.id === tempId);
+          if (!created) {
+            if (!gone) {
+              commitNodes(nodesRef.current.filter((n) => n.id !== tempId));
+              if (selectedRef.current.has(tempId)) setSelection(new Set());
+              if (editingRef.current === tempId) setEditingId(null);
+              emitSelection();
+            }
+            cancelledLocalIdsRef.current.delete(tempId);
+            return;
+          }
+          if (gone) {
+            void persist.deleteNode(created);
+            cancelledLocalIdsRef.current.delete(tempId);
+            return;
+          }
+          if (editingRef.current === tempId) {
+            pendingPromoteRef.current.set(tempId, created);
+            // Hiện tên/avatar thật ngay khi server trả về, không đợi blur.
+            if (created.layout.commentAuthor) {
+              commitNodes(
+                nodesRef.current.map((n) =>
+                  n.id === tempId
+                    ? {
+                        ...n,
+                        canvasId: created.canvasId || n.canvasId,
+                        layout: {
+                          ...n.layout,
+                          commentAuthor: created.layout.commentAuthor,
+                        },
+                      }
+                    : n,
+                ),
+              );
+            }
+            return;
+          }
+          promoteLocalNode(tempId, created);
+        })();
+      },
+      [
+        centerTextBoxInView,
+        commitNodes,
+        emitSelection,
+        markJustPlaced,
+        persist,
+        promoteLocalNode,
+        setSelection,
+      ],
+    );
+
     const addSticky = useCallback(
-      async (mau: string, page?: { x: number; y: number }) => {
+      (mau: string, page?: { x: number; y: number }) => {
         if (lockedRef.current) return;
         const isText = mau === TEXT_STICKY_MAU;
-        const w = isText ? 260 : 240;
-        const h = isText ? 80 : 200;
-        let x: number;
-        let y: number;
-        if (page) {
-          x = page.x;
-          y = page.y;
-        } else {
-          const rect = rootRef.current?.getBoundingClientRect();
-          const cam = cameraRef.current;
-          const cx = (rect?.width ?? 800) / 2 / cam.z - cam.x;
-          const cy = (rect?.height ?? 600) / 2 / cam.z - cam.y;
-          x = cx - w / 2;
-          y = cy - h / 2;
-        }
-        const created = await persist.createNode({
+        const fit = isText
+          ? measureFitTextSize("", DEFAULT_TEXT_SIZE)
+          : { w: 240, h: 200 };
+        const { x, y } = pageOrViewport(page, fit.w, fit.h);
+        spawnOptimisticSticky({
           loai: "sticky",
-          layout: { x, y, w, h, mau },
+          layout: {
+            x,
+            y,
+            w: fit.w,
+            h: fit.h,
+            mau,
+            ...(isText ? { textKind: "fit" as const } : {}),
+          },
           noiDung: "",
         });
-        if (created) {
-          const node = { ...created, layout: { ...created.layout, mau } };
-          addNodeInternal(node, true);
-          // Mở edit ngay — khối mới sinh ra là để gõ chữ.
-          setEditingId(node.id);
-        }
       },
-      [addNodeInternal, persist],
+      [pageOrViewport, spawnOptimisticSticky],
+    );
+
+    const addAreaText = useCallback(
+      (rect: { x: number; y: number; w: number; h: number }) => {
+        if (lockedRef.current) return;
+        spawnOptimisticSticky(
+          {
+            loai: "sticky",
+            layout: {
+              x: rect.x,
+              y: rect.y,
+              w: Math.max(32, rect.w),
+              h: Math.max(28, rect.h),
+              mau: TEXT_STICKY_MAU,
+              textKind: "area",
+            },
+            noiDung: "",
+          },
+          { center: false },
+        );
+      },
+      [spawnOptimisticSticky],
     );
 
     const addText = useCallback(
@@ -1310,113 +1986,76 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       [addSticky],
     );
 
-    const addTextAtPage = useCallback(
-      (page: { x: number; y: number }) => addSticky(TEXT_STICKY_MAU, page),
-      [addSticky],
-    );
-
     const addShape = useCallback(
-      async (mau: string, kind: BoardShapeKind = "rect") => {
+      (
+        mau: string,
+        kind: BoardShapeKind = "rect",
+        page?: { x: number; y: number },
+      ) => {
         if (lockedRef.current) return;
-        const rect = rootRef.current?.getBoundingClientRect();
-        const cam = cameraRef.current;
-        const cx = (rect?.width ?? 800) / 2 / cam.z - cam.x;
-        const cy = (rect?.height ?? 600) / 2 / cam.z - cam.y;
         const w = 160;
         const h = 160;
-        const created = await persist.createNode({
+        const { x, y } = pageOrViewport(page, w, h);
+        spawnOptimisticSticky({
           loai: "sticky",
-          layout: {
-            x: cx - w / 2,
-            y: cy - h / 2,
-            w,
-            h,
-            mau,
-            shapeKind: kind,
-          },
+          layout: { x, y, w, h, mau, shapeKind: kind },
           noiDung: "",
         });
-        if (created) {
-          const node = {
-            ...created,
-            layout: { ...created.layout, mau, shapeKind: kind },
-          };
-          addNodeInternal(node, true);
-          setEditingId(node.id);
-        }
       },
-      [addNodeInternal, persist],
+      [pageOrViewport, spawnOptimisticSticky],
     );
 
     const addTable = useCallback(
-      async (rows = 3, cols = 3) => {
+      (rows = 3, cols = 3, page?: { x: number; y: number }) => {
         if (lockedRef.current) return;
-        const rect = rootRef.current?.getBoundingClientRect();
-        const cam = cameraRef.current;
-        const cx = (rect?.width ?? 800) / 2 / cam.z - cam.x;
-        const cy = (rect?.height ?? 600) / 2 / cam.z - cam.y;
         const table = createEmptyTable(rows, cols);
         const size = suggestTableSize(table);
-        const created = await persist.createNode({
+        const { x, y } = pageOrViewport(page, size.w, size.h);
+        spawnOptimisticSticky({
           loai: "sticky",
           layout: {
-            x: cx - size.w / 2,
-            y: cy - size.h / 2,
+            x,
+            y,
             w: size.w,
             h: size.h,
             contentKind: "table",
           },
           noiDung: serializeTable(table),
         });
-        if (created) {
-          const node = {
-            ...created,
-            layout: {
-              ...created.layout,
-              contentKind: "table" as const,
-              w: size.w,
-              h: size.h,
-            },
-            noiDung: created.noiDung ?? serializeTable(table),
-          };
-          addNodeInternal(node, true);
-          setEditingId(node.id);
-        }
       },
-      [addNodeInternal, persist],
+      [pageOrViewport, spawnOptimisticSticky],
     );
 
-    const addComment = useCallback(async () => {
-      if (lockedRef.current) return;
-      const rect = rootRef.current?.getBoundingClientRect();
-      const cam = cameraRef.current;
-      const cx = (rect?.width ?? 800) / 2 / cam.z - cam.x;
-      const cy = (rect?.height ?? 600) / 2 / cam.z - cam.y;
-      const w = BOARD_COMMENT_MIN_W + 40;
-      const h = BOARD_COMMENT_MIN_H + 8;
-      const created = await persist.createNode({
-        loai: "sticky",
-        layout: {
-          x: cx - w / 2,
-          y: cy - h / 2,
-          w,
-          h,
-          contentKind: "comment",
-        },
-        noiDung: "",
-      });
-      if (created) {
-        const node = {
-          ...created,
-          layout: {
-            ...created.layout,
-            contentKind: "comment" as const,
-          },
-        };
-        addNodeInternal(node, true);
-        setEditingId(node.id);
-      }
-    }, [addNodeInternal, persist]);
+    const addComment = useCallback(
+      (page?: { x: number; y: number }) => {
+        if (lockedRef.current) return;
+        const w = BOARD_COMMENT_MIN_W + 40;
+        const h = BOARD_COMMENT_MIN_H + 8;
+        const { x, y } = pageOrViewport(page, w, h);
+        spawnOptimisticSticky({
+          loai: "sticky",
+          layout: { x, y, w, h, contentKind: "comment" },
+          noiDung: "",
+        });
+      },
+      [pageOrViewport, spawnOptimisticSticky],
+    );
+
+    const placeArmedAtPage = useCallback(
+      (page: { x: number; y: number }) => {
+        const armed = toolRef.current;
+        const opts = placeOptsRef.current;
+        const mau = opts.mau ?? STICKY_PALETTE[0]!;
+        if (armed === "text") addSticky(TEXT_STICKY_MAU, page);
+        else if (armed === "sticky") addSticky(mau, page);
+        else if (armed === "shape") {
+          addShape(mau, opts.shapeKind ?? "rect", page);
+        } else if (armed === "table") {
+          addTable(opts.rows ?? 3, opts.cols ?? 3, page);
+        } else if (armed === "comment") addComment(page);
+      },
+      [addComment, addShape, addSticky, addTable],
+    );
 
     const [highlightIds, setHighlightIds] = useState<Set<string>>(
       () => new Set(),
@@ -1676,6 +2315,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           return snapshotOf(n);
         });
         history.push({ type: "layout", before, after });
+        const layoutOnly: BoardNode[] = [];
         for (const n of next) {
           if (!selectedRef.current.has(n.id)) continue;
           if (n.loai !== "sticky" && n.loai !== "frame") continue;
@@ -1685,12 +2325,102 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
               noiDung: n.noiDung ?? undefined,
             });
           } else {
-            persistNodeLayout(n);
+            layoutOnly.push(n);
           }
         }
+        void persistLayoutBatch(layoutOnly);
         emitSelection();
       },
-      [commitNodes, emitSelection, history, persist, persistNodeLayout],
+      [commitNodes, emitSelection, history, persist, persistLayoutBatch],
+    );
+
+    const paintSelectionColorDom = useCallback((mau: string) => {
+      for (const id of selectedRef.current) {
+        const n = nodesRef.current.find((x) => x.id === id);
+        const el = nodeElByIdRef.current.get(id);
+        if (!n || !el) continue;
+        if (n.loai === "sticky" && isTextStickyNode(n)) {
+          el
+            .querySelectorAll<HTMLElement>(
+              ".cins-canvas-sticky-text, .cins-canvas-sticky-editor",
+            )
+            .forEach((node) => {
+              node.style.color = mau;
+            });
+          continue;
+        }
+        if (n.loai === "frame") {
+          const card = el.querySelector<HTMLElement>(".cins-canvas-card-frame");
+          if (card) card.style.background = mau;
+          continue;
+        }
+        if (n.loai !== "sticky") continue;
+        if (normalizeContentKind(n.layout.contentKind) === "draw") {
+          el.querySelectorAll<SVGElement>("path").forEach((path) => {
+            path.setAttribute("stroke", mau);
+          });
+          continue;
+        }
+        const fill = el.querySelector<HTMLElement>(
+          ".cins-canvas-shape-fill, .cins-canvas-card-sticky",
+        );
+        if (fill) fill.style.background = mau;
+        if (fill) fill.style.backgroundColor = mau;
+      }
+    }, []);
+
+    const previewColorOnSelection = useCallback(
+      (mau: string) => {
+        if (lockedRef.current) return;
+        if (!colorStrokeRef.current) {
+          const targets = nodesRef.current.filter(
+            (n) =>
+              selectedRef.current.has(n.id) &&
+              (n.loai === "sticky" || n.loai === "frame"),
+          );
+          if (targets.length === 0) return;
+          colorStrokeRef.current = {
+            before: targets.map(snapshotOf),
+            mau,
+          };
+        } else {
+          colorStrokeRef.current.mau = mau;
+        }
+        colorPreviewMauRef.current = mau;
+        if (colorPreviewRafRef.current) return;
+        colorPreviewRafRef.current = requestAnimationFrame(() => {
+          colorPreviewRafRef.current = 0;
+          const next = colorPreviewMauRef.current;
+          if (next) paintSelectionColorDom(next);
+        });
+      },
+      [paintSelectionColorDom],
+    );
+
+    const commitPreviewedSelectionColor = useCallback(
+      (mau: string) => {
+        if (colorPreviewRafRef.current) {
+          cancelAnimationFrame(colorPreviewRafRef.current);
+          colorPreviewRafRef.current = 0;
+        }
+        const stroke = colorStrokeRef.current;
+        colorStrokeRef.current = null;
+        colorPreviewMauRef.current = null;
+        if (lockedRef.current) return;
+        if (stroke && stroke.mau === mau) {
+          const unchanged = stroke.before.every((s) => {
+            const n = nodesRef.current.find((x) => x.id === s.nodeId);
+            if (!n) return false;
+            if (n.loai === "sticky" && isTextStickyNode(n)) {
+              return (n.layout.textColor ?? "") === mau;
+            }
+            return (n.layout.mau ?? "") === mau;
+          });
+          if (unchanged) return;
+        }
+        applyColorToSelection(mau);
+      },
+      [applyColorToSelection],
     );
 
     const applyTextSizeToSelection = useCallback(
@@ -1700,7 +2430,10 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         const targetIds = new Set(
           nodesRef.current
             .filter(
-              (n) => selectedRef.current.has(n.id) && isTextStickyNode(n),
+              (n) =>
+                selectedRef.current.has(n.id) &&
+                isTextStickyNode(n) &&
+                !isAreaTextNode(n),
             )
             .map((n) => n.id),
         );
@@ -1708,23 +2441,21 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         const before = nodesRef.current
           .filter((n) => targetIds.has(n.id))
           .map(snapshotOf);
-        const next = nodesRef.current.map((n) =>
-          targetIds.has(n.id)
-            ? { ...n, layout: { ...n.layout, textSize: size } }
-            : n,
-        );
+        const next = nodesRef.current.map((n) => {
+          if (!targetIds.has(n.id)) return n;
+          const box = measureFitTextSize(n.noiDung ?? "", size);
+          return {
+            ...n,
+            layout: { ...n.layout, textSize: size, w: box.w, h: box.h },
+          };
+        });
         commitNodes(next);
-        const after = before.map((s) => ({
-          ...s,
-          layout: { ...s.layout, textSize: size },
-        }));
+        const after = next.filter((n) => targetIds.has(n.id)).map(snapshotOf);
         history.push({ type: "layout", before, after });
-        for (const n of next) {
-          if (targetIds.has(n.id)) persistNodeLayout(n);
-        }
+        void persistLayoutBatch(next.filter((n) => targetIds.has(n.id)));
         emitSelection();
       },
-      [commitNodes, emitSelection, history, persistNodeLayout],
+      [commitNodes, emitSelection, history, persistLayoutBatch],
     );
 
     const alignSelection = useCallback(
@@ -1779,14 +2510,17 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           return snapshotOf(n);
         });
         history.push({ type: "layout", before, after });
-        for (const n of next) {
-          if (!selectedRef.current.has(n.id)) continue;
-          if (n.loai === "connector" || n.loai === "frame") continue;
-          persistNodeLayout(n);
-        }
+        void persistLayoutBatch(
+          next.filter(
+            (n) =>
+              selectedRef.current.has(n.id) &&
+              n.loai !== "connector" &&
+              n.loai !== "frame",
+          ),
+        );
         emitSelection();
       },
-      [commitNodes, emitSelection, history, persistNodeLayout],
+      [commitNodes, emitSelection, history, persistLayoutBatch],
     );
 
     const reorderSelectionLayer = useCallback(
@@ -1836,12 +2570,10 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         history.push({ type: "layout", before, after });
         zCounterRef.current =
           Math.max(0, ...next.map((n) => n.layout.z ?? 0)) + 1;
-        for (const n of next) {
-          if (allPatchIds.has(n.id)) persistNodeLayout(n);
-        }
+        void persistLayoutBatch(next.filter((n) => allPatchIds.has(n.id)));
         emitSelection();
       },
-      [commitNodes, emitSelection, history, persistNodeLayout],
+      [commitNodes, emitSelection, history, persistLayoutBatch],
     );
 
     const patchSelectedWires = useCallback(
@@ -1874,12 +2606,10 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           layout: { ...s.layout, ...patch },
         }));
         history.push({ type: "layout", before, after });
-        for (const n of next) {
-          if (targetIds.has(n.id)) persistNodeLayout(n);
-        }
+        void persistLayoutBatch(next.filter((n) => targetIds.has(n.id)));
         emitSelection();
       },
-      [commitNodes, emitSelection, history, persistNodeLayout],
+      [commitNodes, emitSelection, history, persistLayoutBatch],
     );
 
     const applyWireStyleToSelection = useCallback(
@@ -1920,12 +2650,128 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           layout: { ...s.layout, shapeKind },
         }));
         history.push({ type: "layout", before, after });
-        for (const n of next) {
-          if (targetIds.has(n.id)) persistNodeLayout(n);
+        void persistLayoutBatch(next.filter((n) => targetIds.has(n.id)));
+        emitSelection();
+      },
+      [commitNodes, emitSelection, history, persistLayoutBatch],
+    );
+
+    const discardEmptyTextNode = useCallback(
+      (node: BoardNode) => {
+        setEditingId(null);
+        const pending = pendingPromoteRef.current.get(node.id);
+        pendingPromoteRef.current.delete(node.id);
+        if (pending) void persist.deleteNode(pending);
+        if (isLocalBoardNodeId(node.id)) {
+          cancelledLocalIdsRef.current.add(node.id);
+        } else {
+          void persist.deleteNode(node);
+        }
+        commitNodes(nodesRef.current.filter((n) => n.id !== node.id));
+        if (selectedRef.current.has(node.id)) setSelection(new Set());
+        emitSelection();
+      },
+      [commitNodes, emitSelection, persist, setSelection],
+    );
+
+    const cancelNodeEdit = useCallback(() => {
+      const prev = editingRef.current;
+      setEditingId(null);
+      if (!prev) return;
+      const node = nodesRef.current.find((n) => n.id === prev);
+      if (
+        node &&
+        (isTextStickyNode(node) || isCommentNode(node)) &&
+        !(node.noiDung ?? "").trim()
+      ) {
+        discardEmptyTextNode(node);
+        return;
+      }
+      const pending = pendingPromoteRef.current.get(prev);
+      if (pending) promoteLocalNode(prev, pending);
+    }, [discardEmptyTextNode, promoteLocalNode]);
+
+    const requestNodeEdit = useCallback(
+      (id: string) => {
+        setSelection(new Set([id]));
+        setEditingId(id);
+      },
+      [setSelection],
+    );
+
+    const discardBlankTextStickies = useCallback(
+      (exceptId?: string | null) => {
+        const now = Date.now();
+        const blanks = nodesRef.current.filter((n) => {
+          if (n.id === exceptId) return false;
+          // Đang soạn — tuyệt đối không xóa.
+          if (editingRef.current === n.id) return false;
+          if (!(isTextStickyNode(n) || isCommentNode(n))) return false;
+          if ((n.noiDung ?? "").trim()) return false;
+          // Comment mới tạo: cho user thời gian gõ (không xóa trong ~3s).
+          if (isCommentNode(n)) {
+            const born = Date.parse(n.taoLuc);
+            if (Number.isFinite(born) && now - born < 3000) return false;
+            if (justPlacedIdsRef.current.has(n.id)) return false;
+          } else {
+            const born = Date.parse(n.taoLuc);
+            if (Number.isFinite(born) && now - born < 600) return false;
+          }
+          return true;
+        });
+        if (blanks.length === 0) return;
+        const ids = new Set(blanks.map((n) => n.id));
+        for (const node of blanks) {
+          const pending = pendingPromoteRef.current.get(node.id);
+          pendingPromoteRef.current.delete(node.id);
+          if (pending) void persist.deleteNode(pending);
+          if (isLocalBoardNodeId(node.id)) {
+            cancelledLocalIdsRef.current.add(node.id);
+          } else {
+            void persist.deleteNode(node);
+          }
+        }
+        commitNodes(nodesRef.current.filter((n) => !ids.has(n.id)));
+        if ([...selectedRef.current].some((id) => ids.has(id))) {
+          setSelection(
+            new Set([...selectedRef.current].filter((id) => !ids.has(id))),
+          );
         }
         emitSelection();
       },
-      [commitNodes, emitSelection, history, persistNodeLayout],
+      [commitNodes, emitSelection, persist, setSelection],
+    );
+
+    useEffect(() => {
+      if (editingId) return;
+      discardBlankTextStickies();
+      // Comment vừa tạo rồi thoát edit quá sớm — dọn lại sau grace.
+      const t = window.setTimeout(() => {
+        if (!editingRef.current) discardBlankTextStickies();
+      }, 3200);
+      return () => window.clearTimeout(t);
+    }, [editingId, discardBlankTextStickies]);
+
+    const fitTextNodeSize = useCallback(
+      (nodeId: string, size: { w: number; h: number }) => {
+        const node = byId(nodeId);
+        if (!node || lockedRef.current) return;
+        if (!isTextStickyNode(node) || isAreaTextNode(node)) return;
+        const w = Math.max(24, size.w);
+        const h = Math.max(20, size.h);
+        if (node.layout.w === w && node.layout.h === h) return;
+        const updated = {
+          ...node,
+          layout: { ...node.layout, w, h, textKind: "fit" as const },
+        };
+        commitNodes(
+          refitParentFrame(
+            nodesRef.current.map((n) => (n.id === nodeId ? updated : n)),
+            nodeId,
+          ),
+        );
+      },
+      [byId, commitNodes],
     );
 
     const commitNodeText = useCallback(
@@ -1934,21 +2780,76 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         text: string,
         opts?: { keepEditing?: boolean },
       ) => {
-        if (!opts?.keepEditing) setEditingId(null);
+        if (!opts?.keepEditing) {
+          editingRef.current = null;
+          setEditingId(null);
+        }
         const node = byId(nodeId);
         if (!node || lockedRef.current) return;
-        if ((node.noiDung ?? "") === text) return;
+        if (
+          (isTextStickyNode(node) || isCommentNode(node)) &&
+          !text.trim() &&
+          !opts?.keepEditing
+        ) {
+          // Comment mới: đừng xóa ngay lúc blur sớm — để user kịp gõ.
+          if (isCommentNode(node)) {
+            const born = Date.parse(node.taoLuc);
+            const young =
+              (Number.isFinite(born) && Date.now() - born < 3000) ||
+              justPlacedIdsRef.current.has(node.id);
+            if (young) {
+              editingRef.current = nodeId;
+              setEditingId(nodeId);
+              return;
+            }
+          }
+          discardEmptyTextNode(node);
+          return;
+        }
+        if ((node.noiDung ?? "") === text) {
+          const pending = pendingPromoteRef.current.get(nodeId);
+          // Đừng promote khi unmount keepEditing — đổi id sẽ remount textarea
+          // và nuốt chữ / mất focus lúc vừa tạo comment.
+          if (pending && !opts?.keepEditing) promoteLocalNode(nodeId, pending);
+          return;
+        }
         const before = [snapshotOf(node)];
-        const updated = { ...node, noiDung: text };
+        const fitLayout =
+          isTextStickyNode(node) && !isAreaTextNode(node)
+            ? {
+                ...measureFitTextSize(
+                  text,
+                  node.layout.textSize ?? DEFAULT_TEXT_SIZE,
+                ),
+                textKind: "fit" as const,
+              }
+            : null;
+        const updated = {
+          ...node,
+          noiDung: text,
+          ...(fitLayout
+            ? { layout: { ...node.layout, ...fitLayout } }
+            : {}),
+        };
         const after = [snapshotOf(updated)];
         commitNodes(
           nodesRef.current.map((n) => (n.id === nodeId ? updated : n)),
         );
         history.push({ type: "layout", before, after });
-        persistNodeLayout(updated, { noiDung: text });
+        const pending = pendingPromoteRef.current.get(nodeId);
+        if (pending) promoteLocalNode(nodeId, pending);
+        else persistNodeLayout(updated, { noiDung: text });
         emitSelection();
       },
-      [byId, commitNodes, emitSelection, history, persistNodeLayout],
+      [
+        byId,
+        commitNodes,
+        emitSelection,
+        history,
+        discardEmptyTextNode,
+        persistNodeLayout,
+        promoteLocalNode,
+      ],
     );
 
     const commitTable = useCallback(
@@ -2141,7 +3042,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
     );
 
     const groupSelection = useCallback(
-      async (mau: string) => {
+      (mau: string) => {
         if (lockedRef.current) return;
         const cards = nodesRef.current.filter(
           (n) =>
@@ -2157,52 +3058,102 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         const minY = Math.min(...rects.map((r) => r.y));
         const maxX = Math.max(...rects.map((r) => r.x + r.w));
         const maxY = Math.max(...rects.map((r) => r.y + r.h));
-
-        const created = await persist.createNode({
-          loai: "frame",
-          layout: {
-            x: minX - GROUP_PAD,
-            y: minY - GROUP_PAD - GROUP_TITLE_H,
-            w: maxX - minX + GROUP_PAD * 2,
-            h: maxY - minY + GROUP_PAD * 2 + GROUP_TITLE_H,
-            mau,
-          },
-          noiDung: `Nhóm ${cards.length}`,
-        });
-        if (!created) return;
+        const layout = {
+          x: minX - GROUP_PAD,
+          y: minY - GROUP_PAD - GROUP_TITLE_H,
+          w: maxX - minX + GROUP_PAD * 2,
+          h: maxY - minY + GROUP_PAD * 2 + GROUP_TITLE_H,
+          mau,
+        };
+        const noiDung = `Nhóm ${cards.length}`;
+        const tempId = `local-frame-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+        const canvasId =
+          nodesRef.current.find((n) => n.canvasId)?.canvasId ?? "";
+        const now = new Date().toISOString();
         const frame: BoardNode = {
-          ...created,
-          layout: { ...created.layout, mau },
+          id: tempId,
+          canvasId,
+          loai: "frame",
+          messageId: null,
+          url: null,
+          noiDung,
+          layout,
+          idNguoiTao: "",
+          taoLuc: now,
+          capNhatLuc: now,
         };
 
         const before = cards.map(snapshotOf);
         const after = before.map((s) => ({
           ...s,
-          layout: { ...s.layout, groupId: frame.id },
+          layout: { ...s.layout, groupId: tempId },
         }));
 
-        const next = [
+        commitNodes([
           frame,
           ...nodesRef.current.map((n) =>
             cardIds.has(n.id)
-              ? { ...n, layout: { ...n.layout, groupId: frame.id } }
+              ? { ...n, layout: { ...n.layout, groupId: tempId } }
               : n,
           ),
-        ];
-        commitNodes(next);
+        ]);
         history.push({ type: "group", frame, before, after });
-        for (const n of next) {
-          if (cardIds.has(n.id)) persistNodeLayout(n);
-        }
-        setSelection(new Set([frame.id]));
+        setSelection(new Set([tempId]));
         emitSelection();
+
+        void (async () => {
+          const created = await persist.createNode({
+            loai: "frame",
+            layout,
+            noiDung,
+          });
+          const stillHere = nodesRef.current.some((n) => n.id === tempId);
+          if (!created) {
+            if (!stillHere) return;
+            commitNodes(
+              nodesRef.current
+                .filter((n) => n.id !== tempId)
+                .map((n) =>
+                  n.layout.groupId === tempId
+                    ? { ...n, layout: { ...n.layout, groupId: null } }
+                    : n,
+                ),
+            );
+            setSelection(new Set(cardIds));
+            emitSelection();
+            return;
+          }
+          if (!stillHere) {
+            void persist.deleteNode(created);
+            return;
+          }
+          history.remapNodeId(tempId, created.id);
+          const serverFrame: BoardNode = {
+            ...created,
+            layout: { ...created.layout, ...layout },
+            noiDung: created.noiDung ?? noiDung,
+          };
+          const next = nodesRef.current.map((n) => {
+            if (n.id === tempId) return serverFrame;
+            if (n.layout.groupId === tempId) {
+              return { ...n, layout: { ...n.layout, groupId: created.id } };
+            }
+            return n;
+          });
+          commitNodes(next);
+          if (selectedRef.current.has(tempId)) {
+            setSelection(new Set([created.id]));
+          }
+          void persistLayoutBatch(next.filter((n) => cardIds.has(n.id)));
+          emitSelection();
+        })();
       },
       [
         commitNodes,
         emitSelection,
         history,
         persist,
-        persistNodeLayout,
+        persistLayoutBatch,
         setSelection,
       ],
     );
@@ -2231,10 +3182,11 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       commitNodes(next);
       history.push({ type: "ungroup", frame, before, after });
       void persist.deleteNode(frame);
-      for (const snap of after) {
-        const n = next.find((x) => x.id === snap.nodeId);
-        if (n) persistNodeLayout(n);
-      }
+      void persistLayoutBatch(
+        after
+          .map((snap) => next.find((x) => x.id === snap.nodeId))
+          .filter((n): n is BoardNode => Boolean(n)),
+      );
       setSelection(new Set());
       emitSelection();
     }, [
@@ -2243,7 +3195,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       history,
       membersOfFrame,
       persist,
-      persistNodeLayout,
+      persistLayoutBatch,
       setSelection,
     ]);
 
@@ -2319,6 +3271,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         );
       commitNodes(next);
       setSelection(new Set());
+      setEditingId(null);
       emitSelection();
     }, [
       commitNodes,
@@ -2363,11 +3316,18 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       if (!nodesProp || hydratedRef.current) return;
       hydratedRef.current = true;
 
-      // Connector giữ lại khi đủ 2 đầu from/to; node khác giữ nguyên.
+      // Connector giữ lại khi đủ 2 đầu from/to; comment trống → xóa (không hiện).
       const usable = nodesProp.filter(
         (n) =>
-          n.loai !== "connector" || Boolean(n.layout.from && n.layout.to),
+          (n.loai !== "connector" || Boolean(n.layout.from && n.layout.to)) &&
+          !(isCommentNode(n) && !(n.noiDung ?? "").trim()),
       );
+      const emptyComments = nodesProp.filter(
+        (n) => isCommentNode(n) && !(n.noiDung ?? "").trim(),
+      );
+      for (const empty of emptyComments) {
+        if (!isLocalBoardNodeId(empty.id)) void persist.deleteNode(empty);
+      }
       const frameById = new Map(
         usable.filter((n) => n.loai === "frame").map((n) => [n.id, n]),
       );
@@ -2419,6 +3379,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       nodesProp,
       pendingFocusNodeId,
       pendingHighlightNodeIds,
+      persist,
       setSelection,
       zoomToFit,
       zoomToNode,
@@ -2434,6 +3395,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         cancelAnimationFrame(movePreviewRafRef.current);
         movePreviewRafRef.current = 0;
       }
+      clearGroupSnapUi(true);
       if (!g) {
         setInteracting(false);
         setMarqueeRect(null);
@@ -2471,13 +3433,13 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         }
       }
       if (g.type === "resize") {
-        const r = g.startRect;
+        const bySnap = new Map(g.before.map((s) => [s.nodeId, s]));
         commitNodes(
-          nodesRef.current.map((n) =>
-            n.id === g.nodeId
-              ? { ...n, layout: { ...n.layout, x: r.x, y: r.y, w: r.w, h: r.h } }
-              : n,
-          ),
+          nodesRef.current.map((n) => {
+            const snap = bySnap.get(n.id);
+            if (!snap) return n;
+            return { ...n, layout: { ...snap.layout }, noiDung: snap.noiDung };
+          }),
         );
       }
       if (g.type === "wire-handle") {
@@ -2501,7 +3463,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       setWireDraft(null);
       setWireSnap(null);
       setDrawDraft(null);
-    }, [commitNodes, setSelection]);
+    }, [clearGroupSnapUi, commitNodes, setSelection]);
 
     // TouchEvent (không PointerEvent): iOS không luôn gửi pointerdown ngón 2
     // khi ngón 1 đã capture. preventDefault chặn zoom trang.
@@ -2667,10 +3629,23 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         for (const id of moveIds) {
           nodeElByIdRef.current.get(id)?.classList.add("is-dragging");
         }
+        const hostOnPick = [...moveIds]
+          .map((id) => byId(id))
+          .find((n) => n && n.loai === "frame")
+          ?? [...moveIds]
+            .map((id) => byId(id))
+            .find((n) => n && n.layout.groupId);
+        if (hostOnPick) {
+          setGroupSnapHighlight(
+            hostOnPick.loai === "frame"
+              ? hostOnPick.id
+              : (hostOnPick.layout.groupId ?? null),
+          );
+        }
         setInteracting(true);
         (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
       },
-      [byId, commitNodes, membersOfFrame, setSelection],
+      [byId, commitNodes, membersOfFrame, setGroupSnapHighlight, setSelection],
     );
 
     const startResize = useCallback(
@@ -2679,6 +3654,16 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         const node = byId(nodeId);
         if (!node || lockedRef.current) return;
         e.stopPropagation();
+        e.preventDefault();
+        rootRef.current?.focus({ preventScroll: true });
+        // Thoát ô bảng/sticky — Delete sau khi kéo handle phải xóa node.
+        if (editingRef.current) setEditingId(null);
+        const parent =
+          node.loai !== "frame" && node.layout.groupId
+            ? nodesRef.current.find(
+                (n) => n.id === node.layout.groupId && n.loai === "frame",
+              )
+            : null;
         gestureRef.current = {
           type: "resize",
           pointerId: e.pointerId,
@@ -2686,7 +3671,9 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           nodeId,
           corner,
           startRect: nodeRect(node),
-          before: [snapshotOf(node)],
+          before: parent
+            ? [snapshotOf(node), snapshotOf(parent)]
+            : [snapshotOf(node)],
           moved: false,
         };
         setInteracting(true);
@@ -2694,6 +3681,25 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       },
       [byId],
     );
+
+    /* Ctrl/⌘+click lúc đang tool đặt: 1 lần là về chọn — không đợi click thứ hai
+     * (lần đầu từng bị node/edit nuốt, hoặc chỉ blur ô soạn). */
+    useEffect(() => {
+      const el = rootRef.current;
+      if (!el) return;
+      const onCapture = (e: PointerEvent) => {
+        if (e.button !== 0 || lockedRef.current) return;
+        if (!isBoardPlaceTool(toolRef.current)) return;
+        if (!(e.ctrlKey || e.metaKey)) return;
+        if (isTextEditingTarget(e.target)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setTool("select");
+        setEditingId(null);
+      };
+      el.addEventListener("pointerdown", onCapture, true);
+      return () => el.removeEventListener("pointerdown", onCapture, true);
+    }, [setTool]);
 
     const onRootPointerDown = useCallback(
       (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -2736,13 +3742,30 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           return;
         }
 
-        if (toolRef.current === "text" && !lockedRef.current) {
+        if (isBoardPlaceTool(toolRef.current) && !lockedRef.current) {
           e.preventDefault();
-          void addTextAtPage(pageFromClient(e.clientX, e.clientY));
+          if (e.ctrlKey || e.metaKey) {
+            setTool("select");
+            setEditingId(null);
+            return;
+          }
+          if (toolRef.current === "text") {
+            const start = pageFromClient(e.clientX, e.clientY);
+            gestureRef.current = {
+              type: "place-text",
+              pointerId: e.pointerId,
+              startPage: start,
+              startClient: { x: e.clientX, y: e.clientY },
+            };
+            setInteracting(true);
+            (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+            return;
+          }
+          placeArmedAtPage(pageFromClient(e.clientX, e.clientY));
           return;
         }
 
-        // Nền trống → marquee.
+        // Nền trống → marquee. Click ra ngoài: ẩn toolbar bảng / thoát edit.
         const start = pageFromClient(e.clientX, e.clientY);
         gestureRef.current = {
           type: "marquee",
@@ -2751,10 +3774,13 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           additive: e.shiftKey,
           baseSelection: e.shiftKey ? new Set(selectedRef.current) : new Set(),
         };
-        if (!e.shiftKey) setSelection(new Set());
+        if (!e.shiftKey) {
+          setSelection(new Set());
+          setEditingId(null);
+        }
         (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
       },
-      [addTextAtPage, pageFromClient, setSelection],
+      [pageFromClient, placeArmedAtPage, setSelection, setTool],
     );
 
     const onRootPointerMove = useCallback(
@@ -2794,6 +3820,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
             const cur = gestureRef.current;
             if (!cur || cur.type !== "move" || !cur.moved) return;
             applyMovePreview(cur.nodeIds, cur.startPos, cur.lastDx, cur.lastDy);
+            previewGroupSnapHost(cur);
           });
           return;
         }
@@ -2991,16 +4018,24 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
             if (g.corner.includes("n")) r.y -= BOARD_MIN_NODE_SIZE - r.h;
             r.h = BOARD_MIN_NODE_SIZE;
           }
-          commitNodes(
-            nodesRef.current.map((n) =>
-              n.id === g.nodeId
-                ? {
-                    ...n,
-                    layout: { ...n.layout, x: r.x, y: r.y, w: r.w, h: r.h },
-                  }
-                : n,
-            ),
+          const resized = nodesRef.current.map((n) =>
+            n.id === g.nodeId
+              ? {
+                  ...n,
+                  layout: {
+                    ...n.layout,
+                    x: r.x,
+                    y: r.y,
+                    w: r.w,
+                    h: r.h,
+                    ...(isTextStickyNode(n) && n.layout.textKind !== "area"
+                      ? { textKind: "area" as const }
+                      : {}),
+                  },
+                }
+              : n,
           );
+          commitNodes(refitParentFrame(resized, g.nodeId));
           return;
         }
 
@@ -3014,6 +4049,16 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
             width: g.width,
             points: [...g.points],
           });
+          return;
+        }
+
+        if (g.type === "place-text") {
+          const current = pageFromClient(e.clientX, e.clientY);
+          const x = Math.min(g.startPage.x, current.x);
+          const y = Math.min(g.startPage.y, current.y);
+          const w = Math.abs(current.x - g.startPage.x);
+          const h = Math.abs(current.y - g.startPage.y);
+          setMarqueeRect({ x, y, w, h, kind: "place" });
           return;
         }
 
@@ -3046,7 +4091,15 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         }
         setSelection(ids);
       },
-      [byId, commitCamera, commitNodes, pageFromClient, setSelection, applyMovePreview],
+      [
+        applyMovePreview,
+        byId,
+        commitCamera,
+        commitNodes,
+        pageFromClient,
+        previewGroupSnapHost,
+        setSelection,
+      ],
     );
 
     const finishGesture = useCallback(
@@ -3058,6 +4111,9 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         if (movePreviewRafRef.current) {
           cancelAnimationFrame(movePreviewRafRef.current);
           movePreviewRafRef.current = 0;
+        }
+        if (g.type !== "move" || !g.moved) {
+          clearGroupSnapUi(true);
         }
         if (g.type === "move") {
           for (const id of g.nodeIds) {
@@ -3071,6 +4127,33 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         setWireSnap(null);
         setDrawDraft(null);
         wirePathClickRef.current = null;
+        if (g.type === "pan") {
+          if (cameraFlushRafRef.current) {
+            cancelAnimationFrame(cameraFlushRafRef.current);
+            cameraFlushRafRef.current = 0;
+          }
+          setCamera(cameraRef.current);
+        }
+
+        if (g.type === "place-text") {
+          const end = pageFromClient(e.clientX, e.clientY);
+          const dragged =
+            Math.hypot(
+              e.clientX - g.startClient.x,
+              e.clientY - g.startClient.y,
+            ) >= 8;
+          if (!dragged) {
+            addSticky(TEXT_STICKY_MAU, g.startPage);
+            return;
+          }
+          addAreaText({
+            x: Math.min(g.startPage.x, end.x),
+            y: Math.min(g.startPage.y, end.y),
+            w: Math.abs(end.x - g.startPage.x),
+            h: Math.abs(end.y - g.startPage.y),
+          });
+          return;
+        }
 
         if (g.type === "draw") {
           const raw = simplifyStroke(g.points, 1.5);
@@ -3179,31 +4262,30 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           });
           commitNodes(next);
 
-          // Thả vào / ra frame: xét card không phải frame đang kéo.
+          // Thả vào / ra frame: chỉ xét card kéo độc lập.
+          // Card đi theo frame cha (kéo nhóm) giữ groupId — nếu tính lại,
+          // frame cha nằm trong movingIds nên bị loại khỏi host → groupId=null.
           const movingIds = idSet;
+          const movingFrameIds = new Set(
+            next
+              .filter((n) => n.loai === "frame" && movingIds.has(n.id))
+              .map((n) => n.id),
+          );
           const frames = next.filter(
             (n) => n.loai === "frame" && !movingIds.has(n.id),
           );
           const updates = new Map<string, string | null>();
+          const leftFrameIds = new Set<string>();
 
           for (const id of g.nodeIds) {
             const n = next.find((x) => x.id === id);
             if (!n || n.loai === "frame") continue;
-            const r = nodeRect(n);
-            const cx = r.x + r.w / 2;
-            const cy = r.y + r.h / 2;
-            const host = [...frames].reverse().find((f) => {
-              const fr = nodeRect(f);
-              return (
-                cx >= fr.x &&
-                cx <= fr.x + fr.w &&
-                cy >= fr.y &&
-                cy <= fr.y + fr.h
-              );
-            });
-            const nextGid = host ? host.id : null;
-            if ((n.layout.groupId ?? null) !== nextGid) {
+            const currentGid = n.layout.groupId ?? null;
+            if (currentGid && movingFrameIds.has(currentGid)) continue;
+            const nextGid = resolveGroupSnapId(nodeRect(n), frames, currentGid);
+            if (currentGid !== nextGid) {
               updates.set(n.id, nextGid);
+              if (currentGid) leftFrameIds.add(currentGid);
             }
           }
 
@@ -3219,14 +4301,78 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
             commitNodes(next);
           }
 
-          const after: BoardLayoutSnapshot[] = [];
+          const extraBefore: BoardLayoutSnapshot[] = [];
+          const extraAfter: BoardLayoutSnapshot[] = [];
+          const persistExtra = new Set<string>();
+          const frameResize = new Set<string>();
+          for (const gid of updates.values()) {
+            if (gid) frameResize.add(gid);
+          }
           for (const id of g.nodeIds) {
             const n = next.find((x) => x.id === id);
-            if (!n) continue;
-            after.push(snapshotOf(n));
-            persistNodeLayout(n);
+            if (!n || n.loai === "frame") continue;
+            if (n.layout.groupId && !movingFrameIds.has(n.layout.groupId)) {
+              frameResize.add(n.layout.groupId);
+            }
           }
-          history.push({ type: "layout", before: g.before, after });
+          for (const gid of leftFrameIds) {
+            if (!movingFrameIds.has(gid)) frameResize.add(gid);
+          }
+          if (frameResize.size > 0) {
+            for (const frameId of frameResize) {
+              const frame = next.find(
+                (n) => n.id === frameId && n.loai === "frame",
+              );
+              if (!frame) continue;
+              const members = next.filter(
+                (n) => n.layout.groupId === frameId && n.loai !== "frame",
+              );
+              const fr = nodeRect(frame);
+              const cover = frameFitMembers(members.map(nodeRect), fr);
+              if (sameBoardRect(cover, fr)) continue;
+              extraBefore.push(snapshotOf(frame));
+              const grown: BoardNode = {
+                ...frame,
+                layout: {
+                  ...frame.layout,
+                  x: cover.x,
+                  y: cover.y,
+                  w: cover.w,
+                  h: cover.h,
+                },
+              };
+              next = next.map((n) => (n.id === frameId ? grown : n));
+              extraAfter.push(snapshotOf(grown));
+              persistExtra.add(frameId);
+              for (const m of members) {
+                if (!idSet.has(m.id)) persistExtra.add(m.id);
+              }
+            }
+            commitNodes(next);
+          }
+
+          const after: BoardLayoutSnapshot[] = [];
+          const persistIds = new Set<string>(g.nodeIds);
+          for (const id of persistExtra) persistIds.add(id);
+          for (const id of persistIds) {
+            const n = next.find((x) => x.id === id);
+            if (!n) continue;
+            if (idSet.has(id)) after.push(snapshotOf(n));
+          }
+          for (const snap of extraAfter) {
+            after.push(snap);
+          }
+          void persistLayoutBatch(
+            [...persistIds]
+              .map((id) => next.find((x) => x.id === id))
+              .filter((n): n is BoardNode => Boolean(n)),
+          );
+          history.push({
+            type: "layout",
+            before: [...g.before, ...extraBefore],
+            after,
+          });
+          clearGroupSnapUi(extraAfter.length === 0);
           emitSelection();
           return;
         }
@@ -3234,18 +4380,30 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         if (g.type === "resize" && g.moved) {
           const n = byId(g.nodeId);
           if (n) {
+            const after = [snapshotOf(n)];
+            const persistList: BoardNode[] = [n];
+            const gid = n.loai !== "frame" ? n.layout.groupId : null;
+            if (gid) {
+              const frame = byId(gid);
+              if (frame) {
+                after.push(snapshotOf(frame));
+                persistList.push(frame);
+              }
+            }
+            void persistLayoutBatch(persistList);
             history.push({
               type: "layout",
               before: g.before,
-              after: [snapshotOf(n)],
+              after,
             });
-            persistNodeLayout(n);
             emitSelection();
           }
         }
       },
       [
+        addAreaText,
         addNodeInternal,
+        addSticky,
         applyMovePreview,
         byId,
         commitNodes,
@@ -3254,7 +4412,9 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         history,
         pageFromClient,
         persist,
+        persistLayoutBatch,
         persistNodeLayout,
+        clearGroupSnapUi,
       ],
     );
 
@@ -3279,6 +4439,15 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           return;
         }
 
+        // Delete khi đã chọn node — kể cả bảng vừa click (editingId) miễn
+        // không đang gõ trong ô. isTextEditingTarget ở trên đã chặn input.
+        if (e.key === "Delete" || e.key === "Backspace") {
+          if (selectedRef.current.size === 0) return;
+          e.preventDefault();
+          deleteSelection();
+          return;
+        }
+
         if (editingRef.current) return;
 
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
@@ -3290,12 +4459,6 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
           e.preventDefault();
           redo();
-          return;
-        }
-        if (e.key === "Delete" || e.key === "Backspace") {
-          if (selectedRef.current.size === 0) return;
-          e.preventDefault();
-          deleteSelection();
           return;
         }
         if (!e.ctrlKey && !e.metaKey && !e.altKey) {
@@ -3332,7 +4495,10 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           return;
         }
         if (e.key === "Escape") {
-          if (toolRef.current === "draw" || toolRef.current === "text") {
+          if (
+            toolRef.current === "draw" ||
+            isBoardPlaceTool(toolRef.current)
+          ) {
             setTool("select");
             return;
           }
@@ -3739,6 +4905,12 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       [nodes],
     );
 
+    const nodesById = useMemo(() => {
+      const map = new Map<string, BoardNode>();
+      for (const n of nodes) map.set(n.id, n);
+      return map;
+    }, [nodes]);
+
     const singleSelectedId =
       selectedIds.size === 1 ? [...selectedIds][0]! : null;
 
@@ -3774,6 +4946,9 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       );
       const canGroup = !selFrame && cards.length >= 2;
       const canAlign = canGroup;
+      const selectedFrames = selectedNodes.filter((n) => n.loai === "frame");
+      const canAutoLayoutSel =
+        selectedFrames.length >= 1 || cards.length >= 2;
       const cardPoolCount = nodes.filter(
         (n) => n.loai !== "frame" && n.loai !== "connector",
       ).length;
@@ -3925,8 +5100,13 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                       ? "Màu chữ tùy chọn"
                       : "Màu tùy chọn"
                 }
+                onPreview={(hex) =>
+                  previewColorOnSelection(
+                    selFrame ? hexToGroupTint(hex) : hex,
+                  )
+                }
                 onPick={(hex) =>
-                  applyColorToSelection(
+                  commitPreviewedSelectionColor(
                     selFrame ? hexToGroupTint(hex) : hex,
                   )
                 }
@@ -4055,43 +5235,58 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
               </div>
             </div>
           ) : null}
-          {canAlign || canGroup ? (
+          {canAlign || canGroup || canAutoLayoutSel ? (
             <div
               className="cins-board-selbar-group"
               role="group"
               aria-label="Sắp xếp"
             >
-              {canAlign ? (
-                <div
-                  className="cins-board-wire-opts"
-                  role="group"
-                  aria-label="Căn chỉnh"
-                >
-                  {SELECTION_ALIGN_ACTIONS.map(({ mode, label, Icon }) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      className="cins-board-wire-opt"
-                      title={label}
-                      aria-label={label}
-                      onClick={() => alignSelection(mode)}
-                    >
-                      <Icon size={14} strokeWidth={1.9} aria-hidden />
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-              {canGroup ? (
-                <button
-                  type="button"
-                  className="cins-canvas-tool-btn cins-canvas-tool-btn--icon"
-                  onClick={() => void groupSelection(GROUP_PALETTE[0]!)}
-                  title="Gom các mục đã chọn thành một nhóm"
-                  aria-label="Nhóm"
-                >
-                  <Group size={14} strokeWidth={1.9} aria-hidden />
-                </button>
-              ) : null}
+              <div
+                className="cins-board-wire-opts"
+                role="group"
+                aria-label="Căn chỉnh"
+              >
+                {canAlign
+                  ? SELECTION_ALIGN_ACTIONS.map(({ mode, label, Icon }) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        className="cins-board-wire-opt"
+                        title={label}
+                        aria-label={label}
+                        onClick={() => alignSelection(mode)}
+                      >
+                        <Icon size={14} strokeWidth={1.9} aria-hidden />
+                      </button>
+                    ))
+                  : null}
+                {canGroup ? (
+                  <button
+                    type="button"
+                    className="cins-board-wire-opt"
+                    onClick={() => groupSelection(GROUP_PALETTE[0]!)}
+                    title="Gom các mục đã chọn thành một nhóm"
+                    aria-label="Nhóm"
+                  >
+                    <Group size={14} strokeWidth={1.9} aria-hidden />
+                  </button>
+                ) : null}
+                {canAutoLayoutSel ? (
+                  <button
+                    type="button"
+                    className="cins-board-wire-opt"
+                    onClick={autoLayoutSelection}
+                    title="Tự sắp xếp các mục đã chọn"
+                    aria-label="Tự sắp xếp"
+                  >
+                    <AlignHorizontalSpaceAround
+                      size={14}
+                      strokeWidth={1.9}
+                      aria-hidden
+                    />
+                  </button>
+                ) : null}
+              </div>
             </div>
           ) : null}
           {selFrame ? (
@@ -4126,6 +5321,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           (panning || spaceHeld || tool === "pan" ? " is-panning" : "") +
           (tool === "draw" ? " is-drawing" : "") +
           (tool === "text" ? " is-text-tool" : "") +
+          (isBoardPlaceTool(tool) && tool !== "text" ? " is-place-tool" : "") +
           (locked ? " is-locked" : "") +
           (wireDraft ? " is-wiring" : "")
         }
@@ -4145,8 +5341,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           <div className="cins-board-empty" aria-hidden>
             <p>Canvas trống — bắt đầu bằng cách:</p>
             <ul>
-              <li>Bấm icon ghi chú / hình / bảng trên thanh công cụ</li>
-              <li>Chọn công cụ chữ (T) rồi bấm trên canvas để đặt khối chữ</li>
+              <li>Bấm icon ghi chú / chữ / hình / bảng / bình luận rồi click canvas để đặt</li>
               <li>Chọn bút vẽ (D) rồi kéo trên nền trống để vẽ tự do</li>
               <li>Kéo ảnh từ máy vào đây, hoặc dán ảnh (Ctrl+V)</li>
               <li>Trong tin nhắn có ảnh/link: menu ⋯ → «Thêm vào canvas»</li>
@@ -4154,12 +5349,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
             </ul>
           </div>
         ) : null}
-        <div
-          className="cins-board-world"
-          style={{
-            transform: `scale(${camera.z}) translate(${camera.x}px, ${camera.y}px)`,
-          }}
-        >
+        <div ref={worldRef} className="cins-board-world">
           <svg className="cins-board-wires" width="1" height="1" aria-hidden>
             <defs>
               {/*
@@ -4181,8 +5371,8 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
               </marker>
             </defs>
             {wires.map((w) => {
-              const a = nodes.find((x) => x.id === w.layout.from);
-              const b = nodes.find((x) => x.id === w.layout.to);
+              const a = w.layout.from ? nodesById.get(w.layout.from) : undefined;
+              const b = w.layout.to ? nodesById.get(w.layout.to) : undefined;
               if (!a || !b) return null;
               const style = normalizeWireStyle(w.layout.wireStyle);
               const arrow = normalizeWireArrow(w.layout.wireArrow);
@@ -4383,10 +5573,10 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
             })}
             {wireDraft
               ? (() => {
-                  const from = nodes.find((x) => x.id === wireDraft.fromId);
+                  const from = nodesById.get(wireDraft.fromId);
                   if (!from) return null;
                   const target = wireDraft.targetId
-                    ? nodes.find((x) => x.id === wireDraft.targetId)
+                    ? nodesById.get(wireDraft.targetId)
                     : null;
                   const draftOpts = {
                     fromSide: wireDraft.fromSide,
@@ -4439,6 +5629,8 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                   (selected ? " is-selected" : "") +
                   (highlightIds.has(node.id) ? " is-highlight" : "") +
                   (isComment ? " is-comment" : "") +
+                  (contentKind === "table" ? " is-table" : "") +
+                  (justPlacedIds.has(node.id) ? " is-just-placed" : "") +
                   (wireDraft?.targetId === node.id ? " is-wire-target" : "")
                 }
                 style={{
@@ -4458,9 +5650,18 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                   // Tool vẽ/chữ: nền trống mới tạo — click node vẫn chọn/kéo.
                   if (
                     toolRef.current === "draw" ||
-                    toolRef.current === "text"
+                    isBoardPlaceTool(toolRef.current)
                   ) {
                     e.stopPropagation();
+                    if (
+                      isBoardPlaceTool(toolRef.current) &&
+                      (e.ctrlKey || e.metaKey)
+                    ) {
+                      setTool("select");
+                      setEditingId(null);
+                      e.stopPropagation();
+                      return;
+                    }
                     startMove(e, node.id);
                     return;
                   }
@@ -4479,6 +5680,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                       return;
                     }
                     e.stopPropagation();
+                    rootRef.current?.focus({ preventScroll: true });
                     setSelection(new Set([node.id]));
                     setEditingId(node.id);
                     return;
@@ -4509,13 +5711,11 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                   onJumpToMessage={onJumpToMessage}
                   onCommitText={commitNodeText}
                   onCommitTable={commitTable}
-                  onCancelEdit={() => setEditingId(null)}
-                  onRequestEdit={(id) => {
-                    setSelection(new Set([id]));
-                    setEditingId(id);
-                  }}
+                  onCancelEdit={cancelNodeEdit}
+                  onRequestEdit={requestNodeEdit}
                   onImageNaturalSize={fitImageNode}
                   onCommentSize={fitCommentNode}
+                  onTextFitSize={fitTextNodeSize}
                 />
                 {!locked ? (
                   <>
@@ -4551,7 +5751,10 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           })}
           {marqueeRect ? (
             <div
-              className="cins-board-marquee"
+              className={
+                "cins-board-marquee" +
+                (marqueeRect.kind === "place" ? " is-place-text" : "")
+              }
               style={{
                 transform: `translate(${marqueeRect.x}px, ${marqueeRect.y}px)`,
                 width: marqueeRect.w,

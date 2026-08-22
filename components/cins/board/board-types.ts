@@ -24,8 +24,28 @@ import {
 /** Node trên board — alias theo node canvas hiện có. */
 export type BoardNode = ChatCanvasNode;
 
-/** Công cụ đang cầm: chọn/kéo node, bàn tay pan, vẽ tự do, hoặc đặt chữ. */
-export type BoardTool = "select" | "pan" | "draw" | "text";
+/** Công cụ đang cầm: chọn/kéo, bàn tay, vẽ, hoặc đặt block theo click. */
+export type BoardPlaceTool = "text" | "sticky" | "shape" | "table" | "comment";
+export type BoardTool = "select" | "pan" | "draw" | BoardPlaceTool;
+
+export const BOARD_PLACE_TOOLS: readonly BoardPlaceTool[] = [
+  "text",
+  "sticky",
+  "shape",
+  "table",
+  "comment",
+];
+
+export function isBoardPlaceTool(tool: BoardTool): tool is BoardPlaceTool {
+  return (BOARD_PLACE_TOOLS as readonly string[]).includes(tool);
+}
+
+export type BoardPlaceOpts = {
+  mau?: string;
+  shapeKind?: "rect" | "ellipse" | "diamond";
+  rows?: number;
+  cols?: number;
+};
 
 /** Camera: screen = (page + {x,y}) * z (cùng quy ước tldraw cũ). */
 export type BoardCamera = { x: number; y: number; z: number };
@@ -116,16 +136,20 @@ export type BoardHandle = {
   addNode: (node: BoardNode) => void;
   /** Node đã có thì select+zoom, chưa có thì thêm (không ghi history). */
   ingestNode: (node: BoardNode) => void;
-  /** Thêm sticky mới tại tâm viewport (engine tự gọi createNode). */
-  addSticky: (mau: string) => Promise<void>;
-  /** Thêm khối chữ (sticky nền trong suốt) tại tâm viewport. */
-  addText: () => Promise<void>;
-  /** Thêm hình học (rect / ellipse / diamond) tại tâm viewport. */
-  addShape: (mau: string, kind?: "rect" | "ellipse" | "diamond") => Promise<void>;
-  /** Thêm bảng ô tại tâm viewport. */
-  addTable: (rows?: number, cols?: number) => Promise<void>;
-  /** Thêm bình luận (avatar + tên + chữ) tại tâm viewport. */
-  addComment: () => Promise<void>;
+  /** Thêm sticky — không truyền page thì tâm viewport. */
+  addSticky: (mau: string, page?: { x: number; y: number }) => void;
+  /** Thêm khối chữ (sticky nền trong suốt). */
+  addText: () => void;
+  /** Thêm hình học (rect / ellipse / diamond). */
+  addShape: (
+    mau: string,
+    kind?: "rect" | "ellipse" | "diamond",
+    page?: { x: number; y: number },
+  ) => void;
+  /** Thêm bảng ô. */
+  addTable: (rows?: number, cols?: number, page?: { x: number; y: number }) => void;
+  /** Thêm bình luận (avatar + tên + chữ). */
+  addComment: (page?: { x: number; y: number }) => void;
   /** Highlight các node (từ tin «vừa có bình luận»). */
   highlightNodes: (nodeIds: string[]) => void;
   /** Đổi màu sticky/frame đang chọn. */
@@ -140,8 +164,8 @@ export type BoardHandle = {
   deleteSelection: () => void;
   /** Xóa toàn bộ block trên board (không undo — caller phải confirm trước). */
   clearBoard: () => void;
-  /** Đổi công cụ chọn / bàn tay / vẽ / chữ. */
-  setTool: (tool: BoardTool) => void;
+  /** Đổi công cụ chọn / bàn tay / vẽ / đặt block. */
+  setTool: (tool: BoardTool, opts?: BoardPlaceOpts) => void;
   zoomIn: () => void;
   zoomOut: () => void;
   /** Về zoom 100% giữ tâm viewport. */

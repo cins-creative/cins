@@ -11,6 +11,9 @@ type Props = {
   canInteract: boolean;
   initialSaved?: boolean;
   milestoneId?: string | null;
+  previewAuthorName?: string | null;
+  previewAuthorAvatarUrl?: string | null;
+  previewCoverSrc?: string | null;
 };
 
 export function CongDongPostBookmarkAct({
@@ -20,6 +23,9 @@ export function CongDongPostBookmarkAct({
   canInteract,
   initialSaved = false,
   milestoneId,
+  previewAuthorName,
+  previewAuthorAvatarUrl,
+  previewCoverSrc,
 }: Props) {
   const { requireCongDongAuth } = useCongDongAuthGate();
 
@@ -30,6 +36,9 @@ export function CongDongPostBookmarkAct({
       initialSaved={initialSaved}
       showCount
       modalZIndex={10800}
+      previewAuthorName={previewAuthorName}
+      previewAuthorAvatarUrl={previewAuthorAvatarUrl}
+      previewCoverSrc={previewCoverSrc}
       onRequireAuth={requireCongDongAuth}
       resolveOpenBlock={() => {
         if (!canInteract) {

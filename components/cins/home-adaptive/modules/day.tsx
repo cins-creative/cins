@@ -9,6 +9,7 @@ import {
   loadHocVienCuaBan,
   loadScoutTaiNang,
 } from "@/lib/cins/home-adaptive/fetches";
+import { manageAdminHref } from "@/lib/cins/manage-site";
 
 /** DẠY · Chờ bạn duyệt — verify_yeu_cau chờ org admin. */
 export async function ChoBanDuyetModule({ ctx }: { ctx: HomeModuleCtx }) {
@@ -24,7 +25,7 @@ export async function ChoBanDuyetModule({ ctx }: { ctx: HomeModuleCtx }) {
       moduleId="cho_ban_duyet"
       title="Chờ bạn duyệt"
       badge={String(pending.length)}
-      moreHref="/admin"
+      moreHref={manageAdminHref("/admin")}
       moreLabel="Xem danh sách chờ duyệt"
     >
       {pending.map((item) => (

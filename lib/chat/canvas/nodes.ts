@@ -1,6 +1,10 @@
 import "server-only";
 
 import { loadCanvasContext, assertCanvasWritable } from "@/lib/chat/canvas/access";
+import {
+  loadCanvasCommentAuthor,
+  notifyCanvasComment,
+} from "@/lib/chat/canvas/comment-notice";
 import type {
   CanvasNodeLayout,
   CanvasNodeLoai,
@@ -9,12 +13,8 @@ import type {
   ChatCanvasNode,
 } from "@/lib/chat/canvas/types";
 import { MAX_CANVAS_NODES, MAX_CANVAS_STICKY_LEN, MAX_CANVAS_STRUCTURED_LEN } from "@/lib/chat/constants";
-import {
-  loadCanvasCommentAuthor,
-  notifyCanvasComment,
-} from "@/lib/chat/canvas/comment-notice";
-import { cloudflareImageIdFromUrlOrId } from "@/lib/chat/image-url";
 import type { ChatMessage } from "@/lib/chat/types";
+import { cloudflareImageIdFromUrlOrId } from "@/lib/chat/image-url";
 import { deleteCloudflareImage } from "@/lib/cloudflare/delete-image";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -52,6 +52,9 @@ function coerceLayout(raw: unknown): CanvasNodeLayout {
   if (typeof obj.textColor === "string") layout.textColor = obj.textColor;
   if (typeof obj.textSize === "number" && Number.isFinite(obj.textSize)) {
     layout.textSize = obj.textSize;
+  }
+  if (obj.textKind === "fit" || obj.textKind === "area") {
+    layout.textKind = obj.textKind;
   }
   if ("groupId" in obj) {
     layout.groupId = typeof obj.groupId === "string" ? obj.groupId : null;
@@ -129,10 +132,14 @@ function coerceLayout(raw: unknown): CanvasNodeLayout {
   }
   if (obj.commentAuthor && typeof obj.commentAuthor === "object") {
     const a = obj.commentAuthor as Record<string, unknown>;
-    if (typeof a.id === "string" && typeof a.ten === "string") {
+    if (typeof a.id === "string") {
+      const ten =
+        (typeof a.ten === "string" && a.ten.trim()) ||
+        (typeof a.slug === "string" && a.slug.trim()) ||
+        "Thành viên";
       layout.commentAuthor = {
         id: a.id,
-        ten: a.ten,
+        ten,
         slug: typeof a.slug === "string" ? a.slug : null,
         avatarUrl: typeof a.avatarUrl === "string" ? a.avatarUrl : null,
       };
@@ -178,7 +185,8 @@ export async function listCanvasNodes(
     .from("chat_canvas_node")
     .select(NODE_SELECT)
     .eq("id_canvas", canvasId)
-    .order("tao_luc", { ascending: true });
+    .order("tao_luc", { ascending: true })
+    .limit(MAX_CANVAS_NODES);
 
   if (error) return { ok: false, error: "Không tải được node." };
   return { ok: true, nodes: (data ?? []).map((r) => mapNode(r as NodeRow)) };
@@ -255,7 +263,11 @@ export async function createNode(
   const node = mapNode(data);
 
   let notice: ChatMessage | null = null;
-  if (layout.contentKind === "comment" && layout.commentAuthor) {
+  if (
+    layout.contentKind === "comment" &&
+    layout.commentAuthor &&
+    Boolean(noiDung)
+  ) {
     notice = await notifyCanvasComment({
       roomId: loaded.ctx.roomId,
       canvasId,
@@ -278,13 +290,18 @@ export async function updateNode(
   nodeId: string,
   viewerId: string,
   patch: UpdateNodeInput,
-): Promise<CanvasResult<{ node: ChatCanvasNode }>> {
+): Promise<CanvasResult<{ node: ChatCanvasNode; notice?: ChatMessage | null }>> {
   const admin = createServiceRoleClient();
   const { data: node } = await admin
     .from("chat_canvas_node")
-    .select("id, id_canvas, layout")
+    .select("id, id_canvas, layout, noi_dung")
     .eq("id", nodeId)
-    .maybeSingle<{ id: string; id_canvas: string; layout: unknown }>();
+    .maybeSingle<{
+      id: string;
+      id_canvas: string;
+      layout: unknown;
+      noi_dung: string | null;
+    }>();
 
   if (!node) return { ok: false, error: "Không tìm thấy node." };
 
@@ -294,12 +311,12 @@ export async function updateNode(
   const writable = assertCanvasWritable(loaded.ctx);
   if (!writable.ok) return writable;
 
+  const existingLayout = coerceLayout(node.layout);
   const update: Record<string, unknown> = {};
   if (patch.layout !== undefined) update.layout = patch.layout;
   if (patch.noiDung !== undefined) {
     const noiDung = patch.noiDung?.trim() || null;
-    const existingKind = coerceLayout(node.layout).contentKind;
-    const kind = patch.layout?.contentKind ?? existingKind;
+    const kind = patch.layout?.contentKind ?? existingLayout.contentKind;
     const maxLen =
       kind === "table" || kind === "draw"
         ? MAX_CANVAS_STRUCTURED_LEN
@@ -321,7 +338,31 @@ export async function updateNode(
     .single<NodeRow>();
 
   if (error || !data) return { ok: false, error: "Không cập nhật được node." };
-  return { ok: true, node: mapNode(data) };
+
+  const mapped = mapNode(data);
+  let notice: ChatMessage | null = null;
+  const nextText = (mapped.noiDung ?? "").trim();
+  const prevText = (node.noi_dung ?? "").trim();
+  const kind =
+    mapped.layout.contentKind ?? existingLayout.contentKind ?? null;
+  if (
+    kind === "comment" &&
+    !prevText &&
+    nextText &&
+    mapped.layout.commentAuthor
+  ) {
+    notice = await notifyCanvasComment({
+      roomId: loaded.ctx.roomId,
+      canvasId: mapped.canvasId,
+      nodeId: mapped.id,
+      author: mapped.layout.commentAuthor,
+      viewerId,
+    });
+  }
+
+  return notice
+    ? { ok: true, node: mapped, notice }
+    : { ok: true, node: mapped };
 }
 
 export type BatchLayoutPatch = {
@@ -366,14 +407,23 @@ export async function updateNodesLayoutBatch(
   }
   if (byId.size === 0) return { ok: false, error: "Không có node hợp lệ." };
 
+  const BATCH_CHUNK = 20;
+  const entries = [...byId];
   let updated = 0;
-  for (const [nodeId, layout] of byId) {
-    const { error } = await admin
-      .from("chat_canvas_node")
-      .update({ layout })
-      .eq("id", nodeId)
-      .eq("id_canvas", canvasId);
-    if (!error) updated += 1;
+  for (let i = 0; i < entries.length; i += BATCH_CHUNK) {
+    const slice = entries.slice(i, i + BATCH_CHUNK);
+    const results = await Promise.all(
+      slice.map(([nodeId, layout]) =>
+        admin
+          .from("chat_canvas_node")
+          .update({ layout })
+          .eq("id", nodeId)
+          .eq("id_canvas", canvasId),
+      ),
+    );
+    for (const result of results) {
+      if (!result.error) updated += 1;
+    }
   }
 
   if (updated === 0) return { ok: false, error: "Không cập nhật được node." };

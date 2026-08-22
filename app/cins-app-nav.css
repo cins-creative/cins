@@ -1215,17 +1215,16 @@
    * transform sẽ kéo thanh lên sớm. Listing toolbar thường đã sát top. */
   .cins-shell :is(
     .j-tlb:not(.j-timeline > .j-tlb):not(.j-gallery-main > .j-tlb),
-    .j-timeline > .j-tlb.is-chrome-stuck,
+    .j-timeline > .j-tlb.is-chrome-stuck:not(.org-baidang-tlb),
     .j-gallery-main > .j-tlb.is-chrome-stuck,
     .j-shop-sf-section-head.is-chrome-stuck,
-    .org-baidang-tlb,
     .shop-quay-tlb,
     .ch-list-toolbar,
     .cd-list-toolbar,
     .tdh-list-toolbar,
     .tkh-hub-header,
     .td-hub-header,
-    .tdh-v6-tabs-bar,
+    .tdh-v6-tabs-bar.is-chrome-stuck,
     .hn-dept-tabs,
     .hn-page-head,
     .hn-rail-bar,
@@ -1236,7 +1235,6 @@
     .nct-admin-toolbar-host,
     .hn-hub-admin-toolbar-host,
     .sw-admin-toolbar-host,
-    .studio-shell-tabs,
     .tdh-page .filter-bar,
     .cd-v4-id,
     .cd-v4-event-rail,
@@ -1244,6 +1242,23 @@
   ) {
     transition: transform var(--app-nav-dur) var(--app-nav-ease);
     transform: translate3d(0, var(--cins-sticky-follow, 0px), 0);
+  }
+
+  /* Org bài đăng: khi topbar ẩn chỉ giữ hàng tab; filter tlb ẩn hết (kể cả kính). */
+  .cins-shell .org-baidang-tlb {
+    transition:
+      transform var(--app-nav-dur) var(--app-nav-ease),
+      opacity var(--app-nav-dur) var(--app-nav-ease);
+  }
+
+  .cins-shell:has(#app-topbar.is-hidden) .org-baidang-tlb.is-chrome-stuck {
+    pointer-events: none;
+    opacity: 0;
+    transform: translate3d(
+      0,
+      calc(var(--cins-sticky-follow, 0px) - 100%),
+      0
+    );
   }
 }
 

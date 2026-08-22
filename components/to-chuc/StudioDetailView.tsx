@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   prefetchStudioTab,
@@ -36,6 +36,7 @@ import {
   studioTabPath,
 } from "@/lib/to-chuc/studio-routes";
 import { useStudioTabNav } from "@/lib/to-chuc/use-studio-tab-nav";
+import { useChromeStuck } from "@/lib/ui/use-chrome-stuck";
 import { useOrgStudioJobs } from "@/lib/to-chuc/use-org-studio-jobs";
 import { studioToInlinePayload } from "@/lib/to-chuc/studio-inline-payload";
 import type { StudioDetailPayload, StudioOwner } from "@/lib/to-chuc/studio-page-queries";
@@ -45,34 +46,6 @@ const TABS = STUDIO_TAB_IDS.map((id) => ({
   id,
   label: STUDIO_TAB_LABELS[id],
 })) satisfies ReadonlyArray<{ id: StudioTabId; label: string }>;
-
-type StudioShellTab = "info" | "content" | "notify";
-
-const STUDIO_SHELL_TABS: ReadonlyArray<{
-  id: StudioShellTab;
-  label: string;
-  panelId: string;
-  tabId: string;
-}> = [
-  {
-    id: "info",
-    label: "Thông tin",
-    panelId: "cso-shell-panel-info",
-    tabId: "cso-shell-tab-info",
-  },
-  {
-    id: "content",
-    label: "Nội dung",
-    panelId: "cso-shell-panel-content",
-    tabId: "cso-shell-tab-content",
-  },
-  {
-    id: "notify",
-    label: "Thông báo",
-    panelId: "cso-shell-panel-notify",
-    tabId: "cso-shell-tab-notify",
-  },
-];
 
 type Props = {
   payload: StudioDetailPayload;
@@ -157,8 +130,8 @@ function StudioDetailViewInner({
     () => new Set([tab]),
   );
   const { isMobileShell } = useCoSoMobileShell();
-  /** Mobile sticky strip — mặc định Nội dung (không bắt scroll qua sidebar). */
-  const [shellTab, setShellTab] = useState<StudioShellTab>("content");
+  const tabsBarRef = useRef<HTMLDivElement>(null);
+  useChromeStuck(tabsBarRef);
 
   const visibleTabs = useMemo(
     () => TABS.filter((t) => isStudioTabVisible(t.id, pageConfig)),
@@ -183,12 +156,6 @@ function StudioDetailViewInner({
       return next;
     });
   }, [tab]);
-
-  /* Đổi tab nội dung trên mobile → luôn về panel Nội dung. */
-  useEffect(() => {
-    if (!isMobileShell) return;
-    setShellTab("content");
-  }, [tab, isMobileShell]);
 
   const openJobs = useMemo(
     () => jobs.filter((j) => j.trangThai === "dang_mo"),
@@ -254,7 +221,6 @@ function StudioDetailViewInner({
     <div
       className={shellClass}
       data-mobile-shell={isMobileShell ? "1" : undefined}
-      data-studio-shell-tab={isMobileShell ? shellTab : undefined}
     >
       {studio.trangThaiHoatDong === "tam_ngung" ||
       studio.trangThaiHoatDong === "da_dong_cua" ? (
@@ -270,45 +236,6 @@ function StudioDetailViewInner({
         </div>
       ) : null}
 
-      {isMobileShell ? (
-        <nav
-          className="studio-shell-tabs"
-          aria-label="Phần trang studio"
-        >
-          <div className="studio-shell-tabs-list" role="tablist">
-            {STUDIO_SHELL_TABS.map((item) => {
-              const selected = shellTab === item.id;
-              const badge =
-                item.id === "notify" && openJobs.length > 0
-                  ? openJobs.length
-                  : null;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="tab"
-                  id={item.tabId}
-                  aria-selected={selected}
-                  aria-controls={item.panelId}
-                  className={`studio-shell-tab${selected ? " on" : ""}`}
-                  onClick={() => setShellTab(item.id)}
-                >
-                  <span className="studio-shell-tab-label">{item.label}</span>
-                  {badge != null ? (
-                    <span
-                      className="studio-shell-tab-badge"
-                      aria-label={`${badge} tin đang mở`}
-                    >
-                      {badge}
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
-        </nav>
-      ) : null}
-
       <StudioSidebar
         studio={studio}
         openJobCount={openJobs.length}
@@ -321,16 +248,10 @@ function StudioDetailViewInner({
             : undefined
         }
         isMobileShell={isMobileShell}
-        isMobileShellActive={!isMobileShell || shellTab === "info"}
+        isMobileShellActive
       />
 
-      <div
-        className="tdh-v6-center"
-        id="cso-shell-panel-content"
-        role={isMobileShell ? "tabpanel" : undefined}
-        aria-labelledby={isMobileShell ? "cso-shell-tab-content" : undefined}
-        hidden={isMobileShell ? shellTab !== "content" : undefined}
-      >
+      <div className="tdh-v6-center">
         {!isMobileShell ? (
           <div className="tdh-v6-cover-mobile">
             <TruongOrgCover
@@ -341,7 +262,7 @@ function StudioDetailViewInner({
           </div>
         ) : null}
 
-        <div className="tdh-v6-tabs-bar">
+        <div ref={tabsBarRef} className="tdh-v6-tabs-bar">
           <div
             className="tdh-v6-tabs"
             role="tablist"
@@ -444,17 +365,17 @@ function StudioDetailViewInner({
         })}
       </div>
 
-      <StudioJobsSidebar
-        orgId={studio.id}
-        jobs={openJobs}
-        orgSlug={studio.slug}
-        orgDiaChi={studio.diaChi}
-        orgTinhThanh={studio.tinhThanh}
-        posts={baidang}
-        canManage={canEdit}
-        isMobileShell={isMobileShell}
-        isMobileShellActive={!isMobileShell || shellTab === "notify"}
-      />
+      {!isMobileShell ? (
+        <StudioJobsSidebar
+          orgId={studio.id}
+          jobs={openJobs}
+          orgSlug={studio.slug}
+          orgDiaChi={studio.diaChi}
+          orgTinhThanh={studio.tinhThanh}
+          posts={baidang}
+          canManage={canEdit}
+        />
+      ) : null}
     </div>
     </OrgBaiDangFilterShareProvider>
   );

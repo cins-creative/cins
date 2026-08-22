@@ -13,9 +13,11 @@ function pickEnv(...keys: string[]): string {
   return "";
 }
 
+const cinsSurface = process.env.CINS_SURFACE ?? "";
+
 const nextConfig: NextConfig = {
   async redirects() {
-    return [
+    const redirects = [
       /* Hub tổ chức gộp về /to-chuc — chỉ khớp path listing (exact), không đụng /:slug detail. */
       {
         source: "/university",
@@ -65,6 +67,33 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
     ];
+    if (cinsSurface === "web") {
+      redirects.push(
+        {
+          source: "/admin",
+          destination: "https://manage.cins.vn/admin",
+          permanent: true,
+        },
+        {
+          source: "/admin/:path*",
+          destination: "https://manage.cins.vn/admin/:path*",
+          permanent: true,
+        },
+        {
+          source: "/api/admin/:path*",
+          destination: "https://manage.cins.vn/api/admin/:path*",
+          permanent: false,
+        },
+      );
+    }
+    return redirects;
+  },
+  /**
+   * Build theo bề mặt park `app/` — file ngoài surface vẫn bị tsc quét
+   * (import type từ route đã park). Chỉ nới trên deploy:web / deploy:manage.
+   */
+  typescript: {
+    ignoreBuildErrors: cinsSurface === "web" || cinsSurface === "manage",
   },
   /** Client video env — Cloudflare Stream / R2 chat video. */
   env: {

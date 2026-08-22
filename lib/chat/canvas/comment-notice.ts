@@ -51,11 +51,15 @@ export async function loadCanvasCommentAuthor(
       avatar_id: string | null;
     }>();
 
-  const ten = data?.ten_hien_thi?.trim() || "Thành viên";
+  const slug = data?.slug?.trim() || null;
+  const ten =
+    data?.ten_hien_thi?.trim() ||
+    (slug ? slug.replace(/[-_]+/g, " ") : "") ||
+    "Thành viên";
   return {
     id: viewerId,
     ten,
-    slug: data?.slug ?? null,
+    slug,
     avatarUrl: getAvatarUrl(data?.avatar_id ?? null) ?? null,
   };
 }

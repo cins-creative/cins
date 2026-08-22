@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 
 const MOBILE_MQ = "(max-width: 960px)";
 
@@ -9,7 +9,13 @@ const MOBILE_MQ = "(max-width: 960px)";
  * Mobile: chỉ lúc đó mới được `transform` follow topbar ẩn — tránh kéo
  * thanh lên khi còn giữa trang (dưới hero / profile).
  */
-export function useChromeStuck(ref: RefObject<HTMLElement | null>) {
+export function useChromeStuck(
+  ref: RefObject<HTMLElement | null>,
+  extraInsetPx?: () => number,
+) {
+  const extraRef = useRef(extraInsetPx);
+  extraRef.current = extraInsetPx;
+
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -23,9 +29,10 @@ export function useChromeStuck(ref: RefObject<HTMLElement | null>) {
         return;
       }
       const navH = document.getElementById("app-topbar")?.offsetHeight ?? 64;
+      const extra = extraRef.current?.() ?? 0;
       el.classList.toggle(
         "is-chrome-stuck",
-        el.getBoundingClientRect().top <= navH + 2,
+        el.getBoundingClientRect().top <= navH + extra + 2,
       );
     };
 

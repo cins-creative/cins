@@ -21,6 +21,11 @@ export type CanvasNodeLayout = {
   textColor?: string | null;
   /** Cỡ chữ (px) — sticky khối chữ. */
   textSize?: number | null;
+  /**
+   * Khối chữ: `fit` (mặc định) — khung ôm chữ;
+   * `area` — vùng chữ cố định (kéo thả khi cầm tool chữ).
+   */
+  textKind?: "fit" | "area" | null;
   /** Id nhóm để group nhiều node. */
   groupId?: string | null;
   /** Connector: id node nguồn / đích. */

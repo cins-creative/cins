@@ -128,6 +128,11 @@
   user-select: none;
 }
 
+.j-reaction-wrap.is-picking .action-btn--touch,
+html[data-cins-reaction-picking] .j-reaction-wrap .action-btn--touch {
+  touch-action: none;
+}
+
 @media (hover: none) and (pointer: coarse) {
   .jcard-actions .action-btn--touch {
     min-width: 40px;

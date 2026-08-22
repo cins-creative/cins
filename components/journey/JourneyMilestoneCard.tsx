@@ -6,12 +6,12 @@ import {
   BookOpen,
   Briefcase,
   Calendar,
+  ChevronDown,
   ChevronUp,
   CornerDownRight,
   FileText,
   FolderKanban,
   Globe,
-  Eye,
   Lock,
   MessageCircle,
   Palette,
@@ -58,6 +58,7 @@ import {
   subscribeExpandScrollPin,
   type ExpandScrollPin,
 } from "@/lib/journey/expand-scroll-pin";
+import { gridThumbSrc } from "@/lib/journey/image-grid";
 import {
   milestoneCardContentKind,
   milestoneCardPhotoGrid,
@@ -70,7 +71,6 @@ import {
 import { useJourneyPostOverlay } from "@/components/journey/useJourneyPostOverlay";
 import { useOrgBaiDangDirectPostOverlay } from "@/components/truong/useOrgBaiDangDirectPostOverlay";
 import { orgBaiDangStubFromMilestoneCard } from "@/lib/truong/org-bai-dang-from-milestone";
-import { JourneyOrgAttachTrigger } from "@/components/journey/JourneyOrgAttachTrigger";
 import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButton";
 import { JourneyMilestoneInlineControls } from "@/components/journey/JourneyMilestoneInlineControls";
 import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
@@ -1015,6 +1015,20 @@ export function JourneyMilestoneCard({
   const likeActorsMediaLabel =
     cardContentKind === "photo" || cardContentKind === "video" ? "anh" : undefined;
   const orgAttachCotMocId = cotMocId ?? milestone.id;
+  const orgAttach =
+    canManageCoAuthors && tacPhamId && !isCongDongPost && ownerSlug && orgAttachCotMocId
+      ? {
+          tacPhamId,
+          cotMocId: orgAttachCotMocId,
+          milestoneTitle: title,
+          milestoneKind: type,
+          postSlug: postSlug ?? null,
+          coverSrc: media[0]?.src ?? null,
+          coverAlt: media[0]?.label ?? title,
+          photoCount: media.length > 0 ? media.length : null,
+          bodyExcerpt: body ?? null,
+        }
+      : null;
   /* Đối tượng analytics: bài đăng tổ chức (`org_bai_dang`, vd. feed world) tính
      riêng theo `org_bai_dang`; còn lại là cột mốc thường. `cotMocId` của org
      post chính là `org_bai_dang.id` (xem worldJourneyOrgFeed). */
@@ -1567,8 +1581,8 @@ export function JourneyMilestoneCard({
               {otherContributorCount} người đóng góp khác
             </span>
             <span className="authors-toggle-slot">
-              <span className="expand-hint" aria-label={t("shop.seeAll")}>
-                <Eye size={15} strokeWidth={1.9} aria-hidden />
+              <span className="expand-hint" aria-label="Xổ danh sách cộng tác">
+                <ChevronDown size={15} strokeWidth={2} aria-hidden />
               </span>
               <span className="collapse-hint" aria-label={t("milestone.collapse")}>
                 <ChevronUp size={15} strokeWidth={2} aria-hidden />
@@ -1650,98 +1664,95 @@ export function JourneyMilestoneCard({
     </div>
   ) : null;
 
+  const jcardCommentLink = inlineExpand ? (
+    <JourneyCommentLink
+      commentCount={liveCommentCount}
+      viewerCommented={liveViewerCommented}
+      idDoiTuong={milestoneId}
+      sharePath={viewerPostHref}
+      shareTitle={title}
+      onOpenComments={() => {
+        trackCommentOpen();
+        if (commentsSheetMode) {
+          setCommentsSheetOpen((open) => !open);
+          /* Đóng panel BL inline nếu state timeline còn mở (đổi viewport). */
+          if (showCommentsRaw) inlineExpand.onOpenComments();
+          return;
+        }
+        setCommentsSheetOpen(false);
+        inlineExpand.onOpenComments();
+      }}
+    />
+  ) : (
+    <JourneyCommentLink
+      commentCount={liveCommentCount}
+      viewerCommented={liveViewerCommented}
+      idDoiTuong={milestoneId}
+      sharePath={viewerPostHref}
+      shareTitle={title}
+      openPostPopup
+    />
+  );
+
   const jcardActions = (
-    <div className="jcard-actions">
-      <JourneyLikeButton
-        milestoneId={milestoneId}
-        initialLiked={liveSocial.viewerLiked}
-        initialCount={liveSocial.likeCount}
-        initialReactionEmoji={liveSocial.viewerReactionEmoji}
-        initialTopReactionEmoji={liveSocial.topReactionEmoji}
-        showCount={liveSocial.showCounts}
-        actorsMediaLabel={likeActorsMediaLabel}
-      />
-      <JourneyDislikeButton
-        milestoneId={milestoneId}
-        initialDisliked={liveSocial.viewerDisliked}
-        initialCount={liveSocial.dislikeCount}
-        showCount={liveSocial.showCounts}
-        actorsMediaLabel={likeActorsMediaLabel}
-      />
-      {inlineExpand ? (
-        <JourneyCommentLink
-          commentCount={liveCommentCount}
-          viewerCommented={liveViewerCommented}
-          idDoiTuong={milestoneId}
-          sharePath={viewerPostHref}
-          shareTitle={title}
-          onOpenComments={() => {
-            trackCommentOpen();
-            if (commentsSheetMode) {
-              setCommentsSheetOpen((open) => !open);
-              /* Đóng panel BL inline nếu state timeline còn mở (đổi viewport). */
-              if (showCommentsRaw) inlineExpand.onOpenComments();
-              return;
+    <div className="jcard-actions jcard-actions--clusters">
+      <div className="jcard-actions-cluster jcard-actions-cluster--start">
+        {viewerPostHref ? (
+          <PostShareMenu
+            sharePath={viewerPostHref}
+            shareTitle={title}
+            className="jcard-share"
+            buttonClassName="share-btn"
+            milestoneId={cotMocId ?? milestone.id}
+            canShareToCommunity={canActAsPostOwner && !foreignJourneyContext}
+            currentOrgId={
+              (visibility ?? "public") === "cong-dong"
+                ? congDongOrg?.orgId ?? null
+                : null
             }
-            setCommentsSheetOpen(false);
-            inlineExpand.onOpenComments();
-          }}
-        />
-      ) : (
-        <JourneyCommentLink
-          commentCount={liveCommentCount}
-          viewerCommented={liveViewerCommented}
-          idDoiTuong={milestoneId}
-          sharePath={viewerPostHref}
-          shareTitle={title}
-          openPostPopup
-        />
-      )}
-      {canBookmark ? (
-        <JourneyBookmarkButton
+            ownerSlug={ownerSlug}
+          />
+        ) : null}
+        <JourneyDislikeButton
           milestoneId={milestoneId}
-          title={title}
-          initialSaved={liveSocial.viewerBookmarked}
-          initialCount={liveSocial.bookmarkCount}
+          initialDisliked={liveSocial.viewerDisliked}
+          initialCount={liveSocial.dislikeCount}
           showCount={liveSocial.showCounts}
+          actorsMediaLabel={likeActorsMediaLabel}
         />
-      ) : null}
-      <span className="action-spacer" />
-      {canManageCoAuthors && tacPhamId && !isCongDongPost && ownerSlug && orgAttachCotMocId ? (
-        <JourneyOrgAttachTrigger
-          tacPhamId={tacPhamId}
-          cotMocId={orgAttachCotMocId}
-          milestoneTitle={title}
-          milestoneKind={type}
-          ownerSlug={ownerSlug}
-          postSlug={postSlug}
-          coverSrc={media[0]?.src ?? null}
-          coverAlt={media[0]?.label ?? title}
-          photoCount={media.length > 0 ? media.length : null}
-          bodyExcerpt={body ?? null}
+      </div>
+      <div className="jcard-actions-cluster jcard-actions-cluster--end">
+        {canBookmark ? (
+          <JourneyBookmarkButton
+            milestoneId={milestoneId}
+            title={title}
+            initialSaved={liveSocial.viewerBookmarked}
+            initialCount={liveSocial.bookmarkCount}
+            showCount={liveSocial.showCounts}
+            previewAuthorName={authorName}
+            previewAuthorAvatarUrl={authorAvatarUrl}
+            previewCoverSrc={
+              media[0]?.src
+              ?? (photoGridImages?.[0] ? gridThumbSrc(photoGridImages[0]) || null : null)
+            }
+          />
+        ) : null}
+        {jcardCommentLink}
+        <JourneyLikeButton
+          milestoneId={milestoneId}
+          initialLiked={liveSocial.viewerLiked}
+          initialCount={liveSocial.likeCount}
+          initialReactionEmoji={liveSocial.viewerReactionEmoji}
+          initialTopReactionEmoji={liveSocial.topReactionEmoji}
+          showCount={liveSocial.showCounts}
+          actorsMediaLabel={likeActorsMediaLabel}
         />
-      ) : null}
-      {views ? (
-        <span className="jcard-view-count" aria-label={t("milestone.views", { count: formatViews(views) })}>
-          {formatViews(views)}
-        </span>
-      ) : null}
-      {viewerPostHref ? (
-        <PostShareMenu
-          sharePath={viewerPostHref}
-          shareTitle={title}
-          className="jcard-share"
-          buttonClassName="share-btn"
-          milestoneId={cotMocId ?? milestone.id}
-          canShareToCommunity={canActAsPostOwner && !foreignJourneyContext}
-          currentOrgId={
-            (visibility ?? "public") === "cong-dong"
-              ? congDongOrg?.orgId ?? null
-              : null
-          }
-          ownerSlug={ownerSlug}
-        />
-      ) : null}
+        {views ? (
+          <span className="jcard-view-count" aria-label={t("milestone.views", { count: formatViews(views) })}>
+            {formatViews(views)}
+          </span>
+        ) : null}
+      </div>
     </div>
   );
 
@@ -2018,6 +2029,7 @@ export function JourneyMilestoneCard({
             showJourneyPin={showJourneyPin}
             banHangEnabled={banHangEnabled}
             congDongOrg={congDongOrg}
+            orgAttach={orgAttach}
           />
         ) : null}
       </>
@@ -2385,6 +2397,7 @@ export function JourneyMilestoneCard({
                     showJourneyPin={showJourneyPin}
                     banHangEnabled={banHangEnabled}
                     congDongOrg={congDongOrg}
+                    orgAttach={orgAttach}
                   />
                 </>
               ) : null}

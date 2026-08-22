@@ -34,6 +34,7 @@ import {
 import { orgBaiDangNhanSlugFromKey } from "@/lib/truong/org-bai-dang-filters.shared";
 import { JOURNEY_SHARE_OPEN_EVENT } from "@/lib/journey/gallery-filter-share";
 import { computeFixedMenuPosition } from "@/lib/ui/clamp-fixed-menu-position";
+import { useChromeStuck } from "@/lib/ui/use-chrome-stuck";
 
 type Props = {
   filterKey: OrgBaiDangTimelineFilterKey;
@@ -78,7 +79,12 @@ export function OrgBaiDangTimelineBar({
     left: number;
   } | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
+  useChromeStuck(barRef, () => {
+    const tabs = document.querySelector(".tdh-v6-tabs-bar");
+    return tabs instanceof HTMLElement ? tabs.offsetHeight : 0;
+  });
   const menuRef = useRef<HTMLDivElement>(null);
   const ignoreOutsideClickRef = useRef(false);
   const filterCtx = useOrgBaiDangFilterOptional();
@@ -275,7 +281,10 @@ export function OrgBaiDangTimelineBar({
   );
 
   return (
-    <div className="j-tlb org-baidang-tlb org-baidang-tlb--no-date">
+    <div
+      ref={barRef}
+      className="j-tlb org-baidang-tlb org-baidang-tlb--no-date"
+    >
       <span className="j-tlb-streak-slow" aria-hidden="true" />
       {filterCluster}
       {portalReady && menu ? createPortal(menu, document.body) : null}

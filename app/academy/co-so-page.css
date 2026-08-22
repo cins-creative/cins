@@ -1329,29 +1329,26 @@
 
   .tdh-page--cso .tdh-v6-shell--mobile-tabs .cso-ss-ava-row {
     margin-top: clamp(-28px, -6vw, -20px);
-    justify-content: flex-start;
+    justify-content: center;
   }
 
   .tdh-page--cso .tdh-v6-shell--mobile-tabs .cso-ss-identity {
-    align-items: stretch;
-    text-align: left;
+    align-items: center;
+    text-align: center;
   }
 
   .tdh-page--cso .tdh-v6-shell--mobile-tabs .cso-ss-name,
-  .tdh-page--cso .tdh-v6-shell--mobile-tabs .cso-ss-sub {
-    text-align: left;
+  .tdh-page--cso .tdh-v6-shell--mobile-tabs .cso-ss-sub,
+  .tdh-page--cso .tdh-v6-shell--mobile-tabs .cso-ss-eyebrow {
+    text-align: center;
   }
 
   .tdh-page--cso .tdh-v6-shell--mobile-tabs .cso-ss-name {
     font-size: 20px;
   }
 
-  .tdh-page--cso .tdh-v6-shell--mobile-tabs .cso-ss-eyebrow {
-    text-align: left;
-  }
-
   .tdh-page--cso .tdh-v6-shell--mobile-tabs .cso-ss-primary-action--dual.cso-ss-primary-action--icons {
-    justify-content: flex-start;
+    justify-content: center;
   }
 
   .tdh-page--cso .cso-ss-stack {

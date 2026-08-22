@@ -31,15 +31,24 @@ export async function GET(_req: Request, context: RouteContext) {
     return NextResponse.json({ error: board.error }, { status: 403 });
   }
 
-  // Đồng bộ tin → node trước khi liệt kê (idempotent). Lỗi sync không chặn xem.
-  await syncCanvasFromMessages(board.canvas.id, viewerId);
+  // List + sync song song — mở board không chờ sync xong rồi mới đọc node.
+  // Có node mới thì đọc lại; lỗi sync không chặn xem.
+  const [syncResult, listed] = await Promise.all([
+    syncCanvasFromMessages(board.canvas.id, viewerId),
+    listCanvasNodes(board.canvas.id, viewerId),
+  ]);
 
-  const nodes = await listCanvasNodes(board.canvas.id, viewerId);
-  if (!nodes.ok) {
-    return NextResponse.json({ error: nodes.error }, { status: 403 });
+  if (!listed.ok) {
+    return NextResponse.json({ error: listed.error }, { status: 403 });
   }
 
-  return NextResponse.json({ canvas: board.canvas, nodes: nodes.nodes });
+  let nodes = listed.nodes;
+  if (syncResult.ok && syncResult.created > 0) {
+    const fresh = await listCanvasNodes(board.canvas.id, viewerId);
+    if (fresh.ok) nodes = fresh.nodes;
+  }
+
+  return NextResponse.json({ canvas: board.canvas, nodes });
 }
 
 /** PATCH — đổi tên/mô tả (member) hoặc trạng thái khóa/ẩn (owner/admin). */

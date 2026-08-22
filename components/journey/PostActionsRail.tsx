@@ -24,11 +24,13 @@ import { POST_COMMENTS_SYNC_EVENT } from "@/lib/journey/comments-sync-client";
 import { useRouter } from "next/navigation";
 import {
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   useTransition,
   useCallback,
 } from "react";
+import { createPortal } from "react-dom";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ PostActionsRail — hành động gọn trong `.post-byline`.            ║
@@ -111,7 +113,34 @@ export function PostShareMenu({
   const [communityError, setCommunityError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const shareWrapRef = useRef<HTMLDivElement>(null);
+  const shareBtnRef = useRef<HTMLButtonElement>(null);
+  const shareMenuRef = useRef<HTMLDivElement>(null);
+  const [menuPos, setMenuPos] = useState<{
+    left: number;
+    top?: number;
+    bottom?: number;
+  } | null>(null);
   const showCommunityShare = canShareToCommunity && Boolean(milestoneId);
+
+  const placeShareMenu = useCallback(() => {
+    const btn = shareBtnRef.current;
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    const width = Math.min(280, window.innerWidth - 24);
+    const gap = 8;
+    let left = rect.left;
+    if (left + width > window.innerWidth - 12) {
+      left = window.innerWidth - 12 - width;
+    }
+    if (left < 12) left = 12;
+    const spaceAbove = rect.top;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    if (spaceAbove >= 280 || spaceAbove > spaceBelow) {
+      setMenuPos({ left, bottom: window.innerHeight - rect.top + gap });
+    } else {
+      setMenuPos({ left, top: rect.bottom + gap });
+    }
+  }, []);
 
   function closeShare() {
     setShareOpen(false);
@@ -128,10 +157,28 @@ export function PostShareMenu({
     setShareUrl(window.location.href);
   }, [sharePath]);
 
+  useLayoutEffect(() => {
+    if (!shareOpen) {
+      setMenuPos(null);
+      return;
+    }
+    placeShareMenu();
+    const onReposition = () => placeShareMenu();
+    window.addEventListener("resize", onReposition);
+    window.addEventListener("scroll", onReposition, true);
+    return () => {
+      window.removeEventListener("resize", onReposition);
+      window.removeEventListener("scroll", onReposition, true);
+    };
+  }, [placeShareMenu, shareOpen, panel]);
+
   useEffect(() => {
     if (!shareOpen) return;
     function onDocClick(e: MouseEvent) {
-      if (!shareWrapRef.current?.contains(e.target as Node)) closeShare();
+      const target = e.target as Node;
+      if (shareWrapRef.current?.contains(target)) return;
+      if (shareMenuRef.current?.contains(target)) return;
+      closeShare();
     }
     function onEsc(e: KeyboardEvent) {
       if (e.key !== "Escape") return;
@@ -329,6 +376,7 @@ export function PostShareMenu({
       onClick={(e) => e.stopPropagation()}
     >
       <button
+        ref={shareBtnRef}
         type="button"
         className={buttonClassName}
         onClick={(e) => {
@@ -350,13 +398,21 @@ export function PostShareMenu({
         ) : null}
       </button>
 
-      {shareOpen ? (
+      {shareOpen && menuPos && typeof document !== "undefined"
+        ? createPortal(
         <div
+          ref={shareMenuRef}
           className={
-            "post-byline-share" +
+            "post-byline-share post-byline-share--portal" +
             (panel === "friends" ? " post-byline-share--friends" : "")
           }
           role="menu"
+          style={{
+            left: menuPos.left,
+            top: menuPos.top,
+            bottom: menuPos.bottom,
+          }}
+          onClick={(e) => e.stopPropagation()}
         >
           {panel === "friends" ? (
             <>
@@ -472,8 +528,10 @@ export function PostShareMenu({
               )}
             </>
           )}
-        </div>
-      ) : null}
+        </div>,
+          document.body,
+        )
+      : null}
 
       {showCommunityShare ? (
         <ShareMilestoneToCongDongModal

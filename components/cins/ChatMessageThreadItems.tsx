@@ -28,6 +28,7 @@ import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import { useCoarsePointer } from "@/lib/ui/use-coarse-pointer";
 import { avatarBg, formatChatTime } from "@/lib/chat/avatar";
+import { shouldShowChatItemTime } from "@/lib/chat/bubble-time-cluster";
 import {
   chatMessageMediaEntries,
   groupChatMessages,
@@ -57,15 +58,27 @@ import type {
 } from "@/lib/chat/types";
 
 const DISMISS_GUARD_MS = 450;
+const BUBBLE_LONG_PRESS_MS = 480;
 
-function isIgnoredActionTarget(target: EventTarget | null): boolean {
-  const el =
-    target instanceof Element
-      ? target
-      : target instanceof Node
-        ? target.parentElement
-        : null;
+const CHAT_MEDIA_ACTION_SEL = [
+  ".cins-chat-msg-image-link",
+  ".cins-chat-album-cell",
+  ".cins-chat-msg-sticker-btn",
+].join(",");
+
+function eventElement(target: EventTarget | null): Element | null {
+  if (target instanceof Element) return target;
+  if (target instanceof Node) return target.parentElement;
+  return null;
+}
+
+function isIgnoredActionTarget(
+  target: EventTarget | null,
+  opts?: { allowMedia?: boolean },
+): boolean {
+  const el = eventElement(target);
   if (!el) return false;
+  if (opts?.allowMedia && el.closest(CHAT_MEDIA_ACTION_SEL)) return false;
   /* Không dùng [role=dialog]/[role=button] — panel chat / bubble host cũng mang role đó. */
   return Boolean(
     el.closest(
@@ -176,7 +189,7 @@ function useBubbleTapActions(
       if (!enabled) return;
       event.preventDefault();
       event.stopPropagation();
-      if (isIgnoredActionTarget(event.target)) return;
+      if (isIgnoredActionTarget(event.target, { allowMedia: true })) return;
       openMobile();
     },
     [enabled, openMobile],
@@ -195,7 +208,7 @@ function useBubbleTapActions(
 
   useEffect(() => {
     const el = wrapRef.current;
-    if (!el || !enabled || !onSwipeReply) return;
+    if (!el || !enabled) return;
 
     const REPLY_PULL = 72;
     const LOCK_PX = 12;
@@ -205,6 +218,15 @@ function useBubbleTapActions(
       axis: "h" | "v" | null;
     };
     let track: Track | null = null;
+    let pressTimer: number | null = null;
+    let longPressed = false;
+
+    const clearPress = () => {
+      if (pressTimer != null) {
+        window.clearTimeout(pressTimer);
+        pressTimer = null;
+      }
+    };
 
     const resetPull = () => {
       el.classList.remove("is-swipe-reply");
@@ -223,16 +245,25 @@ function useBubbleTapActions(
     };
 
     const onStart = (e: TouchEvent) => {
-      if (!isChatSwipeMobile() || e.touches.length !== 1) {
+      longPressed = false;
+      clearPress();
+      if (e.touches.length !== 1) {
         track = null;
         return;
       }
-      if (isIgnoredActionTarget(e.target)) {
+      if (isIgnoredActionTarget(e.target, { allowMedia: true })) {
         track = null;
         return;
       }
       const t = e.touches[0];
       track = { x: t.clientX, y: t.clientY, axis: null };
+      pressTimer = window.setTimeout(() => {
+        pressTimer = null;
+        longPressed = true;
+        resetPull();
+        ignoreClickUntilRef.current = Date.now() + DISMISS_GUARD_MS;
+        openMobile();
+      }, BUBBLE_LONG_PRESS_MS);
     };
 
     const onMove = (e: TouchEvent) => {
@@ -243,12 +274,25 @@ function useBubbleTapActions(
       if (!track.axis) {
         if (Math.abs(dx) < LOCK_PX && Math.abs(dy) < LOCK_PX) return;
         track.axis = Math.abs(dx) > Math.abs(dy) ? "h" : "v";
+        clearPress();
       }
-      if (track.axis === "h" && dx > 0) setPull(dx);
+      if (longPressed) {
+        resetPull();
+        return;
+      }
+      if (track.axis === "h" && dx > 0 && onSwipeReplyRef.current) setPull(dx);
       else resetPull();
     };
 
     const onEnd = (e: TouchEvent) => {
+      clearPress();
+      if (longPressed) {
+        e.preventDefault();
+        e.stopPropagation();
+        track = null;
+        resetPull();
+        return;
+      }
       if (!track || e.changedTouches.length !== 1) {
         track = null;
         resetPull();
@@ -260,29 +304,38 @@ function useBubbleTapActions(
       const axis = track.axis;
       track = null;
       resetPull();
-      if (!isChatSwipeMobile()) return;
+      if (!isChatSwipeMobile() || !onSwipeReplyRef.current) return;
       if (axis === "h" && Math.abs(dx) > LOCK_PX) {
         ignoreClickUntilRef.current = Date.now() + DISMISS_GUARD_MS;
       }
       const dir = classifyChatSwipe(dx, dy);
       if (dir === "right") {
         e.stopPropagation();
-        onSwipeReplyRef.current?.();
+        onSwipeReplyRef.current();
       }
+    };
+
+    const onClickCapture = (e: Event) => {
+      if (!longPressed && Date.now() >= ignoreClickUntilRef.current) return;
+      e.preventDefault();
+      e.stopPropagation();
     };
 
     el.addEventListener("touchstart", onStart, { passive: true });
     el.addEventListener("touchmove", onMove, { passive: true });
-    el.addEventListener("touchend", onEnd, { passive: true });
+    el.addEventListener("touchend", onEnd);
     el.addEventListener("touchcancel", resetPull, { passive: true });
+    el.addEventListener("click", onClickCapture, true);
     return () => {
+      clearPress();
       el.removeEventListener("touchstart", onStart);
       el.removeEventListener("touchmove", onMove);
       el.removeEventListener("touchend", onEnd);
       el.removeEventListener("touchcancel", resetPull);
+      el.removeEventListener("click", onClickCapture, true);
       resetPull();
     };
-  }, [enabled, onSwipeReply]);
+  }, [enabled, openMobile]);
 
   return {
     enabled,
@@ -600,14 +653,19 @@ function OrgReplyHintLabel({ msg }: { msg: ChatMessage }) {
 function BubbleMeta({
   msg,
   className,
+  showTime = true,
 }: {
   msg: ChatMessage;
   className?: string;
+  showTime?: boolean;
 }) {
+  if (!showTime && !msg.edited) return null;
   return (
     <span className={["cins-chat-bubble-meta", className].filter(Boolean).join(" ")}>
       {msg.edited ? <span className="cins-chat-edited">đã sửa</span> : null}
-      <time dateTime={msg.sentAt}>{formatChatTime(msg.sentAt)}</time>
+      {showTime ? (
+        <time dateTime={msg.sentAt}>{formatChatTime(msg.sentAt)}</time>
+      ) : null}
     </span>
   );
 }
@@ -657,6 +715,7 @@ function SingleMessageBubble({
   onOpenImage,
   canConfirmHocPhi = false,
   orgBrand = null,
+  showTime = true,
 }: {
   msg: ChatMessage;
   seenBy?: ChatReadCursor[];
@@ -676,6 +735,7 @@ function SingleMessageBubble({
   onOpenImage?: (messageId: string) => void;
   canConfirmHocPhi?: boolean;
   orgBrand?: { ten?: string | null; anh?: string | null } | null;
+  showTime?: boolean;
 }) {
   const isMe = msg.from === "me";
   const isEditing = editingMessageId === msg.id;
@@ -687,25 +747,7 @@ function SingleMessageBubble({
   if (msg.deleted) return null;
 
   if (msg.kind === "canvas_binh_luan" || msg.canvasBinhLuan) {
-    if (msg.deleted) return null;
-    return (
-      <div
-        id={messageRowId(msg.id)}
-        className="cins-chat-bubble-row is-canvas-comment-notice"
-      >
-        <div className="cins-chat-bubble is-canvas-comment-notice">
-          <ChatMessageBody
-            msg={msg}
-            roomId={roomId}
-            viewerUserId={viewerUserId}
-            onPollUpdated={onPollUpdated}
-            onOpenCanvasComments={onOpenCanvasComments}
-            canConfirmHocPhi={canConfirmHocPhi}
-            orgBrand={orgBrand}
-          />
-        </div>
-      </div>
-    );
+    return null;
   }
 
   if (msg.kind === "cuoc_goi" || msg.cuocGoi) {
@@ -832,12 +874,18 @@ function SingleMessageBubble({
     .filter(Boolean)
     .join(" ");
 
+  const timeBelow = !isEditing ? (
+    <BubbleMeta
+      msg={msg}
+      className="cins-chat-media-meta"
+      showTime={showTime}
+    />
+  ) : null;
+
   const metaBelowMedia =
-    !isEditing &&
-    !useSenderCluster &&
-    (layout === "media-only" || layout === "sticker") ? (
-      <BubbleMeta msg={msg} className="cins-chat-media-meta" />
-    ) : null;
+    !isEditing && (layout === "media-only" || layout === "sticker")
+      ? timeBelow
+      : null;
 
   const bodyContent = isEditing ? (
     <div className="cins-chat-edit-form">
@@ -885,7 +933,6 @@ function SingleMessageBubble({
             tone={isMe ? "me" : "them"}
           />
         </p>
-        {!useSenderCluster ? <BubbleMeta msg={msg} /> : null}
       </div>
     </>
   ) : layout === "media-only" || layout === "sticker" ? (
@@ -912,9 +959,6 @@ function SingleMessageBubble({
         canConfirmHocPhi={canConfirmHocPhi}
         orgBrand={orgBrand}
       />
-      {!isEditing && !useSenderCluster && !isDonHangCard ? (
-        <BubbleMeta msg={msg} />
-      ) : null}
     </>
   );
 
@@ -927,6 +971,7 @@ function SingleMessageBubble({
       msg={msg}
       handlers={actionHandlers}
     >
+      <div className="cins-chat-bubble-main">
       <div className="cins-chat-don-hang-body">
         {msg.pinned ? <PinBadge /> : null}
         <ForwardedBadge msg={msg} />
@@ -948,9 +993,6 @@ function SingleMessageBubble({
           canConfirmHocPhi={canConfirmHocPhi}
           orgBrand={orgBrand}
         />
-        {!useSenderCluster ? (
-          <BubbleMeta msg={msg} className="cins-chat-don-hang-meta" />
-        ) : null}
         {!isEditing && msg.reactions?.length && actionHandlers ? (
           <ChatMessageReactions
             placement="corner"
@@ -961,6 +1003,8 @@ function SingleMessageBubble({
             }
           />
         ) : null}
+      </div>
+      {timeBelow}
       </div>
       {actionHandlers ? (
         <ChatMessageActions msg={msg} handlers={actionHandlers} />
@@ -1023,6 +1067,7 @@ function SingleMessageBubble({
       msg={msg}
       handlers={actionHandlers}
     >
+      <div className="cins-chat-bubble-main">
       <div className={bubbleClassName(msg, isMe, isEditing)}>
         {msg.pinned && !isEditing ? <PinBadge /> : null}
         <ForwardedBadge msg={msg} />
@@ -1049,6 +1094,8 @@ function SingleMessageBubble({
           <ChatMessageActions msg={msg} handlers={actionHandlers} />
         ) : null}
       </div>
+      {layout === "media-only" || layout === "sticker" ? null : timeBelow}
+      </div>
       {actionHandlers && !actionsInBubble ? (
         <ChatMessageActions msg={msg} handlers={actionHandlers} />
       ) : null}
@@ -1064,7 +1111,6 @@ function SingleMessageBubble({
               msg={msg}
               renderTheirAvatar={renderTheirAvatar}
               showSenderNames={showSenderNames}
-              showTime
             />
             {!isMe ? <OrgReplyHintLabel msg={msg} /> : null}
             {bubbleBlock}
@@ -1137,7 +1183,8 @@ export function ChatMessageThreadItems({
 
   return (
     <>
-      {items.map((item) => {
+      {items.map((item, index) => {
+        const showTime = shouldShowChatItemTime(items, index);
         if (item.type === "single") {
           const msg = item.message;
           return (
@@ -1161,6 +1208,7 @@ export function ChatMessageThreadItems({
               onOpenImage={handleOpenImage}
               canConfirmHocPhi={canConfirmHocPhi}
               orgBrand={orgBrand}
+              showTime={showTime}
             />
           );
         }
@@ -1172,11 +1220,17 @@ export function ChatMessageThreadItems({
 
         const captionMsg = item.messages.find((m) => m.body.trim() && !m.deleted);
         const caption = captionMsg?.body.trim() ?? "";
-        const captionAt = captionMsg?.sentAt ?? item.sentAt;
         const albumActionMsg = captionMsg ?? activeMessages[0];
         const useSenderCluster = !isMe && Boolean(showSenderNames);
         const headMsg = captionMsg ?? albumActionMsg ?? item.messages[0];
         const albumSeenIds = item.messages.map((m) => m.id);
+        const albumTime = (
+          <BubbleMeta
+            msg={albumActionMsg ?? item.messages[0]}
+            className="cins-chat-media-meta"
+            showTime={showTime}
+          />
+        );
 
         return (
           <Fragment key={`album-${firstId}`}>
@@ -1191,7 +1245,6 @@ export function ChatMessageThreadItems({
                       msg={headMsg}
                       renderTheirAvatar={renderTheirAvatar}
                       showSenderNames={showSenderNames}
-                      showTime
                     />
                     <ChatBubbleActionsHost
                       className="cins-chat-bubble-wrap"
@@ -1243,7 +1296,6 @@ export function ChatMessageThreadItems({
                             tone={isMe ? "me" : "them"}
                           />
                         </p>
-                        <BubbleMeta msg={captionMsg ?? item.messages[0]} />
                         {actionHandlers && albumActionMsg ? (
                           <ChatMessageActions
                             msg={albumActionMsg}
@@ -1269,7 +1321,7 @@ export function ChatMessageThreadItems({
                   ? messageRowId(albumActionMsg.id)
                   : undefined
               }
-              className={`cins-chat-bubble-row is-media-row ${isMe ? "is-me" : "is-them"}${!isMe && caption ? " is-album-follow" : ""}${!caption && albumActionMsg?.pinned ? " is-pinned-row" : ""}${useSenderCluster && !caption ? " has-sender-cluster" : ""}`}
+              className={`cins-chat-bubble-row is-media-row is-bare-media-row ${isMe ? "is-me" : "is-them"}${!isMe && caption ? " is-album-follow" : ""}${!caption && albumActionMsg?.pinned ? " is-pinned-row" : ""}${useSenderCluster && !caption ? " has-sender-cluster" : ""}`}
             >
               {useSenderCluster && !caption ? (
                 <div className="cins-chat-msg-stack">
@@ -1277,31 +1329,31 @@ export function ChatMessageThreadItems({
                     msg={albumActionMsg ?? item.messages[0]}
                     renderTheirAvatar={renderTheirAvatar}
                     showSenderNames={showSenderNames}
-                    showTime
                   />
                   <ChatBubbleActionsHost
-                    className="cins-chat-bubble-wrap"
-                    enabled={Boolean(actionHandlers) && !caption}
+                    className="cins-chat-bubble-wrap cins-chat-bare-media-wrap has-album"
+                    enabled={Boolean(actionHandlers)}
                     msg={albumActionMsg}
                     handlers={actionHandlers}
                   >
-                    <div
-                      className={`cins-chat-bubble has-album has-media-actions${isMe ? " is-me" : " is-them"}${!caption && albumActionMsg?.pinned ? " is-pinned" : ""}`}
-                    >
+                    <div className="cins-chat-bare-media-body">
                       {!caption && albumActionMsg?.pinned ? <PinBadge /> : null}
                       <div className="cins-chat-media-block">
-                        <ChatMessageAlbum
-                          messages={activeMessages}
-                          onOpenImage={handleOpenImage}
-                        />
+                        <div className="cins-chat-bare-media-frame">
+                          <ChatMessageAlbum
+                            messages={activeMessages}
+                            onOpenImage={handleOpenImage}
+                          />
+                        </div>
+                        {albumTime}
                       </div>
-                      {!caption && actionHandlers && albumActionMsg ? (
-                        <ChatMessageActions
-                          msg={albumActionMsg}
-                          handlers={actionHandlers}
-                        />
-                      ) : null}
                     </div>
+                    {actionHandlers && albumActionMsg ? (
+                      <ChatMessageActions
+                        msg={albumActionMsg}
+                        handlers={actionHandlers}
+                      />
+                    ) : null}
                   </ChatBubbleActionsHost>
                 </div>
               ) : (
@@ -1310,41 +1362,29 @@ export function ChatMessageThreadItems({
                     ? renderTheirAvatar?.(albumActionMsg ?? item.messages[0])
                     : null}
                   <ChatBubbleActionsHost
-                    className="cins-chat-bubble-wrap"
-                    enabled={Boolean(actionHandlers) && !caption}
+                    className="cins-chat-bubble-wrap cins-chat-bare-media-wrap has-album"
+                    enabled={Boolean(actionHandlers)}
                     msg={albumActionMsg}
                     handlers={actionHandlers}
                   >
-                    <div
-                      className={`cins-chat-bubble has-album has-media-actions${isMe ? " is-me" : " is-them"}${!caption && albumActionMsg?.pinned ? " is-pinned" : ""}`}
-                    >
+                    <div className="cins-chat-bare-media-body">
                       {!caption && albumActionMsg?.pinned ? <PinBadge /> : null}
                       <div className="cins-chat-media-block">
-                        <ChatMessageAlbum
-                          messages={activeMessages}
-                          onOpenImage={handleOpenImage}
-                        />
-                        {!caption ? (
-                          <BubbleMeta
-                            msg={albumActionMsg ?? item.messages[0]}
-                            className="cins-chat-media-meta"
+                        <div className="cins-chat-bare-media-frame">
+                          <ChatMessageAlbum
+                            messages={activeMessages}
+                            onOpenImage={handleOpenImage}
                           />
-                        ) : !useSenderCluster ? (
-                          <time
-                            className="cins-chat-media-meta"
-                            dateTime={item.sentAt}
-                          >
-                            {formatChatTime(captionAt)}
-                          </time>
-                        ) : null}
+                        </div>
+                        {albumTime}
                       </div>
-                      {!caption && actionHandlers && albumActionMsg ? (
-                        <ChatMessageActions
-                          msg={albumActionMsg}
-                          handlers={actionHandlers}
-                        />
-                      ) : null}
                     </div>
+                    {actionHandlers && albumActionMsg ? (
+                      <ChatMessageActions
+                        msg={albumActionMsg}
+                        handlers={actionHandlers}
+                      />
+                    ) : null}
                   </ChatBubbleActionsHost>
                 </>
               )}

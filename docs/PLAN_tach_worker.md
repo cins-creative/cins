@@ -1,6 +1,6 @@
 # PLAN — Tách «Quản lý» thành app/worker riêng
 
-Trạng thái: **chưa implement**. Viết sau khi deploy `973de56` bị Cloudflare từ chối vì Worker vượt giới hạn kích thước.
+Trạng thái: **đang implement (Phase 3-lite)**. Host chốt: **`manage.cins.vn`** (không dùng `quan-ly.cins.vn`). `/admin` chuyển sang Worker `cins-manage`. Script: `npm run deploy:manage` rồi `npm run deploy:web`.
 
 ---
 
@@ -69,7 +69,7 @@ Câu hỏi «có phải giống Meta Business của Facebook không» — **đú
 | Facebook | CINs sau khi tách |
 |---|---|
 | `facebook.com` — người dùng cuối xem feed, profile, page | `cins.vn` — journey, trường/ngành, sự kiện, shop, chat |
-| `business.facebook.com` — Meta Business Suite: quản lý page, quảng cáo, tài sản | `quan-ly.cins.vn` — admin hệ thống, quản lý cơ sở đào tạo/studio/cộng đồng, dashboard người bán |
+| `business.facebook.com` — Meta Business Suite: quản lý page, quảng cáo, tài sản | `manage.cins.vn` — admin CINs (`/admin`); sau này thêm `*/quan-ly/*`, ban-hang |
 | Cùng một tài khoản, đăng nhập một lần | Cùng session Supabase, cookie chia sẻ trên `.cins.vn` |
 | Cùng backend dữ liệu | Cùng Supabase project `ospzzzxcomrmhqrnkoiw` |
 | Hai app riêng, deploy riêng | Hai worker riêng, deploy riêng |
@@ -150,7 +150,7 @@ Cookie vì vậy là host-only trên `cins.vn` ⇒ `quan-ly.cins.vn` **sẽ khô
 Việc phải làm:
 
 1. Prod set `domain: ".cins.vn"`; dev giữ nguyên host-only cho `localhost` (đừng set domain cho localhost, browser sẽ từ chối).
-2. Supabase Dashboard → Redirect URLs: thêm `https://quan-ly.cins.vn/auth/callback`.
+2. Supabase Dashboard → Redirect URLs: thêm `https://manage.cins.vn/auth/callback`.
 3. `NEXT_PUBLIC_SITE_URL` per app; `scripts/ensure-prod-site-url.mjs` cần biết app nào đang build.
 4. **Rủi ro migration:** đổi từ host-only sang domain cookie tạo cookie trùng tên ở hai scope. Browser gửi cả hai, thứ tự không xác định ⇒ session lỗi ngẫu nhiên. Phải xoá cookie cũ ở lần request đầu (set host-only cookie hết hạn) trước khi ghi cookie domain. Cân nhắc chấp nhận đăng xuất toàn bộ người dùng một lần cho gọn.
 5. OAuth PKCE: verifier phải được đọc/ghi cùng origin. Luồng login nên **chỉ nằm ở `cins-web`**, quản lý redirect sang đó rồi quay lại — tránh nhân đôi callback.
@@ -207,7 +207,7 @@ Xoá route đã chuyển khỏi `apps/web`, thêm redirect `cins.vn/admin/*` →
 
 ## 10. Câu treo cần quyết trước khi code
 
-1. **Subdomain `quan-ly.cins.vn` hay path `cins.vn/quan-ly/*`?** Subdomain đơn giản hơn nhiều (mỗi worker một custom domain). Path-based giữ URL cũ nhưng phải định tuyến ở tầng Cloudflare và xử lý ai phục vụ `/_next/static/*`.
+1. **Subdomain:** **chốt `manage.cins.vn`** (2026-08-22). Không dùng path `cins.vn/admin` làm Worker riêng. `cins.vn/admin/*` → 308 sang `manage.cins.vn/admin/*`.
 2. **Chấp nhận đăng xuất toàn bộ người dùng một lần** khi đổi scope cookie, hay làm cơ chế xoá cookie cũ (§5.4)?
 3. **API dùng chung**: nhân bản, service binding, hay tách theo mục đích (§3.3)?
 4. Có gộp `ban-hang` (người bán, không phải nhân viên CINs) vào app quản lý, hay nó thuộc phía công khai?

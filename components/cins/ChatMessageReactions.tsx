@@ -228,7 +228,9 @@ export function ChatMessageReactions({
                 </>
               ) : openReaction ? (
                 <>
-                  <span aria-hidden>{openReaction.emoji}</span>
+                  <span className="cins-chat-reaction-actors-emojis" aria-hidden>
+                    {openReaction.emoji}
+                  </span>
                   <span>
                     {openReaction.count === 1
                       ? "1 người"

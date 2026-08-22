@@ -1366,14 +1366,36 @@
   transform: none;
 }
 
-.cins-post-view .post-rail-author > .j-user-pop-wrap {
+.cins-post-view .post-rail-author-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
   flex: 1;
+  min-width: 0;
+}
+
+.cins-post-view .post-rail-author-main > .j-user-pop-wrap {
+  flex: 0 0 auto;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.cins-post-view .post-rail-author-main > .j-user-pop-wrap > .j-user-pop-trigger {
+  display: flex;
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.cins-post-view .post-rail-author > .j-user-pop-wrap {
+  flex: 0 1 auto;
   min-width: 0;
 }
 
 .cins-post-view .post-rail-author > .j-user-pop-wrap > .j-user-pop-trigger {
   display: flex;
-  width: 100%;
+  width: auto;
   min-width: 0;
 }
 
@@ -1392,10 +1414,15 @@
   align-items: center;
   gap: 10px;
   min-width: 0;
-  flex: 1;
+  flex: 0 1 auto;
+  max-width: 100%;
   text-decoration: none;
   color: inherit;
   cursor: pointer;
+}
+
+.cins-post-view .post-rail-author-main > .post-rail-author-sub {
+  padding-left: 48px;
 }
 
 .cins-post-view .post-rail-author-link:hover strong,
@@ -1440,7 +1467,8 @@
   min-width: 0;
 }
 
-.cins-post-view .post-rail-author-copy strong {
+.cins-post-view .post-rail-author-copy strong,
+.cins-post-view .post-rail-author-link strong {
   font-size: 14px;
   font-weight: 700;
   color: var(--ink-display);
@@ -1842,7 +1870,7 @@
   gap: 2px;
   width: 100%;
   margin: 0;
-  padding: 4px;
+  padding: 4px 12px;
   border: none;
   border-radius: 12px;
   background: var(--neutral-50, #f5f6f8);
@@ -1885,12 +1913,28 @@
   color: var(--ink-display, #f8fafc);
 }
 
+.cins-post-view .post-rail-blk--actions .jcard-actions--clusters {
+  justify-content: space-between;
+  gap: 2px;
+}
+
+/* Cụm chỉ giữ thứ tự markup — mọi nút cùng hàng, chia đều cột. */
+.cins-post-view .post-rail-blk--actions .jcard-actions-cluster {
+  display: contents;
+}
+
 .cins-post-view .post-rail-blk--actions .jcard-actions > .action-btn,
 .cins-post-view .post-rail-blk--actions .jcard-actions > .action-btn--split,
 .cins-post-view .post-rail-blk--actions .jcard-actions > a.action-btn,
 .cins-post-view .post-rail-blk--actions .jcard-actions > .j-reaction-wrap,
 .cins-post-view .post-rail-blk--actions .jcard-actions > .jcard-share,
-.cins-post-view .post-rail-blk--actions .jcard-actions > .post-byline-share-wrap {
+.cins-post-view .post-rail-blk--actions .jcard-actions > .post-byline-share-wrap,
+.cins-post-view .post-rail-blk--actions .jcard-actions-cluster > .action-btn,
+.cins-post-view .post-rail-blk--actions .jcard-actions-cluster > .action-btn--split,
+.cins-post-view .post-rail-blk--actions .jcard-actions-cluster > a.action-btn,
+.cins-post-view .post-rail-blk--actions .jcard-actions-cluster > .j-reaction-wrap,
+.cins-post-view .post-rail-blk--actions .jcard-actions-cluster > .jcard-share,
+.cins-post-view .post-rail-blk--actions .jcard-actions-cluster > .post-byline-share-wrap {
   flex: 1 1 0;
   min-width: 0;
   max-width: none;
@@ -5684,7 +5728,7 @@
   .cins-post-view .post-rail-blk--actions .jcard-actions {
     flex-wrap: nowrap;
     gap: 2px;
-    padding: 4px;
+    padding: 4px 12px;
   }
 
   .cins-post-view .post-rail-blk--actions .jcard-actions .action-btn,

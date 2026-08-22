@@ -24,7 +24,7 @@ export function OrgBaiDangCreateComposer({ owner = null }: Props) {
     <CinsFeedComposer
       layout="journey"
       showMilestone={false}
-      placeholder="Đăng bài mới cho tổ chức…"
+      placeholder="Đăng bài mới…"
       avatar={
         school ? (
           <TruongOrgAvatar

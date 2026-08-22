@@ -8,7 +8,10 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const PRODUCTION_SITE_URL = "https://cins.vn";
+const PRODUCTION_SITE_URL =
+  process.env.CINS_SURFACE === "manage"
+    ? "https://manage.cins.vn"
+    : "https://cins.vn";
 
 /** Nạp key còn thiếu từ .env.local / .dev.vars — không ghi đè biến shell. */
 function loadMissingFromEnvFiles() {

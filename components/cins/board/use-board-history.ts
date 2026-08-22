@@ -105,6 +105,14 @@ export function useBoardHistory() {
     redoRef.current = [];
   }, []);
 
+  /** Bỏ lệnh tạo vừa rồi (box chữ trống bị hủy) — không đưa vào redo. */
+  const dropLastCreate = useCallback((nodeId: string) => {
+    const last = undoRef.current[undoRef.current.length - 1];
+    if (last?.type === "create" && last.node.id === nodeId) {
+      undoRef.current.pop();
+    }
+  }, []);
+
   /** Node được tạo lại với id mới (undo delete) — remap toàn bộ stack. */
   const remapNodeId = useCallback((oldId: string, newId: string) => {
     for (const stack of [undoRef.current, redoRef.current]) {
@@ -130,7 +138,25 @@ export function useBoardHistory() {
   }, []);
 
   return useMemo(
-    () => ({ push, popUndo, popRedo, canUndo, canRedo, clear, remapNodeId }),
-    [push, popUndo, popRedo, canUndo, canRedo, clear, remapNodeId],
+    () => ({
+      push,
+      popUndo,
+      popRedo,
+      canUndo,
+      canRedo,
+      clear,
+      dropLastCreate,
+      remapNodeId,
+    }),
+    [
+      push,
+      popUndo,
+      popRedo,
+      canUndo,
+      canRedo,
+      clear,
+      dropLastCreate,
+      remapNodeId,
+    ],
   );
 }

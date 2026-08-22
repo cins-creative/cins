@@ -16,8 +16,6 @@ import {
 
 import {
   AlignHorizontalSpaceAround,
-  AlertTriangle,
-  Eraser,
   Hand,
   Maximize2,
   MessageCircle,
@@ -26,6 +24,7 @@ import {
   Pencil,
   Redo2,
   RefreshCw,
+  Search,
   Square,
   StickyNote,
   Table2,
@@ -75,8 +74,6 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
     canUndo: false,
     canRedo: false,
   });
-  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
-
   const wrapRef = useRef<HTMLDivElement>(null);
   const paletteRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<BoardHandle>(null);
@@ -138,15 +135,6 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
   }, []);
 
   useEffect(() => {
-    if (!clearConfirmOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setClearConfirmOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [clearConfirmOpen]);
-
-  useEffect(() => {
     if (!paletteOpen) return;
     const onPointerDown = (e: PointerEvent) => {
       if (!paletteRef.current?.contains(e.target as Node)) {
@@ -167,6 +155,12 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
   useEffect(() => {
     if (locked) setPaletteOpen(false);
   }, [locked]);
+
+  useEffect(() => {
+    if (tool === "sticky" || tool === "shape") {
+      boardRef.current?.setTool(tool, { mau: stickyColor });
+    }
+  }, [stickyColor, tool]);
 
   const toggleFullscreen = useCallback(() => {
     const el = wrapRef.current;
@@ -227,11 +221,21 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
         return data?.node ?? null;
       },
       patchNode: async (nodeId, patch) => {
-        await fetch(`/api/chat/rooms/${roomId}/canvas/nodes/${nodeId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(patch),
-        }).catch(() => {});
+        const res = await fetch(
+          `/api/chat/rooms/${roomId}/canvas/nodes/${nodeId}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patch),
+          },
+        ).catch(() => null);
+        if (!res?.ok) return;
+        const data = (await res.json().catch(() => null)) as {
+          notice?: ChatMessage | null;
+        } | null;
+        if (data?.notice) {
+          canvasBridge.ingestCommentNotice?.(data.notice);
+        }
       },
       patchNodesLayoutBatch: async (patches) => {
         const res = await fetch(
@@ -385,11 +389,22 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
         >
           <button
             type="button"
-            className="cins-canvas-tool-btn cins-canvas-tool-btn--icon"
-            onClick={() => void boardRef.current?.addSticky(stickyColor)}
+            className={
+              "cins-canvas-tool-btn cins-canvas-tool-btn--icon" +
+              (tool === "sticky" ? " is-active" : "")
+            }
+            onClick={() => {
+              if (tool === "sticky") boardRef.current?.setTool("select");
+              else boardRef.current?.setTool("sticky", { mau: stickyColor });
+            }}
             disabled={locked}
-            title={locked ? "Canvas đang khóa" : "Thêm ghi chú"}
+            title={
+              locked
+                ? "Canvas đang khóa"
+                : "Thêm ghi chú — bấm trên canvas để đặt"
+            }
             aria-label="Thêm ghi chú"
+            aria-pressed={tool === "sticky"}
           >
             <StickyNote size={15} strokeWidth={1.9} aria-hidden />
           </button>
@@ -404,7 +419,7 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
             title={
               locked
                 ? "Canvas đang khóa"
-                : "Thêm chữ (T) — bấm trên canvas để đặt khối chữ"
+                : "Thêm chữ (T) — click: dòng chữ ôm nội dung · kéo: vùng chữ ôm khung"
             }
             aria-label="Thêm chữ"
             aria-pressed={tool === "text"}
@@ -413,35 +428,69 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
           </button>
           <button
             type="button"
-            className="cins-canvas-tool-btn cins-canvas-tool-btn--icon"
-            onClick={() => void boardRef.current?.addShape(stickyColor, "rect")}
+            className={
+              "cins-canvas-tool-btn cins-canvas-tool-btn--icon" +
+              (tool === "shape" ? " is-active" : "")
+            }
+            onClick={() => {
+              if (tool === "shape") boardRef.current?.setTool("select");
+              else {
+                boardRef.current?.setTool("shape", {
+                  mau: stickyColor,
+                  shapeKind: "rect",
+                });
+              }
+            }}
             disabled={locked}
             title={
               locked
                 ? "Canvas đang khóa"
-                : "Thêm hình — chọn hình rồi đổi kiểu chữ nhật / elip / thoi"
+                : "Thêm hình — bấm trên canvas để đặt, rồi đổi chữ nhật / elip / thoi"
             }
             aria-label="Thêm hình"
+            aria-pressed={tool === "shape"}
           >
             <Square size={15} strokeWidth={1.9} aria-hidden />
           </button>
           <button
             type="button"
-            className="cins-canvas-tool-btn cins-canvas-tool-btn--icon"
-            onClick={() => void boardRef.current?.addTable(3, 3)}
+            className={
+              "cins-canvas-tool-btn cins-canvas-tool-btn--icon" +
+              (tool === "table" ? " is-active" : "")
+            }
+            onClick={() => {
+              if (tool === "table") boardRef.current?.setTool("select");
+              else boardRef.current?.setTool("table", { rows: 3, cols: 3 });
+            }}
             disabled={locked}
-            title={locked ? "Canvas đang khóa" : "Thêm bảng 3×3"}
+            title={
+              locked
+                ? "Canvas đang khóa"
+                : "Thêm bảng 3×3 — bấm trên canvas để đặt"
+            }
             aria-label="Thêm bảng"
+            aria-pressed={tool === "table"}
           >
             <Table2 size={15} strokeWidth={1.9} aria-hidden />
           </button>
           <button
             type="button"
-            className="cins-canvas-tool-btn cins-canvas-tool-btn--icon"
-            onClick={() => void boardRef.current?.addComment()}
+            className={
+              "cins-canvas-tool-btn cins-canvas-tool-btn--icon" +
+              (tool === "comment" ? " is-active" : "")
+            }
+            onClick={() => {
+              if (tool === "comment") boardRef.current?.setTool("select");
+              else boardRef.current?.setTool("comment");
+            }}
             disabled={locked}
-            title={locked ? "Canvas đang khóa" : "Thêm bình luận"}
+            title={
+              locked
+                ? "Canvas đang khóa"
+                : "Thêm bình luận — bấm trên canvas để đặt"
+            }
             aria-label="Thêm bình luận"
+            aria-pressed={tool === "comment"}
           >
             <MessageCircle size={15} strokeWidth={1.9} aria-hidden />
           </button>
@@ -544,19 +593,17 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
           </button>
           <button
             type="button"
-            className="cins-canvas-tool-btn cins-canvas-tool-btn--icon cins-canvas-tool-btn--danger"
-            onClick={() => setClearConfirmOpen(true)}
-            disabled={locked || selection.nodeCount === 0}
+            className="cins-canvas-tool-btn cins-canvas-tool-btn--icon"
+            onClick={() => boardRef.current?.zoomToFit()}
+            disabled={selection.nodeCount === 0}
             title={
-              locked
-                ? "Canvas đang khóa"
-                : selection.nodeCount === 0
-                  ? "Canvas trống"
-                  : "Xóa hết nội dung trên canvas"
+              selection.nodeCount === 0
+                ? "Canvas trống"
+                : "Phóng vừa vùng có nội dung"
             }
-            aria-label="Xóa hết canvas"
+            aria-label="Phóng vừa vùng có nội dung"
           >
-            <Eraser size={15} strokeWidth={1.9} aria-hidden />
+            <Search size={15} strokeWidth={1.9} aria-hidden />
           </button>
           <button
             type="button"
@@ -603,51 +650,6 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
           </button>
         </div>
       </div>
-      {clearConfirmOpen ? (
-        <div
-          className="cins-canvas-clear-backdrop"
-          role="presentation"
-          onClick={() => setClearConfirmOpen(false)}
-        >
-          <div
-            className="cins-canvas-clear-dialog"
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="cins-canvas-clear-title"
-            aria-describedby="cins-canvas-clear-desc"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <span className="cins-canvas-clear-icon" aria-hidden>
-              <AlertTriangle size={22} strokeWidth={2} />
-            </span>
-            <h4 id="cins-canvas-clear-title">Xóa hết nội dung canvas?</h4>
-            <p id="cins-canvas-clear-desc">
-              Toàn bộ ghi chú, hình, bảng, nét vẽ và ảnh trên board sẽ bị gỡ.
-              Ảnh chỉ tồn tại trên canvas cũng bị xóa khỏi Cloudflare. Thao tác
-              này không hoàn tác được.
-            </p>
-            <div className="cins-canvas-clear-actions">
-              <button
-                type="button"
-                className="cins-canvas-tool-btn"
-                onClick={() => setClearConfirmOpen(false)}
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                className="cins-canvas-tool-btn cins-canvas-clear-confirm"
-                onClick={() => {
-                  boardRef.current?.clearBoard();
-                  setClearConfirmOpen(false);
-                }}
-              >
-                Xóa hết
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
       <div className="cins-canvas-board">
         {nodes === null && !error ? (
           <p className="cins-canvas-loading">Đang tải canvas…</p>

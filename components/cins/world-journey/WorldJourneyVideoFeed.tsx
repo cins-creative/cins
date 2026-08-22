@@ -6,6 +6,7 @@ import {
   Minimize2,
   Pause,
   Play,
+  Repeat,
 } from "lucide-react";
 import {
   useCallback,
@@ -146,9 +147,16 @@ function formatReelTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-/** Src ổn định — play/pause/seek qua Stream SDK; chrome native tắt để không đè meta. */
+/** Src cố định — play/pause/loop qua Stream SDK. Đổi query khi snap sẽ reload iframe (chớp). */
 function streamIframeSrc(uid: string): string {
-  return `${buildStreamIframeUrl(uid)}?autoplay=false&muted=true&controls=false&preload=auto`;
+  const params = new URLSearchParams({
+    autoplay: "false",
+    muted: "true",
+    controls: "false",
+    preload: "auto",
+    loop: "false",
+  });
+  return `${buildStreamIframeUrl(uid)}?${params.toString()}`;
 }
 
 function postStreamEvent(
@@ -196,6 +204,8 @@ function ReelSlide({
   active,
   preload,
   canPlay,
+  loopOn,
+  onToggleLoop,
 }: {
   item: GalleryMainItem;
   active: boolean;
@@ -203,6 +213,8 @@ function ReelSlide({
   preload: boolean;
   /** Chỉ play khi slide đã vào khung chính (sau scroll-into-view). */
   canPlay: boolean;
+  loopOn: boolean;
+  onToggleLoop: () => void;
 }) {
   const uid = item.streamUid!.trim();
   const poster = item.src || item.videoPreviewSrc || undefined;
@@ -234,6 +246,8 @@ function ReelSlide({
   activeRef.current = active;
   const canPlayRef = useRef(canPlay);
   canPlayRef.current = canPlay;
+  const loopOnRef = useRef(loopOn);
+  loopOnRef.current = loopOn;
   const target = reactionTarget(item);
   const caption = item.meta?.trim() || item.label?.trim() || "";
   const iframeSrc = active || preload ? streamIframeSrc(uid) : null;
@@ -332,8 +346,20 @@ function ReelSlide({
     let cancelled = false;
     let player: StreamPlayer | null = null;
 
+    const pauseIfNotCurrent = (next: StreamPlayer) => {
+      next.loop = false;
+      next.pause();
+      postStreamEvent(el, "pause");
+      setPaused(true);
+    };
+
     const onPlay = () => {
-      if (cancelled) return;
+      if (cancelled || !player) return;
+      /* Preload / chưa snap — Stream đôi khi tự play; cắt ngay. */
+      if (!activeRef.current || !canPlayRef.current) {
+        pauseIfNotCurrent(player);
+        return;
+      }
       setPaused(false);
     };
     const onPause = () => {
@@ -342,6 +368,10 @@ function ReelSlide({
     };
     const onTime = () => {
       if (cancelled || !player || scrubbingRef.current) return;
+      if (!activeRef.current || !canPlayRef.current) {
+        if (!player.paused) pauseIfNotCurrent(player);
+        return;
+      }
       setCurrentTime(player.currentTime || 0);
       /* Sync badge với player thật — tránh play qua postMessage mà UI vẫn paused. */
       if (!player.paused) setPaused(false);
@@ -357,6 +387,17 @@ function ReelSlide({
       const size = playerNaturalSize(player);
       if (size) applyNaturalAspect(size.width, size.height);
     };
+    const onEnded = () => {
+      if (cancelled || !player) return;
+      if (!loopOnRef.current || !activeRef.current || !canPlayRef.current) {
+        return;
+      }
+      if (userPausedRef.current) return;
+      player.currentTime = 0;
+      void player.play().catch(() => {
+        postStreamEvent(el, "play");
+      });
+    };
 
     const detach = () => {
       if (!player) return;
@@ -366,11 +407,15 @@ function ReelSlide({
       player.removeEventListener("timeupdate", onTime);
       player.removeEventListener("durationchange", onMeta);
       player.removeEventListener("loadedmetadata", onMeta);
+      player.removeEventListener("ended", onEnded);
     };
 
     const playIfActive = (next: StreamPlayer) => {
-      if (!activeRef.current || !canPlayRef.current || userPausedRef.current) {
-        next.pause();
+      const mayPlay =
+        activeRef.current && canPlayRef.current && !userPausedRef.current;
+      next.loop = Boolean(mayPlay && loopOnRef.current);
+      if (!mayPlay) {
+        pauseIfNotCurrent(next);
         onMeta();
         return;
       }
@@ -400,6 +445,7 @@ function ReelSlide({
         next.addEventListener("timeupdate", onTime);
         next.addEventListener("durationchange", onMeta);
         next.addEventListener("loadedmetadata", onMeta);
+        next.addEventListener("ended", onEnded);
         playIfActive(next);
       } catch {
         if (!cancelled) playerRef.current = null;
@@ -420,16 +466,26 @@ function ReelSlide({
     };
   }, [iframeSrc, uid]);
 
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player) return;
+    player.loop = loopOn && canPlay;
+    if (!canPlay) player.pause();
+  }, [loopOn, canPlay]);
+
   /* Slide vào khung chính → play; preload / chưa snap xong → pause. */
   useEffect(() => {
     const el = iframeRef.current;
 
     const playActive = () => {
-      if (userPausedRef.current || !canPlayRef.current) return;
+      if (userPausedRef.current || !canPlayRef.current || !activeRef.current) {
+        return;
+      }
       /* Ẩn nút play ngay khi bắt đầu autoplay — đừng chờ event SDK. */
       setPaused(false);
       const player = playerRef.current;
       if (player) {
+        player.loop = loopOnRef.current;
         player.muted = true;
         void player.play().catch(() => {
           void player.play().catch(() => {
@@ -751,6 +807,21 @@ function ReelSlide({
                 </span>
                 <button
                   type="button"
+                  className={
+                    "wj-reel-timeline-btn" + (loopOn ? " is-on" : "")
+                  }
+                  aria-label={loopOn ? "Tắt phát lại" : "Bật phát lại"}
+                  aria-pressed={loopOn}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleLoop();
+                    revealChrome(false);
+                  }}
+                >
+                  <Repeat size={16} strokeWidth={2.2} />
+                </button>
+                <button
+                  type="button"
                   className="wj-reel-timeline-btn"
                   aria-label={
                     isFullscreen ? "Thoát toàn màn hình" : "Phóng toàn màn hình"
@@ -949,6 +1020,10 @@ export function WorldJourneyVideoFeed({
   const [opened, setOpened] = useState(
     () => seedPlaylist(initialItems, startItemId).length > 0,
   );
+  const [loopOn, setLoopOn] = useState(true);
+  const toggleLoop = useCallback(() => {
+    setLoopOn((prev) => !prev);
+  }, []);
 
   const activeIndex = useMemo(() => {
     if (!activeId) return 0;
@@ -1242,6 +1317,8 @@ export function WorldJourneyVideoFeed({
                   active={active}
                   preload={preload}
                   canPlay={active && opened}
+                  loopOn={loopOn}
+                  onToggleLoop={toggleLoop}
                 />
               </div>
             );

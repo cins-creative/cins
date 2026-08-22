@@ -17,7 +17,16 @@ import {
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent,
+  type MutableRefObject,
+} from "react";
 import { createPortal } from "react-dom";
 
 import type {
@@ -45,6 +54,10 @@ export function dispatchJourneyOrgTagChanged(cotMocId: string) {
   );
 }
 
+export type JourneyOrgAttachOpenHandle = {
+  open: () => void;
+};
+
 type Props = {
   tacPhamId: string;
   cotMocId: string;
@@ -56,6 +69,9 @@ type Props = {
   coverAlt?: string | null;
   photoCount?: number | null;
   bodyExcerpt?: string | null;
+  /** Ẩn nút icon — caller mở modal qua `openRef`. */
+  hideTrigger?: boolean;
+  openRef?: MutableRefObject<JourneyOrgAttachOpenHandle | null>;
 };
 
 type Step = "search" | "context" | "evidence" | "status";
@@ -437,6 +453,8 @@ export function JourneyOrgAttachTrigger({
   coverAlt,
   photoCount,
   bodyExcerpt,
+  hideTrigger = false,
+  openRef,
 }: Props) {
   const headingId = useId();
   const searchAbort = useRef<AbortController | null>(null);
@@ -879,9 +897,9 @@ export function JourneyOrgAttachTrigger({
   ]);
 
   const openModal = useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>) => {
-      event.stopPropagation();
-      event.preventDefault();
+    (event?: MouseEvent) => {
+      event?.stopPropagation();
+      event?.preventDefault();
       setMessage(null);
       setSubmitNotice(null);
       setCreatingNew(false);
@@ -901,6 +919,14 @@ export function JourneyOrgAttachTrigger({
     },
     [hydrateFromRequest, loadStatusItems, resetWizard],
   );
+
+  useEffect(() => {
+    if (!openRef) return;
+    openRef.current = { open: () => openModal() };
+    return () => {
+      openRef.current = null;
+    };
+  }, [openModal, openRef]);
 
   const modal = open ? (
     <div
@@ -1382,30 +1408,32 @@ export function JourneyOrgAttachTrigger({
 
   return (
     <div className="j-org-attach" onClick={(e) => e.stopPropagation()}>
-      <button
-        type="button"
-        className="j-org-attach-trigger"
-        onClick={openModal}
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        aria-label={
-          pendingCount > 0
-            ? `Gắn tổ chức — ${pendingCount} yêu cầu đang chờ duyệt`
-            : "Gắn tổ chức"
-        }
-        title={
-          pendingCount > 0
-            ? `${pendingCount} yêu cầu đang chờ org duyệt`
-            : statusItems.length > 0
-              ? "Gắn tổ chức — xem yêu cầu đã gửi"
+      {hideTrigger ? null : (
+        <button
+          type="button"
+          className="j-org-attach-trigger"
+          onClick={openModal}
+          aria-expanded={open}
+          aria-haspopup="dialog"
+          aria-label={
+            pendingCount > 0
+              ? `Gắn tổ chức — ${pendingCount} yêu cầu đang chờ duyệt`
               : "Gắn tổ chức"
-        }
-      >
-        <Users size={15} strokeWidth={2} aria-hidden />
-        {pendingCount > 0 ? (
-          <span className="j-org-attach-pending-dot" aria-hidden />
-        ) : null}
-      </button>
+          }
+          title={
+            pendingCount > 0
+              ? `${pendingCount} yêu cầu đang chờ org duyệt`
+              : statusItems.length > 0
+                ? "Gắn tổ chức — xem yêu cầu đã gửi"
+                : "Gắn tổ chức"
+          }
+        >
+          <Users size={15} strokeWidth={2} aria-hidden />
+          {pendingCount > 0 ? (
+            <span className="j-org-attach-pending-dot" aria-hidden />
+          ) : null}
+        </button>
+      )}
       {mounted && modal ? createPortal(modal, document.body) : null}
     </div>
   );

@@ -50,7 +50,10 @@ export async function PATCH(req: Request, context: RouteContext) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
 
-  return NextResponse.json({ node: result.node });
+  return NextResponse.json({
+    node: result.node,
+    notice: result.notice ?? null,
+  });
 }
 
 /** DELETE — xóa node (mọi thành viên ghi được). Ảnh canvas-only → xóa CF. */

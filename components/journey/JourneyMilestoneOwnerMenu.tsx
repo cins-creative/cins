@@ -47,6 +47,10 @@ import {
   updateMilestoneVisibilityCustom,
 } from "@/app/[slug]/journey/actions";
 import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
+import {
+  JourneyOrgAttachTrigger,
+  type JourneyOrgAttachOpenHandle,
+} from "@/components/journey/JourneyOrgAttachTrigger";
 import { MilestoneVisibilityCustomModal } from "@/components/journey/MilestoneVisibilityCustomModal";
 import type {
   MilestoneCongDongOrg,
@@ -129,6 +133,18 @@ type Props = {
   banHangEnabled?: boolean;
   /** Cộng đồng hiện tại nếu bài đã ở feed cộng đồng. */
   congDongOrg?: MilestoneCongDongOrg | null;
+  /** Gắn tổ chức — hiện mục trong kebab, không còn icon trên card. */
+  orgAttach?: {
+    tacPhamId: string;
+    cotMocId: string;
+    milestoneTitle: string;
+    milestoneKind: string;
+    postSlug?: string | null;
+    coverSrc?: string | null;
+    coverAlt?: string | null;
+    photoCount?: number | null;
+    bodyExcerpt?: string | null;
+  } | null;
 };
 
 /* ╔══════════════════════════════════════════════════════════════════╗
@@ -206,6 +222,7 @@ export function JourneyMilestoneOwnerMenu({
   showJourneyPin = false,
   banHangEnabled = false,
   congDongOrg = null,
+  orgAttach = null,
 }: Props) {
   const router = useRouter();
   const personalAttach = useMilestonePersonalFilterAttach(
@@ -235,6 +252,7 @@ export function JourneyMilestoneOwnerMenu({
     left: number;
   } | null>(null);
 
+  const orgAttachOpenRef = useRef<JourneyOrgAttachOpenHandle | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -784,6 +802,23 @@ export function JourneyMilestoneOwnerMenu({
           )
         ) : null}
 
+        {orgAttach ? (
+          <button
+            type="button"
+            className="j-m-menu-item"
+            role="menuitem"
+            onClick={() => {
+              close();
+              orgAttachOpenRef.current?.open();
+            }}
+          >
+            <span className="j-m-menu-ico" aria-hidden>
+              <Users size={14} strokeWidth={1.7} />
+            </span>
+            <span className="j-m-menu-lbl">Gắn tổ chức</span>
+          </button>
+        ) : null}
+
         {/* Sửa bài viết */}
         {!hideEdit ? (
           postSlug ? (
@@ -1101,6 +1136,22 @@ export function JourneyMilestoneOwnerMenu({
           onAfterChange?.();
         }}
       />
+      {orgAttach ? (
+        <JourneyOrgAttachTrigger
+          hideTrigger
+          openRef={orgAttachOpenRef}
+          tacPhamId={orgAttach.tacPhamId}
+          cotMocId={orgAttach.cotMocId}
+          milestoneTitle={orgAttach.milestoneTitle}
+          milestoneKind={orgAttach.milestoneKind}
+          ownerSlug={ownerSlug}
+          postSlug={orgAttach.postSlug}
+          coverSrc={orgAttach.coverSrc}
+          coverAlt={orgAttach.coverAlt}
+          photoCount={orgAttach.photoCount}
+          bodyExcerpt={orgAttach.bodyExcerpt}
+        />
+      ) : null}
       {!foreignJourney ? (
         <MilestoneVisibilityCustomModal
           open={customOpen}

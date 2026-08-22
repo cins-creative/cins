@@ -27,6 +27,7 @@ import { PostBlockRenderer } from "@/components/journey/PostBlockRenderer";
 import { PostCover } from "@/components/editor/PostRenderer";
 import { MoTaMarkdown } from "@/components/editor/compose/MoTaMarkdown";
 import { findCoverThumbMeta } from "@/lib/journey/cover-thumb";
+import { resolvePostCoverPreviewUrl } from "@/lib/journey/post-cover-preview";
 import { formatNumber } from "@/lib/format";
 import { useT } from "@/lib/i18n/use-t";
 import { useLocale } from "@/lib/locale/context";
@@ -88,7 +89,7 @@ import { PostMetaRail } from "./PostMetaRail";
    ║ Wrap = `main.cins-editor-page.cins-post-view.editor-canvas` — một    ║
    ║ khối duy nhất (modal + permalink), không wrapper thừa bên ngoài.  ║
    ║                                                                  ║
-   ║ Rail actions = cùng `.jcard-actions` timeline (Like · Dislike ·  ║
+   ║ Rail actions = cụm jcard (Share · dislike | Lưu · BL · reaction) ║
    ║ BL · Lưu · Share).                                               ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
@@ -367,55 +368,61 @@ export function JourneyPostBody({
     ) : null;
 
   const actionsRail = (
-    <div className="jcard-actions">
-      <JourneyLikeButton
-        milestoneId={milestone.id}
-        initialLiked={social.viewerLiked}
-        initialCount={social.likeCount}
-        initialReactionEmoji={social.viewerReactionEmoji}
-        initialTopReactionEmoji={social.topReactionEmoji}
-        showCount
-      />
-      <JourneyDislikeButton
-        milestoneId={milestone.id}
-        initialDisliked={social.viewerDisliked}
-        initialCount={social.dislikeCount}
-        showCount
-      />
-      <JourneyCommentLink
-        commentCount={displayCommentCount}
-        viewerCommented={social.viewerCommented}
-        idDoiTuong={milestone.id}
-        sharePath={sharePath}
-        shareTitle={heroTitle}
-        onOpenComments={() => {
-          document
-            .getElementById(commentsSectionId)
-            ?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }}
-      />
-      {!isOwner ? (
-        <JourneyBookmarkButton
+    <div className="jcard-actions jcard-actions--clusters">
+      <div className="jcard-actions-cluster jcard-actions-cluster--start">
+        {sharePath ? (
+          <PostShareMenu
+            sharePath={sharePath}
+            shareTitle={heroTitle}
+            className="jcard-share"
+            buttonClassName="share-btn"
+            milestoneId={milestone.id}
+            canShareToCommunity={isOwner}
+            ownerSlug={owner.slug}
+            onAfterShareToCommunity={onMilestoneUpdated}
+          />
+        ) : null}
+        <JourneyDislikeButton
           milestoneId={milestone.id}
-          title={heroTitle}
-          initialSaved={social.viewerBookmarked}
-          initialCount={social.bookmarkCount}
+          initialDisliked={social.viewerDisliked}
+          initialCount={social.dislikeCount}
           showCount
         />
-      ) : null}
-      <span className="action-spacer" />
-      {sharePath ? (
-        <PostShareMenu
+      </div>
+      <div className="jcard-actions-cluster jcard-actions-cluster--end">
+        {!isOwner ? (
+          <JourneyBookmarkButton
+            milestoneId={milestone.id}
+            title={heroTitle}
+            initialSaved={social.viewerBookmarked}
+            initialCount={social.bookmarkCount}
+            showCount
+            previewAuthorName={owner.tenHienThi}
+            previewAuthorAvatarUrl={ownerAvatarUrl}
+            previewCoverSrc={resolvePostCoverPreviewUrl(coverSeed, blocks, heroSub)}
+          />
+        ) : null}
+        <JourneyCommentLink
+          commentCount={displayCommentCount}
+          viewerCommented={social.viewerCommented}
+          idDoiTuong={milestone.id}
           sharePath={sharePath}
           shareTitle={heroTitle}
-          className="jcard-share"
-          buttonClassName="share-btn"
-          milestoneId={milestone.id}
-          canShareToCommunity={isOwner}
-          ownerSlug={owner.slug}
-          onAfterShareToCommunity={onMilestoneUpdated}
+          onOpenComments={() => {
+            document
+              .getElementById(commentsSectionId)
+              ?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
         />
-      ) : null}
+        <JourneyLikeButton
+          milestoneId={milestone.id}
+          initialLiked={social.viewerLiked}
+          initialCount={social.likeCount}
+          initialReactionEmoji={social.viewerReactionEmoji}
+          initialTopReactionEmoji={social.topReactionEmoji}
+          showCount
+        />
+      </div>
     </div>
   );
 

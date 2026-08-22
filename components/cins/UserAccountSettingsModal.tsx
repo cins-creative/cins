@@ -30,8 +30,10 @@ import { useRouter } from "next/navigation";
 
 import { LayoutThumbIcon } from "@/components/editor/LayoutThumbIcon";
 import { ShopDonDetailModal } from "@/components/shop/ShopDonDetailModal";
+import { formatCurrency, formatDate, formatMoney } from "@/lib/format";
+import { useLocale } from "@/lib/locale/context";
 import {
-  SHOP_TRANG_THAI_DON_LABEL,
+  shopTrangThaiDonLabel,
   type ShopDonHang,
 } from "@/lib/shop/types";
 import type { MutualFriendProfile } from "@/lib/social/types";
@@ -59,6 +61,8 @@ import {
   normalizeJourneyDefaultView,
   type JourneyDefaultView,
 } from "@/lib/journey/journey-default-view";
+import type { MessageKey } from "@/lib/i18n/messages";
+import { useT } from "@/lib/i18n/use-t";
 
 import "./user-account-settings-modal.css";
 
@@ -73,18 +77,48 @@ type SettingsSection =
 
 const NAV: ReadonlyArray<{
   id: SettingsSection;
-  label: string;
+  labelKey: MessageKey;
   /** Chỉ hiện với `super_admin` / `admin` hệ thống. */
   adminOnly?: boolean;
 }> = [
-  { id: "journey-display", label: "Bố cục hiển thị" },
-  { id: "lich-su-mua", label: "Lịch sử mua hàng" },
-  { id: "ban-hang", label: "Bán hàng" },
-  { id: "thanh-toan", label: "Thanh toán" },
-  { id: "admin", label: "Admin", adminOnly: true },
-  { id: "user-management", label: "Quản lý người dùng" },
-  { id: "security-2fa", label: "Bảo mật 2 lớp" },
+  { id: "journey-display", labelKey: "account.settings.nav.display" },
+  { id: "lich-su-mua", labelKey: "account.settings.nav.orders" },
+  { id: "ban-hang", labelKey: "account.settings.nav.selling" },
+  { id: "thanh-toan", labelKey: "account.settings.nav.billing" },
+  { id: "admin", labelKey: "account.settings.nav.admin", adminOnly: true },
+  { id: "user-management", labelKey: "account.settings.nav.users" },
+  { id: "security-2fa", labelKey: "account.settings.nav.security" },
 ];
+
+const VIEW_COPY: Record<
+  JourneyDefaultView,
+  { label: MessageKey; desc: MessageKey }
+> = {
+  timeline: {
+    label: "account.settings.display.view.timeline",
+    desc: "account.settings.display.view.timelineDesc",
+  },
+  gallery: {
+    label: "account.settings.display.view.gallery",
+    desc: "account.settings.display.view.galleryDesc",
+  },
+  gallery_luoi: {
+    label: "account.settings.display.view.masonry",
+    desc: "account.settings.display.view.masonryDesc",
+  },
+};
+
+const HOME_LAYOUT_LABEL: Record<HomeFeedLayout, MessageKey> = {
+  timeline: "account.settings.home.layout.timeline",
+  masonry: "account.settings.home.layout.masonry",
+};
+
+const FEED_SOURCE_LABEL: Record<FeedSourceFilter, MessageKey> = {
+  all: "account.settings.home.source.all",
+  following: "account.settings.home.source.following",
+  "user-only": "account.settings.home.source.users",
+  "org-only": "account.settings.home.source.orgs",
+};
 
 type LayoutTab = "profile" | "home";
 
@@ -117,6 +151,7 @@ export function UserAccountSettingsModal({
   onClose,
   initialSection = "journey-display",
 }: Props) {
+  const t = useT();
   const titleId = useId();
   const router = useRouter();
   const [section, setSection] = useState<SettingsSection>("journey-display");
@@ -147,7 +182,7 @@ export function UserAccountSettingsModal({
         error?: string;
       } | null;
       if (!res.ok || !json) {
-        setErr(json?.error ?? "Không tải được cài đặt.");
+        setErr(json?.error ?? t("account.settings.display.loadError"));
         return;
       }
       const view = normalizeJourneyDefaultView(json.view);
@@ -157,11 +192,11 @@ export function UserAccountSettingsModal({
       setApplyToMe(apply);
       setInitialApplyToMe(apply);
     } catch {
-      setErr("Không tải được cài đặt.");
+      setErr(t("account.settings.display.loadError"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (!open) return;
@@ -239,7 +274,7 @@ export function UserAccountSettingsModal({
         error?: string;
       } | null;
       if (!res.ok || !json?.view) {
-        setErr(json?.error ?? "Không lưu được lựa chọn.");
+        setErr(json?.error ?? t("account.settings.display.saveError"));
         return;
       }
       const view = normalizeJourneyDefaultView(json.view);
@@ -251,11 +286,11 @@ export function UserAccountSettingsModal({
       setSavedTick(true);
       window.setTimeout(() => setSavedTick(false), 2200);
     } catch {
-      setErr("Không lưu được lựa chọn.");
+      setErr(t("account.settings.display.saveError"));
     } finally {
       setSaving(false);
     }
-  }, [saving, dirty, selected, applyToMe]);
+  }, [saving, dirty, selected, applyToMe, t]);
 
   if (!open || typeof document === "undefined") return null;
 
@@ -272,13 +307,13 @@ export function UserAccountSettingsModal({
           <div className="uas-head-copy">
             <Settings2 size={18} strokeWidth={2} aria-hidden />
             <h2 id={titleId} className="uas-title">
-              Cài đặt
+              {t("account.settings")}
             </h2>
           </div>
           <button
             type="button"
             className="uas-close"
-            aria-label="Đóng"
+            aria-label={t("account.settings.close")}
             onClick={onClose}
           >
             <X size={18} strokeWidth={2} aria-hidden />
@@ -286,8 +321,8 @@ export function UserAccountSettingsModal({
         </header>
 
         <div className="uas-layout">
-          <nav className="uas-nav" aria-label="Mục cài đặt">
-            {navItems.map(({ id, label }) => (
+          <nav className="uas-nav" aria-label={t("account.settings.navAria")}>
+            {navItems.map(({ id, labelKey }) => (
               <button
                 key={id}
                 type="button"
@@ -295,7 +330,7 @@ export function UserAccountSettingsModal({
                 aria-current={section === id ? "true" : undefined}
                 onClick={() => setSection(id)}
               >
-                {label}
+                {t(labelKey)}
               </button>
             ))}
           </nav>
@@ -305,14 +340,14 @@ export function UserAccountSettingsModal({
               <section className="uas-section" aria-labelledby={`${titleId}-jd`}>
                 <div className="uas-section-head">
                   <h3 id={`${titleId}-jd`} className="uas-section-title">
-                    Bố cục hiển thị
+                    {t("account.settings.nav.display")}
                   </h3>
                 </div>
 
                 <div
                   className="uas-tabs"
                   role="tablist"
-                  aria-label="Chọn trang cần chỉnh"
+                  aria-label={t("account.settings.display.pageAria")}
                 >
                   <button
                     type="button"
@@ -322,7 +357,7 @@ export function UserAccountSettingsModal({
                     onClick={() => setLayoutTab("profile")}
                   >
                     <User size={15} strokeWidth={2} aria-hidden />
-                    Trang cá nhân
+                    {t("account.profile")}
                   </button>
                   <button
                     type="button"
@@ -332,7 +367,7 @@ export function UserAccountSettingsModal({
                     onClick={() => setLayoutTab("home")}
                   >
                     <PanelsTopLeft size={15} strokeWidth={2} aria-hidden />
-                    Trang chủ
+                    {t("nav.home")}
                   </button>
                 </div>
 
@@ -341,23 +376,23 @@ export function UserAccountSettingsModal({
                     <div className="uas-layout-block">
                       <div className="uas-layout-block-head">
                         <h4 className="uas-layout-block-title">
-                          Chế độ mặc định
+                          {t("account.settings.display.defaultMode")}
                         </h4>
                         <p className="uas-layout-block-hint">
-                          Người khác thấy gì khi mở trang của bạn lần đầu.
+                          {t("account.settings.display.defaultHint")}
                         </p>
                       </div>
 
                       {loading ? (
                         <div className="uas-loading">
                           <Loader2 size={18} className="uas-spin" aria-hidden />
-                          <span>Đang tải…</span>
+                          <span>{t("account.settings.loading")}</span>
                         </div>
                       ) : (
                         <div
                           className="uas-options"
                           role="radiogroup"
-                          aria-label="Chế độ hiển thị mặc định"
+                          aria-label={t("account.settings.display.modeAria")}
                         >
                           {JOURNEY_DEFAULT_VIEW_OPTIONS.map((opt) => {
                             const Icon = OPTION_ICON[opt.value];
@@ -384,10 +419,10 @@ export function UserAccountSettingsModal({
                                 </span>
                                 <span className="uas-option-text">
                                   <span className="uas-option-label">
-                                    {opt.label}
+                                    {t(VIEW_COPY[opt.value].label)}
                                   </span>
                                   <span className="uas-option-desc">
-                                    {opt.desc}
+                                    {t(VIEW_COPY[opt.value].desc)}
                                   </span>
                                 </span>
                                 <span className="uas-option-check" aria-hidden>
@@ -407,18 +442,17 @@ export function UserAccountSettingsModal({
                         <div className="uas-toggle-row">
                           <span className="uas-toggle-text">
                             <span className="uas-toggle-label">
-                              Áp dụng cho tôi
+                              {t("account.settings.display.applyToMe")}
                             </span>
                             <span className="uas-toggle-desc">
-                              Bật: bạn cũng thấy chế độ này khi mở trang mình.
-                              Tắt: chỉ áp cho khách.
+                              {t("account.settings.display.applyToMeDesc")}
                             </span>
                           </span>
                           <button
                             type="button"
                             role="switch"
                             aria-checked={applyToMe}
-                            aria-label="Áp dụng cho tôi"
+                            aria-label={t("account.settings.display.applyToMe")}
                             className={`uas-switch${applyToMe ? " on" : ""}`}
                             onClick={() => setApplyToMe((v) => !v)}
                           >
@@ -440,10 +474,10 @@ export function UserAccountSettingsModal({
                       <div className="uas-layout-block">
                         <div className="uas-layout-block-head">
                           <h4 className="uas-layout-block-title">
-                            Khối hai bên
+                            {t("account.settings.home.sideBlocks")}
                           </h4>
                           <p className="uas-layout-block-hint">
-                            Chọn module hiện ở sidebar trái / phải.
+                            {t("account.settings.home.sideHint")}
                           </p>
                         </div>
                         <button
@@ -470,10 +504,10 @@ export function UserAccountSettingsModal({
                           </span>
                           <span className="uas-layout-cta-text">
                             <span className="uas-layout-cta-label">
-                              Chỉnh trên trang chủ
+                              {t("account.settings.home.editHome")}
                             </span>
                             <span className="uas-layout-cta-desc">
-                              Thêm · ẩn · kéo sắp xếp — chỉ trên máy tính
+                              {t("account.settings.home.editHomeDesc")}
                             </span>
                           </span>
                           <ChevronRight
@@ -488,15 +522,17 @@ export function UserAccountSettingsModal({
 
                     <div className="uas-layout-block">
                       <div className="uas-layout-block-head">
-                        <h4 className="uas-layout-block-title">Kiểu feed</h4>
+                        <h4 className="uas-layout-block-title">
+                          {t("account.settings.home.feedStyle")}
+                        </h4>
                         <p className="uas-layout-block-hint">
-                          Cách bài viết xếp khi mở trang chủ. Áp dụng ngay.
+                          {t("account.settings.home.feedHint")}
                         </p>
                       </div>
                       <div
                         className="uas-pick-grid"
                         role="radiogroup"
-                        aria-label="Kiểu feed trang chủ"
+                        aria-label={t("account.settings.home.feedAria")}
                       >
                         {HOME_FEED_LAYOUT_OPTIONS.map((opt) => {
                           const Icon = HOME_LAYOUT_ICON[opt.value];
@@ -513,7 +549,9 @@ export function UserAccountSettingsModal({
                               <span className="uas-pick-ico" aria-hidden>
                                 <Icon size={22} strokeWidth={1.8} />
                               </span>
-                              <span className="uas-pick-label">{opt.label}</span>
+                              <span className="uas-pick-label">
+                                {t(HOME_LAYOUT_LABEL[opt.value])}
+                              </span>
                               {active ? (
                                 <Check
                                   className="uas-pick-check"
@@ -531,17 +569,16 @@ export function UserAccountSettingsModal({
                     <div className="uas-layout-block">
                       <div className="uas-layout-block-head">
                         <h4 className="uas-layout-block-title">
-                          Nguồn mặc định
+                          {t("account.settings.home.source")}
                         </h4>
                         <p className="uas-layout-block-hint">
-                          Feed lấy nội dung từ đâu. Đổi nhanh được trên thanh
-                          lọc.
+                          {t("account.settings.home.sourceHint")}
                         </p>
                       </div>
                       <div
                         className="uas-chip-list"
                         role="radiogroup"
-                        aria-label="Nguồn nội dung mặc định"
+                        aria-label={t("account.settings.home.sourceAria")}
                       >
                         {FEED_SOURCE_OPTIONS.map((opt) => {
                           const Icon = FEED_SOURCE_ICON[opt.value];
@@ -557,7 +594,7 @@ export function UserAccountSettingsModal({
                               onClick={() => chooseFeedSource(opt.value)}
                             >
                               <Icon size={15} strokeWidth={2} aria-hidden />
-                              <span>{opt.label}</span>
+                              <span>{t(FEED_SOURCE_LABEL[opt.value])}</span>
                               {active ? (
                                 <Check size={13} strokeWidth={2.4} aria-hidden />
                               ) : null}
@@ -602,11 +639,13 @@ export function UserAccountSettingsModal({
 
         <footer className="uas-foot">
           {section === "journey-display" && layoutTab === "home" ? (
-            <span className="uas-foot-note">Kiểu feed &amp; nguồn áp dụng ngay</span>
+            <span className="uas-foot-note">
+              {t("account.settings.home.applyNow")}
+            </span>
           ) : savedTick ? (
             <span className="uas-saved" aria-live="polite">
               <Check size={15} strokeWidth={2.4} aria-hidden />
-              Đã lưu
+              {t("account.settings.saved")}
             </span>
           ) : (
             <span />
@@ -614,8 +653,8 @@ export function UserAccountSettingsModal({
           <div className="uas-foot-actions">
             <button type="button" className="uas-btn ghost" onClick={onClose}>
               {dirty && layoutTab === "profile" && section === "journey-display"
-                ? "Huỷ"
-                : "Đóng"}
+                ? t("account.settings.cancel")
+                : t("account.settings.close")}
             </button>
             {!(section === "journey-display" && layoutTab === "home") ? (
               <button
@@ -627,10 +666,10 @@ export function UserAccountSettingsModal({
                 {saving ? (
                   <>
                     <Loader2 size={15} className="uas-spin" aria-hidden />
-                    Đang lưu…
+                    {t("account.settings.saving")}
                   </>
                 ) : (
-                  "Lưu thay đổi"
+                  t("account.settings.save")
                 )}
               </button>
             ) : null}
@@ -645,6 +684,8 @@ export function UserAccountSettingsModal({
 type UmTab = "friends" | "pending" | "blocked";
 
 function LichSuMuaHangSection({ titleId }: { titleId: string }) {
+  const t = useT();
+  const locale = useLocale();
   const [items, setItems] = useState<ShopDonHang[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -665,14 +706,14 @@ function LichSuMuaHangSection({ titleId }: { titleId: string }) {
         } | null;
         if (cancelled) return;
         if (!res.ok) {
-          setErr(json?.error ?? "Không tải lịch sử mua.");
+          setErr(json?.error ?? t("shop.history.loadFail"));
           setItems([]);
           return;
         }
         setItems(Array.isArray(json?.items) ? json.items : []);
       } catch {
         if (!cancelled) {
-          setErr("Không tải lịch sử mua.");
+          setErr(t("shop.history.loadFail"));
           setItems([]);
         }
       } finally {
@@ -682,32 +723,28 @@ function LichSuMuaHangSection({ titleId }: { titleId: string }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   return (
     <section className="uas-section" aria-labelledby={titleId}>
       <div className="uas-section-head">
         <h3 id={titleId} className="uas-section-title">
-          Lịch sử mua hàng
+          {t("account.settings.nav.orders")}
         </h3>
-        <p className="uas-section-hint">
-          Các đơn bạn đã đặt trên CINs. Chọn một đơn để xem chi tiết. Đơn đã
-          gửi không hủy trên nền tảng — tiền và giao hàng do bạn và người bán
-          tự thỏa thuận.
-        </p>
+        <p className="uas-section-hint">{t("account.settings.orders.hint")}</p>
       </div>
 
       {loading ? (
         <div className="uas-loading">
           <Loader2 size={18} className="uas-spin" aria-hidden />
-          <span>Đang tải…</span>
+          <span>{t("account.settings.loading")}</span>
         </div>
       ) : err ? (
         <p className="uas-section-hint" style={{ color: "#b42318" }} role="alert">
           {err}
         </p>
       ) : items.length === 0 ? (
-        <p className="uas-section-hint">Bạn chưa có đơn mua nào.</p>
+        <p className="uas-section-hint">{t("shop.history.empty")}</p>
       ) : (
         <ul className="uas-mua-list">
           {items.map((don) => {
@@ -727,20 +764,26 @@ function LichSuMuaHangSection({ titleId }: { titleId: string }) {
                   <span className="uas-mua-row-main">
                     <span className="uas-mua-ma">{ma}</span>
                     <span className="uas-mua-meta">
-                      {don.banTen?.trim() || "Người bán"} · {summary}
+                      {don.banTen?.trim() || t("shop.order.seller")} · {summary}
                     </span>
                     <span className="uas-mua-time">
-                      {new Date(don.taoLuc).toLocaleString("vi-VN")}
+                      {formatDate(don.taoLuc, locale, {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </span>
                   </span>
                   <span className="uas-mua-row-side">
                     <span
                       className={`uas-mua-status uas-mua-status--${don.trangThai}`}
                     >
-                      {SHOP_TRANG_THAI_DON_LABEL[don.trangThai]}
+                      {shopTrangThaiDonLabel(don.trangThai, locale)}
                     </span>
                     <strong className="uas-mua-tong">
-                      {don.tongTien.toLocaleString("vi-VN")} {don.tienTe}
+                      {formatMoney(don.tongTien, locale, don.tienTe)}
                     </strong>
                   </span>
                 </button>
@@ -766,6 +809,7 @@ function LichSuMuaHangSection({ titleId }: { titleId: string }) {
 }
 
 function AdminSettingsSection({ titleId }: { titleId: string }) {
+  const t = useT();
   const [inboxVisible, setInboxVisible] = useState(() =>
     readAdminInboxVisible(),
   );
@@ -774,20 +818,18 @@ function AdminSettingsSection({ titleId }: { titleId: string }) {
     <section className="uas-section" aria-labelledby={titleId}>
       <div className="uas-section-head">
         <h3 id={titleId} className="uas-section-title">
-          Admin
+          {t("account.settings.nav.admin")}
         </h3>
-        <p className="uas-section-hint">
-          Tuỳ chọn hiển thị công cụ quản trị trên topbar. Chỉ tài khoản admin
-          hệ thống mới thấy mục này.
-        </p>
+        <p className="uas-section-hint">{t("account.settings.admin.hint")}</p>
       </div>
 
       <div className="uas-toggle-row" style={{ marginBottom: 12 }}>
         <span className="uas-toggle-text">
-          <span className="uas-toggle-label">Hộp thư việc cần xử lý</span>
+          <span className="uas-toggle-label">
+            {t("account.settings.admin.inbox")}
+          </span>
           <span className="uas-toggle-desc">
-            Hiện nút briefcase trên topbar (báo cáo, góp ý, đóng góp chờ duyệt…).
-            Tắt để gọn thanh điều hướng khi không cần theo dõi.
+            {t("account.settings.admin.inboxDesc")}
           </span>
         </span>
         <button
@@ -795,7 +837,7 @@ function AdminSettingsSection({ titleId }: { titleId: string }) {
           className={`uas-switch${inboxVisible ? " on" : ""}`}
           role="switch"
           aria-checked={inboxVisible}
-          aria-label="Hộp thư việc cần xử lý"
+          aria-label={t("account.settings.admin.inbox")}
           onClick={() => {
             const next = !inboxVisible;
             setInboxVisible(next);
@@ -816,16 +858,14 @@ function ThanhToanSettingsSection({
   titleId: string;
   onClose: () => void;
 }) {
+  const t = useT();
   const router = useRouter();
   return (
     <section className="uas-section" aria-labelledby={titleId}>
       <h2 id={titleId} className="uas-section-title">
-        Thanh toán
+        {t("account.settings.nav.billing")}
       </h2>
-      <p className="uas-section-desc">
-        Phí nền tảng CINs (cơ sở · shop) gom về một tài khoản của bạn. Xem nợ,
-        STK nhận phí và mã chuyển khoản.
-      </p>
+      <p className="uas-section-desc">{t("account.settings.billing.desc")}</p>
       <div className="uas-row" style={{ marginTop: "0.75rem" }}>
         <button
           type="button"
@@ -835,7 +875,7 @@ function ThanhToanSettingsSection({
             router.push("/account/billing");
           }}
         >
-          Mở thanh toán
+          {t("account.settings.billing.open")}
           <ChevronRight size={16} aria-hidden />
         </button>
       </div>
@@ -923,25 +963,6 @@ type PhiSanPanelProps = {
   chinhSachHref?: string;
 };
 
-function fmtVndPanel(n: number): string {
-  return new Intl.NumberFormat("vi-VN").format(n) + "₫";
-}
-
-function fmtNgayVnPanel(raw: string): string {
-  const t = raw.trim();
-  if (!t) return raw;
-  const d = new Date(t);
-  if (!Number.isNaN(d.getTime())) {
-    return d.toLocaleDateString("vi-VN", {
-      timeZone: "Asia/Ho_Chi_Minh",
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  }
-  return t;
-}
-
 function tyLePercentFromDecimal(tyLe: number): number {
   return Math.round(tyLe * 10000) / 100;
 }
@@ -958,16 +979,24 @@ type PhiTimelineMilestone = {
 
 function buildPhiTimeline(
   dangApDung: PhiSanDangApDung,
-  thongBao?: PhiSanThongBao[],
+  thongBao: PhiSanThongBao[] | undefined,
+  copy: {
+    now: string;
+    active: string;
+    note: string;
+    planned: string;
+    upcoming: string;
+    formatDay: (raw: string) => string;
+  },
 ): PhiTimelineMilestone[] {
   const items: PhiTimelineMilestone[] = [
     {
       id: "current",
       status: "active",
-      dateLabel: "Hiện tại",
+      dateLabel: copy.now,
       tyLePercent: dangApDung.tyLePercent ?? 0,
-      badge: "Đang áp dụng",
-      note: "doanh thu hàng tháng · trả sau",
+      badge: copy.active,
+      note: copy.note,
     },
   ];
 
@@ -984,18 +1013,18 @@ function buildPhiTimeline(
       return new Date(b.congBoLuc).getTime() - new Date(a.congBoLuc).getTime();
     });
 
-  for (const t of upcoming) {
+  for (const row of upcoming) {
     items.push({
-      id: t.id,
+      id: row.id,
       status: "upcoming",
-      dateLabel: t.hieuLucDuKien
-        ? fmtNgayVnPanel(t.hieuLucDuKien)
-        : "Dự kiến",
+      dateLabel: row.hieuLucDuKien
+        ? copy.formatDay(row.hieuLucDuKien)
+        : copy.planned,
       tyLePercent:
-        t.tyLeDuKien != null ? tyLePercentFromDecimal(t.tyLeDuKien) : 0,
-      badge: "Sắp áp dụng",
-      title: t.tieuDe,
-      note: t.noiDung,
+        row.tyLeDuKien != null ? tyLePercentFromDecimal(row.tyLeDuKien) : 0,
+      badge: copy.upcoming,
+      title: row.tieuDe,
+      note: row.noiDung,
     });
   }
 
@@ -1003,26 +1032,52 @@ function buildPhiTimeline(
 }
 
 function PhiSanPanel({ dangApDung, thongBao, chinhSachHref }: PhiSanPanelProps) {
+  const t = useT();
+  const locale = useLocale();
   if (!dangApDung) return null;
 
-  const timeline = buildPhiTimeline(dangApDung, thongBao);
+  const timeline = buildPhiTimeline(dangApDung, thongBao, {
+    now: t("account.settings.fee.now"),
+    active: t("account.settings.fee.active"),
+    note: t("account.settings.fee.note"),
+    planned: t("account.settings.fee.planned"),
+    upcoming: t("account.settings.fee.upcoming"),
+    formatDay: (raw) => {
+      const trimmed = raw.trim();
+      if (!trimmed) return raw;
+      const d = new Date(trimmed);
+      return Number.isNaN(d.getTime())
+        ? trimmed
+        : formatDate(d, locale, {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          });
+    },
+  });
 
   const stats = [
-    { k: "Kỳ tính", v: "Theo tháng lịch", note: "Chốt ngày 1 tháng sau" },
     {
-      k: "Tối thiểu xuất kỳ",
-      v: fmtVndPanel(dangApDung.toiThieuXuatKyVnd ?? 0),
-      note: "Dưới mức → dồn tháng sau",
+      k: t("account.settings.fee.period"),
+      v: t("account.settings.fee.periodVal"),
+      note: t("account.settings.fee.periodNote"),
     },
     {
-      k: "Hạn trả",
-      v: `${dangApDung.soNgayHanTra ?? 7} ngày`,
-      note: "Kể từ thông báo hoá đơn",
+      k: t("account.settings.fee.minPayout"),
+      v: formatCurrency(dangApDung.toiThieuXuatKyVnd ?? 0, locale),
+      note: t("account.settings.fee.minNote"),
     },
     {
-      k: "Đổi tỷ lệ",
-      v: `≥ ${dangApDung.camKetCongBoTruocNgay ?? 30} ngày`,
-      note: "Công bố trước khi áp dụng",
+      k: t("account.settings.fee.due"),
+      v: t("account.settings.fee.dueVal", { n: dangApDung.soNgayHanTra ?? 7 }),
+      note: t("account.settings.fee.dueNote"),
+    },
+    {
+      k: t("account.settings.fee.rateChange"),
+      v: t("account.settings.fee.rateVal", {
+        n: dangApDung.camKetCongBoTruocNgay ?? 30,
+      }),
+      note: t("account.settings.fee.rateNote"),
     },
   ];
 
@@ -1030,15 +1085,16 @@ function PhiSanPanel({ dangApDung, thongBao, chinhSachHref }: PhiSanPanelProps) 
     <aside className="uas-phi-panel" aria-labelledby="uas-phi-panel-title">
       <div className="uas-phi-panel-head">
         <h4 id="uas-phi-panel-title" className="uas-phi-panel-title">
-          Chính sách phí sàn
+          {t("account.settings.fee.title")}
         </h4>
       </div>
 
-      <p className="uas-phi-panel-lede">
-        CINs không giữ tiền hàng — bạn trả phí riêng qua mục Thanh toán.
-      </p>
+      <p className="uas-phi-panel-lede">{t("account.settings.fee.lede")}</p>
 
-      <ol className="uas-phi-timeline" aria-label="Lộ trình tỷ lệ phí sàn">
+      <ol
+        className="uas-phi-timeline"
+        aria-label={t("account.settings.fee.timelineAria")}
+      >
         {timeline.map((m, i) => (
           <li
             key={m.id}
@@ -1055,7 +1111,12 @@ function PhiSanPanel({ dangApDung, thongBao, chinhSachHref }: PhiSanPanelProps) 
                 <time className="uas-phi-timeline-date">{m.dateLabel}</time>
                 <span className="uas-phi-timeline-badge">{m.badge}</span>
               </div>
-              <p className="uas-phi-timeline-rate" aria-label={`Tỷ lệ ${m.tyLePercent}%`}>
+              <p
+                className="uas-phi-timeline-rate"
+                aria-label={t("account.settings.fee.rateAria", {
+                  n: m.tyLePercent,
+                })}
+              >
                 <span className="uas-phi-timeline-rate-num">{m.tyLePercent}</span>
                 <span className="uas-phi-timeline-rate-pct">%</span>
               </p>
@@ -1084,7 +1145,7 @@ function PhiSanPanel({ dangApDung, thongBao, chinhSachHref }: PhiSanPanelProps) 
         href={chinhSachHref || "/policies/marketplace-fee"}
         className="uas-phi-panel-link"
       >
-        Xem trang chính sách phí sàn
+        {t("account.settings.fee.policyLink")}
         <ChevronRight size={14} aria-hidden />
       </Link>
     </aside>
@@ -1092,6 +1153,7 @@ function PhiSanPanel({ dangApDung, thongBao, chinhSachHref }: PhiSanPanelProps) 
 }
 
 function BanHangSettingsSection({ titleId }: { titleId: string }) {
+  const t = useT();
   const router = useRouter();
 
   type BanHangJson = {
@@ -1127,7 +1189,7 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
   const [shopSetupHref, setShopSetupHref] = useState<string | null>(null);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [termsBody, setTermsBody] = useState("");
-  const [termsTitle, setTermsTitle] = useState("Điều khoản bán hàng");
+  const [termsTitle, setTermsTitle] = useState("");
   const [phiSan, setPhiSan] = useState<BanHangJson["phiSan"] | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -1152,7 +1214,7 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
         const json = (await res.json().catch(() => null)) as BanHangJson | null;
         if (cancelled) return;
         if (!res.ok) {
-          setErr(json?.error ?? "Không tải được.");
+          setErr(json?.error ?? t("account.settings.selling.loadError"));
           return;
         }
         applyBanHangJson(json);
@@ -1161,7 +1223,7 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
         if (json?.terms?.body) setTermsBody(json.terms.body);
         if (json?.phiSan) setPhiSan(json.phiSan);
       } catch {
-        if (!cancelled) setErr("Không tải được.");
+        if (!cancelled) setErr(t("account.settings.selling.loadError"));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -1169,7 +1231,7 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   async function patchBanHang(body: Record<string, unknown>) {
     setSaving(true);
@@ -1182,7 +1244,7 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
       });
       const json = (await res.json().catch(() => null)) as BanHangJson | null;
       if (!res.ok) {
-        setErr(json?.error ?? "Không lưu được.");
+        setErr(json?.error ?? t("account.settings.selling.saveError"));
         return;
       }
       applyBanHangJson(json);
@@ -1204,7 +1266,7 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
 
   async function saveEnabled(nextEnabled: boolean) {
     if (nextEnabled && !acceptTerms) {
-      setErr("Cần chấp nhận điều khoản trước khi bật.");
+      setErr(t("account.settings.selling.needTerms"));
       return;
     }
     await patchBanHang({
@@ -1221,13 +1283,13 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
     <section className="uas-section" aria-labelledby={titleId}>
       <div className="uas-section-head">
         <h3 id={titleId} className="uas-section-title">
-          Bán hàng
+          {t("account.settings.nav.selling")}
         </h3>
       </div>
 
       {loading ? (
         <p className="uas-section-hint">
-          <Loader2 size={14} className="shop-spin" /> Đang tải…
+          <Loader2 size={14} className="shop-spin" /> {t("account.settings.loading")}
         </p>
       ) : (
         <>
@@ -1239,10 +1301,11 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
 
           <div className="uas-toggle-row" style={{ marginBottom: 12 }}>
             <span className="uas-toggle-text">
-              <span className="uas-toggle-label">Bật chức năng bán hàng</span>
+              <span className="uas-toggle-label">
+                {t("account.settings.selling.enable")}
+              </span>
               <span className="uas-toggle-desc">
-                Bật để dùng kho hàng, quản lý bán và nhận đơn. Cần thiết lập
-                tài khoản nhận tiền (Shop) trước khi thêm hàng.
+                {t("account.settings.selling.enableDesc")}
               </span>
             </span>
             <button
@@ -1250,7 +1313,7 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
               className={`uas-switch${enabled ? " on" : ""}`}
               role="switch"
               aria-checked={enabled}
-              aria-label="Bật chức năng bán hàng"
+              aria-label={t("account.settings.selling.enable")}
               disabled={saving}
               onClick={() => void saveEnabled(!enabled)}
             >
@@ -1261,10 +1324,11 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
           {enabled ? (
             <div className="uas-toggle-row" style={{ marginBottom: 12 }}>
               <span className="uas-toggle-text">
-                <span className="uas-toggle-label">Hiển thị shop</span>
+                <span className="uas-toggle-label">
+                  {t("account.settings.selling.showShop")}
+                </span>
                 <span className="uas-toggle-desc">
-                  Hiện tab Shop và sản phẩm trên Journey. Tắt để chuẩn bị kho
-                  mà người khác chưa thấy.
+                  {t("account.settings.selling.showShopDesc")}
                 </span>
               </span>
               <button
@@ -1272,7 +1336,7 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
                 className={`uas-switch${shopVisible ? " on" : ""}`}
                 role="switch"
                 aria-checked={shopVisible}
-                aria-label="Hiển thị shop"
+                aria-label={t("account.settings.selling.showShop")}
                 disabled={saving}
                 onClick={() => void saveShopVisible(!shopVisible)}
               >
@@ -1297,14 +1361,14 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
                 onChange={(e) => setAcceptTerms(e.target.checked)}
               />
               <span>
-                Tôi đã đọc và đồng ý với điều khoản bên dưới trước khi bật.
+                {t("account.settings.selling.acceptTerms")}
               </span>
             </label>
           ) : null}
 
           <details open style={{ marginBottom: 16 }}>
             <summary style={{ cursor: "pointer", fontWeight: 600 }}>
-              {termsTitle}
+              {termsTitle || t("account.settings.selling.termsTitle")}
             </summary>
             <TermsBody body={termsBody} />
           </details>
@@ -1321,20 +1385,20 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
             <div>
               {shopReady ? (
                 <Link href="/seller/inventory" className="uas-btn primary">
-                  Vào trang quản lý
+                  {t("account.settings.selling.manage")}
                 </Link>
               ) : shopSetupHref ? (
                 <>
                   <Link href={shopSetupHref} className="uas-btn primary">
-                    Thiết lập Shop
+                    {t("account.settings.selling.setupShop")}
                   </Link>
                   <p className="uas-section-hint" style={{ marginTop: 8 }}>
-                    Cần tài khoản nhận tiền trước khi thêm hàng và nhận đơn.
+                    {t("account.settings.selling.setupHint")}
                   </p>
                 </>
               ) : (
                 <p className="uas-section-hint">
-                  Không lấy được đường dẫn Shop — thử tải lại trang.
+                  {t("account.settings.selling.noHref")}
                 </p>
               )}
             </div>
@@ -1359,6 +1423,7 @@ type UmPage = {
  * Tab «Đã chặn»: bỏ chặn (DELETE /api/ket-ban/:userId/block).
  */
 function UserManagementSection({ titleId }: { titleId: string }) {
+  const t = useT();
   const [tab, setTab] = useState<UmTab>("friends");
   const [friends, setFriends] = useState<MutualFriendProfile[]>([]);
   const [pending, setPending] = useState<MutualFriendProfile[]>([]);
@@ -1405,7 +1470,7 @@ function UserManagementSection({ titleId }: { titleId: string }) {
           }
         | null;
       if (!res.ok || !json) {
-        throw new Error(json?.error ?? "Không tải được danh sách.");
+        throw new Error(json?.error ?? t("account.settings.users.listFail"));
       }
       const items =
         (which === "friends"
@@ -1419,7 +1484,7 @@ function UserManagementSection({ titleId }: { titleId: string }) {
         nextOffset: Number(json.nextOffset ?? offset),
       };
     },
-    [],
+    [t],
   );
 
   const loadInitial = useCallback(
@@ -1435,12 +1500,12 @@ function UserManagementSection({ titleId }: { titleId: string }) {
         setNextOffset((prev) => ({ ...prev, [which]: page.nextOffset }));
         setLoaded((prev) => ({ ...prev, [which]: true }));
       } catch (e) {
-        setErr(e instanceof Error ? e.message : "Không tải được danh sách.");
+        setErr(e instanceof Error ? e.message : t("account.settings.users.listFail"));
       } finally {
         setLoading(false);
       }
     },
-    [fetchPage],
+    [fetchPage, t],
   );
 
   useEffect(() => {
@@ -1463,11 +1528,11 @@ function UserManagementSection({ titleId }: { titleId: string }) {
       setHasMore((prev) => ({ ...prev, [tab]: page.hasMore }));
       setNextOffset((prev) => ({ ...prev, [tab]: page.nextOffset }));
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Không tải thêm được.");
+      setErr(e instanceof Error ? e.message : t("account.settings.users.loadMoreFail"));
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore, fetchPage, tab, nextOffset]);
+  }, [loadingMore, fetchPage, tab, nextOffset, t]);
 
   const unblock = useCallback(
     async (userId: string) => {
@@ -1482,29 +1547,31 @@ function UserManagementSection({ titleId }: { titleId: string }) {
           error?: string;
         } | null;
         if (!res.ok) {
-          setErr(json?.error ?? "Không bỏ chặn được.");
+          setErr(json?.error ?? t("account.settings.users.unblockFail"));
           return;
         }
         setBlocked((prev) => prev.filter((u) => u.idNguoiDung !== userId));
       } catch {
-        setErr("Không bỏ chặn được.");
+        setErr(t("account.settings.users.unblockFail"));
       } finally {
         setUnblockingId(null);
       }
     },
-    [unblockingId],
+    [unblockingId, t],
   );
 
   const unfriend = useCallback(
     async (friend: MutualFriendProfile) => {
       if (friendActionId) return;
       if (!friend.ketBanId) {
-        setErr("Không tìm thấy quan hệ bạn bè để hủy.");
+        setErr(t("account.settings.users.noFriendship"));
         return;
       }
       if (
         !window.confirm(
-          `Hủy kết bạn với ${friend.tenHienThi}? Hai bạn sẽ không còn là bạn bè.`,
+          t("account.settings.users.unfriendConfirm", {
+            name: friend.tenHienThi,
+          }),
         )
       ) {
         return;
@@ -1519,19 +1586,19 @@ function UserManagementSection({ titleId }: { titleId: string }) {
           error?: string;
         } | null;
         if (!res.ok) {
-          setErr(json?.error ?? "Không hủy kết bạn được.");
+          setErr(json?.error ?? t("account.settings.users.unfriendFail"));
           return;
         }
         setFriends((prev) =>
           prev.filter((f) => f.idNguoiDung !== friend.idNguoiDung),
         );
       } catch {
-        setErr("Không hủy kết bạn được.");
+        setErr(t("account.settings.users.unfriendFail"));
       } finally {
         setFriendActionId(null);
       }
     },
-    [friendActionId],
+    [friendActionId, t],
   );
 
   const blockFriend = useCallback(
@@ -1539,7 +1606,9 @@ function UserManagementSection({ titleId }: { titleId: string }) {
       if (friendActionId) return;
       if (
         !window.confirm(
-          `Chặn ${friend.tenHienThi}? Hai bạn sẽ không còn là bạn bè và không nhắn tin cho nhau được.`,
+          t("account.settings.users.blockConfirm", {
+            name: friend.tenHienThi,
+          }),
         )
       ) {
         return;
@@ -1554,7 +1623,7 @@ function UserManagementSection({ titleId }: { titleId: string }) {
           error?: string;
         } | null;
         if (!res.ok) {
-          setErr(json?.error ?? "Không chặn được người dùng.");
+          setErr(json?.error ?? t("account.settings.users.blockFail"));
           return;
         }
         setFriends((prev) =>
@@ -1563,19 +1632,19 @@ function UserManagementSection({ titleId }: { titleId: string }) {
         // Buộc tab «Đã chặn» tải lại để thấy người vừa chặn.
         setLoaded((prev) => ({ ...prev, blocked: false }));
       } catch {
-        setErr("Không chặn được người dùng.");
+        setErr(t("account.settings.users.blockFail"));
       } finally {
         setFriendActionId(null);
       }
     },
-    [friendActionId],
+    [friendActionId, t],
   );
 
   const respondInvite = useCallback(
     async (friend: MutualFriendProfile, action: "accept" | "decline") => {
       if (inviteActionId) return;
       if (!friend.ketBanId) {
-        setErr("Không tìm thấy lời mời để xử lý.");
+        setErr(t("account.settings.users.noInvite"));
         return;
       }
       setInviteActionId(friend.idNguoiDung);
@@ -1590,7 +1659,7 @@ function UserManagementSection({ titleId }: { titleId: string }) {
           error?: string;
         } | null;
         if (!res.ok) {
-          setErr(json?.error ?? "Không xử lý được lời mời.");
+          setErr(json?.error ?? t("account.settings.users.inviteFail"));
           return;
         }
         setPending((prev) =>
@@ -1602,37 +1671,37 @@ function UserManagementSection({ titleId }: { titleId: string }) {
           setLoaded((prev) => ({ ...prev, friends: false }));
         }
       } catch {
-        setErr("Không xử lý được lời mời.");
+        setErr(t("account.settings.users.inviteFail"));
       } finally {
         setInviteActionId(null);
       }
     },
-    [inviteActionId],
+    [inviteActionId, t],
   );
 
   const list =
     tab === "friends" ? friends : tab === "pending" ? pending : blocked;
   const emptyText =
     tab === "friends"
-      ? "Bạn chưa có người bạn nào."
+      ? t("account.settings.users.emptyFriends")
       : tab === "pending"
-        ? "Không có lời mời kết bạn nào đang chờ xác nhận."
-        : "Bạn chưa chặn ai. Người bị chặn sẽ không nhắn tin cho bạn được.";
+        ? t("account.settings.users.emptyPending")
+        : t("account.settings.users.emptyBlocked");
 
   return (
     <section className="uas-section" aria-labelledby={titleId}>
       <div className="uas-section-head">
         <h3 id={titleId} className="uas-section-title">
-          Quản lý người dùng
+          {t("account.settings.nav.users")}
         </h3>
-        <p className="uas-section-hint">
-          Quản lý bạn bè, lời mời kết bạn đang chờ, và những người bạn đã chặn.
-          Bạn có thể chấp nhận / từ chối lời mời, hủy kết bạn, chặn một người,
-          hoặc bỏ chặn để nhắn tin lại bất cứ lúc nào.
-        </p>
+        <p className="uas-section-hint">{t("account.settings.users.hint")}</p>
       </div>
 
-      <div className="uas-tabs" role="tablist" aria-label="Nhóm người dùng">
+      <div
+        className="uas-tabs"
+        role="tablist"
+        aria-label={t("account.settings.users.tabsAria")}
+      >
         <button
           type="button"
           role="tab"
@@ -1641,7 +1710,7 @@ function UserManagementSection({ titleId }: { titleId: string }) {
           onClick={() => setTab("friends")}
         >
           <Users size={15} strokeWidth={2} aria-hidden />
-          Bạn bè
+          {t("account.settings.users.friends")}
         </button>
         <button
           type="button"
@@ -1651,7 +1720,7 @@ function UserManagementSection({ titleId }: { titleId: string }) {
           onClick={() => setTab("pending")}
         >
           <Clock3 size={15} strokeWidth={2} aria-hidden />
-          Chờ xác nhận
+          {t("account.settings.users.pending")}
           {pending.length > 0 ? (
             <span className="uas-tab-count">{pending.length}</span>
           ) : null}
@@ -1664,14 +1733,14 @@ function UserManagementSection({ titleId }: { titleId: string }) {
           onClick={() => setTab("blocked")}
         >
           <Ban size={15} strokeWidth={2} aria-hidden />
-          Đã chặn
+          {t("account.settings.users.blocked")}
         </button>
       </div>
 
       {loading ? (
         <div className="uas-loading">
           <Loader2 size={18} className="uas-spin" aria-hidden />
-          <span>Đang tải…</span>
+          <span>{t("account.settings.loading")}</span>
         </div>
       ) : list.length === 0 ? (
         <div className="uas-empty">
@@ -1713,10 +1782,10 @@ function UserManagementSection({ titleId }: { titleId: string }) {
                     {unblockingId === u.idNguoiDung ? (
                       <>
                         <Loader2 size={14} className="uas-spin" aria-hidden />
-                        Đang bỏ…
+                        {t("account.settings.users.unblocking")}
                       </>
                     ) : (
-                      "Bỏ chặn"
+                      t("account.settings.users.unblock")
                     )}
                   </button>
                 ) : tab === "pending" ? (
@@ -1733,13 +1802,15 @@ function UserManagementSection({ titleId }: { titleId: string }) {
                           onClick={() => void respondInvite(u, "accept")}
                         >
                           <Check size={15} strokeWidth={2.4} aria-hidden />
-                          Chấp nhận
+                          {t("account.settings.users.accept")}
                         </button>
                         <button
                           type="button"
                           className="uas-user-icon-btn"
-                          title="Từ chối lời mời"
-                          aria-label={`Từ chối lời mời từ ${u.tenHienThi}`}
+                          title={t("account.settings.users.decline")}
+                          aria-label={t("account.settings.users.declineFrom", {
+                            name: u.tenHienThi,
+                          })}
                           onClick={() => void respondInvite(u, "decline")}
                         >
                           <X size={16} strokeWidth={2.2} aria-hidden />
@@ -1758,8 +1829,10 @@ function UserManagementSection({ titleId }: { titleId: string }) {
                         <button
                           type="button"
                           className="uas-user-icon-btn"
-                          title="Hủy kết bạn"
-                          aria-label={`Hủy kết bạn với ${u.tenHienThi}`}
+                          title={t("account.settings.users.unfriend")}
+                          aria-label={t("account.settings.users.unfriendWith", {
+                            name: u.tenHienThi,
+                          })}
                           onClick={() => void unfriend(u)}
                         >
                           <UserMinus size={16} strokeWidth={2} aria-hidden />
@@ -1767,8 +1840,10 @@ function UserManagementSection({ titleId }: { titleId: string }) {
                         <button
                           type="button"
                           className="uas-user-icon-btn is-danger"
-                          title="Chặn người này"
-                          aria-label={`Chặn ${u.tenHienThi}`}
+                          title={t("account.settings.users.block")}
+                          aria-label={t("account.settings.users.blockName", {
+                            name: u.tenHienThi,
+                          })}
                           onClick={() => void blockFriend(u)}
                         >
                           <Ban size={16} strokeWidth={2} aria-hidden />
@@ -1793,10 +1868,10 @@ function UserManagementSection({ titleId }: { titleId: string }) {
           {loadingMore ? (
             <>
               <Loader2 size={15} className="uas-spin" aria-hidden />
-              Đang tải…
+              {t("account.settings.loading")}
             </>
           ) : (
-            "Xem thêm"
+            t("account.settings.users.more")
           )}
         </button>
       ) : null}
@@ -1817,6 +1892,7 @@ type TwoFactorStatus = { enabled: boolean; phoneMasked: string | null };
  * "Lưu thay đổi" của Journey). Luồng: chưa bật → nhập SĐT → gửi mã → xác minh.
  */
 function TwoFactorSection({ titleId }: { titleId: string }) {
+  const t = useT();
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<TwoFactorStatus>({
     enabled: false,
@@ -1862,16 +1938,16 @@ function TwoFactorSection({ titleId }: { titleId: string }) {
         | (TwoFactorStatus & { error?: string })
         | null;
       if (!res.ok || !json) {
-        setErr(json?.error ?? "Không tải được trạng thái.");
+        setErr(json?.error ?? t("account.settings.security.statusFail"));
         return;
       }
       setStatus({ enabled: json.enabled === true, phoneMasked: json.phoneMasked ?? null });
     } catch {
-      setErr("Không tải được trạng thái.");
+      setErr(t("account.settings.security.statusFail"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void loadStatus();
@@ -1895,7 +1971,7 @@ function TwoFactorSection({ titleId }: { titleId: string }) {
         error?: string;
       } | null;
       if (!res.ok || !json?.ok) {
-        setErr(json?.error ?? "Tính năng đang phát triển, bạn đợi thêm nhé");
+        setErr(json?.error ?? t("account.settings.security.soon"));
         if (typeof json?.cooldownSec === "number") startCooldown(json.cooldownSec);
         return;
       }
@@ -1905,15 +1981,15 @@ function TwoFactorSection({ titleId }: { titleId: string }) {
       // devCode chỉ có ở môi trường dev (stub SMS) — giúp thử luồng.
       setNotice(
         json.devCode
-          ? `Mã (chỉ hiện khi dev): ${json.devCode}`
-          : "Đã gửi mã xác minh tới số điện thoại của bạn.",
+          ? t("account.settings.security.devCode", { code: json.devCode })
+          : t("account.settings.security.sent"),
       );
     } catch {
-      setErr("Tính năng đang phát triển, bạn đợi thêm nhé");
+      setErr(t("account.settings.security.soon"));
     } finally {
       setSending(false);
     }
-  }, [sending, cooldown, phone, startCooldown]);
+  }, [sending, cooldown, phone, startCooldown, t]);
 
   const verify = useCallback(async () => {
     if (verifying) return;
@@ -1929,7 +2005,7 @@ function TwoFactorSection({ titleId }: { titleId: string }) {
         | (TwoFactorStatus & { error?: string })
         | null;
       if (!res.ok || !json?.enabled) {
-        setErr(json?.error ?? "Mã không đúng.");
+        setErr(json?.error ?? t("account.settings.security.badCode"));
         return;
       }
       setStatus({ enabled: true, phoneMasked: json.phoneMasked ?? null });
@@ -1938,11 +2014,11 @@ function TwoFactorSection({ titleId }: { titleId: string }) {
       setCode("");
       setNotice(null);
     } catch {
-      setErr("Không xác minh được mã.");
+      setErr(t("account.settings.security.verifyFail"));
     } finally {
       setVerifying(false);
     }
-  }, [verifying, phone, code]);
+  }, [verifying, phone, code, t]);
 
   const disable2fa = useCallback(async () => {
     if (disabling) return;
@@ -1954,7 +2030,7 @@ function TwoFactorSection({ titleId }: { titleId: string }) {
         | (TwoFactorStatus & { error?: string })
         | null;
       if (!res.ok || json?.enabled !== false) {
-        setErr(json?.error ?? "Không tắt được bảo mật 2 lớp.");
+        setErr(json?.error ?? t("account.settings.security.disableFail"));
         return;
       }
       setStatus({ enabled: false, phoneMasked: null });
@@ -1963,28 +2039,25 @@ function TwoFactorSection({ titleId }: { titleId: string }) {
       setCode("");
       setNotice(null);
     } catch {
-      setErr("Không tắt được bảo mật 2 lớp.");
+      setErr(t("account.settings.security.disableFail"));
     } finally {
       setDisabling(false);
     }
-  }, [disabling]);
+  }, [disabling, t]);
 
   return (
     <section className="uas-section" aria-labelledby={titleId}>
       <div className="uas-section-head">
         <h3 id={titleId} className="uas-section-title">
-          Bảo mật 2 lớp
+          {t("account.settings.nav.security")}
         </h3>
-        <p className="uas-section-hint">
-          Thêm một lớp bảo vệ cho tài khoản bằng mã gửi qua số điện thoại. Bạn
-          cần xác minh số điện thoại trước khi bật.
-        </p>
+        <p className="uas-section-hint">{t("account.settings.security.hint")}</p>
       </div>
 
       {loading ? (
         <div className="uas-loading">
           <Loader2 size={18} className="uas-spin" aria-hidden />
-          <span>Đang tải…</span>
+          <span>{t("account.settings.loading")}</span>
         </div>
       ) : status.enabled ? (
         <div className="uas-2fa-status on">
@@ -1992,9 +2065,13 @@ function TwoFactorSection({ titleId }: { titleId: string }) {
             <ShieldCheck size={22} strokeWidth={1.8} />
           </span>
           <span className="uas-2fa-status-text">
-            <span className="uas-2fa-status-label">Đang bật</span>
+            <span className="uas-2fa-status-label">
+              {t("account.settings.security.on")}
+            </span>
             <span className="uas-2fa-status-desc">
-              Số điện thoại: {status.phoneMasked ?? "đã xác minh"}
+              {t("account.settings.security.phone", {
+                phone: status.phoneMasked ?? t("account.settings.security.verified"),
+              })}
             </span>
           </span>
           <button
@@ -2006,17 +2083,19 @@ function TwoFactorSection({ titleId }: { titleId: string }) {
             {disabling ? (
               <>
                 <Loader2 size={15} className="uas-spin" aria-hidden />
-                Đang tắt…
+                {t("account.settings.security.disabling")}
               </>
             ) : (
-              "Tắt"
+              t("account.settings.security.off")
             )}
           </button>
         </div>
       ) : (
         <div className="uas-2fa-enroll">
           <label className="uas-field">
-            <span className="uas-field-label">Số điện thoại</span>
+            <span className="uas-field-label">
+              {t("account.settings.security.phoneLabel")}
+            </span>
             <div className="uas-field-row">
               <span className="uas-field-ico" aria-hidden>
                 <Smartphone size={18} strokeWidth={1.8} />
@@ -2026,7 +2105,7 @@ function TwoFactorSection({ titleId }: { titleId: string }) {
                 inputMode="tel"
                 autoComplete="tel"
                 className="uas-input"
-                placeholder="Ví dụ: 0901234567"
+                placeholder={t("account.settings.security.phonePh")}
                 value={phone}
                 disabled={step === "sent"}
                 onChange={(e) => setPhone(e.target.value)}
@@ -2040,14 +2119,14 @@ function TwoFactorSection({ titleId }: { titleId: string }) {
                 {sending ? (
                   <>
                     <Loader2 size={15} className="uas-spin" aria-hidden />
-                    Đang gửi…
+                    {t("account.settings.security.sending")}
                   </>
                 ) : cooldown > 0 ? (
-                  `Gửi lại (${cooldown}s)`
+                  t("account.settings.security.resendIn", { s: cooldown })
                 ) : step === "sent" ? (
-                  "Gửi lại"
+                  t("account.settings.security.resend")
                 ) : (
-                  "Gửi mã"
+                  t("account.settings.security.send")
                 )}
               </button>
             </div>
@@ -2055,7 +2134,9 @@ function TwoFactorSection({ titleId }: { titleId: string }) {
 
           {step === "sent" ? (
             <label className="uas-field">
-              <span className="uas-field-label">Mã xác minh (6 số)</span>
+              <span className="uas-field-label">
+                {t("account.settings.security.codeLabel")}
+              </span>
               <div className="uas-field-row">
                 <input
                   type="text"
@@ -2076,10 +2157,10 @@ function TwoFactorSection({ titleId }: { titleId: string }) {
                   {verifying ? (
                     <>
                       <Loader2 size={15} className="uas-spin" aria-hidden />
-                      Đang xác minh…
+                      {t("account.settings.security.verifying")}
                     </>
                   ) : (
-                    "Xác minh & bật"
+                    t("account.settings.security.verifyOn")
                   )}
                 </button>
               </div>

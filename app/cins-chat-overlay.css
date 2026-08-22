@@ -3476,78 +3476,6 @@ body:has(.cins-shell--chat-page) .cins-chat-root.is-chat-fullscreen,
   background: color-mix(in srgb, #b91c1c 10%, transparent);
 }
 
-.cins-canvas-clear-backdrop {
-  position: absolute;
-  inset: 0;
-  z-index: 40;
-  display: grid;
-  place-items: center;
-  padding: 16px;
-  background: rgba(15, 23, 42, 0.42);
-  backdrop-filter: blur(2px);
-}
-
-.cins-canvas-clear-dialog {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: min(360px, 100%);
-  padding: 18px 16px 14px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--bg-surface, #fff);
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.2);
-}
-
-.cins-canvas-clear-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: rgba(185, 28, 28, 0.1);
-  color: #b91c1c;
-}
-
-.cins-canvas-clear-dialog h4 {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--ink-display);
-}
-
-.cins-canvas-clear-dialog p {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--ink-muted);
-}
-
-.cins-canvas-clear-actions {
-  display: flex;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 6px;
-}
-
-.cins-canvas-clear-confirm {
-  border-color: #b91c1c;
-  background: #b91c1c;
-  color: #fff;
-}
-
-.cins-canvas-clear-confirm:hover:not(:disabled) {
-  border-color: #991b1b;
-  background: #991b1b;
-  color: #fff;
-}
-
-:root[data-theme="dark"] .cins-canvas-clear-dialog {
-  background: var(--bg-surface, #0f172a);
-}
-
 @keyframes cins-canvas-spin {
   to {
     transform: rotate(360deg);
@@ -4153,6 +4081,7 @@ body:has(.cins-shell--chat-page) .cins-chat-root.is-chat-fullscreen,
 
 /* Bảng trên canvas */
 .cins-canvas-card-table {
+  position: relative;
   display: flex;
   flex-direction: column;
   padding: 0;
@@ -4167,6 +4096,15 @@ body:has(.cins-shell--chat-page) .cins-chat-root.is-chat-fullscreen,
 .cins-canvas-card-table.is-interactive {
   border-color: var(--cins-blue, #1f74c9);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--cins-blue, #1f74c9) 35%, transparent);
+}
+
+.cins-canvas-card-table.has-rails,
+.cins-canvas-shape:has(> .cins-canvas-card-table.has-rails) {
+  overflow: visible;
+}
+
+.cins-board-node:has(> .cins-canvas-card-table.has-rails) {
+  z-index: 6;
 }
 
 /* Bình luận trên canvas — bubble chat nền tối */
@@ -4307,15 +4245,31 @@ body:has(.cins-shell--chat-page) .cins-chat-root.is-chat-fullscreen,
   color: #64748b;
 }
 
+.cins-canvas-table-chrome {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.cins-canvas-table-chrome > * {
+  pointer-events: auto;
+}
+
 .cins-canvas-table-drag {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 22px;
+  height: 18px;
+  border-radius: 6px;
   cursor: grab;
   color: var(--ink-muted, rgba(0, 0, 0, 0.4));
-  background: color-mix(in srgb, var(--bg-page, #f4f5f8) 85%, var(--cins-blue, #1f74c9));
-  border-bottom: 1px solid var(--border, #e5e7eb);
+  background: color-mix(in srgb, var(--bg-surface, #fff) 88%, var(--cins-blue, #1f74c9));
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
   touch-action: none;
   user-select: none;
 }
@@ -4324,10 +4278,147 @@ body:has(.cins-shell--chat-page) .cins-chat-root.is-chat-fullscreen,
   cursor: grabbing;
 }
 
+.cins-canvas-table-hint {
+  margin-left: 8px;
+  color: var(--cins-blue-dark, #1656a0);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 .cins-canvas-table-scroll {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
+}
+
+.cins-canvas-table-inner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.cins-canvas-table-col-rail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -22px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.cins-canvas-table-corner {
+  position: absolute;
+  left: -24px;
+  top: -22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  width: 22px;
+  height: 20px;
+}
+
+.cins-canvas-table-col-slot {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.cins-canvas-table-row-rail {
+  position: absolute;
+  left: -22px;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.cins-canvas-table-row-slot {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.cins-canvas-table-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: var(--bg-surface, #fff);
+  color: var(--ink-muted, rgba(0, 0, 0, 0.42));
+  cursor: pointer;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--border, #e5e7eb) 80%, transparent);
+}
+
+.cins-canvas-table-icon:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 14%, #fff);
+  color: var(--cins-blue, #1f74c9);
+}
+
+.cins-canvas-table-icon:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+}
+
+.cins-canvas-table-icon.is-toggle.is-on {
+  background: var(--cins-blue-soft, #e7f0fb);
+  color: var(--cins-blue-dark, #1656a0);
+}
+
+.cins-canvas-table-icon.is-edge {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background: var(--bg-surface, #fff);
+  color: var(--cins-blue, #1f74c9);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.14);
+}
+
+.cins-canvas-table-icon.is-edge-col {
+  top: 50%;
+  right: -20px;
+  transform: translateY(-50%);
+}
+
+.cins-canvas-table-icon.is-edge-row {
+  left: 50%;
+  bottom: -20px;
+  transform: translateX(-50%);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cins-canvas-table-col-slot .cins-canvas-table-icon,
+  .cins-canvas-table-row-slot .cins-canvas-table-icon {
+    opacity: 0;
+  }
+
+  .cins-canvas-table-col-slot:hover .cins-canvas-table-icon,
+  .cins-canvas-table-col-slot.is-hot .cins-canvas-table-icon,
+  .cins-canvas-table-row-slot:hover .cins-canvas-table-icon,
+  .cins-canvas-table-row-slot.is-hot .cins-canvas-table-icon,
+  .cins-canvas-table-icon.is-toggle,
+  .cins-canvas-table-icon.is-edge,
+  .cins-canvas-table-icon:focus-visible {
+    opacity: 1;
+  }
 }
 
 .cins-canvas-table {
@@ -4337,10 +4428,66 @@ body:has(.cins-shell--chat-page) .cins-chat-root.is-chat-fullscreen,
   table-layout: fixed;
 }
 
-.cins-canvas-table td {
+.cins-canvas-table td,
+.cins-canvas-table th {
   border: 1px solid var(--border, #e5e7eb);
   padding: 0;
   vertical-align: middle;
+  background: var(--bg-surface, #fff);
+}
+
+.cins-canvas-table .is-hot-col,
+.cins-canvas-table .is-hot-row {
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 8%, #fff);
+}
+
+.cins-canvas-table th.is-hot-col,
+.cins-canvas-table th.is-hot-row {
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 16%, var(--cins-blue-soft, #e7f0fb));
+}
+
+.cins-canvas-table .is-delete-col,
+.cins-canvas-table .is-delete-row {
+  background: color-mix(in srgb, #dc2626 12%, #fff);
+}
+
+.cins-canvas-table th.is-delete-col,
+.cins-canvas-table th.is-delete-row {
+  background: color-mix(in srgb, #dc2626 16%, var(--cins-blue-soft, #e7f0fb));
+}
+
+.cins-canvas-table .is-insert-after-col {
+  box-shadow: inset -3px 0 0 var(--cins-blue, #1f74c9);
+}
+
+.cins-canvas-table .is-insert-after-row {
+  box-shadow: inset 0 -3px 0 var(--cins-blue, #1f74c9);
+}
+
+.cins-canvas-table .is-insert-after-col.is-insert-after-row {
+  box-shadow:
+    inset -3px 0 0 var(--cins-blue, #1f74c9),
+    inset 0 -3px 0 var(--cins-blue, #1f74c9);
+}
+
+.cins-canvas-table th.is-header-row,
+.cins-canvas-table th.is-header-col,
+.cins-canvas-table th.is-header-corner {
+  background: color-mix(in srgb, var(--cins-blue-soft, #e7f0fb) 88%, #fff);
+}
+
+.cins-canvas-table th.is-header-row {
+  border-bottom: 2px solid var(--cins-blue, #1f74c9);
+}
+
+.cins-canvas-table th.is-header-col {
+  border-right: 2px solid var(--cins-blue, #1f74c9);
+}
+
+.cins-canvas-table th.is-header-corner {
+  border-bottom: 2px solid var(--cins-blue, #1f74c9);
+  border-right: 2px solid var(--cins-blue, #1f74c9);
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 16%, #fff);
 }
 
 .cins-canvas-table-cell,
@@ -4355,9 +4502,28 @@ body:has(.cins-shell--chat-page) .cins-chat-root.is-chat-fullscreen,
   font: inherit;
   font-size: 13px;
   line-height: 1.35;
+  font-weight: 400;
   text-align: left;
   box-sizing: border-box;
   cursor: text;
+}
+
+.cins-canvas-table-cell.is-header,
+.cins-canvas-table-cell-text.is-header {
+  font-weight: 650;
+  color: var(--cins-blue-dark, #1656a0);
+  letter-spacing: 0.01em;
+}
+
+.cins-canvas-table-cell.is-header-row,
+.cins-canvas-table-cell-text.is-header-row {
+  text-align: center;
+}
+
+.cins-canvas-table-cell.is-header-col:not(.is-header-row),
+.cins-canvas-table-cell-text.is-header-col:not(.is-header-row) {
+  text-align: right;
+  padding-right: 10px;
 }
 
 button.cins-canvas-table-cell-text {
@@ -4376,41 +4542,6 @@ button.cins-canvas-table-cell-text {
   overflow: hidden;
 }
 
-.cins-canvas-table-tools {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  flex: 0 0 auto;
-  padding: 4px 6px;
-  border-top: 1px solid var(--border, #e5e7eb);
-  background: color-mix(in srgb, var(--bg-page, #f4f5f8) 90%, transparent);
-}
-
-.cins-canvas-table-tool {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  min-height: 26px;
-  padding: 2px 8px;
-  border: 1px solid var(--border, #d1d5db);
-  border-radius: 6px;
-  background: var(--bg-surface, #fff);
-  color: var(--ink-body, #1f2937);
-  font: inherit;
-  font-size: 11.5px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.cins-canvas-table-tool:hover:not(:disabled) {
-  border-color: var(--cins-blue, #1f74c9);
-  color: var(--cins-blue, #1f74c9);
-}
-
-.cins-canvas-table-tool:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
 
 /* Nét vẽ tự do */
 .cins-canvas-card-draw {
@@ -4433,6 +4564,10 @@ button.cins-canvas-table-cell-text {
 
 .cins-board.is-text-tool {
   cursor: text;
+}
+
+.cins-board.is-place-tool {
+  cursor: crosshair;
 }
 
 .cins-board-draw-draft {
@@ -4490,6 +4625,7 @@ button.cins-canvas-table-cell-text {
   color: var(--ink-display);
   font: inherit;
   font-size: 12.5px;
+  font-weight: 700;
 }
 
 .cins-canvas-group-name:focus {
@@ -4595,6 +4731,28 @@ button.cins-canvas-table-cell-text {
   cursor: grab;
 }
 
+.cins-board-node.is-just-placed > .cins-canvas-card {
+  transform-origin: 12px 10px;
+  animation: cins-board-place-in 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes cins-board-place-in {
+  from {
+    opacity: 0.25;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cins-board-node.is-just-placed > .cins-canvas-card {
+    animation: none;
+  }
+}
+
 .cins-board-node.is-dragging {
   will-change: transform;
   cursor: grabbing;
@@ -4632,6 +4790,29 @@ button.cins-canvas-table-cell-text {
 
 .cins-board-node.cins-canvas-shape--frame {
   cursor: grab;
+}
+
+.cins-board-node.cins-canvas-shape--frame.is-group-snap {
+  z-index: 4;
+  outline: 3px solid var(--cins-blue, #1f74c9);
+  outline-offset: 4px;
+  animation: cins-group-snap-alarm 0.65s ease-in-out infinite;
+}
+
+.cins-board-node.cins-canvas-shape--frame.is-group-snap .cins-canvas-card-frame {
+  box-shadow: inset 0 0 0 3px var(--cins-blue, #1f74c9);
+}
+
+@keyframes cins-group-snap-alarm {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--cins-blue, #1f74c9) 50%, transparent);
+    outline-color: var(--cins-blue, #1f74c9);
+  }
+  50% {
+    box-shadow: 0 0 0 16px color-mix(in srgb, var(--cins-blue, #1f74c9) 0%, transparent);
+    outline-color: color-mix(in srgb, var(--cins-blue, #1f74c9) 55%, #fff);
+  }
 }
 
 /* Handle resize 4 góc */
@@ -4849,15 +5030,62 @@ button.cins-canvas-table-cell-text {
   color: var(--ink-display);
 }
 
+.cins-canvas-card.cins-canvas-card-sticky.is-text-fit {
+  overflow: hidden;
+}
+
+.cins-canvas-card-sticky.is-text-fit .cins-canvas-sticky-text,
+.cins-canvas-card-sticky.is-text-fit .cins-canvas-sticky-editor {
+  white-space: pre;
+  word-break: normal;
+  overflow: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.cins-canvas-card-sticky.is-text-fit .cins-canvas-sticky-editor {
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+  height: auto;
+  min-height: 100%;
+}
+
+.cins-canvas-card-sticky.is-text-fit .cins-canvas-sticky-text::-webkit-scrollbar,
+.cins-canvas-card-sticky.is-text-fit .cins-canvas-sticky-editor::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.cins-canvas-card-sticky.is-text-area {
+  overflow: hidden;
+}
+
+.cins-canvas-card-sticky.is-text-area .cins-canvas-sticky-text,
+.cins-canvas-card-sticky.is-text-area .cins-canvas-sticky-editor,
+.cins-canvas-card-sticky.is-text-area .cins-canvas-sticky-editor.is-area {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: hidden;
+}
+
 /* Thanh thao tác nổi trên selection — Nhóm / tên / màu nền / xóa */
 .cins-board-selbar {
   position: absolute;
   z-index: 5;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
+  justify-content: center;
   flex-wrap: wrap;
   gap: 6px;
-  max-width: calc(100% - 24px);
+  width: max-content;
+  /* Trần cố định — không phụ thuộc leftover `left` (tránh zoom làm hẹp rồi vỡ hàng). */
+  max-width: min(22.5rem, calc(100% - 16px));
   padding: 6px;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg, 12px);
@@ -4868,6 +5096,7 @@ button.cins-canvas-table-cell-text {
 .cins-board-selbar-group {
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
   gap: 4px;
   padding: 2px;
   border-radius: 8px;
@@ -4904,6 +5133,8 @@ button.cins-canvas-table-cell-text {
 
 .cins-board-selbar .cins-canvas-palette {
   margin-left: 0;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
   gap: 5px;
   padding: 2px 4px;
 }
@@ -4935,6 +5166,11 @@ button.cins-canvas-table-cell-text {
 .cins-board-wire-opt:hover {
   color: var(--ink);
   background: color-mix(in srgb, var(--ink) 8%, transparent);
+}
+
+.cins-board-wire-opt:active {
+  color: var(--cins-blue, #1f74c9);
+  background: color-mix(in srgb, var(--cins-blue, #1f74c9) 16%, transparent);
 }
 
 .cins-board-wire-opt.is-active {
@@ -4988,6 +5224,11 @@ button.cins-canvas-table-cell-text {
   background: rgba(31, 116, 201, 0.08);
   border: 1px solid rgba(31, 116, 201, 0.55);
   pointer-events: none;
+}
+
+.cins-board-marquee.is-place-text {
+  background: color-mix(in srgb, var(--ink-display, #111827) 6%, transparent);
+  border: 1.5px dashed color-mix(in srgb, var(--ink-display, #111827) 45%, transparent);
 }
 
 /* Sticky inline edit */
@@ -5342,6 +5583,24 @@ button.cins-canvas-table-cell-text {
   max-width: 100%;
 }
 
+/* Cột bubble + thời gian dưới (không nhét time vào trong bubble). */
+.cins-chat-bubble-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: max-content;
+  max-width: 100%;
+  gap: 4px;
+}
+
+.cins-chat-bubble-row.is-me .cins-chat-bubble-main {
+  align-items: flex-end;
+}
+
+.cins-chat-bubble-row.is-them .cins-chat-bubble-main {
+  align-items: flex-start;
+}
+
 .cins-chat-bubble-wrap.has-bubble-actions {
   touch-action: manipulation;
   -webkit-touch-callout: none;
@@ -5378,6 +5637,7 @@ button.cins-canvas-table-cell-text {
   }
 
   .cins-chat-bubble-wrap.is-swipe-reply > .cins-chat-bubble,
+  .cins-chat-bubble-wrap.is-swipe-reply > .cins-chat-bubble-main,
   .cins-chat-bubble-wrap.is-swipe-reply > .cins-chat-don-hang-body,
   .cins-chat-bubble-wrap.is-swipe-reply > .cins-chat-bare-media-body {
     transform: translate3d(var(--cins-chat-swipe-x, 0px), 0, 0);
@@ -5387,13 +5647,24 @@ button.cins-canvas-table-cell-text {
 
 /* Nội dung bubble không chặn hit — tap luôn về wrap (trừ interactive bên dưới). */
 .cins-chat-bubble-wrap.has-bubble-actions .cins-chat-bubble,
+.cins-chat-bubble-wrap.has-bubble-actions .cins-chat-bubble-main,
 .cins-chat-bubble-wrap.has-bubble-actions .cins-chat-don-hang-body,
 .cins-chat-bubble-wrap.has-bubble-actions .cins-chat-bare-media-body {
   pointer-events: none;
 }
 
+.cins-chat-bubble-wrap.has-bubble-actions .cins-chat-msg-image-link,
+.cins-chat-bubble-wrap.has-bubble-actions .cins-chat-album-cell,
+.cins-chat-bubble-wrap.has-bubble-actions .cins-chat-msg-sticker-btn {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 .cins-chat-bubble-wrap.has-bubble-actions a[href],
 .cins-chat-bubble-wrap.has-bubble-actions .cins-chat-msg-image-link,
+.cins-chat-bubble-wrap.has-bubble-actions .cins-chat-album-cell,
+.cins-chat-bubble-wrap.has-bubble-actions .cins-chat-msg-sticker-btn,
 .cins-chat-bubble-wrap.has-bubble-actions .cins-chat-reaction-chip,
 .cins-chat-bubble-wrap.has-bubble-actions .cins-chat-msg-actions,
 .cins-chat-bubble-wrap.has-bubble-actions .cins-chat-msg-actions button,
@@ -5475,7 +5746,9 @@ button.cins-canvas-table-cell-text {
 .cins-chat-bubble.has-media-card.is-me,
 .cins-chat-bubble.has-media-card.is-them,
 .cins-chat-bubble.has-album.is-me,
-.cins-chat-bubble.has-album.is-them {
+.cins-chat-bubble.has-album.is-them,
+:root[data-theme="dark"] .cins-chat-bubble.has-media-card.is-me,
+:root[data-theme="dark"] .cins-chat-bubble.has-album.is-me {
   padding: 0;
   background: transparent;
   border: 0;
@@ -5626,7 +5899,25 @@ button.cins-canvas-table-cell-text {
     box-sizing: border-box;
   }
 
+  .cins-chat-bubble-row.is-bare-media-row .cins-chat-msg-stack,
+  .cins-chat-bubble-row.is-media-row .cins-chat-msg-stack,
+  .cins-chat-bubble-row.is-bare-media-row.has-sender-cluster,
+  .cins-chat-bubble-row.is-media-row.has-sender-cluster {
+    width: fit-content;
+    max-width: 100%;
+  }
+
+  .cins-chat-bubble-row.is-bare-media-row .cins-chat-msg-stack > .cins-chat-bubble-wrap,
+  .cins-chat-bubble-row.is-media-row .cins-chat-msg-stack > .cins-chat-bubble-wrap,
+  .cins-chat-bubble-row.is-bare-media-row.has-sender-cluster .cins-chat-bubble-wrap,
+  .cins-chat-bubble-row.is-media-row.has-sender-cluster .cins-chat-bubble-wrap {
+    width: fit-content;
+    max-width: 100%;
+    padding-left: 0;
+  }
+
   .cins-chat-bubble-wrap > .cins-chat-bubble,
+  .cins-chat-bubble-wrap > .cins-chat-bubble-main,
   .cins-chat-bubble-wrap > .cins-chat-don-hang-body,
   .cins-chat-bubble-wrap > .cins-chat-bare-media-body {
     min-width: 0;
@@ -5679,9 +5970,11 @@ button.cins-canvas-table-cell-text {
 }
 
 .cins-chat-bubble-wrap.is-actions-open > .cins-chat-bubble,
+.cins-chat-bubble-wrap.is-actions-open > .cins-chat-bubble-main,
 .cins-chat-bubble-wrap.is-actions-open > .cins-chat-don-hang-body,
 .cins-chat-bubble-wrap.is-actions-open > .cins-chat-bare-media-body,
 .cins-chat-bubble-wrap.is-touch-actions > .cins-chat-bubble,
+.cins-chat-bubble-wrap.is-touch-actions > .cins-chat-bubble-main,
 .cins-chat-bubble-wrap.is-touch-actions > .cins-chat-don-hang-body,
 .cins-chat-bubble-wrap.is-touch-actions > .cins-chat-bare-media-body {
   max-width: 100% !important;
@@ -5706,6 +5999,7 @@ button.cins-canvas-table-cell-text {
 
   .cins-chat-bubble-wrap.is-touch-actions,
   .cins-chat-bubble-wrap.is-touch-actions .cins-chat-bubble,
+  .cins-chat-bubble-wrap.is-touch-actions .cins-chat-bubble-main,
   .cins-chat-bubble-wrap.is-touch-actions .cins-chat-don-hang-body,
   .cins-chat-bubble-wrap.is-touch-actions .cins-chat-bare-media-body {
     -webkit-user-select: none;
@@ -5715,6 +6009,7 @@ button.cins-canvas-table-cell-text {
   }
 
   .cins-chat-bubble-wrap.is-touch-actions > .cins-chat-bubble,
+  .cins-chat-bubble-wrap.is-touch-actions > .cins-chat-bubble-main,
   .cins-chat-bubble-wrap.is-touch-actions > .cins-chat-don-hang-body,
   .cins-chat-bubble-wrap.is-touch-actions > .cins-chat-bare-media-body {
     max-width: 100%;
@@ -6286,12 +6581,19 @@ button.cins-canvas-table-cell-text {
 
 .cins-chat-reaction-actors-emojis {
   font-family:
-    "Segoe UI Emoji",
     "Apple Color Emoji",
+    "Segoe UI Emoji",
     "Noto Color Emoji",
     emoji,
     sans-serif;
   letter-spacing: 1px;
+  opacity: 1;
+  filter: none;
+  /* Windows: ink-muted của head nhuộm color-emoji → glyph mờ. */
+  color: initial;
+  -webkit-text-fill-color: initial;
+  font-variant-emoji: emoji;
+  -webkit-font-smoothing: auto;
 }
 
 .cins-chat-reaction-actor-emoji {
@@ -6300,11 +6602,17 @@ button.cins-canvas-table-cell-text {
   font-size: 14px;
   line-height: 1;
   font-family:
-    "Segoe UI Emoji",
     "Apple Color Emoji",
+    "Segoe UI Emoji",
     "Noto Color Emoji",
     emoji,
     sans-serif;
+  opacity: 1;
+  filter: none;
+  color: initial;
+  -webkit-text-fill-color: initial;
+  font-variant-emoji: emoji;
+  -webkit-font-smoothing: auto;
 }
 
 .cins-chat-reaction-chip {
@@ -6734,7 +7042,7 @@ button.cins-canvas-table-cell-text {
   display: block;
   aspect-ratio: 1;
   overflow: hidden;
-  background: rgba(15, 23, 42, 0.08);
+  background: transparent;
   padding: 0;
   border: 0;
   cursor: pointer;
@@ -7106,6 +7414,35 @@ button.cins-canvas-table-cell-text {
   width: fit-content;
   max-width: 100%;
   align-items: center;
+}
+
+/*
+ * Stack width:100% làm row nở tới max-width 82% — ảnh "me" nằm lệch vào giữa.
+ * Ảnh-only: ôm nội dung — is-me sát phải, is-them sát trái (cùng tin chữ).
+ */
+.cins-chat-bubble-row.is-bare-media-row .cins-chat-msg-stack,
+.cins-chat-bubble-row.is-media-row .cins-chat-msg-stack {
+  width: fit-content;
+  max-width: 100%;
+}
+
+.cins-chat-bubble-row.is-bare-media-row .cins-chat-msg-inline {
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.cins-chat-bubble-row.is-bare-media-row.has-sender-cluster .cins-chat-msg-stack > .cins-chat-bubble-wrap,
+.cins-chat-bubble-row.is-media-row.has-sender-cluster .cins-chat-msg-stack > .cins-chat-bubble-wrap {
+  padding-left: 0;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.cins-chat-bubble-row.has-sender-cluster.is-bare-media-row,
+.cins-chat-bubble-row.has-sender-cluster.is-media-row {
+  width: fit-content;
 }
 
 .cins-chat-bare-media-body {
@@ -8660,7 +8997,7 @@ button.cins-chat-don-card-cta.is-action:disabled {
   display: none;
 }
 
-/* Máy ảnh: chỉ hiện trên layout chat mobile — chụp xong gửi ngay. */
+/* Máy ảnh: chỉ hiện trên layout chat mobile — chụp xong mở editor rồi gửi. */
 .cins-chat-attach-camera {
   display: none;
 }
@@ -9075,6 +9412,12 @@ button.cins-chat-don-card-cta.is-action:disabled {
   color: var(--ink-muted, rgba(0, 0, 0, 0.32));
   -webkit-text-fill-color: var(--ink-muted, rgba(0, 0, 0, 0.32));
   opacity: 1;
+  /* Ô hẹp (icon compose) — placeholder nhỏ, 1 dòng, không đẩy textarea cao thêm. */
+  font-size: 12px;
+  line-height: var(--cins-chat-compose-lh, 1.45);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cins-chat-send {
@@ -10381,6 +10724,11 @@ button.cins-chat-don-card-cta.is-action:disabled {
     overflow-anchor: none;
   }
 
+  .cins-chat-bubble-row.is-bare-media-row,
+  .cins-chat-bubble-row.is-media-row {
+    max-width: min(var(--cins-chat-media-max-w), 100%);
+  }
+
   .cins-chat-compose {
     flex-shrink: 0;
     padding-bottom: max(14px, env(safe-area-inset-bottom, 0px));
@@ -10389,6 +10737,10 @@ button.cins-chat-don-card-cta.is-action:disabled {
   /* Focus ô soạn: thu icon chức năng, textarea chiếm chỗ; ≥16px tránh iOS zoom. */
   .cins-chat-input-wrap textarea {
     font-size: max(16px, 1rem);
+  }
+
+  .cins-chat-input-wrap textarea::placeholder {
+    font-size: 12px;
   }
 
   .cins-chat-attach-camera {
@@ -12915,7 +13267,10 @@ button.cins-chat-project-card-mark:hover {
   background: rgba(79, 155, 232, 0.16);
 }
 
-:root[data-theme="dark"] .cins-chat-album-cell,
+:root[data-theme="dark"] .cins-chat-album-cell {
+  background: transparent;
+}
+
 :root[data-theme="dark"] .cins-chat-sticker-picker-tab-fallback {
   background: rgba(255, 255, 255, 0.1);
 }
@@ -16089,4 +16444,207 @@ button.cins-chat-project-card-mark:hover {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 16px;
+}
+
+.cins-chat-capture-edit {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  max-width: none;
+  max-height: none;
+  width: 100%;
+  height: 100%;
+  background: #111;
+  color: #fff;
+  overflow: hidden;
+}
+
+.cins-chat-capture-edit::backdrop {
+  background: #111;
+}
+
+.cins-chat-capture-edit-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  height: 100dvh;
+  padding:
+    env(safe-area-inset-top, 0)
+    env(safe-area-inset-right, 0)
+    env(safe-area-inset-bottom, 0)
+    env(safe-area-inset-left, 0);
+  box-sizing: border-box;
+}
+
+.cins-chat-capture-edit-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 52px;
+  padding: 8px 12px;
+  flex-shrink: 0;
+}
+
+.cins-chat-capture-edit-bar h2 {
+  margin: 0;
+  font-family: var(--font-sans, "Be Vietnam Pro", sans-serif);
+  font-size: 15px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.cins-chat-capture-edit-text-btn,
+.cins-chat-capture-edit-send,
+.cins-chat-capture-edit-text-dock button,
+.cins-chat-capture-edit-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #fff;
+  font-family: var(--font-sans, "Be Vietnam Pro", sans-serif);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.cins-chat-capture-edit-send {
+  background: var(--cins-blue, #1f74c9);
+  color: #fff;
+}
+
+.cins-chat-capture-edit-send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cins-chat-capture-edit-stage {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: 4px 12px;
+}
+
+.cins-chat-capture-edit-canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  touch-action: none;
+  border-radius: 8px;
+}
+
+.cins-chat-capture-edit-err {
+  margin: 0;
+  padding: 16px;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+}
+
+.cins-chat-capture-edit-text-dock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  flex-shrink: 0;
+}
+
+.cins-chat-capture-edit-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-family: var(--font-sans, "Be Vietnam Pro", sans-serif);
+  font-size: max(16px, 1rem);
+}
+
+.cins-chat-capture-edit-input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.cins-chat-capture-edit-text-dock button {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.cins-chat-capture-edit-icons {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 4px;
+  max-height: 28vh;
+  overflow: auto;
+  padding: 8px 12px;
+  flex-shrink: 0;
+  scrollbar-width: thin;
+}
+
+.cins-chat-capture-edit-icons button {
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.cins-chat-capture-edit-tools {
+  flex-shrink: 0;
+  padding: 8px 12px 12px;
+}
+
+.cins-chat-capture-edit-colors {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.cins-chat-capture-edit-colors button {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.cins-chat-capture-edit-colors button.is-on {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.cins-chat-capture-edit-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.cins-chat-capture-edit-actions button {
+  flex-direction: column;
+  gap: 2px;
+  min-height: 52px;
+  padding: 6px 4px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.cins-chat-capture-edit-actions button.is-on {
+  color: #fff;
+  background: rgba(31, 116, 201, 0.28);
+}
+
+.cins-chat-capture-edit-actions button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }

@@ -109,18 +109,53 @@
   cursor: pointer;
 }
 
-/* Mobile: chrome follow ngón tay — tắt transition kẻo trễ / sượn. */
+/* Mobile: chrome follow — fixed + compositor, không sticky+blur (giật ~18fps). */
 @media (max-width: 960px) {
   .cins-app-topbar.topbar.wj-chrome-follow,
   .wj-feed-header.wj-chrome-follow {
+    position: fixed;
+    left: 0;
+    right: 0;
+    width: 100%;
     transition: none !important;
     will-change: transform;
     backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
   }
 
-  /* Glass đừng tạo layer transform riêng — lệch 1 frame so với thanh. */
+  .cins-app-topbar.topbar.wj-chrome-follow {
+    top: 0;
+  }
+
+  .wj-feed-header.wj-chrome-follow {
+    top: var(--wj-sticky-top, var(--site-nav-height, 64px));
+    margin: 0 !important;
+    box-shadow: none;
+  }
+
+  .cins-shell-column:has(> #app-topbar.wj-chrome-follow)::before {
+    content: "";
+    display: block;
+    height: var(--site-nav-height, 64px);
+    flex-shrink: 0;
+    pointer-events: none;
+  }
+
+  .wj-feed:has(> .wj-feed-header.wj-chrome-follow)::before {
+    content: "";
+    display: block;
+    height: var(--wj-feed-header-h, 58px);
+    margin-top: calc(-1 * var(--wj-feed-pad-top, 0px));
+    flex-shrink: 0;
+    pointer-events: none;
+  }
+
+  /* Blur recapture mỗi frame khi transform — tắt khi đang follow. */
   .wj-feed-header.wj-chrome-follow::before {
     transform: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: color-mix(in srgb, var(--bg-page, #f4f5f8) 94%, transparent);
   }
 }
 
@@ -823,6 +858,10 @@
   width: 100%;
   min-width: 0;
   overflow-x: clip;
+}
+
+.wj-feed-panes:has(.is-picker-open) {
+  overflow-x: visible;
 }
 
 .wj-feed-pane {
@@ -4762,9 +4801,7 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   pointer-events: none;
 }
 
-.wj-reel-slide[data-paused] .wj-reel-iframe {
-  opacity: 0;
-}
+/* Giữ frame Stream khi pause / đổi slide — ẩn iframe gây chớp poster. */
 
 .wj-reel-poster,
 .wj-reel-poster-fallback {
@@ -5072,6 +5109,10 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 .wj-reel-timeline-btn:focus-visible {
   outline: 2px solid #fff;
   outline-offset: 2px;
+}
+
+.wj-reel-timeline-btn.is-on {
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .wj-reel-timeline-scrub {

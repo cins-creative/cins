@@ -5292,7 +5292,6 @@
 }
 
 .cd-v4-jcard.is-pinned,
-.cd-v4-jcard:has(.post-byline-share-wrap.is-open),
 .cd-v4-jcard:has(.is-picker-open) {
   overflow: visible;
 }
@@ -7689,9 +7688,9 @@ a.cd-v4-role-menu-btn {
 .j-bookmark-confirm-backdrop {
   position: fixed;
   inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
   padding: 20px;
   background: rgba(15, 23, 42, 0.42);
 }
@@ -7706,6 +7705,12 @@ a.cd-v4-role-menu-btn {
   box-shadow: 0 28px 80px rgba(15, 23, 42, 0.24);
   color: var(--ink-body, rgba(0, 0, 0, 0.55));
 }
+/* Preview demo — style chính ở journey.css; chỉ đừng ép 440px. */
+.j-bookmark-confirm.is-preview {
+  width: min(520px, 100%);
+  max-height: min(90dvh, 860px);
+  padding: 44px 16px 16px;
+}
 
 .j-bookmark-confirm-close {
   position: absolute;
@@ -7713,11 +7718,16 @@ a.cd-v4-role-menu-btn {
   right: 14px;
   width: 32px;
   height: 32px;
+  padding: 0;
   border: 1px solid var(--border, #eaecef);
   border-radius: 999px;
   background: var(--bg-surface);
   color: var(--ink-muted, rgba(0, 0, 0, 0.4));
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
 }
 
 .j-bookmark-confirm-icon {

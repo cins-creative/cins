@@ -123,8 +123,8 @@ export function PostMetaRail({
   const verifier = resolveVerifierDisplay(milestone.verifier, verifiedBy);
   const isVerified = Boolean(verifier);
 
-  const authorBody = (
-    <>
+  const authorHit = (
+    <span className="post-rail-author-link">
       <span className="post-rail-avatar" aria-hidden>
         {ownerAvatarUrl ? (
           /* eslint-disable-next-line @next/next/no-img-element */
@@ -133,30 +133,29 @@ export function PostMetaRail({
           ownerInitial
         )}
       </span>
-      <span className="post-rail-author-copy">
-        <span className="post-rail-author-top">
-          <strong>{owner.tenHienThi}</strong>
-          <span className="post-rail-author-sub">
-            <time className="post-rail-date" dateTime={milestone.thoiDiem}>
-              {dateLabel}
-            </time>
-            <span
-              className="post-rail-meta-icons"
-              aria-label={`${typeLabel} · ${vis.text}`}
-            >
-              <span className="post-rail-meta-ico" title={typeLabel}>
-                <TypeIcon size={12} strokeWidth={2} aria-hidden />
-                <span className="post-rail-meta-ico-label">{typeLabel}</span>
-              </span>
-              <span className="post-rail-meta-ico" title={vis.text}>
-                <vis.Icon size={12} strokeWidth={2} aria-hidden />
-                <span className="post-rail-meta-ico-label">{vis.text}</span>
-              </span>
-            </span>
-          </span>
+      <strong>{owner.tenHienThi}</strong>
+    </span>
+  );
+
+  const authorMeta = (
+    <span className="post-rail-author-sub">
+      <time className="post-rail-date" dateTime={milestone.thoiDiem}>
+        {dateLabel}
+      </time>
+      <span
+        className="post-rail-meta-icons"
+        aria-label={`${typeLabel} · ${vis.text}`}
+      >
+        <span className="post-rail-meta-ico" title={typeLabel}>
+          <TypeIcon size={12} strokeWidth={2} aria-hidden />
+          <span className="post-rail-meta-ico-label">{typeLabel}</span>
+        </span>
+        <span className="post-rail-meta-ico" title={vis.text}>
+          <vis.Icon size={12} strokeWidth={2} aria-hidden />
+          <span className="post-rail-meta-ico-label">{vis.text}</span>
         </span>
       </span>
-    </>
+    </span>
   );
 
   return (
@@ -174,15 +173,18 @@ export function PostMetaRail({
           }
         >
         <div className="post-rail-author">
-          <JourneyUserPopover
-            slug={owner.slug}
-            fallbackName={owner.tenHienThi}
-            fallbackAvatarUrl={ownerAvatarUrl}
-            track={{ idBoiCanh: milestone.id }}
-          >
-            {/* Không dùng <Link> trong trigger — click mở card, vào hồ sơ từ trong popover. */}
-            <span className="post-rail-author-link">{authorBody}</span>
-          </JourneyUserPopover>
+          <div className="post-rail-author-main">
+            <JourneyUserPopover
+              slug={owner.slug}
+              fallbackName={owner.tenHienThi}
+              fallbackAvatarUrl={ownerAvatarUrl}
+              track={{ idBoiCanh: milestone.id }}
+            >
+              {/* Chỉ avatar + tên mở card — vùng trống không focus/scroll đầu bài. */}
+              {authorHit}
+            </JourneyUserPopover>
+            {authorMeta}
+          </div>
           {isOwner || onClose ? (
             <div className="post-rail-author-tools">
               {isOwner ? (

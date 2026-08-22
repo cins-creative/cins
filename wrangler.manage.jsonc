@@ -1,0 +1,37 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "cins-manage",
+  "main": "worker.ts",
+  "compatibility_date": "2026-06-29",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "vars": {
+    "CLOUDFLARE_ACCOUNT_ID": "2a6e413a7ced7243651c9d476e7d2f25"
+  },
+  "routes": [
+    { "pattern": "manage.cins.vn", "custom_domain": true }
+  ],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "d66e788e860c42c893c3a2902533bedf"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "bucket_name": "cins-rive-assets",
+      "binding": "CINS_RIVE_ASSETS"
+    },
+    {
+      "bucket_name": "cins-chat-video",
+      "binding": "CINS_CHAT_VIDEO"
+    }
+  ]
+}

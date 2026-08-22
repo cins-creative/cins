@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronUp, Eye } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 import { AuthorRoleTooltip } from "@/components/journey/AuthorRoleTooltip";
 import { JourneyAuthorRowFriendAction } from "@/components/journey/JourneyAuthorRowFriendAction";
@@ -87,8 +87,8 @@ export function JourneyCoAuthorCreditsStrip({
               {otherContributorCount} người đóng góp khác
             </span>
             <span className="authors-toggle-slot">
-              <span className="expand-hint" aria-label="Xem tất cả">
-                <Eye size={15} strokeWidth={1.9} aria-hidden />
+              <span className="expand-hint" aria-label="Xổ danh sách cộng tác">
+                <ChevronDown size={15} strokeWidth={2} aria-hidden />
               </span>
               <span className="collapse-hint" aria-label="Thu gọn">
                 <ChevronUp size={15} strokeWidth={2} aria-hidden />
