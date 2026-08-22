@@ -4040,9 +4040,11 @@
   z-index: 30;
   min-width: 132px;
 }
-/* Portaled to <body> to escape overflow-hidden unfold containers. */
+/* Portaled to <body> to escape overflow-hidden unfold / comments sheet.
+ * Phải > .j-cmt-sheet-backdrop (10845) / .j-post-overlay (9000);
+ * < chat overlay (11000). Trước đây 1200 → kebab Reply/Copy bị sheet che trên mobile. */
 .post-comments-menu-pop.is-portal {
-  z-index: 1200;
+  z-index: 10870;
   min-width: 132px;
   padding: 4px;
   background: var(--bg-surface, #fff);
@@ -4404,6 +4406,19 @@
   display: inline-flex;
   align-items: center;
   gap: 2px;
+  overflow: visible;
+  position: relative;
+  z-index: 2;
+}
+.cins-post-view .post-comments-v1 .post-comments-votes .j-reaction-wrap {
+  z-index: 3;
+}
+.cins-post-view .post-comments-v1 .post-comments-votes .j-reaction-wrap:has(> .j-reaction-picker),
+.cins-post-view .post-comments-v1 .post-comments-votes .j-reaction-wrap.is-picking {
+  z-index: 40;
+}
+.cins-post-view .post-comments-v1 .post-comments-votes .j-reaction-btn-emoji {
+  font-size: 13px;
 }
 .cins-post-view .post-comments-v1 .post-comments-votes .action-btn,
 .cins-post-view .post-comments-v1 .post-comments-votes .action-btn--split {

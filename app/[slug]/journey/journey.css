@@ -19050,7 +19050,8 @@ a.action-btn {
 .j-reaction-picker {
   --j-reaction-bar-h: 40px;
   position: absolute;
-  left: 0;
+  left: 50%;
+  translate: -50% 0;
   bottom: calc(100% + 6px);
   display: flex;
   flex-wrap: nowrap;
@@ -19143,6 +19144,7 @@ a.action-btn {
   right: 0;
   top: 0;
   bottom: 0;
+  translate: none;
   /* Trên .j-post-overlay (9000 / stacked 10120); dưới actors (10850). */
   z-index: 10820;
   width: auto;

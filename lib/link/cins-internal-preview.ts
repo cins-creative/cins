@@ -7,6 +7,8 @@ import {
   siteHostnamesEquivalent,
 } from "@/lib/auth/auth-origin";
 import { fetchNgheOgContext } from "@/lib/articles/nghe-og-fetch";
+import { getGroupInvitePreview } from "@/lib/chat/group-invite";
+import { parseGroupInviteCodeFromUrl } from "@/lib/chat/group-invite-path";
 import { fetchCongDongOgContext } from "@/lib/cong-dong/cong-dong-og-fetch";
 import {
   formatTinhThanh,
@@ -122,6 +124,29 @@ async function resolveFromPath(url: URL): Promise<LinkOgPreview | null> {
   }
 
   const [a, b, c, d] = parts;
+
+  /* /chat/groups/invite/:ma · legacy /chat/nhom/moi/:ma */
+  const inviteCode = parseGroupInviteCodeFromUrl(url.href);
+  if (inviteCode) {
+    const result = await getGroupInvitePreview(inviteCode, null);
+    if (!result.ok) return null;
+    const preview = result.preview;
+    const memberLabel =
+      preview.memberCount === 1
+        ? "1 thành viên"
+        : `${preview.memberCount} thành viên`;
+    return cinsPreview({
+      url: canonicalUrl(`/chat/groups/invite/${preview.maMoi}`),
+      title: preview.tenPhong,
+      description: `${memberLabel} · nhóm bạn bè trên CINs`,
+      image: null,
+      avatar: preview.avatarUrl,
+      badge: "Mời vào nhóm",
+      subtitle: null,
+      meta: memberLabel,
+      kind: "group_invite",
+    });
+  }
 
   /* /s/:token — short share link */
   if (a === "s" && b && parts.length === 2) {

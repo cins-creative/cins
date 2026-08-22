@@ -69,6 +69,7 @@
   --wj-feed-max: 760px;
   /* Shell sát topbar; aside tự inset (không phụ thuộc pad-top shell). */
   --wj-shell-pad-top: 0;
+  --wj-shell-pad-x: 16px;
   --wj-aside-inset: 16px;
   --wj-shell-gutter: 16px;
   /* Hai cột aside cùng bề ngang (tổng ~580px như trước: 248 + 332). */
@@ -660,7 +661,7 @@
   width: 100%;
   max-width: 1360px;
   margin: 0 auto;
-  padding: 0;
+  padding: var(--wj-shell-pad-top, 0) var(--wj-shell-pad-x, 16px) 0;
   display: grid;
   grid-template-columns:
     minmax(0, var(--wj-aside-left-w))
@@ -818,7 +819,7 @@
   margin: 0;
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
-  padding: var(--wj-shell-pad-top, 0) 16px 32px;
+  padding: var(--wj-shell-pad-top, 0) var(--wj-shell-pad-x, 16px) 32px;
 }
 
 .world-journey-home.view-grid .wj-shell .wj-guest-aside--left,
@@ -4159,6 +4160,7 @@
   }
 
   .world-journey-home .wj-shell {
+    --wj-shell-pad-x: 0;
     grid-template-columns: 1fr;
     gap: 0;
     max-width: none;
@@ -4536,6 +4538,7 @@ body:has(.world-journey-home.view-video) .cins-home-feed-root {
 }
 
 .world-journey-home.view-video .wj-shell {
+  --wj-shell-pad-x: 0;
   max-width: none;
   width: 100%;
   margin: 0;
@@ -5011,6 +5014,7 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   right: calc(100% + 8px);
   bottom: 0;
   top: auto;
+  translate: none;
 }
 
 .wj-reel-video-box {

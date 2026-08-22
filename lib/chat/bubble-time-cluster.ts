@@ -1,7 +1,7 @@
 import type { ChatMessageListItem } from "@/lib/chat/message-albums";
 import type { ChatMessage } from "@/lib/chat/types";
 
-/** Tin cùng người gửi cách nhau dưới khoảng này không hiện timestamp. */
+/** Tin cùng người gửi cách nhau dưới khoảng này không hiện timestamp / tên+avatar. */
 export const CHAT_BUBBLE_TIME_CLUSTER_MS = 5 * 60 * 1000;
 
 function listItemHead(item: ChatMessageListItem): ChatMessage {
@@ -21,8 +21,27 @@ function sameChatSender(a: ChatMessage, b: ChatMessage): boolean {
   return true;
 }
 
-/** Hiện giờ dưới bubble cuối cụm; ẩn nếu tin kế cùng người gửi < 5 phút. */
-export function shouldShowChatItemTime(
+function clusterBreaks(prev: ChatMessage, next: ChatMessage): boolean {
+  if (!sameChatSender(prev, next)) return true;
+  const gap = Date.parse(next.sentAt) - Date.parse(prev.sentAt);
+  if (Number.isNaN(gap)) return true;
+  return gap >= CHAT_BUBBLE_TIME_CLUSTER_MS;
+}
+
+/** Đầu cụm mới: tin đầu, đổi người gửi, hoặc ≥ 5 phút. */
+export function isChatClusterHead(
+  items: ChatMessageListItem[],
+  index: number,
+): boolean {
+  const curr = items[index];
+  const prev = items[index - 1];
+  if (!curr) return false;
+  if (!prev) return true;
+  return clusterBreaks(listItemTail(prev), listItemHead(curr));
+}
+
+/** Cuối cụm: tin cuối, đổi người gửi kế, hoặc ≥ 5 phút tới tin sau. */
+export function isChatClusterTail(
   items: ChatMessageListItem[],
   index: number,
 ): boolean {
@@ -30,10 +49,31 @@ export function shouldShowChatItemTime(
   const next = items[index + 1];
   if (!curr) return false;
   if (!next) return true;
-  const a = listItemTail(curr);
-  const b = listItemHead(next);
-  if (!sameChatSender(a, b)) return true;
-  const gap = Date.parse(b.sentAt) - Date.parse(a.sentAt);
-  if (Number.isNaN(gap)) return true;
-  return gap >= CHAT_BUBBLE_TIME_CLUSTER_MS;
+  return clusterBreaks(listItemTail(curr), listItemHead(next));
+}
+
+export type ChatClusterRole = "only" | "first" | "middle" | "last";
+
+export function chatClusterRole(
+  items: ChatMessageListItem[],
+  index: number,
+): ChatClusterRole {
+  const head = isChatClusterHead(items, index);
+  const tail = isChatClusterTail(items, index);
+  if (head && tail) return "only";
+  if (head) return "first";
+  if (tail) return "last";
+  return "middle";
+}
+
+/** Mốc ngày/giờ giữa khung — đầu cụm mới. */
+export function shouldShowChatItemTime(
+  items: ChatMessageListItem[],
+  index: number,
+): boolean {
+  return isChatClusterHead(items, index);
+}
+
+export function chatListItemStampAt(item: ChatMessageListItem): string {
+  return listItemHead(item).sentAt;
 }

@@ -1,8 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Users } from "lucide-react";
+import { useCallback, useEffect, useState, type MouseEvent } from "react";
 
+import { ChatGroupInviteDialog } from "@/components/cins/ChatGroupInviteClient";
 import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
+import {
+  isGroupInviteUrl,
+  parseGroupInviteCodeFromUrl,
+} from "@/lib/chat/group-invite-path";
 import type { LinkOgPreview } from "@/lib/link/og-preview";
 
 type Props = {
@@ -13,7 +19,7 @@ type Props = {
 
 const clientCache = new Map<string, LinkOgPreview | null>();
 /** Bump khi đổi quy luật thumb (gallery / CF fallback) — bỏ cache client cũ. */
-const CLIENT_CACHE_VER = "v7";
+const CLIENT_CACHE_VER = "v8";
 
 function cacheKey(url: string): string {
   return `${CLIENT_CACHE_VER}:${url}`;
@@ -47,6 +53,71 @@ function FallbackLinkCard({
         <span className="cins-chat-og-card-title">{url}</span>
       </span>
     </a>
+  );
+}
+
+function GroupInviteLinkCard({
+  url,
+  tone,
+  data,
+}: {
+  url: string;
+  tone: "me" | "them";
+  data: LinkOgPreview | null;
+}) {
+  const maMoi = parseGroupInviteCodeFromUrl(url);
+  const [open, setOpen] = useState(false);
+  const title = data?.title?.trim() || "Nhóm chat";
+  const meta =
+    data?.meta?.trim() ||
+    data?.description?.trim() ||
+    "Lời mời tham gia nhóm bạn bè";
+  const avatar = data?.avatar?.trim() || null;
+
+  const openInvite = useCallback(
+    (event: MouseEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!maMoi) return;
+      setOpen(true);
+    },
+    [maMoi],
+  );
+
+  if (!maMoi) {
+    return <FallbackLinkCard url={url} tone={tone} />;
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        className={`cins-chat-og-card is-group-invite${tone === "me" ? " is-me" : ""}`}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={openInvite}
+      >
+        <span className="cins-chat-group-invite-art" aria-hidden>
+          {avatar ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={avatar} alt="" />
+          ) : (
+            <Users size={28} strokeWidth={1.7} />
+          )}
+        </span>
+        <span className="cins-chat-og-card-body">
+          <span className="cins-chat-og-card-badge">Mời vào nhóm</span>
+          <span className="cins-chat-og-card-title">{title}</span>
+          <span className="cins-chat-og-card-desc">{meta}</span>
+          <span className="cins-chat-group-invite-cta">Xem lời mời</span>
+        </span>
+      </button>
+      <ChatGroupInviteDialog
+        maMoi={maMoi}
+        open={open}
+        onClose={() => setOpen(false)}
+      />
+    </>
   );
 }
 
@@ -199,6 +270,16 @@ export function ChatLinkOgCard({ url, tone = "them" }: Props) {
       ctrl.abort();
     };
   }, [key, url]);
+
+  if (isGroupInviteUrl(url)) {
+    return (
+      <GroupInviteLinkCard
+        url={url}
+        tone={tone}
+        data={data?.kind === "group_invite" ? data : null}
+      />
+    );
+  }
 
   if (!data) {
     return <FallbackLinkCard url={url} tone={tone} />;

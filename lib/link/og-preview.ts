@@ -34,8 +34,9 @@ export type LinkOgPreview = {
    * Phân loại entity nội bộ — UI card render khác nhau:
    * - `bai_viet` → cover + title + mô tả (không avatar)
    * - `journey` | `org` | `cong_dong` → cover + avatar lớn căn giữa + tên
+   * - `group_invite` → card mời nhóm chat
    */
-  kind?: "bai_viet" | "journey" | "org" | "cong_dong" | string | null;
+  kind?: "bai_viet" | "journey" | "org" | "cong_dong" | "group_invite" | string | null;
 };
 
 export function trimUrlTrailingPunctuation(url: string): string {

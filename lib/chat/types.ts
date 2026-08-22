@@ -321,6 +321,8 @@ export type ChatGroupInvitePreview = {
   pendingRequest: boolean;
   canRequest: boolean;
   reason?: string;
+  /** Bạn bè của viewer đang trong nhóm — mosaic khi chưa có avatar nhóm. */
+  friendAvatars: ChatGroupMemberAvatar[];
 };
 
 export type ChatThread = {

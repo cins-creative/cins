@@ -28,7 +28,12 @@ import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import { useCoarsePointer } from "@/lib/ui/use-coarse-pointer";
 import { avatarBg, formatChatTime } from "@/lib/chat/avatar";
-import { shouldShowChatItemTime } from "@/lib/chat/bubble-time-cluster";
+import {
+  chatClusterRole,
+  chatListItemStampAt,
+  isChatClusterHead,
+  type ChatClusterRole,
+} from "@/lib/chat/bubble-time-cluster";
 import {
   chatMessageMediaEntries,
   groupChatMessages,
@@ -104,8 +109,8 @@ function isIgnoredActionTarget(
 }
 
 /**
- * Tap bubble (mobile/touch only) → emoji + bottom sheet.
- * Chỉ mở (không toggle đóng) — tránh click đôi / contextmenu+click đóng ngay.
+ * Long-press bubble (mobile/touch only) → emoji + bottom sheet.
+ * Tap ngắn không mở. Chỉ mở (không toggle đóng) — tránh click đôi / contextmenu+click đóng ngay.
  * Desktop (con trỏ chuột) không có effect này — click chỉ để chọn text/link.
  */
 function useBubbleTapActions(
@@ -166,12 +171,12 @@ function useBubbleTapActions(
     (event: MouseEvent<HTMLDivElement>) => {
       if (!enabled) return;
       if (isIgnoredActionTarget(event.target)) return;
-      event.stopPropagation();
-      if (Date.now() < ignoreClickUntilRef.current) return;
-      if (mobileOpen) return;
-      openMobile();
+      /* Tap ngắn không mở sheet — long-press / contextmenu mới mở. */
+      if (Date.now() < ignoreClickUntilRef.current || mobileOpen) {
+        event.stopPropagation();
+      }
     },
-    [enabled, mobileOpen, openMobile],
+    [enabled, mobileOpen],
   );
 
   /* Chặn focus khi tap — tránh scrollIntoView làm bubble/list bị đẩy xổ. */
@@ -650,22 +655,25 @@ function OrgReplyHintLabel({ msg }: { msg: ChatMessage }) {
   );
 }
 
+function ChatSessionStamp({ sentAt }: { sentAt: string }) {
+  return (
+    <div className="cins-chat-session-stamp" role="separator">
+      <time dateTime={sentAt}>{formatChatTime(sentAt)}</time>
+    </div>
+  );
+}
+
 function BubbleMeta({
   msg,
   className,
-  showTime = true,
 }: {
   msg: ChatMessage;
   className?: string;
-  showTime?: boolean;
 }) {
-  if (!showTime && !msg.edited) return null;
+  if (!msg.edited) return null;
   return (
     <span className={["cins-chat-bubble-meta", className].filter(Boolean).join(" ")}>
-      {msg.edited ? <span className="cins-chat-edited">đã sửa</span> : null}
-      {showTime ? (
-        <time dateTime={msg.sentAt}>{formatChatTime(msg.sentAt)}</time>
-      ) : null}
+      <span className="cins-chat-edited">đã sửa</span>
     </span>
   );
 }
@@ -715,7 +723,8 @@ function SingleMessageBubble({
   onOpenImage,
   canConfirmHocPhi = false,
   orgBrand = null,
-  showTime = true,
+  showSenderIdentity = true,
+  clusterRole = "only",
 }: {
   msg: ChatMessage;
   seenBy?: ChatReadCursor[];
@@ -735,7 +744,8 @@ function SingleMessageBubble({
   onOpenImage?: (messageId: string) => void;
   canConfirmHocPhi?: boolean;
   orgBrand?: { ten?: string | null; anh?: string | null } | null;
-  showTime?: boolean;
+  showSenderIdentity?: boolean;
+  clusterRole?: ChatClusterRole;
 }) {
   const isMe = msg.from === "me";
   const isEditing = editingMessageId === msg.id;
@@ -851,6 +861,7 @@ function SingleMessageBubble({
   }
 
   const useSenderCluster = !isMe && Boolean(showSenderNames);
+  const showIdentity = showSenderIdentity && !isMe;
   const isDonHangCard =
     !isEditing &&
     (msg.nguCanh?.loai === "don_hang" || msg.nguCanh?.loai === "don_hoc_phi") &&
@@ -870,16 +881,14 @@ function SingleMessageBubble({
     isDonHangCard ? "is-don-hang-row" : "",
     isBareMedia ? "is-bare-media-row" : "",
     useSenderCluster ? "has-sender-cluster" : "",
+    useSenderCluster && !showIdentity ? "is-sender-follow" : "",
+    `is-cluster-${clusterRole}`,
   ]
     .filter(Boolean)
     .join(" ");
 
   const timeBelow = !isEditing ? (
-    <BubbleMeta
-      msg={msg}
-      className="cins-chat-media-meta"
-      showTime={showTime}
-    />
+    <BubbleMeta msg={msg} className="cins-chat-media-meta" />
   ) : null;
 
   const metaBelowMedia =
@@ -1107,11 +1116,13 @@ function SingleMessageBubble({
       <div id={messageRowId(msg.id)} className={rowClass}>
         {useSenderCluster ? (
           <div className="cins-chat-msg-stack">
-            <SenderCluster
-              msg={msg}
-              renderTheirAvatar={renderTheirAvatar}
-              showSenderNames={showSenderNames}
-            />
+            {showIdentity ? (
+              <SenderCluster
+                msg={msg}
+                renderTheirAvatar={renderTheirAvatar}
+                showSenderNames={showSenderNames}
+              />
+            ) : null}
             {!isMe ? <OrgReplyHintLabel msg={msg} /> : null}
             {bubbleBlock}
           </div>
@@ -1119,7 +1130,13 @@ function SingleMessageBubble({
           <div className="cins-chat-msg-stack">
             {!isMe ? <OrgReplyHintLabel msg={msg} /> : null}
             <div className="cins-chat-msg-inline">
-              {msg.from === "them" ? renderTheirAvatar?.(msg) : null}
+              {msg.from === "them" ? (
+                showIdentity ? (
+                  renderTheirAvatar?.(msg) ?? null
+                ) : (
+                  <span className="cins-chat-avatar-spacer" aria-hidden />
+                )
+              ) : null}
               {bubbleBlock}
             </div>
           </div>
@@ -1184,32 +1201,39 @@ export function ChatMessageThreadItems({
   return (
     <>
       {items.map((item, index) => {
-        const showTime = shouldShowChatItemTime(items, index);
+        const clusterHead = isChatClusterHead(items, index);
+        const clusterRole = chatClusterRole(items, index);
+        const sessionStamp = clusterHead ? (
+          <ChatSessionStamp sentAt={chatListItemStampAt(item)} />
+        ) : null;
         if (item.type === "single") {
           const msg = item.message;
           return (
-            <SingleMessageBubble
-              key={msg.id}
-              msg={msg}
-              seenBy={byMessage.get(msg.id)}
-              renderTheirAvatar={renderTheirAvatar}
-              showSenderNames={showSenderNames}
-              actionHandlers={actionHandlers}
-              editingMessageId={editingMessageId}
-              editingDraft={editingDraft}
-              onEditingDraftChange={onEditingDraftChange}
-              onSaveEdit={onSaveEdit}
-              onCancelEdit={onCancelEdit}
-              roomId={roomId}
-              viewerUserId={viewerUserId}
-              onPollUpdated={onPollUpdated}
-              onJumpToMessage={onJumpToMessage}
-              onOpenCanvasComments={onOpenCanvasComments}
-              onOpenImage={handleOpenImage}
-              canConfirmHocPhi={canConfirmHocPhi}
-              orgBrand={orgBrand}
-              showTime={showTime}
-            />
+            <Fragment key={msg.id}>
+              {sessionStamp}
+              <SingleMessageBubble
+                msg={msg}
+                seenBy={byMessage.get(msg.id)}
+                renderTheirAvatar={renderTheirAvatar}
+                showSenderNames={showSenderNames}
+                actionHandlers={actionHandlers}
+                editingMessageId={editingMessageId}
+                editingDraft={editingDraft}
+                onEditingDraftChange={onEditingDraftChange}
+                onSaveEdit={onSaveEdit}
+                onCancelEdit={onCancelEdit}
+                roomId={roomId}
+                viewerUserId={viewerUserId}
+                onPollUpdated={onPollUpdated}
+                onJumpToMessage={onJumpToMessage}
+                onOpenCanvasComments={onOpenCanvasComments}
+                onOpenImage={handleOpenImage}
+                canConfirmHocPhi={canConfirmHocPhi}
+                orgBrand={orgBrand}
+                showSenderIdentity={clusterHead}
+                clusterRole={clusterRole}
+              />
+            </Fragment>
           );
         }
 
@@ -1222,30 +1246,33 @@ export function ChatMessageThreadItems({
         const caption = captionMsg?.body.trim() ?? "";
         const albumActionMsg = captionMsg ?? activeMessages[0];
         const useSenderCluster = !isMe && Boolean(showSenderNames);
+        const showAlbumIdentity = clusterHead && !isMe;
         const headMsg = captionMsg ?? albumActionMsg ?? item.messages[0];
         const albumSeenIds = item.messages.map((m) => m.id);
         const albumTime = (
           <BubbleMeta
             msg={albumActionMsg ?? item.messages[0]}
             className="cins-chat-media-meta"
-            showTime={showTime}
           />
         );
 
         return (
           <Fragment key={`album-${firstId}`}>
+            {sessionStamp}
             {caption ? (
               <div
                 id={captionMsg ? messageRowId(captionMsg.id) : undefined}
-                className={`cins-chat-bubble-row ${isMe ? "is-me" : "is-them"}${captionMsg?.pinned ? " is-pinned-row" : ""}${useSenderCluster ? " has-sender-cluster" : ""}`}
+                className={`cins-chat-bubble-row ${isMe ? "is-me" : "is-them"}${captionMsg?.pinned ? " is-pinned-row" : ""}${useSenderCluster ? " has-sender-cluster" : ""}${useSenderCluster && !showAlbumIdentity ? " is-sender-follow" : ""} is-cluster-${clusterRole}`}
               >
                 {useSenderCluster ? (
                   <div className="cins-chat-msg-stack">
-                    <SenderCluster
-                      msg={headMsg}
-                      renderTheirAvatar={renderTheirAvatar}
-                      showSenderNames={showSenderNames}
-                    />
+                    {showAlbumIdentity ? (
+                      <SenderCluster
+                        msg={headMsg}
+                        renderTheirAvatar={renderTheirAvatar}
+                        showSenderNames={showSenderNames}
+                      />
+                    ) : null}
                     <ChatBubbleActionsHost
                       className="cins-chat-bubble-wrap"
                       enabled={Boolean(actionHandlers)}
@@ -1275,9 +1302,14 @@ export function ChatMessageThreadItems({
                   </div>
                 ) : (
                   <>
-                    {item.from === "them"
-                      ? renderTheirAvatar?.(captionMsg ?? item.messages[0])
-                      : null}
+                    {item.from === "them" ? (
+                      showAlbumIdentity ? (
+                        renderTheirAvatar?.(captionMsg ?? item.messages[0]) ??
+                        null
+                      ) : (
+                        <span className="cins-chat-avatar-spacer" aria-hidden />
+                      )
+                    ) : null}
                     <ChatBubbleActionsHost
                       className="cins-chat-bubble-wrap"
                       enabled={Boolean(actionHandlers)}
@@ -1321,15 +1353,17 @@ export function ChatMessageThreadItems({
                   ? messageRowId(albumActionMsg.id)
                   : undefined
               }
-              className={`cins-chat-bubble-row is-media-row is-bare-media-row ${isMe ? "is-me" : "is-them"}${!isMe && caption ? " is-album-follow" : ""}${!caption && albumActionMsg?.pinned ? " is-pinned-row" : ""}${useSenderCluster && !caption ? " has-sender-cluster" : ""}`}
+              className={`cins-chat-bubble-row is-media-row is-bare-media-row ${isMe ? "is-me" : "is-them"}${!isMe && caption ? " is-album-follow" : ""}${!caption && albumActionMsg?.pinned ? " is-pinned-row" : ""}${useSenderCluster && !caption ? " has-sender-cluster" : ""}${useSenderCluster && !caption && !showAlbumIdentity ? " is-sender-follow" : ""} is-cluster-${clusterRole}`}
             >
               {useSenderCluster && !caption ? (
                 <div className="cins-chat-msg-stack">
-                  <SenderCluster
-                    msg={albumActionMsg ?? item.messages[0]}
-                    renderTheirAvatar={renderTheirAvatar}
-                    showSenderNames={showSenderNames}
-                  />
+                  {showAlbumIdentity ? (
+                    <SenderCluster
+                      msg={albumActionMsg ?? item.messages[0]}
+                      renderTheirAvatar={renderTheirAvatar}
+                      showSenderNames={showSenderNames}
+                    />
+                  ) : null}
                   <ChatBubbleActionsHost
                     className="cins-chat-bubble-wrap cins-chat-bare-media-wrap has-album"
                     enabled={Boolean(actionHandlers)}
@@ -1358,9 +1392,15 @@ export function ChatMessageThreadItems({
                 </div>
               ) : (
                 <>
-                  {item.from === "them" && !caption
-                    ? renderTheirAvatar?.(albumActionMsg ?? item.messages[0])
-                    : null}
+                  {item.from === "them" && !caption ? (
+                    showAlbumIdentity ? (
+                      renderTheirAvatar?.(
+                        albumActionMsg ?? item.messages[0],
+                      ) ?? null
+                    ) : (
+                      <span className="cins-chat-avatar-spacer" aria-hidden />
+                    )
+                  ) : null}
                   <ChatBubbleActionsHost
                     className="cins-chat-bubble-wrap cins-chat-bare-media-wrap has-album"
                     enabled={Boolean(actionHandlers)}

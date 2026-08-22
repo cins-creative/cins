@@ -16,14 +16,19 @@ import {
   canManageGroupChat,
   normalizeGroupVaiTro,
 } from "@/lib/chat/group-roles";
+import {
+  avatarHueFromSeed,
+  avatarInitialFromName,
+} from "@/lib/chat/avatar";
 import { getAvatarUrl } from "@/lib/journey/profile";
-import { isFriend } from "@/lib/social/ket-ban";
+import { isFriend, listFriends } from "@/lib/social/ket-ban";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 import type {
   ChatGroupInvitePreview,
   ChatGroupJoinRequest,
   ChatGroupMember,
+  ChatGroupMemberAvatar,
   ChatThread,
 } from "@/lib/chat/types";
 
@@ -125,6 +130,46 @@ async function isFriendOfAnyMember(
   return false;
 }
 
+async function loadFriendMemberAvatars(
+  viewerId: string,
+  memberIds: string[],
+): Promise<ChatGroupMemberAvatar[]> {
+  const others = memberIds.filter((id) => id !== viewerId);
+  if (others.length === 0) return [];
+
+  const friendSet = new Set(await listFriends(viewerId));
+  const inGroup = others.filter((id) => friendSet.has(id));
+  if (inGroup.length === 0) return [];
+
+  const admin = createServiceRoleClient();
+  const { data: profiles } = await admin
+    .from("user_nguoi_dung")
+    .select("id, ten_hien_thi, slug, avatar_id")
+    .in("id", inGroup)
+    .returns<
+      Array<{
+        id: string;
+        ten_hien_thi: string;
+        slug: string;
+        avatar_id: string | null;
+      }>
+    >();
+
+  return (profiles ?? [])
+    .map((profile) => {
+      const name = profile.ten_hien_thi?.trim() || profile.slug;
+      return {
+        userId: profile.id,
+        initial: avatarInitialFromName(name),
+        hue: avatarHueFromSeed(profile.id),
+        avatarUrl: getAvatarUrl(profile.avatar_id),
+        slug: profile.slug?.trim() || undefined,
+        name,
+      } satisfies ChatGroupMemberAvatar;
+    })
+    .sort((a, b) => (a.name ?? a.userId).localeCompare(b.name ?? b.userId, "vi"));
+}
+
 export async function getGroupInvitePreview(
   maMoiRaw: string,
   viewerId: string | null,
@@ -163,6 +208,9 @@ export async function getGroupInvitePreview(
 
   const memberIds = (memberRows ?? []).map((row) => row.id_nguoi_dung);
   const memberCount = memberIds.length;
+  const friendAvatars = viewerId
+    ? await loadFriendMemberAvatars(viewerId, memberIds)
+    : [];
 
   let tenPhong = room.ten_phong?.trim() || "";
   if (!tenPhong) {
@@ -186,6 +234,7 @@ export async function getGroupInvitePreview(
     alreadyMember: false,
     pendingRequest: false,
     canRequest: false,
+    friendAvatars,
   };
 
   if (!viewerId) {
@@ -233,7 +282,7 @@ export async function getGroupInvitePreview(
     };
   }
 
-  const friendOk = await isFriendOfAnyMember(viewerId, memberIds);
+  const friendOk = friendAvatars.length > 0;
   if (!friendOk) {
     return {
       ok: true,
