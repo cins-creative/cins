@@ -5381,6 +5381,7 @@ button.cins-canvas-table-cell-text {
   --cins-chat-sticker-max: 200px;
   --cins-chat-row-gap: 5px;
   --cins-chat-cluster-gap: 2px;
+  --cins-chat-sender-gap: 16px;
   flex: 1;
   min-height: 0;
   overflow: auto;
@@ -7015,6 +7016,13 @@ button.cins-canvas-table-cell-text {
 .cins-chat-bubble-row.is-cluster-last {
   margin-top: calc(
     var(--cins-chat-cluster-gap, 2px) - var(--cins-chat-row-gap, 5px)
+  );
+}
+
+/* Người khác chen vào: nới khoảng so với cụm trước. */
+.cins-chat-bubble-row.is-sender-break {
+  margin-top: calc(
+    var(--cins-chat-sender-gap, 16px) - var(--cins-chat-row-gap, 5px)
   );
 }
 
@@ -10564,6 +10572,7 @@ button.cins-chat-don-card-cta.is-action:disabled {
   --cins-chat-sticker-max: 180px;
   --cins-chat-row-gap: 5px;
   --cins-chat-cluster-gap: 2px;
+  --cins-chat-sender-gap: 16px;
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
