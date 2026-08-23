@@ -119,6 +119,7 @@ export function CommentVoteButtons({
   const {
     wrapRef,
     isCoarse,
+    useArc,
     pickerOpen,
     picker,
     consumeClickRef,
@@ -134,9 +135,9 @@ export function CommentVoteButtons({
         return;
       }
       onToggle(REACTION_EMOJI.LIKE, true);
-      if (!isCoarse) openPickerRef.current();
+      if (!useArc) openPickerRef.current();
     });
-  }, [isCoarse, liked, onToggle, reactionEmoji, requireAuth]);
+  }, [liked, onToggle, reactionEmoji, requireAuth, useArc]);
 
   const likeActorsModal =
     actorsOpen === "like" && positiveTotal > 0 ? (
@@ -262,7 +263,7 @@ export function CommentVoteButtons({
     </button>
   );
 
-  const likeBtn = isCoarse ? (
+  const likeBtn = useArc ? (
     <span
       className={`j-reaction-wrap${pickerOpen ? " is-picking" : ""}`}
       ref={wrapRef}

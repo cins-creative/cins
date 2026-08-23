@@ -273,7 +273,7 @@ export function JourneyLikeButton({
 
   const {
     wrapRef,
-    isCoarse,
+    useArc,
     pickerOpen,
     picker,
     consumeClickRef,
@@ -290,9 +290,9 @@ export function JourneyLikeButton({
         return;
       }
       postReaction(REACTION_EMOJI.LIKE, true);
-      if (!isCoarse) openPickerRef.current();
+      if (!useArc) openPickerRef.current();
     });
-  }, [isCoarse, liked, postReaction, reactionEmoji, requireAuth]);
+  }, [liked, postReaction, reactionEmoji, requireAuth, useArc]);
 
   const actors = useMemo<JourneyActionActorsConfig | null>(() => {
     if (disableActorsReveal || count <= 0) return null;
@@ -361,7 +361,7 @@ export function JourneyLikeButton({
     pickerOpen ? " is-picker-open" : ""
   }`;
 
-  if (isCoarse) {
+  if (useArc) {
     return (
       <span
         className={`j-reaction-wrap${pickerOpen ? " is-picking" : ""}`}

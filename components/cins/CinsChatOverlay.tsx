@@ -127,6 +127,10 @@ import {
   type ToChucOrgNode,
 } from "@/lib/chat/group-to-chuc-threads";
 import {
+  nestGroupThreads,
+  sortChatThreadsByFamilyActivity,
+} from "@/lib/chat/nest-group-threads";
+import {
   expandedParentIdsFromRecord,
   expandedParentsRecordFromIds,
   readExpandedProjectParentIds,
@@ -394,54 +398,6 @@ function sidePanelIcon(panel: ChatSidePanel) {
     case "hoc_vien":
       return Users;
   }
-}
-
-/** Sắp list: cha (nhóm / hub org) rồi con (project / lớp) indent ngay dưới. */
-function nestGroupThreads(
-  list: ChatThread[],
-  options?: { expandedParentIds?: Set<string> },
-): ChatThread[] {
-  const childrenByParent = new Map<string, ChatThread[]>();
-  const roots: ChatThread[] = [];
-
-  for (const t of list) {
-    const parentId = t.parentRoomId?.trim();
-    if (parentId) {
-      const arr = childrenByParent.get(parentId) ?? [];
-      arr.push(t);
-      childrenByParent.set(parentId, arr);
-    } else {
-      roots.push(t);
-    }
-  }
-
-  const out: ChatThread[] = [];
-  const usedChildIds = new Set<string>();
-  const expanded = options?.expandedParentIds;
-
-  for (const root of roots) {
-    out.push(root);
-    const kids = childrenByParent.get(root.roomId);
-    if (!kids?.length) continue;
-    if (expanded && !expanded.has(root.roomId)) continue;
-    kids.sort(
-      (a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime(),
-    );
-    for (const kid of kids) {
-      out.push(kid);
-      usedChildIds.add(kid.roomId);
-    }
-  }
-
-  // Con mà cha không có trong list (lọc / ẩn) — vẫn hiện ở cuối
-  for (const [parentId, kids] of childrenByParent) {
-    if (roots.some((r) => r.roomId === parentId)) continue;
-    for (const kid of kids) {
-      if (!usedChildIds.has(kid.roomId)) out.push(kid);
-    }
-  }
-
-  return out;
 }
 
 /** Số con đang hoạt động (không ẩn) theo id phòng cha — project nhóm hoặc lớp dưới hub. */
@@ -1608,15 +1564,7 @@ export function CinsChatOverlay({
   const filteredByView = useMemo(() => {
     const q = query.trim().toLowerCase();
     const sortPinned = (list: ChatThread[]) =>
-      [...list].sort((a, b) => {
-        const aIdx = pinnedListRoomIds.indexOf(a.roomId);
-        const bIdx = pinnedListRoomIds.indexOf(b.roomId);
-        const aPinned = aIdx >= 0;
-        const bPinned = bIdx >= 0;
-        if (aPinned !== bPinned) return aPinned ? -1 : 1;
-        if (aPinned && bPinned && aIdx !== bIdx) return aIdx - bIdx;
-        return new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime();
-      });
+      sortChatThreadsByFamilyActivity(list, pinnedListRoomIds);
 
     const build = (view: ChatThreadView): ChatThread[] => {
       // «Gửi riêng cho tôi» — chỉ tab bạn bè; không lọc sub-filter/ẩn, luôn đầu danh sách.
@@ -1664,11 +1612,11 @@ export function CinsChatOverlay({
       /* Tab Tổ chức / Mua bán: giữ flat — gom nhóm + nest trong UI section. */
       if (view === "to_chuc" || view === "mua_ban") return sorted;
 
-      const nested = nestGroupThreads(
-        sorted,
+      const nested = nestGroupThreads(sorted, {
         // Đang tìm kiếm → hiện hết project khớp query
-        q ? undefined : { expandedParentIds: expandedProjectParentIds },
-      );
+        expandedParentIds: q ? undefined : expandedProjectParentIds,
+        pinnedRoomIds: pinnedListRoomIds,
+      });
       return selfThread ? [selfThread, ...nested] : nested;
     };
 
@@ -4688,9 +4636,10 @@ export function CinsChatOverlay({
 
   const toChucHasThreads =
     toChucGrouped.nhanVoi.length > 0 || toChucGrouped.cuaToi.length > 0;
-  const toChucNestExpandedIds = query.trim()
-    ? undefined
-    : { expandedParentIds: expandedProjectParentIds };
+  const toChucNestExpandedIds = {
+    expandedParentIds: query.trim() ? undefined : expandedProjectParentIds,
+    pinnedRoomIds: pinnedListRoomIds,
+  };
 
   const renderThreadRow = (
     thread: ChatThread,

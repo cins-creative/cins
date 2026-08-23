@@ -5429,6 +5429,12 @@ button.j-main-gallery-info-title {
   overflow-x: hidden;
   overflow-y: visible;
 }
+.j-m-card.jcard:has(.is-picker-open) .j-m-card-unfold,
+.j-m-card.jcard:has(.is-picker-open) .j-m-card-unfold[data-open="true"] > .j-m-card-unfold-inner,
+.j-m-card.jcard:has(.is-picker-open) .j-m-unfold-post,
+.j-m-card.jcard:has(.is-picker-open) .post-comments:last-child {
+  overflow: visible;
+}
 .j-m-unfold-loading {
   display: flex;
   align-items: center;
@@ -19038,7 +19044,9 @@ a.action-btn {
 .j-m-card.jcard:has(.post-byline-share-wrap.is-open) .jcard-actions {
   z-index: 50;
 }
-.j-m-card.jcard:has(.is-picker-open) > .j-m-card-main,
+/* Chỉ hạ main khi picker nằm trên action bar — picker trong BL unfold
+   cũng khớp `:has(.is-picker-open)` và không được đẩy xuống dưới media. */
+.j-m-card.jcard:has(> .jcard-actions .is-picker-open) > .j-m-card-main,
 .j-m-card.jcard:has(.post-byline-share-wrap.is-open) > .j-m-card-main {
   z-index: 0;
 }
@@ -19067,7 +19075,32 @@ a.action-btn {
   box-shadow: none;
   z-index: 60;
   overflow: visible;
+  opacity: 1;
+  isolation: isolate;
+  /* Không dùng --ink-* (rgba 0.40–0.85): Windows áp alpha lên Segoe color-emoji. */
+  color: #0f172a;
   -webkit-font-smoothing: auto;
+}
+
+:root[data-theme="dark"] .j-reaction-picker {
+  color: #f8fafc;
+}
+
+/* Portal body — fixed, nền đặc, neo đáy thanh vào mép trên nút. */
+.j-reaction-picker--portal {
+  position: fixed;
+  bottom: auto;
+  translate: -50% -100%;
+  /* Trên sheet BL 10845 · kebab 10870; dưới chat overlay 11000. */
+  z-index: 10890;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, transparent);
+  border-radius: 999px;
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--ink1, #0f172a) 18%, transparent);
+}
+
+.j-reaction-picker--portal::before {
+  display: none;
 }
 
 /* Khung BG cố định — emoji hover scale tràn ra ngoài, không kéo cao khung. */
@@ -19096,7 +19129,7 @@ a.action-btn {
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: inherit;
+  color: initial;
   opacity: 1;
   cursor: pointer;
   transform-origin: center bottom;
@@ -19109,11 +19142,13 @@ a.action-btn {
   font-size: 15px;
   line-height: 1;
   font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", emoji;
+  font-variant-emoji: emoji;
   /* Không dùng filter — trên Windows filter làm emoji color bị mờ/xám. */
   filter: none;
   opacity: 1;
-  /* Nút chưa react có color muted (alpha 0.40); trình duyệt áp alpha đó lên
-     color-emoji khiến glyph bị mờ. Reset về màu đặc để emoji đủ opacity. */
+  /* Token --ink-body/--ink-muted là rgba (0.40–0.55). Trình duyệt (đặc biệt
+     Segoe UI Emoji trên Windows) nhân alpha đó vào glyph → emoji luôn mờ.
+     Phải color đặc, không inherit. */
   color: initial;
   -webkit-text-fill-color: initial;
 }
@@ -19136,7 +19171,7 @@ a.action-btn {
   touch-action: none;
 }
 
-/* Option 2 — overlay bắt vuốt; kính chỉ ôm cụm emoji. */
+/* Option 2 — overlay bắt vuốt; kính blur phủ full viewport. */
 .j-reaction-picker--opt2 {
   position: fixed;
   inset: 0;
@@ -19145,8 +19180,8 @@ a.action-btn {
   top: 0;
   bottom: 0;
   translate: none;
-  /* Trên .j-post-overlay (9000 / stacked 10120); dưới actors (10850). */
-  z-index: 10820;
+  /* Trên sheet BL (10845) / kebab (10870); dưới chat overlay (11000). */
+  z-index: 10890;
   width: auto;
   height: 100vh;
   height: 100svh;
@@ -19156,7 +19191,7 @@ a.action-btn {
   display: block;
   background: transparent;
   overflow: visible;
-  isolation: auto;
+  isolation: isolate;
   touch-action: none;
 }
 
@@ -19214,36 +19249,19 @@ a.action-btn {
 
 .j-reaction-picker-opt2-glass {
   position: absolute;
-  left: 0;
-  right: 0;
   /* Không dùng transform — Chrome drop backdrop-filter khi ancestor bị flatten. */
-  top: calc(46% - 175px);
+  inset: 0;
   z-index: 0;
-  width: 100vw;
+  width: auto;
   max-width: none;
-  height: 350px;
+  height: auto;
   border: 0;
   border-radius: 0;
-  overflow: visible;
+  overflow: hidden;
   pointer-events: none;
   background: color-mix(in srgb, var(--bg-page, #f4f5f8) 42%, transparent);
   -webkit-backdrop-filter: blur(20px) saturate(1.6);
   backdrop-filter: blur(20px) saturate(1.6);
-  /* overflow:visible không làm blur tràn box — feather bằng mask. */
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent 0,
-    #000 52px,
-    #000 calc(100% - 52px),
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    to bottom,
-    transparent 0,
-    #000 52px,
-    #000 calc(100% - 52px),
-    transparent 100%
-  );
 }
 
 :root[data-theme="dark"] .j-reaction-picker-opt2-glass {
@@ -19406,9 +19424,10 @@ a.action-btn {
   font-size: 20px;
   line-height: 1;
   font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", emoji;
+  font-variant-emoji: emoji;
   filter: none;
   opacity: 1;
-  color: inherit;
+  color: initial;
   -webkit-text-fill-color: initial;
 }
 .j-reaction-picker-err {

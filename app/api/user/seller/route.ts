@@ -38,7 +38,10 @@ export async function GET(request: Request) {
 
   const [settings, ready, dangApDung, thongBao] = await Promise.all([
     getBanHangSettings(acting.ownerId),
-    getShopReady(acting.ownerId),
+    getShopReady(acting.ownerId).catch((readyErr) => {
+      console.error("[api/user/seller] getShopReady", readyErr);
+      return { shopReady: false, missing: null };
+    }),
     getPhiDangApDungShop(),
     listPhiThongBaoCongBo("shop", 10),
   ]);
@@ -115,7 +118,10 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const ready = await getShopReady(acting.ownerId);
+    const ready = await getShopReady(acting.ownerId).catch((readyErr) => {
+      console.error("[api/user/seller] getShopReady", readyErr);
+      return { shopReady: false, missing: null as string | null };
+    });
     return NextResponse.json({
       ...settings,
       shopReady: ready.shopReady,
@@ -136,7 +142,10 @@ export async function PATCH(request: Request) {
         { status: 422 },
       );
     }
-    console.error("[api/user/ban-hang] PATCH", e);
-    return NextResponse.json({ error: "Không lưu được." }, { status: 500 });
+    console.error("[api/user/seller] PATCH", e);
+    return NextResponse.json(
+      { error: msg && msg !== "UPDATE_FAILED" ? msg : "Không lưu được." },
+      { status: 500 },
+    );
   }
 }

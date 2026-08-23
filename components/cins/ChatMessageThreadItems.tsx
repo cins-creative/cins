@@ -99,6 +99,7 @@ function isIgnoredActionTarget(
         ".cins-chat-msg-sheet",
         ".cins-chat-msg-mobile-scrim",
         ".cins-chat-msg-sheet-root",
+        ".cins-chat-reply-quote",
         "a[href]",
         "input",
         "textarea",
@@ -323,6 +324,13 @@ function useBubbleTapActions(
     };
 
     const onClickCapture = (e: Event) => {
+      const target = e.target;
+      if (
+        target instanceof Element &&
+        target.closest(".cins-chat-reply-quote")
+      ) {
+        return;
+      }
       if (!longPressed && Date.now() >= ignoreClickUntilRef.current) return;
       e.preventDefault();
       e.stopPropagation();

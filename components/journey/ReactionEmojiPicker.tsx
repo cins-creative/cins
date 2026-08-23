@@ -110,9 +110,7 @@ export function useReactionEmojiPicker({
     }
     if (pickerOpen) {
       setOpt2Mounted(true);
-      const id = window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(() => setOpt2In(true));
-      });
+      const id = window.requestAnimationFrame(() => setOpt2In(true));
       return () => window.cancelAnimationFrame(id);
     }
     setOpt2In(false);

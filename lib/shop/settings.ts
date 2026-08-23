@@ -71,11 +71,15 @@ export async function getBanHangSettings(
   userId: string,
 ): Promise<BanHangSettings> {
   const admin = createServiceRoleClient();
-  const { data } = await admin
+  const { data, error } = await admin
     .from("user_nguoi_dung")
     .select("ban_hang_bat, shop_hien_thi, ban_hang_dieu_khoan_luc")
     .eq("id", userId)
     .maybeSingle<BanHangRow>();
+  if (error) {
+    console.error("[shop] getBanHangSettings", error);
+    throw new Error(error.message || "LOAD_FAILED");
+  }
   return rowToSettings(data);
 }
 
@@ -97,23 +101,25 @@ export async function setBanHangEnabled(
     /* Tắt bán hàng → ẩn shop công khai. */
     patch.shop_hien_thi = false;
   }
-  const { data, error } = await admin
+  const { error } = await admin
     .from("user_nguoi_dung")
     .update(patch)
-    .eq("id", userId)
-    .select("ban_hang_bat, shop_hien_thi, ban_hang_dieu_khoan_luc")
-    .maybeSingle<BanHangRow>();
+    .eq("id", userId);
   if (error) {
     console.error("[shop] setBanHangEnabled", error);
-    throw new Error("UPDATE_FAILED");
+    throw new Error(error.message || "UPDATE_FAILED");
   }
   if (enabled) {
-    const { seedShopKhachHangTagsIfEmpty } = await import(
-      "@/lib/shop/khach-hang"
-    );
-    await seedShopKhachHangTagsIfEmpty(userId);
+    try {
+      const { seedShopKhachHangTagsIfEmpty } = await import(
+        "@/lib/shop/khach-hang"
+      );
+      await seedShopKhachHangTagsIfEmpty(userId);
+    } catch (seedErr) {
+      console.error("[shop] seedShopKhachHangTagsIfEmpty", seedErr);
+    }
   }
-  return rowToSettings(data);
+  return getBanHangSettings(userId);
 }
 
 export async function setShopHienThi(
@@ -125,15 +131,13 @@ export async function setShopHienThi(
   if (shopVisible && !current.enabled) {
     throw new Error("BAN_HANG_OFF");
   }
-  const { data, error } = await admin
+  const { error } = await admin
     .from("user_nguoi_dung")
     .update({ shop_hien_thi: shopVisible && current.enabled })
-    .eq("id", userId)
-    .select("ban_hang_bat, shop_hien_thi, ban_hang_dieu_khoan_luc")
-    .maybeSingle<BanHangRow>();
+    .eq("id", userId);
   if (error) {
     console.error("[shop] setShopHienThi", error);
-    throw new Error("UPDATE_FAILED");
+    throw new Error(error.message || "UPDATE_FAILED");
   }
-  return rowToSettings(data);
+  return getBanHangSettings(userId);
 }

@@ -1260,6 +1260,8 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
       );
       // Topbar (ShopTopbarButton) + Journey shop tab lấy cờ từ server.
       router.refresh();
+    } catch {
+      setErr(t("account.settings.selling.saveError"));
     } finally {
       setSaving(false);
     }

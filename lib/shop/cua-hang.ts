@@ -141,6 +141,8 @@ async function fetchCuaHangRow(
     .select(CUA_HANG_SELECT)
     .eq("id_nguoi_dung", userId)
     .eq("da_xoa", false)
+    .order("cap_nhat_luc", { ascending: false })
+    .limit(1)
     .maybeSingle<CuaHangRow>();
   if (error) {
     console.error("[shop] fetchCuaHangRow", error);

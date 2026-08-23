@@ -6481,10 +6481,16 @@ button.cins-canvas-table-cell-text {
 
 .cins-chat-reply-quote.is-jumpable {
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(37, 99, 235, 0.18);
 }
 
 .cins-chat-reply-quote.is-jumpable:hover {
   filter: brightness(1.05);
+}
+
+.cins-chat-reply-quote.is-jumpable:active {
+  filter: brightness(0.92);
 }
 
 .cins-chat-bubble.is-them .cins-chat-reply-quote {

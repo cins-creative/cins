@@ -123,20 +123,6 @@ export function PostMetaRail({
   const verifier = resolveVerifierDisplay(milestone.verifier, verifiedBy);
   const isVerified = Boolean(verifier);
 
-  const authorHit = (
-    <span className="post-rail-author-link">
-      <span className="post-rail-avatar" aria-hidden>
-        {ownerAvatarUrl ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img src={ownerAvatarUrl} alt="" />
-        ) : (
-          ownerInitial
-        )}
-      </span>
-      <strong>{owner.tenHienThi}</strong>
-    </span>
-  );
-
   const authorMeta = (
     <span className="post-rail-author-sub">
       <time className="post-rail-date" dateTime={milestone.thoiDiem}>
@@ -158,6 +144,37 @@ export function PostMetaRail({
     </span>
   );
 
+  const authorHit = (
+    <span className="post-rail-author-link">
+      <JourneyUserPopover
+        slug={owner.slug}
+        fallbackName={owner.tenHienThi}
+        fallbackAvatarUrl={ownerAvatarUrl}
+        track={{ idBoiCanh: milestone.id }}
+      >
+        <span className="post-rail-avatar" aria-hidden>
+          {ownerAvatarUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={ownerAvatarUrl} alt="" />
+          ) : (
+            ownerInitial
+          )}
+        </span>
+      </JourneyUserPopover>
+      <span className="post-rail-author-copy">
+        <JourneyUserPopover
+          slug={owner.slug}
+          fallbackName={owner.tenHienThi}
+          fallbackAvatarUrl={ownerAvatarUrl}
+          track={{ idBoiCanh: milestone.id }}
+        >
+          <strong>{owner.tenHienThi}</strong>
+        </JourneyUserPopover>
+        {authorMeta}
+      </span>
+    </span>
+  );
+
   return (
     <aside
       className={
@@ -174,16 +191,8 @@ export function PostMetaRail({
         >
         <div className="post-rail-author">
           <div className="post-rail-author-main">
-            <JourneyUserPopover
-              slug={owner.slug}
-              fallbackName={owner.tenHienThi}
-              fallbackAvatarUrl={ownerAvatarUrl}
-              track={{ idBoiCanh: milestone.id }}
-            >
-              {/* Chỉ avatar + tên mở card — vùng trống không focus/scroll đầu bài. */}
-              {authorHit}
-            </JourneyUserPopover>
-            {authorMeta}
+            {/* Avatar + tên mở card; ngày/loại/visibility nằm dưới tên. */}
+            {authorHit}
           </div>
           {isOwner || onClose ? (
             <div className="post-rail-author-tools">

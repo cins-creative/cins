@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-export const COARSE_POINTER_MQ = "(hover: none) and (pointer: coarse)";
+/** iPadOS thường `hover: hover` + `pointer: coarse` — không AND với hover:none. */
+export const COARSE_POINTER_MQ = "(pointer: coarse)";
 /** Cột feed hẹp — cùng layout cung emoji với máy cảm ứng. */
 export const NARROW_FEED_MQ = "(max-width: 767.98px)";
 
