@@ -28,6 +28,17 @@
 - Callback: `app/auth/callback/route.ts` — đọc verifier từ **request** cookies, ghi session lên **response** redirect (`lib/supabase/route-handler.ts`).
 - Intent đăng ký/đăng nhập: cookie `cins-oauth-intent` (không gắn `?intent=` vào `redirectTo`).
 
+## Cursor Cloud specific instructions
+
+- Node 22, npm (lockfile `package-lock.json`). Deps refresh on startup via `npm ci`.
+- **Hard dependency: Supabase env.** Every page (kể cả guest) gọi `getCurrentSessionAndProfileUncached` → `lib/supabase/server.ts` throw nếu thiếu env → mọi route trả **500**. Không có graceful degradation ở mức không có env. Bắt buộc set trong `.env.local` (gitignored, không commit):
+ - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (service role dùng ở hầu hết API routes), `NEXT_PUBLIC_SITE_URL=http://localhost:3001`.
+ - Không có local Supabase (`supabase/` chỉ chứa SQL grant/RLS + email templates, không có `config.toml`/migrations trọn bộ). App trỏ tới project Supabase hosted có sẵn schema/data — cần credential thật.
+ - Feature-specific (optional, chỉ khi test tính năng đó): Cloudflare Images, Bunny Stream, Google OAuth, Anthropic/OpenAI, `DATABASE_URL`. Thiếu chỉ hỏng đúng tính năng, không chặn boot.
+- Chạy dev: `npm run dev` (port 3001, Turbopack) hoặc `npm run host` (bind 0.0.0.0, clean `.next` + kill port 3001 — xem rule `dev-server-host`). Không chạy `npm run clean` khi server đang chạy.
+- Build phải dùng webpack: script `build` = `next build --webpack` (Turbopack build hỏng trên Cloudflare Workers). Preview/deploy qua OpenNext (`npm run preview`/`deploy`).
+- Lint: `npm run lint` hiện **exit 1** do nhiều lỗi ESLint tồn sẵn trong repo; CI đặt job lint `continue-on-error: true`. Lệnh vẫn chạy đúng.
+
 ## Next.js (repo này)
 
 <!-- BEGIN:nextjs-agent-rules -->
