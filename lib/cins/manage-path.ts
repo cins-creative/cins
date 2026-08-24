@@ -80,12 +80,24 @@ export function toInternalManagePath(pathname: string): string | null {
   return null;
 }
 
-/** API quản lý CSĐT — không gồm `preview` (public). */
+/**
+ * API public CSĐT — chạy trên Worker web (`cins.vn`).
+ * Tab khóa học / chi tiết khóa fetch same-origin; không 307 sang manage (CORS).
+ */
+export function isAcademyPublicApiPath(pathname: string): boolean {
+  if (
+    pathname === "/api/academy/preview" ||
+    pathname.startsWith("/api/academy/preview/")
+  ) {
+    return true;
+  }
+  return /^\/api\/academy\/[^/]+\/courses(?:\/|$)/.test(pathname);
+}
+
+/** API quản lý CSĐT — park khỏi web. Public: `preview` + `…/courses/**`. */
 export function isAcademyManageApiPath(pathname: string): boolean {
   if (!pathname.startsWith("/api/academy")) return false;
-  if (pathname === "/api/academy/preview" || pathname.startsWith("/api/academy/preview/")) {
-    return false;
-  }
+  if (isAcademyPublicApiPath(pathname)) return false;
   return true;
 }
 

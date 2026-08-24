@@ -5,7 +5,8 @@
  *
  * - Camera pan/zoom bằng CSS transform trên world layer (ghi DOM trực tiếp;
  *   React chỉ flush 1 lần/frame cho lưới / thanh chọn — không re-render card).
- *   Desktop: wheel / pinch trackpad. Cảm ứng: 2 ngón pinch zoom + pan.
+ *   Desktop: wheel / pinch trackpad. Cảm ứng: 2 ngón pinch zoom + pan;
+ *   1 ngón giữ im ~1s trên nền trống rồi kéo = pan (như tool bàn tay).
  * - Node render HTML tuyệt đối (NodeCard) — kéo, resize, multi-select,
  *   marquee, group/frame, undo/redo command stack.
  * - Persist qua adapter (BoardPersistAdapter) — engine không biết endpoint.
@@ -60,6 +61,10 @@ import {
   hexToGroupTint,
   isAreaTextNode,
   isCommentNode,
+  commentReplyToId,
+  commentThreadRootId,
+  commentThreadIds,
+  commentRepliesOf,
   isPresetPaletteColor,
   isTextStickyNode,
   measureFitTextSize,
@@ -77,9 +82,11 @@ import {
   parseDraw,
   suggestTableSize,
 } from "@/components/cins/board/content-kinds";
+import type { ChatGroupMember } from "@/lib/chat/types";
 import {
   BOARD_DEFAULT_NODE_H,
   BOARD_DEFAULT_NODE_W,
+  BOARD_COMMENT_MAX_W,
   BOARD_COMMENT_MIN_H,
   BOARD_COMMENT_MIN_W,
   BOARD_LINK_INFO_H,
@@ -148,6 +155,10 @@ const GROUP_SNAP_LEAVE_MARGIN = 56;
 const GROUP_EMPTY_MIN_W = 160;
 const GROUP_EMPTY_MIN_H = GROUP_TITLE_H + GROUP_PAD * 2 + 48;
 const DRAG_THRESHOLD_PX = 3;
+/** Cảm ứng: giữ im trên nền trống trước khi chuyển sang pan 1 ngón. */
+const HOLD_PAN_MS = 1000;
+/** Jitter ngón — lệch quá ngưỡng trước 1s thì thành marquee, không pan. */
+const HOLD_PAN_STILL_PX = 12;
 /** Zoom khi đặt ô chữ — trần cố định, không nhân thêm mỗi lần tạo. */
 const TEXT_PLACE_ZOOM = 1.2;
 
@@ -377,6 +388,15 @@ type Gesture =
   | {
       type: "marquee";
       pointerId: number;
+      startPage: { x: number; y: number };
+      additive: boolean;
+      baseSelection: Set<string>;
+    }
+  | {
+      /** Cảm ứng: giữ im trên nền trống — 1s → pan; lệch sớm → marquee. */
+      type: "hold-wait";
+      pointerId: number;
+      startClient: { x: number; y: number };
       startPage: { x: number; y: number };
       additive: boolean;
       baseSelection: Set<string>;
@@ -648,7 +668,12 @@ function centerOf(node: BoardNode): { x: number; y: number } {
 
 function wirePortCandidates(list: BoardNode[]) {
   return list
-    .filter((n) => n.loai !== "connector" && n.loai !== "frame")
+    .filter(
+      (n) =>
+        n.loai !== "connector" &&
+        n.loai !== "frame" &&
+        !isCommentNode(n),
+    )
     .map((n) => ({ id: n.id, rect: nodeRect(n) }));
 }
 
@@ -689,6 +714,8 @@ function hitNodeAt(
   let bestScore = -Infinity;
   for (const n of list) {
     if (n.loai === "connector" || n.id === excludeId) continue;
+    /* Comment không nối dây — bỏ khỏi hit/snap. */
+    if (isCommentNode(n)) continue;
     const r = nodeRect(n);
     if (!pointInRect(p, r)) continue;
     const score = (n.loai === "frame" ? 0 : 1_000_000) + (n.layout.z ?? 0);
@@ -755,6 +782,20 @@ function findGroupSnapHost(
     if (!best || score > best.score) best = { frame, score };
   }
   return best?.frame ?? null;
+}
+
+/** Frame dưới điểm click — ưu tiên z cao. Dùng khi tool đặt tạo object vào nhóm. */
+function hostFrameIdAtPoint(
+  nodes: BoardNode[],
+  p: { x: number; y: number },
+): string | undefined {
+  let best: BoardNode | null = null;
+  for (const n of nodes) {
+    if (n.loai !== "frame") continue;
+    if (!pointInRect(p, nodeRect(n))) continue;
+    if (!best || (n.layout.z ?? 0) >= (best.layout.z ?? 0)) best = n;
+  }
+  return best?.id;
 }
 
 function inflateRect(r: BoardRect, pad: number): BoardRect {
@@ -904,6 +945,10 @@ type CinsBoardProps = {
   pendingFocusNodeId?: string | null;
   /** Node bình luận cần highlight sau hydrate (mở từ tin feed). */
   pendingHighlightNodeIds?: string[] | null;
+  /** Thành viên phòng — @tag trong comment. */
+  mentionMembers?: ChatGroupMember[];
+  /** User đang xem — nút Sửa trên comment của mình. */
+  viewerUserId?: string | null;
 };
 
 export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
@@ -920,6 +965,8 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       inkColor = "#1a1a1a",
       pendingFocusNodeId,
       pendingHighlightNodeIds,
+      mentionMembers = [],
+      viewerUserId = null,
     },
     handleRef,
   ) {
@@ -1001,6 +1048,15 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
 
     const gestureRef = useRef<Gesture | null>(null);
     const pinchRef = useRef<PinchGesture | null>(null);
+    const holdPanTimerRef = useRef(0);
+
+    const clearHoldPanTimer = useCallback(() => {
+      if (!holdPanTimerRef.current) return;
+      window.clearTimeout(holdPanTimerRef.current);
+      holdPanTimerRef.current = 0;
+    }, []);
+
+    useEffect(() => () => clearHoldPanTimer(), [clearHoldPanTimer]);
     const hydratedRef = useRef(false);
     const zCounterRef = useRef(1);
     /** Paste/upload bị user xóa giữa chừng — chặn create xong hiện lại. */
@@ -1881,7 +1937,10 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         }
 
         void (async () => {
-          const created = await persist.createNode(input);
+          const created = await persist.createNode({
+            ...input,
+            layout: toStoredLayout(optimistic),
+          });
           const gone =
             cancelledLocalIdsRef.current.has(tempId) ||
             !nodesRef.current.some((n) => n.id === tempId);
@@ -1932,6 +1991,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         persist,
         promoteLocalNode,
         setSelection,
+        toStoredLayout,
       ],
     );
 
@@ -1952,6 +2012,9 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
             h: fit.h,
             mau,
             ...(isText ? { textKind: "fit" as const } : {}),
+            ...(page
+              ? { groupId: hostFrameIdAtPoint(nodesRef.current, page) }
+              : {}),
           },
           noiDung: "",
         });
@@ -1972,6 +2035,10 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
               h: Math.max(28, rect.h),
               mau: TEXT_STICKY_MAU,
               textKind: "area",
+              groupId: hostFrameIdAtPoint(nodesRef.current, {
+                x: rect.x,
+                y: rect.y,
+              }),
             },
             noiDung: "",
           },
@@ -1998,7 +2065,17 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         const { x, y } = pageOrViewport(page, w, h);
         spawnOptimisticSticky({
           loai: "sticky",
-          layout: { x, y, w, h, mau, shapeKind: kind },
+          layout: {
+            x,
+            y,
+            w,
+            h,
+            mau,
+            shapeKind: kind,
+            ...(page
+              ? { groupId: hostFrameIdAtPoint(nodesRef.current, page) }
+              : {}),
+          },
           noiDung: "",
         });
       },
@@ -2019,6 +2096,9 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
             w: size.w,
             h: size.h,
             contentKind: "table",
+            ...(page
+              ? { groupId: hostFrameIdAtPoint(nodesRef.current, page) }
+              : {}),
           },
           noiDung: serializeTable(table),
         });
@@ -2027,18 +2107,61 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
     );
 
     const addComment = useCallback(
-      (page?: { x: number; y: number }) => {
+      (page?: { x: number; y: number }, replyToId?: string) => {
         if (lockedRef.current) return;
-        const w = BOARD_COMMENT_MIN_W + 40;
-        const h = BOARD_COMMENT_MIN_H + 8;
-        const { x, y } = pageOrViewport(page, w, h);
-        spawnOptimisticSticky({
-          loai: "sticky",
-          layout: { x, y, w, h, contentKind: "comment" },
-          noiDung: "",
-        });
+        const w = BOARD_COMMENT_MIN_W;
+        const h = BOARD_COMMENT_MIN_H;
+        const replySource = replyToId
+          ? nodesRef.current.find((n) => n.id === replyToId)
+          : undefined;
+        const rootId = replySource
+          ? commentThreadRootId(replySource, nodesRef.current)
+          : null;
+        const parent = rootId
+          ? nodesRef.current.find((n) => n.id === rootId)
+          : null;
+        let x: number;
+        let y: number;
+        if (parent) {
+          x = parent.layout.x;
+          y = parent.layout.y;
+        } else {
+          const pos = pageOrViewport(page, w, h);
+          x = pos.x;
+          y = pos.y;
+        }
+        spawnOptimisticSticky(
+          {
+            loai: "sticky",
+            layout: {
+              x,
+              y,
+              w,
+              h,
+              contentKind: "comment",
+              ...(parent ? { commentReplyToId: parent.id } : {}),
+              ...(parent
+                ? {
+                    groupId:
+                      parent.layout.groupId ??
+                      hostFrameIdAtPoint(nodesRef.current, { x, y }),
+                  }
+                : page
+                  ? {
+                      groupId: hostFrameIdAtPoint(nodesRef.current, { x, y }),
+                    }
+                  : {}),
+            },
+            noiDung: "",
+          },
+          { center: !parent },
+        );
+        if (parent) {
+          setSelection(new Set([parent.id]));
+          emitSelection();
+        }
       },
-      [pageOrViewport, spawnOptimisticSticky],
+      [emitSelection, pageOrViewport, setSelection, spawnOptimisticSticky],
     );
 
     const placeArmedAtPage = useCallback(
@@ -2053,8 +2176,9 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         } else if (armed === "table") {
           addTable(opts.rows ?? 3, opts.cols ?? 3, page);
         } else if (armed === "comment") addComment(page);
+        setTool("select");
       },
-      [addComment, addShape, addSticky, addTable],
+      [addComment, addShape, addSticky, addTable, setTool],
     );
 
     const [highlightIds, setHighlightIds] = useState<Set<string>>(
@@ -2105,6 +2229,16 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
     const createWire = useCallback(
       async (fromId: string, toId: string, route: WireRouteOpts = {}) => {
         if (lockedRef.current || fromId === toId) return;
+        const fromNode = byId(fromId);
+        const toNode = byId(toId);
+        if (
+          !fromNode ||
+          !toNode ||
+          isCommentNode(fromNode) ||
+          isCommentNode(toNode)
+        ) {
+          return;
+        }
         // Đã có dây giữa hai node (bất kể chiều) — không tạo trùng.
         const dup = nodesRef.current.some(
           (n) =>
@@ -2169,16 +2303,17 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         setSelection(new Set([node.id]));
         emitSelection();
       },
-      [commitNodes, emitSelection, history, persist, setSelection],
+      [byId, commitNodes, emitSelection, history, persist, setSelection],
     );
 
     const startWire = useCallback(
       (e: ReactPointerEvent, nodeId: string, fromSide: WireSide) => {
         if (lockedRef.current) return;
+        if (isBoardPlaceTool(toolRef.current)) return;
         e.preventDefault();
         e.stopPropagation();
         const node = byId(nodeId);
-        if (!node) return;
+        if (!node || isCommentNode(node)) return;
         const p = pageFromClient(e.clientX, e.clientY);
         gestureRef.current = {
           type: "wire",
@@ -2693,10 +2828,34 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
 
     const requestNodeEdit = useCallback(
       (id: string) => {
+        const node = nodesRef.current.find((n) => n.id === id);
+        if (node && isCommentNode(node) && commentReplyToId(node)) {
+          const root = commentThreadRootId(node, nodesRef.current);
+          setSelection(new Set([root]));
+          setEditingId(id);
+          return;
+        }
         setSelection(new Set([id]));
         setEditingId(id);
       },
       [setSelection],
+    );
+
+    const deleteCommentNode = useCallback(
+      (nodeId: string) => {
+        if (lockedRef.current) return;
+        const node = nodesRef.current.find((n) => n.id === nodeId);
+        if (!node || !isCommentNode(node)) return;
+        if (isLocalBoardNodeId(node.id)) {
+          cancelledLocalIdsRef.current.add(node.id);
+        } else {
+          history.push({ type: "delete", node });
+          void persist.deleteNode(node);
+        }
+        commitNodes(nodesRef.current.filter((n) => n.id !== nodeId));
+        if (editingRef.current === nodeId) setEditingId(null);
+      },
+      [commitNodes, history, persist],
     );
 
     const discardBlankTextStickies = useCallback(
@@ -2994,7 +3153,10 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         if (!node) return;
         if (normalizeContentKind(node.layout.contentKind) !== "comment") return;
         const cur = nodeRect(node);
-        const w = Math.max(BOARD_COMMENT_MIN_W, Math.round(size.w));
+        const w = Math.min(
+          BOARD_COMMENT_MAX_W,
+          Math.max(BOARD_COMMENT_MIN_W, Math.round(size.w)),
+        );
         const h = Math.max(BOARD_COMMENT_MIN_H, Math.round(size.h));
         if (Math.abs(cur.w - w) < 2 && Math.abs(cur.h - h) < 2) return;
         const updated = {
@@ -3005,9 +3167,8 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
             h,
           },
         };
-        commitNodes(
-          nodesRef.current.map((n) => (n.id === nodeId ? updated : n)),
-        );
+        let next = nodesRef.current.map((n) => (n.id === nodeId ? updated : n));
+        commitNodes(next);
         if (selectedRef.current.has(nodeId)) emitSelection();
         if (lockedRef.current) return;
         const timers = commentPersistTimersRef.current;
@@ -3210,6 +3371,16 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         sel.filter((n) => n.loai === "frame").map((n) => n.id),
       );
       const deletedIds = new Set(sel.map((n) => n.id));
+      for (const node of sel) {
+        if (!isCommentNode(node)) continue;
+        const root = commentReplyToId(node)
+          ? node.id
+          : commentThreadRootId(node, nodesRef.current);
+        if (commentReplyToId(node)) continue;
+        for (const id of commentThreadIds(root, nodesRef.current)) {
+          deletedIds.add(id);
+        }
+      }
 
       // Dây nối dính vào node bị xóa — xóa theo. Push TRƯỚC các node để
       // undo tạo lại node trước rồi mới tới dây (from/to được remap đúng).
@@ -3260,6 +3431,17 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
             void persist.deleteNode(node);
           }
         }
+      }
+
+      const extraDeletes = nodesRef.current.filter(
+        (n) =>
+          deletedIds.has(n.id) &&
+          !sel.some((s) => s.id === n.id) &&
+          n.loai !== "connector",
+      );
+      for (const node of extraDeletes) {
+        history.push({ type: "delete", node });
+        void persist.deleteNode(node);
       }
 
       const next = nodesRef.current
@@ -3388,6 +3570,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
     /* ---------- cảm ứng: 2 ngón pinch zoom + pan ---------- */
 
     const abortActiveGesture = useCallback(() => {
+      clearHoldPanTimer();
       const g = gestureRef.current;
       gestureRef.current = null;
       wirePathClickRef.current = null;
@@ -3454,7 +3637,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           );
         }
       }
-      if (g.type === "marquee") {
+      if (g.type === "marquee" || g.type === "hold-wait") {
         setSelection(new Set(g.baseSelection));
       }
 
@@ -3463,7 +3646,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       setWireDraft(null);
       setWireSnap(null);
       setDrawDraft(null);
-    }, [clearGroupSnapUi, commitNodes, setSelection]);
+    }, [clearGroupSnapUi, clearHoldPanTimer, commitNodes, setSelection]);
 
     // TouchEvent (không PointerEvent): iOS không luôn gửi pointerdown ngón 2
     // khi ngón 1 đã capture. preventDefault chặn zoom trang.
@@ -3592,6 +3775,12 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           if (n.loai === "frame") {
             for (const m of membersOfFrame(n.id)) moveIds.add(m.id);
           }
+          if (isCommentNode(n)) {
+            const root = commentThreadRootId(n, nodesRef.current);
+            for (const tid of commentThreadIds(root, nodesRef.current)) {
+              moveIds.add(tid);
+            }
+          }
         }
 
         const startPos = new Map<string, { x: number; y: number }>();
@@ -3682,24 +3871,56 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       [byId],
     );
 
-    /* Ctrl/⌘+click lúc đang tool đặt: 1 lần là về chọn — không đợi click thứ hai
-     * (lần đầu từng bị node/edit nuốt, hoặc chỉ blur ô soạn). */
-    useEffect(() => {
-      const el = rootRef.current;
-      if (!el) return;
-      const onCapture = (e: PointerEvent) => {
-        if (e.button !== 0 || lockedRef.current) return;
-        if (!isBoardPlaceTool(toolRef.current)) return;
-        if (!(e.ctrlKey || e.metaKey)) return;
-        if (isTextEditingTarget(e.target)) return;
+    /* Tool đặt: lắng nghe document capture — trước React (root capture) để
+     * node/group không kịp chọn/kéo. Ctrl/⌘+click: về chọn. */
+    const interceptPlacePointer = useCallback(
+      (e: PointerEvent) => {
+        const board = rootRef.current;
+        if (!board) return false;
+        if (e.button !== 0 || lockedRef.current) return false;
+        if (!isBoardPlaceTool(toolRef.current)) return false;
+        if (pinchRef.current || spaceHeldRef.current) return false;
+        const target = e.target;
+        if (!(target instanceof Node) || !board.contains(target)) return false;
+        if (target instanceof Element && target.closest(".cins-board-selbar")) {
+          return false;
+        }
+
         e.preventDefault();
         e.stopPropagation();
-        setTool("select");
-        setEditingId(null);
+        e.stopImmediatePropagation();
+        board.focus({ preventScroll: true });
+
+        if (e.ctrlKey || e.metaKey) {
+          setTool("select");
+          setEditingId(null);
+          return true;
+        }
+        if (toolRef.current === "text") {
+          const start = pageFromClient(e.clientX, e.clientY);
+          gestureRef.current = {
+            type: "place-text",
+            pointerId: e.pointerId,
+            startPage: start,
+            startClient: { x: e.clientX, y: e.clientY },
+          };
+          setInteracting(true);
+          board.setPointerCapture?.(e.pointerId);
+          return true;
+        }
+        placeArmedAtPage(pageFromClient(e.clientX, e.clientY));
+        return true;
+      },
+      [pageFromClient, placeArmedAtPage, setTool],
+    );
+
+    useEffect(() => {
+      const onCapture = (e: PointerEvent) => {
+        interceptPlacePointer(e);
       };
-      el.addEventListener("pointerdown", onCapture, true);
-      return () => el.removeEventListener("pointerdown", onCapture, true);
-    }, [setTool]);
+      document.addEventListener("pointerdown", onCapture, true);
+      return () => document.removeEventListener("pointerdown", onCapture, true);
+    }, [interceptPlacePointer]);
 
     const onRootPointerDown = useCallback(
       (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -3765,22 +3986,61 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           return;
         }
 
-        // Nền trống → marquee. Click ra ngoài: ẩn toolbar bảng / thoát edit.
+        // Nền trống → marquee. Cảm ứng: giữ im ~1s rồi kéo = pan (tool bàn tay).
         const start = pageFromClient(e.clientX, e.clientY);
+        const additive = e.shiftKey;
+        const baseSelection = additive
+          ? new Set(selectedRef.current)
+          : new Set<string>();
+        if (e.pointerType === "touch") {
+          e.preventDefault();
+          gestureRef.current = {
+            type: "hold-wait",
+            pointerId: e.pointerId,
+            startClient: { x: e.clientX, y: e.clientY },
+            startPage: start,
+            additive,
+            baseSelection,
+          };
+          if (!additive) {
+            setSelection(new Set());
+            setEditingId(null);
+          }
+          (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+          clearHoldPanTimer();
+          holdPanTimerRef.current = window.setTimeout(() => {
+            holdPanTimerRef.current = 0;
+            const cur = gestureRef.current;
+            if (!cur || cur.type !== "hold-wait") return;
+            gestureRef.current = {
+              type: "pan",
+              pointerId: cur.pointerId,
+              startClient: cur.startClient,
+              camStart: { ...cameraRef.current },
+            };
+            setPanning(true);
+            try {
+              navigator.vibrate?.(15);
+            } catch {
+              /* không hỗ trợ haptic */
+            }
+          }, HOLD_PAN_MS);
+          return;
+        }
         gestureRef.current = {
           type: "marquee",
           pointerId: e.pointerId,
           startPage: start,
-          additive: e.shiftKey,
-          baseSelection: e.shiftKey ? new Set(selectedRef.current) : new Set(),
+          additive,
+          baseSelection,
         };
-        if (!e.shiftKey) {
+        if (!additive) {
           setSelection(new Set());
           setEditingId(null);
         }
         (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
       },
-      [pageFromClient, placeArmedAtPage, setSelection, setTool],
+      [clearHoldPanTimer, pageFromClient, placeArmedAtPage, setSelection, setTool],
     );
 
     const onRootPointerMove = useCallback(
@@ -3788,6 +4048,23 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         if (pinchRef.current) return;
         const g = gestureRef.current;
         if (!g || g.pointerId !== e.pointerId) return;
+
+        if (g.type === "hold-wait") {
+          const dist = Math.hypot(
+            e.clientX - g.startClient.x,
+            e.clientY - g.startClient.y,
+          );
+          if (dist < HOLD_PAN_STILL_PX) return;
+          clearHoldPanTimer();
+          gestureRef.current = {
+            type: "marquee",
+            pointerId: g.pointerId,
+            startPage: g.startPage,
+            additive: g.additive,
+            baseSelection: g.baseSelection,
+          };
+          return;
+        }
 
         if (g.type === "pan") {
           const cam = g.camStart;
@@ -4074,6 +4351,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         const ids = new Set(g.baseSelection);
         for (const n of nodesRef.current) {
           if (n.loai === "connector") continue; // dây chỉ chọn bằng click
+          if (isCommentNode(n) && commentReplyToId(n)) continue;
           const r = nodeRect(n);
           if (n.loai === "frame") {
             // Frame chỉ chọn khi marquee bao trọn.
@@ -4094,6 +4372,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       [
         applyMovePreview,
         byId,
+        clearHoldPanTimer,
         commitCamera,
         commitNodes,
         pageFromClient,
@@ -4107,6 +4386,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         if (pinchRef.current) return;
         const g = gestureRef.current;
         if (!g || g.pointerId !== e.pointerId) return;
+        clearHoldPanTimer();
         gestureRef.current = null;
         if (movePreviewRafRef.current) {
           cancelAnimationFrame(movePreviewRafRef.current);
@@ -4144,14 +4424,15 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
             ) >= 8;
           if (!dragged) {
             addSticky(TEXT_STICKY_MAU, g.startPage);
-            return;
+          } else {
+            addAreaText({
+              x: Math.min(g.startPage.x, end.x),
+              y: Math.min(g.startPage.y, end.y),
+              w: Math.abs(end.x - g.startPage.x),
+              h: Math.abs(end.y - g.startPage.y),
+            });
           }
-          addAreaText({
-            x: Math.min(g.startPage.x, end.x),
-            y: Math.min(g.startPage.y, end.y),
-            w: Math.abs(end.x - g.startPage.x),
-            h: Math.abs(end.y - g.startPage.y),
-          });
+          setTool("select");
           return;
         }
 
@@ -4404,6 +4685,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         addAreaText,
         addNodeInternal,
         addSticky,
+        setTool,
         applyMovePreview,
         byId,
         commitNodes,
@@ -4415,6 +4697,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         persistLayoutBatch,
         persistNodeLayout,
         clearGroupSnapUi,
+        clearHoldPanTimer,
       ],
     );
 
@@ -4462,20 +4745,37 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           return;
         }
         if (!e.ctrlKey && !e.metaKey && !e.altKey) {
-          if (e.key.toLowerCase() === "v") {
+          const key = e.key.toLowerCase();
+          if (key === "v") {
             setTool("select");
             return;
           }
-          if (e.key.toLowerCase() === "h") {
+          if (key === "h") {
             setTool("pan");
             return;
           }
-          if (e.key.toLowerCase() === "d") {
+          if (lockedRef.current) {
+            /* canvas khóa: chỉ còn chọn / pan */
+          } else if (key === "d") {
             setTool("draw");
             return;
-          }
-          if (e.key.toLowerCase() === "t") {
-            setTool("text");
+          } else if (key === "s") {
+            setTool(toolRef.current === "sticky" ? "select" : "sticky");
+            return;
+          } else if (key === "r") {
+            setTool(
+              toolRef.current === "shape" ? "select" : "shape",
+              { shapeKind: "rect" },
+            );
+            return;
+          } else if (key === "t") {
+            setTool(
+              toolRef.current === "table" ? "select" : "table",
+              { rows: 3, cols: 3 },
+            );
+            return;
+          } else if (key === "c") {
+            setTool(toolRef.current === "comment" ? "select" : "comment");
             return;
           }
         }
@@ -4917,7 +5217,12 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
     /* ---------- thanh thao tác nổi trên selection ---------- */
 
     const selectedNodes = useMemo(
-      () => nodes.filter((n) => selectedIds.has(n.id)),
+      () =>
+        nodes.filter(
+          (n) =>
+            selectedIds.has(n.id) &&
+            !(isCommentNode(n) && commentReplyToId(n)),
+        ),
       [nodes, selectedIds],
     );
 
@@ -5332,6 +5637,9 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         onPointerMove={onRootPointerMove}
         onPointerUp={finishGesture}
         onPointerCancel={finishGesture}
+        onContextMenu={(e) => {
+          if (e.nativeEvent.pointerType === "touch") e.preventDefault();
+        }}
         onDrop={onDrop}
         onDragOver={onDragOver}
         onPaste={onPaste}
@@ -5408,6 +5716,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                     ) {
                       return;
                     }
+                    if (isBoardPlaceTool(toolRef.current)) return;
                     e.stopPropagation();
                     rootRef.current?.focus({ preventScroll: true });
                     const already = selectedRef.current.has(w.id);
@@ -5613,10 +5922,19 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
             ) : null}
           </svg>
           {ordered.map((node) => {
+            if (isCommentNode(node) && commentReplyToId(node)) return null;
             const r = nodeRect(node);
-            const selected = selectedIds.has(node.id);
             const contentKind = normalizeContentKind(node.layout.contentKind);
             const isComment = contentKind === "comment";
+            const commentReplies = isComment
+              ? commentRepliesOf(nodes, node.id)
+              : [];
+            const selected =
+              selectedIds.has(node.id) ||
+              commentReplies.some((rep) => selectedIds.has(rep.id));
+            const threadEditing =
+              editingId === node.id ||
+              commentReplies.some((rep) => rep.id === editingId);
             return (
               <div
                 key={node.id}
@@ -5647,22 +5965,19 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                   if (e.button !== 0 || spaceHeldRef.current) return;
                   // Tool bàn tay: node không nuốt event — root pan.
                   if (toolRef.current === "pan") return;
-                  // Tool vẽ/chữ: nền trống mới tạo — click node vẫn chọn/kéo.
-                  if (
-                    toolRef.current === "draw" ||
-                    isBoardPlaceTool(toolRef.current)
-                  ) {
+                  // Tool vẽ: click node vẫn chọn/kéo. Tool đặt: để bubble — ưu tiên tạo.
+                  if (toolRef.current === "draw") {
                     e.stopPropagation();
-                    if (
-                      isBoardPlaceTool(toolRef.current) &&
-                      (e.ctrlKey || e.metaKey)
-                    ) {
+                    startMove(e, node.id);
+                    return;
+                  }
+                  if (isBoardPlaceTool(toolRef.current)) {
+                    if (e.ctrlKey || e.metaKey) {
                       setTool("select");
                       setEditingId(null);
                       e.stopPropagation();
                       return;
                     }
-                    startMove(e, node.id);
                     return;
                   }
 
@@ -5686,8 +6001,8 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                     return;
                   }
 
-                  // Đang sửa sticky/bảng: đừng để event lên root (marquee).
-                  if (editingId === node.id) {
+                  // Đang sửa sticky/bảng/thread comment: đừng để event lên root (marquee).
+                  if (threadEditing) {
                     e.stopPropagation();
                     return;
                   }
@@ -5716,8 +6031,16 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                   onImageNaturalSize={fitImageNode}
                   onCommentSize={fitCommentNode}
                   onTextFitSize={fitTextNodeSize}
+                  onReplyComment={
+                    locked ? undefined : (id) => addComment(undefined, id)
+                  }
+                  onDeleteComment={locked ? undefined : deleteCommentNode}
+                  commentReplies={commentReplies}
+                  editingId={editingId}
+                  mentionMembers={mentionMembers}
+                  viewerUserId={viewerUserId}
                 />
-                {!locked ? (
+                {!locked && !isComment ? (
                   <>
                     {WIRE_SIDES.map((side) => (
                       <span

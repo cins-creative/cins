@@ -6,7 +6,19 @@
  * phụ (mở tin gốc, mở link, edit sticky) dừng propagation.
  */
 
-import { Eye, GripHorizontal, Link2, PanelLeft, PanelTop, Plus, X } from "lucide-react";
+import {
+  Eye,
+  GripHorizontal,
+  Link2,
+  PanelLeft,
+  PanelTop,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Send,
+  Trash2,
+  X,
+} from "lucide-react";
 import {
   memo,
   useCallback,
@@ -18,11 +30,16 @@ import {
   type ReactNode,
 } from "react";
 
-import type { BoardNode } from "@/components/cins/board/board-types";
 import {
+  BOARD_COMMENT_COMPOSE_MAX_W,
+  BOARD_COMMENT_COMPOSE_MIN_W,
   BOARD_COMMENT_MAX_W,
   BOARD_COMMENT_MIN_H,
   BOARD_COMMENT_MIN_W,
+  BOARD_COMMENT_REPLY_INDENT,
+  BOARD_COMMENT_STACK_GAP,
+  nodeRect,
+  type BoardNode,
 } from "@/components/cins/board/board-types";
 import {
   addTableCol,
@@ -48,6 +65,14 @@ import { InlineExternalVideoEmbed } from "@/components/shared/InlineExternalVide
 import { ChatMessageVideo } from "@/components/cins/ChatMessageVideo";
 import { buildVideoIframeSrc } from "@/lib/journey/video-embed";
 import { isDirectVideoFileUrl } from "@/lib/chat/video-url";
+import {
+  ChatAtMentionMenu,
+  filterChatAtMembers,
+  isChatAtMentionAll,
+} from "@/components/cins/ChatAtMentionMenu";
+import { ChatMentionText } from "@/components/cins/ChatMentionText";
+import { getAtHashTrigger, type AtHashTrigger } from "@/lib/editor/use-at-hash-trigger";
+import type { ChatGroupMember } from "@/lib/chat/types";
 
 export const STICKY_PALETTE = ["#F7F383", "#6EFEC0", "#FFB85C", "#BB89F8"];
 
@@ -119,6 +144,81 @@ export function isCommentNode(
     node.loai === "sticky" &&
     normalizeContentKind(node.layout.contentKind) === "comment"
   );
+}
+
+export function commentReplyToId(
+  node: Pick<BoardNode, "layout">,
+): string | null {
+  const id = node.layout.commentReplyToId;
+  return typeof id === "string" && id ? id : null;
+}
+
+/** Gốc chuỗi trả lời. */
+export function commentThreadRootId(
+  node: BoardNode,
+  nodes: BoardNode[],
+): string {
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  let id = commentReplyToId(node) ?? node.id;
+  for (let i = 0; i < 24; i++) {
+    const cur = byId.get(id);
+    if (!cur) return id;
+    const parent = commentReplyToId(cur);
+    if (!parent || !byId.has(parent)) return id;
+    id = parent;
+  }
+  return id;
+}
+
+export function commentRepliesOf(
+  nodes: BoardNode[],
+  rootId: string,
+): BoardNode[] {
+  return nodes
+    .filter((n) => isCommentNode(n) && commentReplyToId(n) === rootId)
+    .sort((a, b) => {
+      const ta = Date.parse(a.taoLuc) || 0;
+      const tb = Date.parse(b.taoLuc) || 0;
+      if (ta !== tb) return ta - tb;
+      return a.id.localeCompare(b.id);
+    });
+}
+
+export function commentThreadIds(
+  rootId: string,
+  nodes: BoardNode[],
+): string[] {
+  return [rootId, ...commentRepliesOf(nodes, rootId).map((n) => n.id)];
+}
+
+/** Xếp reply dưới comment gốc, thụt vào. */
+export function restackCommentReplies(
+  nodes: BoardNode[],
+  rootId: string,
+): BoardNode[] {
+  const root = nodes.find((n) => n.id === rootId);
+  if (!root || !isCommentNode(root)) return nodes;
+  const replies = commentRepliesOf(nodes, rootId);
+  if (replies.length === 0) return nodes;
+  const rootBox = nodeRect(root);
+  let y = rootBox.y + rootBox.h + BOARD_COMMENT_STACK_GAP;
+  const x = root.layout.x + BOARD_COMMENT_REPLY_INDENT;
+  const nextY = new Map<string, { x: number; y: number }>();
+  for (const reply of replies) {
+    if (
+      Math.abs(reply.layout.x - x) > 1 ||
+      Math.abs(reply.layout.y - y) > 1
+    ) {
+      nextY.set(reply.id, { x, y });
+    }
+    y += nodeRect(reply).h + BOARD_COMMENT_STACK_GAP;
+  }
+  if (nextY.size === 0) return nodes;
+  return nodes.map((n) => {
+    const pos = nextY.get(n.id);
+    if (!pos) return n;
+    return { ...n, layout: { ...n.layout, x: pos.x, y: pos.y } };
+  });
 }
 
 export function isAreaTextNode(
@@ -679,6 +779,18 @@ type NodeCardProps = {
   onCommentSize?: (nodeId: string, size: { w: number; h: number }) => void;
   /** Point text — board ôm khung theo chữ. */
   onTextFitSize?: (nodeId: string, size: { w: number; h: number }) => void;
+  /** Trả lời bình luận trên canvas. */
+  onReplyComment?: (nodeId: string) => void;
+  /** Xóa một node comment (reply lồng — không xóa cả thread). */
+  onDeleteComment?: (nodeId: string) => void;
+  /** Các reply thuộc comment gốc — render trong cùng bubble. */
+  commentReplies?: BoardNode[];
+  /** Id node đang soạn (gốc hoặc reply lồng). */
+  editingId?: string | null;
+  /** Thành viên phòng — gợi ý @tag trong comment. */
+  mentionMembers?: ChatGroupMember[];
+  /** User đang xem — hiện nút Sửa trên comment của mình. */
+  viewerUserId?: string | null;
 };
 
 function StickyEditor({
@@ -691,6 +803,7 @@ function StickyEditor({
   textSize,
   area = false,
   areaBox,
+  mentionMembers = [],
 }: Pick<NodeCardProps, "node" | "onCommitText" | "onCancelEdit"> & {
   onInputGrow?: (value: string) => void;
   tone?: "sticky" | "comment";
@@ -698,14 +811,27 @@ function StickyEditor({
   textSize?: number | null;
   area?: boolean;
   areaBox?: { w: number; h: number };
+  mentionMembers?: ChatGroupMember[];
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
+  const sizerRef = useRef<HTMLSpanElement>(null);
   const commitRef = useRef(onCommitText);
   const skipUnmountCommitRef = useRef(false);
   /** Giữ chữ đang gõ — unmount khi click nền có thể xóa DOM ref trước khi commit. */
   const liveValueRef = useRef(node.noiDung ?? "");
   const mountedAtRef = useRef(0);
+  const [atTrigger, setAtTrigger] = useState<AtHashTrigger | null>(null);
+  const [atIndex, setAtIndex] = useState(0);
   commitRef.current = onCommitText;
+
+  const isComment = tone === "comment";
+  const atMembers = useMemo(
+    () =>
+      atTrigger?.char === "@"
+        ? filterChatAtMembers(mentionMembers, atTrigger.query)
+        : [],
+    [atTrigger, mentionMembers],
+  );
 
   const applyAreaFont = (value: string) => {
     const el = ref.current;
@@ -713,6 +839,28 @@ function StickyEditor({
     const size = measureAreaTextFontSize(value, areaBox.w, areaBox.h);
     el.style.fontSize = `${size}px`;
     el.style.lineHeight = String(TEXT_LINE_RATIO);
+  };
+
+  const syncAtTrigger = () => {
+    const el = ref.current;
+    if (!el || !isComment || mentionMembers.length === 0) {
+      setAtTrigger(null);
+      return;
+    }
+    const trigger = getAtHashTrigger(el.value, el.selectionStart ?? 0);
+    if (!trigger || trigger.char !== "@") {
+      setAtTrigger(null);
+      return;
+    }
+    setAtTrigger(trigger);
+    setAtIndex(0);
+  };
+
+  const syncSizer = (value: string) => {
+    const sizer = sizerRef.current;
+    if (!sizer) return;
+    const raw = value.length > 0 ? value : "\u00a0";
+    sizer.textContent = raw.endsWith("\n") ? `${raw}\n` : raw;
   };
 
   const syncHeight = () => {
@@ -724,12 +872,43 @@ function StickyEditor({
       applyAreaFont(el.value);
       return;
     }
+    if (isComment) {
+      syncSizer(el.value);
+      onInputGrow?.(el.value);
+      syncAtTrigger();
+      return;
+    }
     el.style.overflow = "hidden";
     el.style.height = "auto";
     el.style.width = "auto";
-    const nextH = Math.max(el.scrollHeight, tone === "comment" ? 20 : 40);
+    const nextH = Math.max(el.scrollHeight, 40);
     el.style.height = `${nextH}px`;
     onInputGrow?.(el.value);
+  };
+
+  const send = () => {
+    const el = ref.current;
+    const value = el?.value ?? liveValueRef.current;
+    if (!value.trim()) return;
+    liveValueRef.current = value;
+    skipUnmountCommitRef.current = true;
+    onCommitText(node.id, value);
+  };
+
+  const insertMention = (member: ChatGroupMember) => {
+    const el = ref.current;
+    if (!el || !atTrigger) return;
+    const slug = isChatAtMentionAll(member) ? "all" : member.slug;
+    const insert = `@${slug} `;
+    const next =
+      el.value.slice(0, atTrigger.start) + insert + el.value.slice(atTrigger.end);
+    el.value = next;
+    liveValueRef.current = next;
+    const caret = atTrigger.start + insert.length;
+    el.focus({ preventScroll: true });
+    el.setSelectionRange(caret, caret);
+    setAtTrigger(null);
+    syncHeight();
   };
 
   useEffect(() => {
@@ -761,12 +940,12 @@ function StickyEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ khi đổi khung area
   }, [area, areaBox?.w, areaBox?.h]);
 
-  return (
+  const editor = (
     <textarea
       ref={ref}
       className={
         "cins-canvas-sticky-editor" +
-        (tone === "comment" ? " is-comment" : "") +
+        (isComment ? " is-comment" : "") +
         (area ? " is-area" : "")
       }
       defaultValue={node.noiDung ?? ""}
@@ -774,21 +953,58 @@ function StickyEditor({
       style={textBlockStyle(textColor, textSize)}
       onPointerDown={(e) => e.stopPropagation()}
       onInput={syncHeight}
+      onKeyUp={() => {
+        if (isComment) syncAtTrigger();
+      }}
+      onClick={() => {
+        if (isComment) syncAtTrigger();
+      }}
       onKeyDown={(e) => {
         e.stopPropagation();
+        if (isComment && atTrigger && atMembers.length > 0) {
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setAtIndex((i) => (i + 1) % atMembers.length);
+            return;
+          }
+          if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setAtIndex((i) => (i - 1 + atMembers.length) % atMembers.length);
+            return;
+          }
+          if (e.key === "Enter" || e.key === "Tab") {
+            e.preventDefault();
+            const pick = atMembers[atIndex] ?? atMembers[0];
+            if (pick) insertMention(pick);
+            return;
+          }
+          if (e.key === "Escape") {
+            e.preventDefault();
+            setAtTrigger(null);
+            return;
+          }
+        }
         if (e.key === "Escape") {
           e.preventDefault();
           skipUnmountCommitRef.current = true;
           onCancelEdit();
         }
+        if (isComment && e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+          e.preventDefault();
+          send();
+          return;
+        }
         if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
           e.preventDefault();
           liveValueRef.current = e.currentTarget.value;
+          skipUnmountCommitRef.current = true;
           onCommitText(node.id, e.currentTarget.value);
         }
       }}
       onBlur={(e) => {
         liveValueRef.current = e.currentTarget.value;
+        const related = e.relatedTarget as HTMLElement | null;
+        if (related?.closest(".cins-canvas-comment-compose")) return;
         const empty = !e.currentTarget.value.trim();
         // Mất focus không do click sang control khác (camera / Strict Mode) —
         // giữ ô soạn, đừng xóa comment trống.
@@ -798,9 +1014,56 @@ function StickyEditor({
           });
           return;
         }
-        onCommitText(node.id, e.currentTarget.value);
+        if (isComment && empty) return;
+        onCommitText(
+          node.id,
+          e.currentTarget.value,
+          isComment ? { keepEditing: true } : undefined,
+        );
       }}
     />
+  );
+
+  if (!isComment) return editor;
+
+  return (
+    <div className="cins-canvas-comment-compose">
+      {atTrigger && atMembers.length > 0 ? (
+        <ChatAtMentionMenu
+          members={mentionMembers}
+          query={atTrigger.query}
+          activeIndex={atIndex}
+          onHoverIndex={setAtIndex}
+          onSelect={insertMention}
+        />
+      ) : null}
+      <span
+        ref={sizerRef}
+        className="cins-canvas-comment-sizer"
+        aria-hidden
+        style={{
+          minWidth: BOARD_COMMENT_COMPOSE_MIN_W,
+          maxWidth: BOARD_COMMENT_COMPOSE_MAX_W,
+        }}
+      />
+      {editor}
+      <button
+        type="button"
+        className="cins-canvas-comment-send"
+        aria-label="Gửi"
+        title="Gửi (Enter)"
+        onPointerDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          send();
+        }}
+      >
+        <Send size={14} strokeWidth={2.2} aria-hidden />
+      </button>
+    </div>
   );
 }
 
@@ -1454,6 +1717,140 @@ function AnhBody({
   );
 }
 
+function CommentAuthorAvatar({
+  author,
+  compact,
+}: {
+  author: BoardNode["layout"]["commentAuthor"];
+  compact?: boolean;
+}) {
+  const ten = author?.ten?.trim() || "Thành viên";
+  const initial = ten.charAt(0).toUpperCase() || "?";
+  if (author?.avatarUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        className={
+          "cins-canvas-comment-avatar" + (compact ? " is-nested" : "")
+        }
+        src={author.avatarUrl}
+        alt=""
+        draggable={false}
+      />
+    );
+  }
+  return (
+    <span
+      className={
+        "cins-canvas-comment-avatar is-fallback" +
+        (compact ? " is-nested" : "")
+      }
+      aria-hidden
+    >
+      {initial}
+    </span>
+  );
+}
+
+function commentOwnedByViewer(
+  node: BoardNode,
+  viewerUserId: string | null | undefined,
+): boolean {
+  if (!viewerUserId) return false;
+  if (node.layout.commentAuthor?.id === viewerUserId) return true;
+  if (node.idNguoiTao && node.idNguoiTao === viewerUserId) return true;
+  return false;
+}
+
+function CommentMoreMenu({
+  canEdit,
+  canDelete,
+  onEdit,
+  onDelete,
+}: {
+  canEdit: boolean;
+  canDelete: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: PointerEvent) => {
+      const el = wrapRef.current;
+      if (el && e.target instanceof Node && el.contains(e.target)) return;
+      setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", onDoc, true);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDoc, true);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  if (!canEdit && !canDelete) return null;
+
+  return (
+    <div ref={wrapRef} className="cins-canvas-comment-more-wrap">
+      <button
+        type="button"
+        className="cins-canvas-comment-more"
+        aria-label="Thêm"
+        aria-expanded={open}
+        title="Thêm"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+      >
+        <MoreHorizontal size={14} strokeWidth={2.2} aria-hidden />
+      </button>
+      {open ? (
+        <div className="cins-canvas-comment-more-menu" role="menu">
+          {canEdit ? (
+            <button
+              type="button"
+              role="menuitem"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpen(false);
+                onEdit();
+              }}
+            >
+              <Pencil size={12} strokeWidth={2.2} aria-hidden />
+              Sửa
+            </button>
+          ) : null}
+          {canDelete ? (
+            <button
+              type="button"
+              role="menuitem"
+              className="is-danger"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpen(false);
+                onDelete();
+              }}
+            >
+              <Trash2 size={12} strokeWidth={2.2} aria-hidden />
+              Xóa
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function CommentBody({
   node,
   editing,
@@ -1461,6 +1858,13 @@ function CommentBody({
   onCommitText,
   onCancelEdit,
   onCommentSize,
+  onReplyComment,
+  onRequestEdit,
+  onDeleteComment,
+  commentReplies = [],
+  editingId = null,
+  mentionMembers = [],
+  viewerUserId = null,
 }: Pick<
   NodeCardProps,
   | "node"
@@ -1469,38 +1873,52 @@ function CommentBody({
   | "onCommitText"
   | "onCancelEdit"
   | "onCommentSize"
+  | "onReplyComment"
+  | "onRequestEdit"
+  | "onDeleteComment"
+  | "commentReplies"
+  | "editingId"
+  | "mentionMembers"
+  | "viewerUserId"
 >) {
   const rootRef = useRef<HTMLDivElement>(null);
   const author = node.layout.commentAuthor;
   const ten = author?.ten?.trim() || "Thành viên";
-  const initial = ten.charAt(0).toUpperCase() || "?";
   const text = node.noiDung ?? "";
+  const replyKey = commentReplies
+    .map((r) => `${r.id}:${r.noiDung ?? ""}`)
+    .join("|");
 
   const publishSize = useCallback(() => {
     const el = rootRef.current;
     if (!el || !onCommentSize) return;
     const prevWidth = el.style.width;
     const prevMaxWidth = el.style.maxWidth;
+    const prevMinWidth = el.style.minWidth;
     const prevHeight = el.style.height;
     el.style.width = "max-content";
+    el.style.minWidth = `${BOARD_COMMENT_MIN_W}px`;
     el.style.maxWidth = `${BOARD_COMMENT_MAX_W}px`;
     el.style.height = "auto";
     const w = Math.ceil(
       Math.min(
         BOARD_COMMENT_MAX_W,
-        Math.max(BOARD_COMMENT_MIN_W, el.offsetWidth),
+        Math.max(BOARD_COMMENT_MIN_W, el.scrollWidth, el.offsetWidth),
       ),
     );
-    const h = Math.ceil(Math.max(BOARD_COMMENT_MIN_H, el.offsetHeight));
+    const h = Math.ceil(
+      Math.max(BOARD_COMMENT_MIN_H, el.scrollHeight, el.offsetHeight),
+    );
     el.style.width = prevWidth;
     el.style.maxWidth = prevMaxWidth;
+    el.style.minWidth = prevMinWidth;
     el.style.height = prevHeight;
     onCommentSize(node.id, { w, h });
   }, [node.id, onCommentSize]);
 
   useLayoutEffect(() => {
     publishSize();
-  }, [publishSize, text, editing, ten]);
+  }, [publishSize, text, editing, ten, replyKey, editingId]);
 
   useEffect(() => {
     const el = rootRef.current;
@@ -1510,25 +1928,34 @@ function CommentBody({
     return () => ro.disconnect();
   }, [publishSize]);
 
+  const showReplyBtn =
+    !locked && !editingId && Boolean(text.trim()) && Boolean(onReplyComment);
+  const canEditRoot = !locked && !editing && commentOwnedByViewer(node, viewerUserId);
+
   return (
     <div ref={rootRef} className="cins-canvas-card cins-canvas-card-comment">
       <div className="cins-canvas-comment-row">
-        {author?.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            className="cins-canvas-comment-avatar"
-            src={author.avatarUrl}
-            alt=""
-            draggable={false}
-          />
-        ) : (
-          <span className="cins-canvas-comment-avatar is-fallback" aria-hidden>
-            {initial}
-          </span>
-        )}
+        <CommentAuthorAvatar author={author} />
         <div className="cins-canvas-comment-bubble">
           <span className="cins-canvas-comment-tail" aria-hidden />
-          <strong className="cins-canvas-comment-name">{ten}</strong>
+          <div className="cins-canvas-comment-head">
+            <strong className="cins-canvas-comment-name">{ten}</strong>
+            {canEditRoot ? (
+              <button
+                type="button"
+                className="cins-canvas-comment-edit is-icon"
+                aria-label="Sửa"
+                title="Sửa"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRequestEdit?.(node.id);
+                }}
+              >
+                <Pencil size={12} strokeWidth={2.2} aria-hidden />
+              </button>
+            ) : null}
+          </div>
           {editing && !locked ? (
             <StickyEditor
               node={node}
@@ -1539,6 +1966,7 @@ function CommentBody({
               onCancelEdit={onCancelEdit}
               onInputGrow={publishSize}
               tone="comment"
+              mentionMembers={mentionMembers}
             />
           ) : (
             <p
@@ -1547,9 +1975,92 @@ function CommentBody({
                 (!text.trim() ? " is-placeholder" : "")
               }
             >
-              {text.trim() || "Viết bình luận…"}
+              {text.trim() ? (
+                <ChatMentionText text={text} />
+              ) : (
+                "Viết bình luận…"
+              )}
             </p>
           )}
+          {commentReplies.length > 0 ? (
+            <div className="cins-canvas-comment-thread">
+              {commentReplies.map((reply) => {
+                const rAuthor = reply.layout.commentAuthor;
+                const rTen = rAuthor?.ten?.trim() || "Thành viên";
+                const rText = reply.noiDung ?? "";
+                const rEditing = editingId === reply.id;
+                return (
+                  <div
+                    key={reply.id}
+                    className="cins-canvas-comment-nested"
+                    onDoubleClick={(e) => {
+                      if (locked) return;
+                      e.stopPropagation();
+                      onRequestEdit?.(reply.id);
+                    }}
+                  >
+                    <CommentAuthorAvatar author={rAuthor} compact />
+                    <div className="cins-canvas-comment-nested-body">
+                      <div className="cins-canvas-comment-nested-head">
+                        <strong className="cins-canvas-comment-name">
+                          {rTen}
+                        </strong>
+                        {!locked && !rEditing ? (
+                          <CommentMoreMenu
+                            canEdit
+                            canDelete={Boolean(onDeleteComment)}
+                            onEdit={() => onRequestEdit?.(reply.id)}
+                            onDelete={() => onDeleteComment?.(reply.id)}
+                          />
+                        ) : null}
+                      </div>
+                      {rEditing && !locked ? (
+                        <StickyEditor
+                          node={reply}
+                          onCommitText={(id, value, opts) => {
+                            onCommitText(id, value, opts);
+                            requestAnimationFrame(publishSize);
+                          }}
+                          onCancelEdit={onCancelEdit}
+                          onInputGrow={publishSize}
+                          tone="comment"
+                          mentionMembers={mentionMembers}
+                        />
+                      ) : (
+                        <p
+                          className={
+                            "cins-canvas-comment-text" +
+                            (!rText.trim() ? " is-placeholder" : "")
+                          }
+                        >
+                          {rText.trim() ? (
+                            <ChatMentionText text={rText} />
+                          ) : (
+                            "Viết trả lời…"
+                          )}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+          {showReplyBtn ? (
+            <div className="cins-canvas-comment-actions">
+              <button
+                type="button"
+                className="cins-canvas-comment-reply"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onReplyComment?.(node.id);
+                }}
+              >
+                Trả lời
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
@@ -1570,6 +2081,12 @@ export const NodeCard = memo(function NodeCard({
   onImageNaturalSize,
   onCommentSize,
   onTextFitSize,
+  onReplyComment,
+  commentReplies,
+  editingId,
+  mentionMembers,
+  viewerUserId,
+  onDeleteComment,
 }: NodeCardProps) {
   const { loai, url, noiDung, messageId } = node;
   const mau = node.layout.mau ?? "";
@@ -1632,6 +2149,13 @@ export const NodeCard = memo(function NodeCard({
         onCommitText={onCommitText}
         onCancelEdit={onCancelEdit}
         onCommentSize={onCommentSize}
+        onReplyComment={onReplyComment}
+        onRequestEdit={onRequestEdit}
+        onDeleteComment={onDeleteComment}
+        commentReplies={commentReplies}
+        editingId={editingId}
+        mentionMembers={mentionMembers}
+        viewerUserId={viewerUserId}
       />
     );
   } else {

@@ -49,14 +49,19 @@ import type {
 import { fetchChatComposeImageUpload } from "@/lib/chat/compose-image-upload";
 import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
 import type { ChatCanvas, ChatCanvasNode } from "@/lib/chat/canvas/types";
-import type { ChatMessage } from "@/lib/chat/types";
+import type { ChatGroupMember, ChatMessage } from "@/lib/chat/types";
 
 type Props = {
   roomId: string;
   onJumpToMessage: (messageId: string) => void;
+  viewerUserId?: string | null;
 };
 
-export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
+export default function ChatCanvasBoard({
+  roomId,
+  onJumpToMessage,
+  viewerUserId = null,
+}: Props) {
   const [nodes, setNodes] = useState<ChatCanvasNode[] | null>(null);
   const [canvas, setCanvas] = useState<ChatCanvas | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -88,6 +93,7 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
     canvasBridge.pendingHighlightNodeIds = null;
     return ids;
   });
+  const [mentionMembers, setMentionMembers] = useState<ChatGroupMember[]>([]);
 
   const locked = canvas?.trangThai === "khoa";
 
@@ -194,6 +200,26 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
       })
       .catch(() => {
         if (alive) setError("Không tải được canvas.");
+      });
+    return () => {
+      alive = false;
+    };
+  }, [roomId]);
+
+  useEffect(() => {
+    let alive = true;
+    void fetch(`/api/chat/rooms/${roomId}/members`)
+      .then(async (res) => {
+        const data = (await res.json().catch(() => null)) as
+          | { members?: ChatGroupMember[] }
+          | null;
+        if (!alive) return;
+        if (res.ok && Array.isArray(data?.members)) {
+          setMentionMembers(data.members);
+        }
+      })
+      .catch(() => {
+        /* DM / không phải nhóm — bỏ @gợi ý */
       });
     return () => {
       alive = false;
@@ -401,7 +427,7 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
             title={
               locked
                 ? "Canvas đang khóa"
-                : "Thêm ghi chú — bấm trên canvas để đặt"
+                : "Thêm ghi chú (S) — bấm một lần trên canvas (kể cả lên nhóm), rồi về công cụ chọn"
             }
             aria-label="Thêm ghi chú"
             aria-pressed={tool === "sticky"}
@@ -419,7 +445,7 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
             title={
               locked
                 ? "Canvas đang khóa"
-                : "Thêm chữ (T) — click: dòng chữ ôm nội dung · kéo: vùng chữ ôm khung"
+                : "Thêm chữ — click một lần rồi về chọn · kéo: vùng chữ ôm khung"
             }
             aria-label="Thêm chữ"
             aria-pressed={tool === "text"}
@@ -445,7 +471,7 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
             title={
               locked
                 ? "Canvas đang khóa"
-                : "Thêm hình — bấm trên canvas để đặt, rồi đổi chữ nhật / elip / thoi"
+                : "Thêm hình (R) — bấm một lần trên canvas (kể cả lên nhóm), rồi về công cụ chọn"
             }
             aria-label="Thêm hình"
             aria-pressed={tool === "shape"}
@@ -466,7 +492,7 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
             title={
               locked
                 ? "Canvas đang khóa"
-                : "Thêm bảng 3×3 — bấm trên canvas để đặt"
+                : "Thêm bảng 3×3 (T) — bấm một lần trên canvas (kể cả lên nhóm), rồi về công cụ chọn"
             }
             aria-label="Thêm bảng"
             aria-pressed={tool === "table"}
@@ -487,7 +513,7 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
             title={
               locked
                 ? "Canvas đang khóa"
-                : "Thêm bình luận — bấm trên canvas để đặt"
+                : "Thêm bình luận (C) — bấm một lần trên canvas (kể cả lên nhóm), rồi về công cụ chọn"
             }
             aria-label="Thêm bình luận"
             aria-pressed={tool === "comment"}
@@ -666,6 +692,12 @@ export default function ChatCanvasBoard({ roomId, onJumpToMessage }: Props) {
           inkColor={stickyColor === "transparent" ? "#1a1a1a" : stickyColor}
           pendingFocusNodeId={pendingFocusNodeId}
           pendingHighlightNodeIds={pendingHighlightIds}
+          mentionMembers={mentionMembers}
+          viewerUserId={
+            viewerUserId ??
+            mentionMembers.find((m) => m.isViewer)?.userId ??
+            null
+          }
         />
       </div>
     </div>

@@ -6346,6 +6346,7 @@ export function CinsChatOverlay({
                     key={active.roomId}
                     roomId={active.roomId}
                     onJumpToMessage={(id) => void scrollToMessage(id)}
+                    viewerUserId={viewerProfileId}
                   />
                 ) : null}
 

@@ -123,6 +123,8 @@ export const SCHEMA_TABLE_DOCS: Record<string, string> = {
   social_luu: "Lưu / bookmark đối tượng.",
   social_reaction: "Reaction (like…) trên đối tượng — đếm realtime.",
   social_thong_bao: "Thông báo in-app cho user.",
+  user_web_push:
+    "Đăng ký thiết bị nhận push (1 user ↔ N). web=Web Push keys; ios/android=FCM token. SoT duy nhất.",
   social_thong_ke_doi_tuong_ngay: "Thống kê engagement theo đối tượng / ngày.",
   social_thong_ke_doi_tuong_thang: "Rollup tháng từ bảng ngày (P2).",
 

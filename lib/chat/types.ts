@@ -67,6 +67,9 @@ export type ChatCanvasBinhLuanNotice = {
   nodeIds: string[];
   tenNguoi: string;
   avatarUrl?: string | null;
+  isReply?: boolean;
+  hostId?: string | null;
+  hostTen?: string | null;
 };
 
 export type { ChatCuocGoiNotice, ChatCuocGoiTrangThai };

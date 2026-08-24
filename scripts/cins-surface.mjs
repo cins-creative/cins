@@ -210,6 +210,12 @@ export function parkWeb() {
 
   parkRel("api", ["academy"]);
   copyKept("api", ["academy", "preview"], ["academy", "preview"]);
+  /* Tab/chi tiết khóa trên trang public — GET (+ CRUD từ trang CSĐT). */
+  copyKept(
+    "api",
+    ["academy", "[id]", "courses"],
+    ["academy", "[id]", "courses"],
+  );
 
   parkRel("api", ["studio", "[id]"]);
 

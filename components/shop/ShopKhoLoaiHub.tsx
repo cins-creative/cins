@@ -4,7 +4,6 @@ import {
   AlertTriangle,
   ArrowLeft,
   Camera,
-  Check,
   ClipboardPaste,
   ExternalLink,
   Film,
@@ -34,7 +33,6 @@ import {
   type VideoPrepareResponse,
 } from "@/lib/video/upload-tus";
 import { ShopKhoLoaiTaxonomy } from "@/components/shop/ShopKhoLoaiTaxonomy";
-import { parseGiaInput } from "@/lib/shop/gia-input";
 import type { ShopNhom } from "@/lib/shop/types";
 import {
   SHOP_NHOM_ANH_PHU_MAX,
@@ -560,8 +558,6 @@ type MetaProps = {
   nhom: ShopNhom;
   /** Số mẫu còn gắn loại (da_xoa=false). Xóa loại chỉ khi = 0. */
   mauCount: number;
-  /** Giá suy từ bảng giá mẫu khi loại chưa có `giaMacDinh`. */
-  suggestedGiaMacDinh?: number | null;
   /** Trang loại hàng trên mặt tiền shop — null khi chưa có slug. */
   storefrontLoaiHref?: string | null;
   onBack: () => void;
@@ -577,21 +573,15 @@ type MetaProps = {
   gioiThieuDisabledReason?: string | null;
   /** Cảnh báo kiosk (thiếu mẫu/giá/hết hàng) — không chặn mở composer. */
   gioiThieuKioskWarn?: string | null;
+  /** true khi loại đủ ảnh + mẫu + giá — mới hiện nút giới thiệu. */
+  gioiThieuVisible?: boolean;
+  /** true khi chưa từng đăng bài giới thiệu — bật glow attention. */
+  gioiThieuChuaCo?: boolean;
 };
-
-function giaInputValue(
-  nhomGia: number | null | undefined,
-  suggested: number | null | undefined,
-): string {
-  if (nhomGia != null && Number.isFinite(nhomGia)) return String(nhomGia);
-  if (suggested != null && Number.isFinite(suggested)) return String(suggested);
-  return "";
-}
 
 export function ShopKhoLoaiMeta({
   nhom,
   mauCount,
-  suggestedGiaMacDinh = null,
   storefrontLoaiHref = null,
   onBack,
   onUpdated,
@@ -602,15 +592,12 @@ export function ShopKhoLoaiMeta({
   gioiThieuBusy = false,
   gioiThieuDisabledReason = null,
   gioiThieuKioskWarn = null,
+  gioiThieuVisible = false,
+  gioiThieuChuaCo = false,
 }: MetaProps) {
   const [nhan, setNhan] = useState(nhom.nhan);
   const [moTa, setMoTa] = useState(nhom.moTa ?? "");
-  const [gia, setGia] = useState(() =>
-    giaInputValue(nhom.giaMacDinh, suggestedGiaMacDinh),
-  );
   const [saving, setSaving] = useState(false);
-  const [applying, setApplying] = useState(false);
-  const [applyMsg, setApplyMsg] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteHint, setDeleteHint] = useState(false);
@@ -654,7 +641,6 @@ export function ShopKhoLoaiMeta({
   const previewAnhRef = useRef<string | null>(null);
   const pendingUrlsRef = useRef<Set<string>>(new Set());
   const videoAbortRef = useRef<{ abort: () => void } | null>(null);
-  const giaDirtyRef = useRef(false);
   const pendingClipboardReadRef = useRef<PendingClipboardRead>(null);
   const pasteArmTargetRef = useRef<"anh" | "phu" | null>(null);
   const [pasteArmed, setPasteArmed] = useState(false);
@@ -683,16 +669,6 @@ export function ShopKhoLoaiMeta({
   useEffect(() => {
     setNhan(nhom.nhan);
     setMoTa(nhom.moTa ?? "");
-    giaDirtyRef.current = false;
-  }, [nhom.id]);
-
-  useEffect(() => {
-    if (giaDirtyRef.current) return;
-    setGia(giaInputValue(nhom.giaMacDinh, suggestedGiaMacDinh));
-  }, [nhom.id, nhom.giaMacDinh, suggestedGiaMacDinh]);
-
-  useEffect(() => {
-    setApplyMsg(null);
   }, [nhom.id]);
 
   useEffect(() => {
@@ -745,8 +721,6 @@ export function ShopKhoLoaiMeta({
       onUpdated(json.item);
       setNhan(json.item.nhan);
       setMoTa(json.item.moTa ?? "");
-      giaDirtyRef.current = false;
-      setGia(giaInputValue(json.item.giaMacDinh, suggestedGiaMacDinh));
       if (json.item.anhPhuIds && json.item.anhPhuUrls) {
         /* quiet = gỡ optimistic — giữ list local, tránh race ghi đè. */
         if (!opts?.quiet) {
@@ -784,19 +758,10 @@ export function ShopKhoLoaiMeta({
       onError("Tên loại không được trống.");
       return;
     }
-    const rawGia = gia.trim();
-    const nextGia = rawGia ? parseGiaInput(rawGia) : null;
-    if (rawGia && nextGia == null) {
-      onError("Giá gốc không hợp lệ.");
-      return;
-    }
     const nextMoTa = moTa.trim().slice(0, SHOP_NHOM_MO_TA_MAX) || null;
     const body: Record<string, unknown> = {};
     if (nextNhan !== nhom.nhan) body.nhan = nextNhan;
     if ((nhom.moTa ?? null) !== nextMoTa) body.moTa = nextMoTa;
-    if ((nhom.giaMacDinh ?? null) !== (nextGia ?? null)) {
-      body.giaMacDinh = nextGia;
-    }
     if (Object.keys(body).length === 0) return;
     await patch(body);
   }
@@ -810,58 +775,6 @@ export function ShopKhoLoaiMeta({
       if (!ok) return;
     }
     onGioiThieu({ moTa: next ?? "" });
-  }
-
-  /**
-   * «Áp dụng»: lưu Giá gốc đang gõ (nếu có) rồi ghi xuống dòng giá của mọi biến
-   * thể trong loại. Idempotent — chạy cả khi giá không đổi nên bù được biến thể
-   * còn thiếu dòng giá (hết cảnh giỏ báo "Mặt hàng đã ngừng bán.").
-   */
-  async function applyGia() {
-    setApplyMsg(null);
-    onError(null);
-    if (giaDirtyRef.current) {
-      const raw = gia.trim();
-      const next = raw ? parseGiaInput(raw) : null;
-      if (raw && next == null) {
-        onError("Giá gốc không hợp lệ.");
-        return;
-      }
-      const ok = await patch({ giaMacDinh: next });
-      if (!ok) return;
-    }
-    const rawNow = gia.trim();
-    const effectiveGia = rawNow ? parseGiaInput(rawNow) : nhom.giaMacDinh;
-    if (effectiveGia == null) {
-      onError("Hãy nhập Giá gốc hiển thị cho loại trước khi áp dụng.");
-      return;
-    }
-    setApplying(true);
-    try {
-      const res = await fetch(
-        `/api/shop/groups/${encodeURIComponent(nhom.id)}/apply-price`,
-        { method: "POST" },
-      );
-      const json = (await res.json().catch(() => null)) as {
-        count?: number;
-        error?: string;
-      } | null;
-      if (!res.ok) {
-        onError(json?.error ?? "Không áp dụng được giá.");
-        return;
-      }
-      const count = json?.count ?? 0;
-      setApplyMsg(
-        count > 0
-          ? `Đã áp dụng giá gốc cho ${count} biến thể.`
-          : "Chưa có biến thể nào trong loại để áp dụng.",
-      );
-      onRefreshMau?.();
-    } catch {
-      onError("Không áp dụng được giá.");
-    } finally {
-      setApplying(false);
-    }
   }
 
   async function uploadAnh(file: File) {
@@ -1142,21 +1055,11 @@ export function ShopKhoLoaiMeta({
   const metaDirty = useMemo(() => {
     const nextNhan = nhan.trim();
     const nextMoTa = moTa.trim().slice(0, SHOP_NHOM_MO_TA_MAX) || null;
-    const giaBaseline = giaInputValue(nhom.giaMacDinh, suggestedGiaMacDinh);
     return (
       nextNhan !== nhom.nhan.trim() ||
-      (nhom.moTa ?? null) !== nextMoTa ||
-      gia.trim() !== giaBaseline
+      (nhom.moTa ?? null) !== nextMoTa
     );
-  }, [
-    nhan,
-    moTa,
-    gia,
-    nhom.nhan,
-    nhom.moTa,
-    nhom.giaMacDinh,
-    suggestedGiaMacDinh,
-  ]);
+  }, [nhan, moTa, nhom.nhan, nhom.moTa]);
 
   const uploadAnhRef = useRef(uploadAnh);
   uploadAnhRef.current = uploadAnh;
@@ -1228,10 +1131,10 @@ export function ShopKhoLoaiMeta({
               <ExternalLink size={16} strokeWidth={2} aria-hidden />
             </a>
           ) : null}
-          {onGioiThieu ? (
+          {onGioiThieu && gioiThieuVisible ? (
             <button
               type="button"
-              className={`shop-kho-loai-gioi-thieu${gioiThieuKioskWarn ? " is-warn" : ""}`}
+              className={`shop-kho-loai-gioi-thieu${gioiThieuKioskWarn ? " is-warn" : ""}${!gioiThieuKioskWarn && gioiThieuChuaCo ? " is-fresh" : ""}`}
               disabled={
                 mediaBusy ||
                 deleting ||
@@ -1241,7 +1144,9 @@ export function ShopKhoLoaiMeta({
               title={
                 gioiThieuDisabledReason ??
                 gioiThieuKioskWarn ??
-                "Tạo bài album ảnh giới thiệu mặt hàng này"
+                (gioiThieuChuaCo
+                  ? "Chưa giới thiệu mặt hàng này — tạo bài album ảnh"
+                  : "Tạo bài album ảnh giới thiệu mặt hàng này")
               }
               aria-label="Giới thiệu sản phẩm"
               onClick={() => void flushMoTaThenGioiThieu()}
@@ -1300,7 +1205,7 @@ export function ShopKhoLoaiMeta({
         </div>
       </div>
 
-      {gioiThieuKioskWarn && onGioiThieu ? (
+      {gioiThieuKioskWarn && onGioiThieu && gioiThieuVisible ? (
         <p className="shop-kho-gioi-thieu-warn" role="status">
           <AlertTriangle size={14} strokeWidth={2.2} aria-hidden />
           {gioiThieuKioskWarn}
@@ -1417,41 +1322,7 @@ export function ShopKhoLoaiMeta({
                 onChange={(e) => setNhan(e.target.value)}
               />
             </label>
-            <label className="shop-kho-loai-meta-gia">
-              <span>Giá gốc hiển thị</span>
-              <div className="shop-kho-loai-gia-row">
-                <input
-                  value={gia}
-                  inputMode="decimal"
-                  disabled={saving}
-                  placeholder="40000"
-                  onChange={(e) => {
-                    giaDirtyRef.current = true;
-                    setApplyMsg(null);
-                    setGia(e.target.value);
-                  }}
-                />
-                <button
-                  type="button"
-                  className="shop-kho-loai-gia-apply"
-                  disabled={saving || applying}
-                  aria-busy={applying}
-                  title="Ghi giá này xuống cột «Giá gốc» của mọi sản phẩm trong loại"
-                  onClick={() => void applyGia()}
-                >
-                  {applying ? (
-                    <Loader2 size={13} className="shop-spin" aria-hidden />
-                  ) : (
-                    <Check size={13} strokeWidth={2.4} aria-hidden />
-                  )}
-                  Áp dụng
-                </button>
-              </div>
-            </label>
           </div>
-          {applyMsg ? (
-            <p className="shop-kho-loai-gia-note">{applyMsg}</p>
-          ) : null}
           <div className="shop-kho-loai-meta-mota">
             <span className="shop-kho-loai-meta-mota-label">Mô tả</span>
             <ShopNhomMoTaField

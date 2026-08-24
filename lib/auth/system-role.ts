@@ -1,7 +1,7 @@
 import "server-only";
 
 import { CINS_ADMIN_EMAILS } from "@/lib/auth/cins-admin";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 /** Email admin tối cao — bất biến, không lưu DB. */
@@ -94,17 +94,17 @@ async function fetchDbRoleForAuthUser(
   }
 }
 
-/** Vai trò hệ thống của user đang đăng nhập. */
+/**
+ * Vai trò hệ thống của user đang đăng nhập.
+ * Dùng `getCurrentSessionAndProfile` — ưu tiên Bearer (app native), fallback cookie (web).
+ */
 export async function getCurrentUserSystemRole(): Promise<SystemRole> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return "thanh_vien";
+    const session = await getCurrentSessionAndProfile();
+    if (!session) return "thanh_vien";
 
-    const dbRole = await fetchDbRoleForAuthUser(user.id);
-    return resolveSystemRole(user.email, dbRole);
+    const dbRole = await fetchDbRoleForAuthUser(session.authUserId);
+    return resolveSystemRole(session.email, dbRole);
   } catch {
     return "thanh_vien";
   }
@@ -113,20 +113,8 @@ export async function getCurrentUserSystemRole(): Promise<SystemRole> {
 /** Profile id (`user_nguoi_dung.id`) của user đang đăng nhập — dùng ghi audit `cap_boi`. */
 export async function getCurrentUserProfileId(): Promise<string | null> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return null;
-
-    const admin = createServiceRoleClient();
-    const { data: profile } = await admin
-      .from("user_nguoi_dung")
-      .select("id")
-      .eq("auth_user_id", user.id)
-      .maybeSingle<{ id: string }>();
-
-    return profile?.id ?? null;
+    const session = await getCurrentSessionAndProfile();
+    return session?.profile?.id ?? null;
   } catch {
     return null;
   }

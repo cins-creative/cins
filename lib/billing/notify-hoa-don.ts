@@ -143,6 +143,20 @@ export async function notifyHoaDonMoi(input: {
     journeyGhim,
   });
 
+  try {
+    const { firePushHoaDon } = await import("@/lib/push/su-kien");
+    firePushHoaDon({
+      userId: input.userId,
+      title: `Hoá đơn ${loaiNhan}`,
+      body: `Kỳ ${input.kyLabel}: ${so} VND · hạn ${input.hanTra}`,
+    });
+  } catch (e) {
+    console.error(
+      "[billing] notifyHoaDonMoi push",
+      e instanceof Error ? e.message : e,
+    );
+  }
+
   return {
     email,
     journeyGhim,

@@ -78,6 +78,8 @@ export type CanvasNodeLayout = {
     slug?: string | null;
     avatarUrl?: string | null;
   } | null;
+  /** Comment trả lời — id node comment gốc (cùng bảng, không ALTER). */
+  commentReplyToId?: string | null;
   /**
    * Ảnh đã được fit theo tỉ lệ tự nhiên (tránh khung grid cố định).
    * Sau khi true — không auto-resize lại khi load (giữ resize tay của user).

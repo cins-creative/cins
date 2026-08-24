@@ -93,6 +93,7 @@ export function CommentVoteButtons({
           key === reactionEmoji ||
           (key === REACTION_EMOJI.LIKE && !reactionEmoji && liked)
         ) {
+          onToggle(reactionEmoji ?? REACTION_EMOJI.LIKE, false);
           closePickerRef.current();
           return;
         }
@@ -110,6 +111,7 @@ export function CommentVoteButtons({
     actorsCount: positiveTotal,
     showArcActors: positiveTotal > 0,
     portalDesktop: true,
+    forcePortal: true,
     onPickEmoji,
     onOpenActors: () => setActorsOpen("like"),
   });
@@ -119,25 +121,35 @@ export function CommentVoteButtons({
   const {
     wrapRef,
     isCoarse,
-    useArc,
     pickerOpen,
     picker,
     consumeClickRef,
-    openMobilePicker,
     desktopHoverProps,
   } = pickerApi;
 
   const onHeartPress = useCallback(() => {
     requireAuth(() => {
+      if (isCoarse) {
+        if (pickerOpen) closePickerRef.current();
+        else openPickerRef.current();
+        return;
+      }
       if (liked) {
         closePickerRef.current();
         onToggle(reactionEmoji ?? REACTION_EMOJI.LIKE, false);
         return;
       }
       onToggle(REACTION_EMOJI.LIKE, true);
-      if (!useArc) openPickerRef.current();
+      openPickerRef.current();
     });
-  }, [liked, onToggle, reactionEmoji, requireAuth, useArc]);
+  }, [
+    isCoarse,
+    liked,
+    onToggle,
+    pickerOpen,
+    reactionEmoji,
+    requireAuth,
+  ]);
 
   const likeActorsModal =
     actorsOpen === "like" && positiveTotal > 0 ? (
@@ -263,7 +275,7 @@ export function CommentVoteButtons({
     </button>
   );
 
-  const likeBtn = useArc ? (
+  const likeBtn = isCoarse ? (
     <span
       className={`j-reaction-wrap${pickerOpen ? " is-picking" : ""}`}
       ref={wrapRef}
@@ -280,10 +292,14 @@ export function CommentVoteButtons({
           }
           onHeartPress();
         }}
-        onLongPress={openMobilePicker}
+        onLongPress={
+          positiveTotal > 0 ? () => setActorsOpen("like") : undefined
+        }
         delayMs={EMOJI_PICK_DELAY_MS}
         moveThresholdPx={80}
-        longPressHint="Vuốt để chọn cảm xúc hoặc xem người đã bày tỏ"
+        longPressHint={
+          positiveTotal > 0 ? "Giữ để xem người đã bày tỏ" : undefined
+        }
         buttonProps={{
           "aria-expanded": pickerOpen,
         }}

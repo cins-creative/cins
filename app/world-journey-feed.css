@@ -110,56 +110,6 @@
   cursor: pointer;
 }
 
-/* Mobile: chrome follow — fixed + compositor, không sticky+blur (giật ~18fps). */
-@media (max-width: 960px) {
-  .cins-app-topbar.topbar.wj-chrome-follow,
-  .wj-feed-header.wj-chrome-follow {
-    position: fixed;
-    left: 0;
-    right: 0;
-    width: 100%;
-    transition: none !important;
-    will-change: transform;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-  }
-
-  .cins-app-topbar.topbar.wj-chrome-follow {
-    top: 0;
-  }
-
-  .wj-feed-header.wj-chrome-follow {
-    top: var(--wj-sticky-top, var(--site-nav-height, 64px));
-    margin: 0 !important;
-    box-shadow: none;
-  }
-
-  .cins-shell-column:has(> #app-topbar.wj-chrome-follow)::before {
-    content: "";
-    display: block;
-    height: var(--site-nav-height, 64px);
-    flex-shrink: 0;
-    pointer-events: none;
-  }
-
-  .wj-feed:has(> .wj-feed-header.wj-chrome-follow)::before {
-    content: "";
-    display: block;
-    height: var(--wj-feed-header-h, 58px);
-    margin-top: calc(-1 * var(--wj-feed-pad-top, 0px));
-    flex-shrink: 0;
-    pointer-events: none;
-  }
-
-  /* Blur recapture mỗi frame khi transform — tắt khi đang follow. */
-  .wj-feed-header.wj-chrome-follow::before {
-    transform: none;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    background: color-mix(in srgb, var(--bg-page, #f4f5f8) 94%, transparent);
-  }
-}
-
 /* Header nằm đầu cột feed — sát mép trên cột. */
 .wj-feed > .wj-feed-header {
   margin-top: calc(-1 * var(--wj-feed-pad-top, 0px));
@@ -4503,6 +4453,7 @@ body:has(.world-journey-home.view-video) .cins-home-feed-root {
 .world-journey-home.view-video {
   --wj-sticky-top: 0px;
   --site-nav-height: 0px;
+  --wj-feed-header-h: 0px;
   flex: 1;
   min-height: 0;
   height: 100dvh;
@@ -4513,16 +4464,12 @@ body:has(.world-journey-home.view-video) .cins-home-feed-root {
   background: #000;
 }
 
-.world-journey-home.view-video .wj-feed-header {
-  position: relative;
-  top: 0;
-  flex: 0 0 auto;
-  background: #000;
-  border-bottom-color: rgba(255, 255, 255, 0.16);
-  box-shadow: none;
+.world-journey-home.view-video .wj-feed-header,
+.world-journey-home.view-video .wj-feed > .wj-feed-header {
+  display: none !important;
 }
 .world-journey-home.view-video .wj-feed-header::before {
-  background: rgba(0, 0, 0, 0.72);
+  content: none;
 }
 .world-journey-home.view-video .wj-vt-btn,
 .world-journey-home.view-video a.wj-vt-btn,
@@ -4945,10 +4892,46 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   background: transparent;
 }
 
+.wj-reel-audio {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 44px;
+  margin: 0;
+  padding: 6px 4px 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+}
+
+.wj-reel-audio:hover,
+.wj-reel-audio:focus-visible {
+  background: transparent;
+  color: #fff;
+}
+
+.wj-reel-audio.is-hearing {
+  color: #4ade80;
+}
+
+.wj-reel-audio.is-hearing:hover,
+.wj-reel-audio.is-hearing:focus-visible {
+  color: #86efac;
+}
+
 .wj-reel-rail .action-btn svg,
 .wj-reel-rail .share-btn svg,
 .wj-reel-rail .action-btn-part svg,
-.wj-reel-rail .j-action-touch svg {
+.wj-reel-rail .j-action-touch svg,
+.wj-reel-rail .wj-reel-audio svg {
   width: 26px;
   height: 26px;
 }
@@ -5116,7 +5099,14 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 }
 
 .wj-reel-timeline-btn.is-on {
-  background: rgba(255, 255, 255, 0.18);
+  background: transparent;
+  color: #22c55e;
+}
+
+.wj-reel-timeline-btn.is-on:hover,
+.wj-reel-timeline-btn.is-on:focus-visible {
+  background: transparent;
+  color: #4ade80;
 }
 
 .wj-reel-timeline-scrub {

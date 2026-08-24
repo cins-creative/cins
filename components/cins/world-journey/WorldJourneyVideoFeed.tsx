@@ -7,6 +7,8 @@ import {
   Pause,
   Play,
   Repeat,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import {
   useCallback,
@@ -47,6 +49,7 @@ import {
   type VideoCanvasRatio,
 } from "@/lib/journey/video-canvas-ratio";
 import { SOCIAL_LOAI_ORG_BAI_DANG } from "@/lib/truong/social-constants";
+import { useT } from "@/lib/i18n/use-t";
 
 type ReelAspectMode = "portrait" | "landscape";
 
@@ -205,7 +208,9 @@ function ReelSlide({
   preload,
   canPlay,
   loopOn,
+  muted,
   onToggleLoop,
+  onToggleMuted,
 }: {
   item: GalleryMainItem;
   active: boolean;
@@ -214,7 +219,9 @@ function ReelSlide({
   /** Chỉ play khi slide đã vào khung chính (sau scroll-into-view). */
   canPlay: boolean;
   loopOn: boolean;
+  muted: boolean;
   onToggleLoop: () => void;
+  onToggleMuted: () => void;
 }) {
   const uid = item.streamUid!.trim();
   const poster = item.src || item.videoPreviewSrc || undefined;
@@ -248,6 +255,10 @@ function ReelSlide({
   canPlayRef.current = canPlay;
   const loopOnRef = useRef(loopOn);
   loopOnRef.current = loopOn;
+  const mutedRef = useRef(muted);
+  mutedRef.current = muted;
+  const playRetryRef = useRef<number[]>([]);
+  const t = useT();
   const target = reactionTarget(item);
   const caption = item.meta?.trim() || item.label?.trim() || "";
   const iframeSrc = active || preload ? streamIframeSrc(uid) : null;
@@ -355,11 +366,16 @@ function ReelSlide({
 
     const onPlay = () => {
       if (cancelled || !player) return;
-      /* Preload / chưa snap — Stream đôi khi tự play; cắt ngay. */
-      if (!activeRef.current || !canPlayRef.current) {
+      /* Preload / chưa snap / user pause — Stream đôi khi tự play; cắt ngay. */
+      if (
+        userPausedRef.current ||
+        !activeRef.current ||
+        !canPlayRef.current
+      ) {
         pauseIfNotCurrent(player);
         return;
       }
+      player.muted = mutedRef.current;
       setPaused(false);
     };
     const onPause = () => {
@@ -424,8 +440,9 @@ function ReelSlide({
       const d = next.duration;
       if (Number.isFinite(d) && d > 0) setDuration(d);
       setCurrentTime(next.currentTime || 0);
-      next.muted = true;
+      next.muted = mutedRef.current;
       void next.play().catch(() => {
+        next.muted = true;
         void next.play().catch(() => {
           postStreamEvent(el, "play");
         });
@@ -477,6 +494,11 @@ function ReelSlide({
   useEffect(() => {
     const el = iframeRef.current;
 
+    const clearPlayRetries = () => {
+      for (const id of playRetryRef.current) window.clearTimeout(id);
+      playRetryRef.current = [];
+    };
+
     const playActive = () => {
       if (userPausedRef.current || !canPlayRef.current || !activeRef.current) {
         return;
@@ -486,8 +508,9 @@ function ReelSlide({
       const player = playerRef.current;
       if (player) {
         player.loop = loopOnRef.current;
-        player.muted = true;
+        player.muted = mutedRef.current;
         void player.play().catch(() => {
+          player.muted = true;
           void player.play().catch(() => {
             postStreamEvent(el, "play");
           });
@@ -508,10 +531,12 @@ function ReelSlide({
     };
 
     if (!active) {
+      clearPlayRetries();
       pauseInactive();
       return;
     }
     if (!canPlay) {
+      clearPlayRetries();
       setPaused(true);
       const player = playerRef.current;
       if (player) player.pause();
@@ -520,13 +545,20 @@ function ReelSlide({
     }
 
     playActive();
-    const t1 = window.setTimeout(playActive, 350);
-    const t2 = window.setTimeout(playActive, 1200);
+    playRetryRef.current = [
+      window.setTimeout(playActive, 350),
+      window.setTimeout(playActive, 1200),
+    ];
     return () => {
-      window.clearTimeout(t1);
-      window.clearTimeout(t2);
+      clearPlayRetries();
     };
   }, [active, canPlay, iframeSrc]);
+
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player) return;
+    player.muted = muted;
+  }, [muted]);
 
   const toggleFullscreen = useCallback(() => {
     void toggleElementFullscreen(slideRef.current).catch(() => {});
@@ -536,11 +568,14 @@ function ReelSlide({
     if (!active) return;
     const el = iframeRef.current;
     const player = playerRef.current;
-    const isPaused = player ? player.paused : paused;
-    if (isPaused) {
+    for (const id of playRetryRef.current) window.clearTimeout(id);
+    playRetryRef.current = [];
+    /* UI `paused` là SoT — SDK đôi khi báo paused=true khi clip vẫn chạy. */
+    if (paused) {
       userPausedRef.current = false;
       setPaused(false);
       if (player) {
+        player.muted = mutedRef.current;
         void player.play().catch(() => {
           player.muted = true;
           void player.play();
@@ -553,7 +588,7 @@ function ReelSlide({
     userPausedRef.current = true;
     setPaused(true);
     if (player) player.pause();
-    else postStreamEvent(el, "pause");
+    postStreamEvent(el, "pause");
   }, [active, paused]);
 
   const seekToRatio = useCallback((ratio: number) => {
@@ -929,6 +964,25 @@ function ReelSlide({
                 buttonClassName="share-btn"
               />
             ) : null}
+            <button
+              type="button"
+              className={
+                "wj-reel-audio" + (muted ? "" : " is-hearing")
+              }
+              aria-label={muted ? t("reel.muteAll") : t("reel.hearAll")}
+              aria-pressed={!muted}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleMuted();
+              }}
+            >
+              {muted ? (
+                <VolumeX size={22} strokeWidth={2} aria-hidden />
+              ) : (
+                <Volume2 size={22} strokeWidth={2} aria-hidden />
+              )}
+              <span>{t("reel.audio")}</span>
+            </button>
           </div>
           </div>
         </div>
@@ -1021,8 +1075,15 @@ export function WorldJourneyVideoFeed({
     () => seedPlaylist(initialItems, startItemId).length > 0,
   );
   const [loopOn, setLoopOn] = useState(true);
+  const [mutedAll, setMutedAll] = useState(true);
+  const [framedId, setFramedId] = useState<string | null>(() =>
+    pickStartId(seedPlaylist(initialItems, startItemId), startItemId),
+  );
   const toggleLoop = useCallback(() => {
     setLoopOn((prev) => !prev);
+  }, []);
+  const toggleMutedAll = useCallback(() => {
+    setMutedAll((prev) => !prev);
   }, []);
 
   const activeIndex = useMemo(() => {
@@ -1036,6 +1097,51 @@ export function WorldJourneyVideoFeed({
   itemsRef.current = items;
   const hasMoreRef = useRef(hasMore);
   hasMoreRef.current = hasMore;
+  const firstFrameRef = useRef(true);
+
+  useEffect(() => {
+    const root = scrollerRef.current;
+    if (!root || items.length === 0) return;
+    const ratios = new Map<string, number>();
+    const pickFramed = () => {
+      let bestId: string | null = null;
+      let best = 0.52;
+      for (const [id, ratio] of ratios) {
+        if (ratio > best) {
+          best = ratio;
+          bestId = id;
+        }
+      }
+      if (bestId) setFramedId(bestId);
+    };
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const id = (entry.target as HTMLElement).dataset.reelId;
+          if (!id) continue;
+          ratios.set(id, entry.intersectionRatio);
+        }
+        pickFramed();
+      },
+      { root, threshold: [0, 0.25, 0.4, 0.52, 0.65, 0.8, 1] },
+    );
+    root.querySelectorAll<HTMLElement>("[data-reel-id]").forEach((node) => {
+      io.observe(node);
+    });
+    return () => io.disconnect();
+  }, [items.length]);
+
+  useEffect(() => {
+    if (firstFrameRef.current) {
+      firstFrameRef.current = false;
+      setFramedId(activeId);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setFramedId(activeId);
+    }, WORLD_JOURNEY_TAB_PAN_MS);
+    return () => window.clearTimeout(timer);
+  }, [activeId]);
 
   useEffect(() => {
     /* Chỉ bootstrap khi session chưa có clip (deep link). Không sync lại từ listing. */
@@ -1316,9 +1422,11 @@ export function WorldJourneyVideoFeed({
                   item={item}
                   active={active}
                   preload={preload}
-                  canPlay={active && opened}
+                  canPlay={active && opened && framedId === item.id}
                   loopOn={loopOn}
+                  muted={mutedAll}
                   onToggleLoop={toggleLoop}
+                  onToggleMuted={toggleMutedAll}
                 />
               </div>
             );

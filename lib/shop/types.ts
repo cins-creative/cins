@@ -78,8 +78,9 @@ export type ShopNhom = {
   videoPhuEmbedUrl: string | null;
   videoPhuThumbUrl: string | null;
   /**
-   * Giá gốc mặc định (truc=1). Mẫu kế thừa vào `bang_gia_dong.gia` (không sửa ở mẫu);
-   * mẫu chỉ được chỉnh `gia_giam`.
+   * Giá gốc mặc định (truc=1) — **không còn dùng để hiển thị** trên card/meta.
+   * Giữ làm lưới an toàn checkout khi biến thể thiếu `shop_bang_gia_dong`.
+   * Card mặt tiền lấy min `shop_bang_gia_dong.gia` của mẫu trong loại.
    */
   giaMacDinh: number | null;
   /** Feature / nổi bật loại hàng (`shop_nhom.noi_bat`, truc=1). */

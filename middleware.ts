@@ -46,6 +46,8 @@ function isBypassedPath(pathname: string): boolean {
   if (pathname === "/maintenance") return true;
   if (pathname === "/favicon.ico") return true;
   if (pathname === "/apple-touch-icon.png") return true;
+  /* Universal / App Links — không session, không redirect host (R16). */
+  if (pathname.startsWith("/.well-known/")) return true;
   if (pathname.startsWith("/assets/")) return true;
   if (pathname.startsWith("/_next/static")) return true;
   if (pathname.startsWith("/_next/image")) return true;
@@ -364,6 +366,12 @@ function detectLocale(request: NextRequest): "en" | "vi" {
 }
 
 export async function middleware(request: NextRequest) {
+  const { pathname: pathEarly } = request.nextUrl;
+  /* AASA / assetlinks: trả thẳng, không ép www↔apex (Apple/Google verify không follow redirect tốt). */
+  if (pathEarly.startsWith("/.well-known/")) {
+    return NextResponse.next();
+  }
+
   const canonicalHost = buildCanonicalHostRedirect(request.nextUrl);
   if (canonicalHost) {
     return NextResponse.redirect(canonicalHost.url, canonicalHost.status);

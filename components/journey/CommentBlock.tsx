@@ -3,7 +3,7 @@
 import {
   ChevronDown,
   Copy,
-  ImagePlus,
+  Image as ImageIcon,
   MessageCircle,
   MoreHorizontal,
   Pencil,
@@ -42,7 +42,6 @@ import { useT } from "@/lib/i18n/use-t";
 import { useLocale } from "@/lib/locale/context";
 import { ChatStickerPicker } from "@/components/cins/ChatStickerPicker";
 import type { ChatSendGifPayload } from "@/components/cins/ChatStickerPicker";
-import { MsIcon } from "@/components/cins/MsIcon";
 import { CommentAttachments } from "@/components/journey/CommentAttachments";
 import { importGifToCloudflare } from "@/lib/gif/client";
 import { prefetchGifFeatured } from "@/lib/gif/featured-cache";
@@ -1349,7 +1348,7 @@ function CommentComposeForm({
               }}
               onClick={() => setStickerPickerOpen((open) => !open)}
             >
-              <MsIcon name="comedy_mask" className="post-comments-meme-btn-icon" />
+              <span className="post-comments-meme-btn-icon" aria-hidden />
             </button>
             <button
               type="button"
@@ -1362,7 +1361,7 @@ function CommentComposeForm({
               }
               onClick={() => fileInputRef.current?.click()}
             >
-              <ImagePlus size={18} strokeWidth={1.8} aria-hidden />
+              <ImageIcon size={18} strokeWidth={1.9} aria-hidden />
             </button>
             <input
               ref={fileInputRef}

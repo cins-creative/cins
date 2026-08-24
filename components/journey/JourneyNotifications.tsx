@@ -1,7 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Check, CheckCircle2, ClipboardList, MessageSquare, PencilLine, Video, X, XCircle } from "lucide-react";
+import {
+  Bell,
+  Check,
+  CheckCircle2,
+  ClipboardList,
+  MessageCircle,
+  MessageSquare,
+  PencilLine,
+  Tag,
+  UserCheck,
+  UserPlus,
+  Users,
+  Video,
+  X,
+  XCircle,
+} from "lucide-react";
 
 import { CinsArrowIos } from "@/components/icons/CinsArrowIos";
 import type { ReactNode } from "react";
@@ -84,6 +99,74 @@ type Props = {
   viewerProfileId: string;
 };
 
+type NotifyVisualKind =
+  | "comment"
+  | "friend"
+  | "connect"
+  | "message"
+  | "video"
+  | "approved"
+  | "rejected"
+  | "edit"
+  | "shop"
+  | "tag"
+  | "coauthor"
+  | "community"
+  | "staff";
+
+function NotifyTypeBadgeIcon({ kind }: { kind: NotifyVisualKind }) {
+  const props = { size: 15, strokeWidth: 2.2, "aria-hidden": true as const };
+  switch (kind) {
+    case "comment":
+      return <MessageCircle {...props} />;
+    case "friend":
+      return <UserCheck {...props} />;
+    case "connect":
+      return <UserPlus {...props} />;
+    case "message":
+      return <MessageSquare {...props} />;
+    case "video":
+      return <Video {...props} />;
+    case "approved":
+      return <CheckCircle2 {...props} />;
+    case "rejected":
+      return <XCircle {...props} />;
+    case "edit":
+      return <PencilLine {...props} />;
+    case "shop":
+      return <ClipboardList {...props} />;
+    case "tag":
+      return <Tag {...props} />;
+    case "coauthor":
+      return <Users {...props} />;
+    case "community":
+      return <Users {...props} />;
+    case "staff":
+      return <ClipboardList {...props} />;
+  }
+}
+
+function NotifyActionLine({
+  kind,
+  children,
+}: {
+  kind: NotifyVisualKind;
+  children: ReactNode;
+}) {
+  return (
+    <span className="j-notify-action-line">
+      <span className={`j-notify-action-icon is-${kind}`} aria-hidden>
+        <NotifyTypeBadgeIcon kind={kind} />
+      </span>
+      {children}
+    </span>
+  );
+}
+
+function NotifyMedia({ children }: { children: ReactNode }) {
+  return <span className="j-notify-media">{children}</span>;
+}
+
 function coAuthorPostHref(inv: PendingCoAuthorInviteNotification): string | null {
   return coAuthorInvitePostHref(inv);
 }
@@ -112,49 +195,26 @@ function formatNotifyTime(iso?: string | null): string {
 
 function commentNotifyLabel(notice: CommentNotification): ReactNode {
   const count = notice.commentCount ?? 1;
+  let action: string;
   if (notice.kind === "mention") {
-    if (count > 1) {
-      return (
-        <>
-          <strong>{notice.tenHienThi}</strong> đã gắn thẻ bạn {count} lần trong bình luận.
-          <small>{notice.postTitle}</small>
-        </>
-      );
-    }
-    return (
-      <>
-        <strong>{notice.tenHienThi}</strong> đã gắn thẻ bạn trong bình luận.
-        <small>{notice.postTitle}</small>
-      </>
-    );
-  }
-  if (notice.kind === "reply") {
-    if (count > 1) {
-      return (
-        <>
-          <strong>{notice.tenHienThi}</strong> đã trả lời bình luận của bạn {count} lần.
-          <small>{notice.postTitle}</small>
-        </>
-      );
-    }
-    return (
-      <>
-        <strong>{notice.tenHienThi}</strong> đã trả lời bình luận của bạn.
-        <small>{notice.postTitle}</small>
-      </>
-    );
-  }
-  if (count > 1) {
-    return (
-      <>
-        <strong>{notice.tenHienThi}</strong> đã bình luận {count} lần trên bài viết.
-        <small>{notice.postTitle}</small>
-      </>
-    );
+    action =
+      count > 1
+        ? `đã gắn thẻ bạn ${count} lần trong bình luận.`
+        : "đã gắn thẻ bạn trong bình luận.";
+  } else if (notice.kind === "reply") {
+    action =
+      count > 1
+        ? `đã trả lời bình luận của bạn ${count} lần.`
+        : "đã trả lời bình luận của bạn.";
+  } else if (count > 1) {
+    action = `đã bình luận ${count} lần trên bài viết.`;
+  } else {
+    action = "đã bình luận bài viết.";
   }
   return (
     <>
-      <strong>{notice.tenHienThi}</strong> đã bình luận bài viết.
+      <strong>{notice.tenHienThi}</strong>
+      <NotifyActionLine kind="comment">{action}</NotifyActionLine>
       <small>{notice.postTitle}</small>
     </>
   );
@@ -339,9 +399,11 @@ function OrgTinNhanMoiNotifyItem({
           window.location.assign(`${base}?${qs.toString()}`);
         }}
       >
-        <span className="j-notify-avatar is-verified" aria-hidden>
-          <MessageSquare size={16} strokeWidth={2} />
-        </span>
+        <NotifyMedia>
+          <span className="j-notify-avatar is-message" aria-hidden>
+            <MessageSquare size={16} strokeWidth={2} />
+          </span>
+        </NotifyMedia>
         <span>
           {orgTinNhanMoiNotifyLabel(notice)}
           <small>{formatNotifyTime(notice.taoLuc)}</small>
@@ -438,8 +500,8 @@ function renderInfoTimelineEntry(
           time={formatNotifyTime(entry.item.taoLuc)}
           itemClassName={itemClassName}
           avatar={
-            <span className="j-notify-avatar is-verified" aria-hidden>
-              <CheckCircle2 size={16} strokeWidth={2} />
+            <span className="j-notify-avatar is-tag" aria-hidden>
+              <Tag size={16} strokeWidth={2} />
             </span>
           }
         />
@@ -451,7 +513,8 @@ function renderInfoTimelineEntry(
           href={`/${entry.item.slug}`}
           label={
             <>
-              <strong>{entry.item.tenHienThi}</strong> đã chấp nhận kết bạn.
+              <strong>{entry.item.tenHienThi}</strong>
+              <NotifyActionLine kind="friend">đã chấp nhận kết bạn.</NotifyActionLine>
             </>
           }
           time={formatNotifyTime(entry.item.taoLuc)}
@@ -574,12 +637,16 @@ function renderHistoryTimelineEntry(entry: HistoryTimelineEntry): ReactNode {
       return (
         <li key={entry.item.notificationId}>
           <Link href={`/${entry.item.slug}`} className="j-notify-item is-history">
-            <Avatar request={entry.item} />
+            <NotifyMedia>
+              <Avatar request={entry.item} />
+            </NotifyMedia>
             <span>
-              <strong>{entry.item.tenHienThi}</strong>{" "}
-              {entry.item.action === "accept"
-                ? "— bạn đã chấp nhận kết nối"
-                : "— bạn đã từ chối"}
+              <strong>{entry.item.tenHienThi}</strong>
+              <NotifyActionLine kind="connect">
+                {entry.item.action === "accept"
+                  ? "bạn đã chấp nhận kết nối"
+                  : "bạn đã từ chối"}
+              </NotifyActionLine>
               <small>{formatNotifyTime(entry.item.xuLyLuc)}</small>
             </span>
           </Link>
@@ -597,7 +664,7 @@ function renderHistoryTimelineEntry(entry: HistoryTimelineEntry): ReactNode {
           label={shopQuayPendingNotifyLabel(entry.item)}
           time={formatNotifyTime(entry.item.taoLuc)}
           avatar={
-            <span className="j-notify-avatar is-verified" aria-hidden>
+            <span className="j-notify-avatar is-shop" aria-hidden>
               <ClipboardList size={16} strokeWidth={2} />
             </span>
           }
@@ -1476,9 +1543,14 @@ export function JourneyNotifications({
                         className="j-notify-item is-pending"
                         onClick={() => setSelected(request)}
                       >
-                        <Avatar request={request} />
+                        <NotifyMedia>
+                          <Avatar request={request} />
+                        </NotifyMedia>
                         <span>
-                          <strong>{request.tenHienThi}</strong> muốn kết nối với bạn.
+                          <strong>{request.tenHienThi}</strong>
+                          <NotifyActionLine kind="connect">
+                            muốn kết nối với bạn.
+                          </NotifyActionLine>
                           <small>@{request.slug}</small>
                         </span>
                       </button>
@@ -1487,9 +1559,11 @@ export function JourneyNotifications({
                   {feed.shopQuayPending.map((notice) => (
                     <li key={notice.notificationId}>
                       <div className="j-notify-item is-coauthor-invite">
-                        <span className="j-notify-avatar is-verified" aria-hidden>
-                          <ClipboardList size={16} strokeWidth={2} />
-                        </span>
+                        <NotifyMedia>
+                          <span className="j-notify-avatar is-shop" aria-hidden>
+                            <ClipboardList size={16} strokeWidth={2} />
+                          </span>
+                        </NotifyMedia>
                         <span className="j-notify-coauthor-invite-text">
                           {shopQuayPendingNotifyLabel(notice)}
                           <small>{formatNotifyTime(notice.taoLuc)}</small>
@@ -1580,9 +1654,12 @@ function CoAuthorReviewNotifyItem({
   return (
     <div className="j-notify-item is-coauthor-review">
       <div className="j-notify-coauthor-review-lead">
-        <Avatar request={review.proposer} />
+        <NotifyMedia>
+          <Avatar request={review.proposer} />
+        </NotifyMedia>
         <p>
-          <strong>{review.proposer.tenHienThi}</strong> đề xuất thêm cộng sự
+          <strong>{review.proposer.tenHienThi}</strong>
+          <NotifyActionLine kind="coauthor">đề xuất thêm cộng sự</NotifyActionLine>
         </p>
       </div>
 
@@ -1679,9 +1756,12 @@ function HistoryCoAuthorItem({ review }: { review: ProcessedCoAuthorReview }) {
         }
         className="j-notify-item is-history"
       >
-        <Avatar request={review.proposer} />
+        <NotifyMedia>
+          <Avatar request={review.proposer} />
+        </NotifyMedia>
         <span>
-          {label}: <strong>{review.target.tenHienThi}</strong>
+          <NotifyActionLine kind="coauthor">{label}</NotifyActionLine>
+          <strong>{review.target.tenHienThi}</strong>
           <small>
             {review.postTitle}
             {review.vaiTro ? ` · ${review.vaiTro}` : ""} · {formatNotifyTime(review.xuLyLuc)}
@@ -1708,7 +1788,7 @@ function HistoryInfoItem({
   return (
     <li>
       <Link href={href} className={itemClassName}>
-        {avatar}
+        <NotifyMedia>{avatar}</NotifyMedia>
         <span>
           {label}
           {time ? <small>{time}</small> : null}

@@ -281,6 +281,7 @@ export async function tickDueMocNotices(input?: {
         if (result.removedMessageIds.length) {
           removedMessageIds.push(...result.removedMessageIds);
         }
+        void pushMocLopToRoom(moc, "nhac_truoc");
       }
     }
 
@@ -299,6 +300,7 @@ export async function tickDueMocNotices(input?: {
         if (result.removedMessageIds.length) {
           removedMessageIds.push(...result.removedMessageIds);
         }
+        void pushMocLopToRoom(moc, "den_han");
 
         const nguon = normalizeMocNguon(moc.nguon);
         if (nguon === "lich_lop") {
@@ -350,4 +352,30 @@ export async function resetMocScheduleNotices(mocId: string): Promise<void> {
       cap_nhat_luc: new Date().toISOString(),
     })
     .eq("id", mocId);
+}
+
+/** O17 — FCM nhắc mốc (không gửi lúc «tao»). */
+async function pushMocLopToRoom(
+  moc: MocNotifyRow,
+  suKien: Extract<ChatMocNoticeSuKien, "nhac_truoc" | "den_han">,
+): Promise<void> {
+  try {
+    const { firePushMocLop, listAllRoomMemberIds } = await import(
+      "@/lib/push/su-kien"
+    );
+    const userIds = await listAllRoomMemberIds(moc.id_phong);
+    if (!userIds.length) return;
+    firePushMocLop({
+      userIds,
+      title: suKien === "nhac_truoc" ? "Nhắc mốc" : "Đến hạn mốc",
+      body: bodyForSuKien(suKien, moc.ten),
+      roomId: moc.id_phong,
+      mocId: moc.id,
+    });
+  } catch (e) {
+    console.error(
+      "[chat-moc-notify] push",
+      e instanceof Error ? e.message : e,
+    );
+  }
 }

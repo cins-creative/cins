@@ -4,6 +4,7 @@ import { loadCanvasContext, assertCanvasWritable } from "@/lib/chat/canvas/acces
 import {
   loadCanvasCommentAuthor,
   notifyCanvasComment,
+  type CanvasCommentAuthor,
 } from "@/lib/chat/canvas/comment-notice";
 import type {
   CanvasNodeLayout,
@@ -145,6 +146,9 @@ function coerceLayout(raw: unknown): CanvasNodeLayout {
       };
     }
   }
+  if (typeof obj.commentReplyToId === "string" && obj.commentReplyToId) {
+    layout.commentReplyToId = obj.commentReplyToId;
+  }
   if (obj.imageFitted === true) layout.imageFitted = true;
   if (typeof obj.mediaW === "number" && Number.isFinite(obj.mediaW) && obj.mediaW > 0) {
     layout.mediaW = obj.mediaW;
@@ -153,6 +157,22 @@ function coerceLayout(raw: unknown): CanvasNodeLayout {
     layout.mediaH = obj.mediaH;
   }
   return layout;
+}
+
+async function loadCommentHost(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  replyToId: string | null | undefined,
+): Promise<CanvasCommentAuthor | null> {
+  if (!replyToId) return null;
+  const { data } = await admin
+    .from("chat_canvas_node")
+    .select("layout, id_nguoi_tao")
+    .eq("id", replyToId)
+    .maybeSingle<{ layout: unknown; id_nguoi_tao: string }>();
+  if (!data) return null;
+  const parent = coerceLayout(data.layout);
+  if (parent.commentAuthor) return parent.commentAuthor;
+  return loadCanvasCommentAuthor(data.id_nguoi_tao);
 }
 
 function mapNode(row: NodeRow): ChatCanvasNode {
@@ -274,6 +294,7 @@ export async function createNode(
       nodeId: node.id,
       author: layout.commentAuthor,
       viewerId,
+      host: await loadCommentHost(admin, layout.commentReplyToId),
     });
   }
 
@@ -357,6 +378,10 @@ export async function updateNode(
       nodeId: mapped.id,
       author: mapped.layout.commentAuthor,
       viewerId,
+      host: await loadCommentHost(
+        admin,
+        mapped.layout.commentReplyToId ?? existingLayout.commentReplyToId,
+      ),
     });
   }
 

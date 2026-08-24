@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { maybePushFromSocialThongBao } from "@/lib/push/su-kien";
 
 export type ThongBaoLoai = "thong_tin" | "hanh_dong" | "mention_binh_luan";
 
@@ -38,5 +39,14 @@ export async function insertSocialThongBao(
   if (error || !data?.id) {
     return { ok: false, error: error?.message ?? "Không tạo được thông báo." };
   }
+
+  /* FCM: chỉ loại trong allowlist (su-kien.ts). Vanity không push. */
+  maybePushFromSocialThongBao({
+    nguoi_nhan: row.nguoi_nhan,
+    noi_dung: row.noi_dung,
+    loai_doi_tuong: row.loai_doi_tuong,
+    id_doi_tuong: row.id_doi_tuong,
+  });
+
   return { ok: true, id: data.id };
 }

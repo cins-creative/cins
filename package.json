@@ -91,6 +91,7 @@
     "migrate:tai-khoan-clone": "node scripts/run-tai-khoan-clone-migration.mjs",
     "migrate:trang-thai-seed": "node scripts/run-trang-thai-seed-migration.mjs",
     "migrate:home-layout": "node scripts/run-user-home-layout-migration.mjs",
+    "migrate:user-web-push-fcm": "node scripts/run-user-web-push-fcm-migration.mjs",
     "migrate:admin-tab-an": "node scripts/run-user-admin-tab-an-migration.mjs",
     "migrate:goi-nhieu-khoa": "node scripts/run-goi-hoc-phi-nhieu-khoa-migration.mjs",
     "migrate:hoc-phi-combo": "node scripts/run-hoc-phi-combo-migration.mjs",

@@ -38,10 +38,40 @@ function formatGiaVnd(gia: number | null): string {
   return `${Math.round(gia).toLocaleString("vi-VN")} ₫`;
 }
 
-function parseGia(raw: number | string | null | undefined): number | null {
-  if (raw == null || raw === "") return null;
-  const n = Number(raw);
-  return Number.isFinite(n) && n >= 0 ? n : null;
+/** Min giá gốc niêm yết của mẫu trong loại — khớp card storefront. */
+async function minGiaGocNhom(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  nhomId: string,
+): Promise<number | null> {
+  const { data: sps } = await admin
+    .from("shop_san_pham")
+    .select("id")
+    .eq("id_nhom", nhomId)
+    .eq("da_xoa", false)
+    .eq("dang_ban", true)
+    .limit(200);
+  const spIds = (sps ?? []).map((s) => s.id as string);
+  if (spIds.length === 0) return null;
+
+  const { data: bts } = await admin
+    .from("shop_bien_the")
+    .select("id")
+    .in("id_san_pham", spIds)
+    .eq("da_xoa", false);
+  const btIds = (bts ?? []).map((b) => b.id as string);
+  if (btIds.length === 0) return null;
+
+  const { data: dongs } = await admin
+    .from("shop_bang_gia_dong")
+    .select("gia")
+    .in("id_bien_the", btIds);
+  let min: number | null = null;
+  for (const d of dongs ?? []) {
+    const gia = Number(d.gia);
+    if (!Number.isFinite(gia) || gia < 0) continue;
+    min = min == null ? gia : Math.min(min, gia);
+  }
+  return min;
 }
 
 async function fallbackCoverFromCatalog(
@@ -144,14 +174,13 @@ async function loadShopLoaiOgContext(
       nhan: string;
       mo_ta: string | null;
       anh_id: string | null;
-      gia_mac_dinh: number | string | null;
       so_mau?: number | null;
       truc: number;
     };
 
     let { data: row, error: nhomErr } = await admin
       .from("shop_nhom")
-      .select("id, nhan, mo_ta, anh_id, gia_mac_dinh, so_mau, truc")
+      .select("id, nhan, mo_ta, anh_id, so_mau, truc")
       .eq("id", nhom)
       .eq("id_nguoi_dung", owner.id)
       .eq("da_xoa", false)
@@ -160,7 +189,7 @@ async function loadShopLoaiOgContext(
     if (isMissingSoMau(nhomErr)) {
       const fallback = await admin
         .from("shop_nhom")
-        .select("id, nhan, mo_ta, anh_id, gia_mac_dinh, truc")
+        .select("id, nhan, mo_ta, anh_id, truc")
         .eq("id", nhom)
         .eq("id_nguoi_dung", owner.id)
         .eq("da_xoa", false)
@@ -176,7 +205,7 @@ async function loadShopLoaiOgContext(
       shopImageUrl(row.anh_id) ??
       (await fallbackCoverFromCatalog(owner.id, row.id));
 
-    const giaMacDinh = parseGia(row.gia_mac_dinh);
+    const giaTu = await minGiaGocNhom(admin, row.id);
     const soMau =
       row.so_mau != null && Number.isFinite(Number(row.so_mau))
         ? Math.max(0, Math.round(Number(row.so_mau)))
@@ -189,7 +218,7 @@ async function loadShopLoaiOgContext(
       sellerTen,
       coverUrl,
       summary: summaryFromMoTa(row.mo_ta),
-      giaLabel: formatGiaVnd(giaMacDinh),
+      giaLabel: formatGiaVnd(giaTu),
       mauCountLabel: soMau > 0 ? `${soMau} mẫu` : null,
       ownerSlug: owner.slug,
       shopSlug: resolvedShopSlug,

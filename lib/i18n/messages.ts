@@ -9,6 +9,9 @@ const vi = {
   "surface.grid": "Dạng thẻ",
   "surface.masonry": "Lưới gọn",
   "surface.viewMode": "Chế độ xem",
+  "reel.audio": "Audio",
+  "reel.muteAll": "Tắt tiếng tất cả video",
+  "reel.hearAll": "Nghe tất cả video",
 
   "nav.mainAria": "Điều hướng chính",
   "nav.footAria": "Liên kết phụ",
@@ -300,6 +303,7 @@ const vi = {
   "meta.contributors": "Đóng góp · {count}",
 
   "shop.from": "Từ {price}",
+  "shop.fromPrefix": "Từ",
   "shop.outOfStock": "Hết hàng",
   "shop.noPrice": "Chưa có giá",
   "shop.addToCart": "Thêm vào giỏ",
@@ -1274,6 +1278,9 @@ const en: { [K in keyof typeof vi]: string } = {
   "surface.grid": "Cards",
   "surface.masonry": "Grid",
   "surface.viewMode": "View mode",
+  "reel.audio": "Audio",
+  "reel.muteAll": "Mute all videos",
+  "reel.hearAll": "Hear all videos",
 
   "nav.mainAria": "Main navigation",
   "nav.footAria": "Secondary links",
@@ -1560,6 +1567,7 @@ const en: { [K in keyof typeof vi]: string } = {
   "meta.contributors": "Contributors · {count}",
 
   "shop.from": "From {price}",
+  "shop.fromPrefix": "From",
   "shop.outOfStock": "Sold out",
   "shop.noPrice": "No price yet",
   "shop.addToCart": "Add to cart",

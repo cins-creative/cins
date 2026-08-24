@@ -108,7 +108,6 @@ type NhomCatalogRow = {
   anh_id: string | null;
   noi_bat: boolean;
   thu_tu: number;
-  gia_mac_dinh: number | string | null;
   id_danh_muc: string | null;
 };
 
@@ -117,19 +116,14 @@ type NhomCatalogByOwner = {
   catalogHang: PublicShopListingHang[];
 };
 
-function parseGiaMacDinh(raw: number | string | null | undefined): number | null {
-  if (raw == null || raw === "") return null;
-  const n = Number(raw);
-  return Number.isFinite(n) && n >= 0 ? n : null;
-}
-
 function mapNhomToHang(r: NhomCatalogRow): PublicShopListingHang {
   return {
     id: r.id,
     ten: r.nhan.trim() || "Loại hàng",
     anhUrl: shopImageUrl(r.anh_id, "thumbnail"),
     moTa: r.mo_ta?.trim() || null,
-    giaHienThi: parseGiaMacDinh(r.gia_mac_dinh),
+    /** Điền sau bằng min giá gốc mẫu (`applyMinGiaGocToHang`). */
+    giaHienThi: null,
     tienTe: "VND",
     noiBat: r.noi_bat === true,
     soLuongBan: 0,
@@ -162,7 +156,7 @@ async function nhomCatalogByOwner(
   const { data, error } = await admin
     .from("shop_nhom")
     .select(
-      "id, id_nguoi_dung, nhan, mo_ta, anh_id, noi_bat, thu_tu, gia_mac_dinh, id_danh_muc",
+      "id, id_nguoi_dung, nhan, mo_ta, anh_id, noi_bat, thu_tu, id_danh_muc",
     )
     .in("id_nguoi_dung", ownerIds)
     .eq("da_xoa", false)
@@ -194,6 +188,17 @@ async function nhomCatalogByOwner(
     out.set(ownerId, {
       catalogHang: ordered.map(mapNhomToHang),
     });
+  }
+
+  const allHangForGia = [...out.values()].flatMap((v) => v.catalogHang);
+  if (allHangForGia.length > 0) {
+    const minByNhom = await minGiaGocByNhomIds(
+      admin,
+      allHangForGia.map((h) => h.id),
+    );
+    for (const entry of out.values()) {
+      entry.catalogHang = applyMinGiaGocToHang(entry.catalogHang, minByNhom);
+    }
   }
 
   if (!enrichTaxonomy) return out;
@@ -527,6 +532,111 @@ function applyNhomStats(
       hetHang: s ? !s.anyInStock : true,
     };
   });
+}
+
+/**
+ * Min `shop_bang_gia_dong.gia` theo loại — card hub hiện giá gốc thấp nhất
+ * (không dùng `shop_nhom.gia_mac_dinh` để hiển thị).
+ */
+async function minGiaGocByNhomIds(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  nhomIds: string[],
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  const unique = [...new Set(nhomIds.filter(Boolean))];
+  if (unique.length === 0) return out;
+
+  const nhomBySp = new Map<string, string>();
+  for (let i = 0; i < unique.length; i += IN_CHUNK) {
+    const chunk = unique.slice(i, i + IN_CHUNK);
+    const { data, error } = await admin
+      .from("shop_san_pham")
+      .select("id, id_nhom")
+      .in("id_nhom", chunk)
+      .eq("da_xoa", false)
+      .eq("dang_ban", true)
+      .returns<Array<{ id: string; id_nhom: string | null }>>();
+    if (error) {
+      console.error("[shop] minGiaGocByNhomIds sp", error);
+      break;
+    }
+    for (const row of data ?? []) {
+      const nhomId = row.id_nhom?.trim();
+      if (!nhomId) continue;
+      nhomBySp.set(row.id, nhomId);
+    }
+  }
+  if (nhomBySp.size === 0) return out;
+
+  const spIds = [...nhomBySp.keys()];
+  const nhomByBt = new Map<string, string>();
+  for (let i = 0; i < spIds.length; i += IN_CHUNK) {
+    const chunk = spIds.slice(i, i + IN_CHUNK);
+    const { data, error } = await admin
+      .from("shop_bien_the")
+      .select("id, id_san_pham")
+      .in("id_san_pham", chunk)
+      .eq("da_xoa", false)
+      .returns<Array<{ id: string; id_san_pham: string }>>();
+    if (error) {
+      console.error("[shop] minGiaGocByNhomIds bt", error);
+      break;
+    }
+    for (const bt of data ?? []) {
+      const nhomId = nhomBySp.get(bt.id_san_pham);
+      if (!nhomId) continue;
+      nhomByBt.set(bt.id, nhomId);
+    }
+  }
+  if (nhomByBt.size === 0) return out;
+
+  const btIds = [...nhomByBt.keys()];
+  for (let i = 0; i < btIds.length; i += IN_CHUNK) {
+    const chunk = btIds.slice(i, i + IN_CHUNK);
+    const { data, error } = await admin
+      .from("shop_bang_gia_dong")
+      .select("id_bien_the, gia")
+      .in("id_bien_the", chunk)
+      .returns<Array<{ id_bien_the: string; gia: number | string }>>();
+    if (error) {
+      console.error("[shop] minGiaGocByNhomIds dong", error);
+      break;
+    }
+    for (const d of data ?? []) {
+      const nhomId = nhomByBt.get(d.id_bien_the);
+      if (!nhomId) continue;
+      const gia = Number(d.gia);
+      if (!Number.isFinite(gia) || gia < 0) continue;
+      const prev = out.get(nhomId);
+      out.set(nhomId, prev == null ? gia : Math.min(prev, gia));
+    }
+  }
+
+  return out;
+}
+
+function applyMinGiaGocToHang(
+  hang: PublicShopListingHang[],
+  minByNhom: Map<string, number>,
+): PublicShopListingHang[] {
+  if (hang.length === 0 || minByNhom.size === 0) return hang;
+  return hang.map((h) => {
+    const gia = minByNhom.get(h.id);
+    if (gia == null) return h;
+    return { ...h, giaHienThi: gia, tienTe: h.tienTe ?? "VND" };
+  });
+}
+
+async function attachMinGiaGocToHang(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  hang: PublicShopListingHang[],
+): Promise<PublicShopListingHang[]> {
+  if (hang.length === 0) return hang;
+  const minByNhom = await minGiaGocByNhomIds(
+    admin,
+    hang.map((h) => h.id),
+  );
+  return applyMinGiaGocToHang(hang, minByNhom);
 }
 
 function buildSearchHaystack(parts: Array<string | null | undefined>): string {
@@ -1316,7 +1426,7 @@ async function searchNhomByNhan(
   let q = admin
     .from("shop_nhom")
     .select(
-      "id, id_nguoi_dung, nhan, mo_ta, anh_id, noi_bat, thu_tu, gia_mac_dinh, id_danh_muc",
+      "id, id_nguoi_dung, nhan, mo_ta, anh_id, noi_bat, thu_tu, id_danh_muc",
     )
     .eq("da_xoa", false)
     .eq("truc", 1)
@@ -1488,7 +1598,7 @@ async function nhomHangByIds(
     const { data, error } = await admin
       .from("shop_nhom")
       .select(
-        "id, id_nguoi_dung, nhan, mo_ta, anh_id, noi_bat, thu_tu, gia_mac_dinh, id_danh_muc",
+        "id, id_nguoi_dung, nhan, mo_ta, anh_id, noi_bat, thu_tu, id_danh_muc",
       )
       .in("id", chunk)
       .eq("da_xoa", false)
@@ -1499,7 +1609,7 @@ async function nhomHangByIds(
     }
     rows.push(...(data ?? []));
   }
-  const hang = rows.map(mapNhomToHang);
+  const hang = await attachMinGiaGocToHang(admin, rows.map(mapNhomToHang));
   const danhMucIdByNhom = new Map<string, string>();
   for (const r of rows) {
     if (r.id_danh_muc?.trim()) danhMucIdByNhom.set(r.id, r.id_danh_muc.trim());
@@ -1668,6 +1778,26 @@ export async function searchPublicShopListing(
     const list = hangByOwner.get(row.id_nguoi_dung) ?? [];
     list.push(hang);
     hangByOwner.set(row.id_nguoi_dung, list);
+  }
+
+  if (searchedHang.length > 0) {
+    const minByNhom = await minGiaGocByNhomIds(
+      admin,
+      searchedHang.map((h) => h.id),
+    );
+    for (const [ownerId, list] of hangByOwner) {
+      hangByOwner.set(ownerId, applyMinGiaGocToHang(list, minByNhom));
+    }
+    for (let i = 0; i < searchedHang.length; i++) {
+      const gia = minByNhom.get(searchedHang[i]!.id);
+      if (gia != null) {
+        searchedHang[i] = {
+          ...searchedHang[i]!,
+          giaHienThi: gia,
+          tienTe: searchedHang[i]!.tienTe ?? "VND",
+        };
+      }
+    }
   }
 
   const parentNhomIds = [

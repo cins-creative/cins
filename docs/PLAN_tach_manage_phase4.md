@@ -48,7 +48,7 @@ Loại org tường minh trong path; đoạn `/manage` nội bộ **ẩn** khỏ
 
 | Thư mục | Ghi chú |
 |---|---|
-| `api/academy/[id]/**` | Quản lý CSĐT. **Ngoại lệ giữ web:** `api/academy/preview` (public). |
+| `api/academy/[id]/**` | Quản lý CSĐT. **Ngoại lệ giữ web:** `api/academy/preview`, `api/academy/[id]/courses/**` (tab/chi tiết khóa trên trang public). |
 | `api/studio/[id]/**` phần quản lý | `settings`, `members`, `lifecycle`, `transfer-owner`. **Giữ web:** `api/studio/jobs/**`, `api/studio/preview` (public/ứng tuyển). |
 | `api/org/[orgId]/**` phần quản lý | `events/manage`, `inbox/threads`, `student-*`, `milestone-*`, `membership-*`. **Giữ web:** `register`, `showcase-aside`, phần công khai. Rà từng route. |
 
@@ -60,7 +60,7 @@ Loại org tường minh trong path; đoạn `/manage` nội bộ **ẩn** khỏ
 
 ### 4.3 Giữ ở web
 
-Journey, bài đăng, trường/ngành, chat, tìm kiếm, `auth/**`, `login`, `onboarding`, OG, `api/academy/preview`, `api/studio/preview`, `api/studio/jobs/**`, toàn bộ API buyer.
+Journey, bài đăng, trường/ngành, chat, tìm kiếm, `auth/**`, `login`, `onboarding`, OG, `api/academy/preview`, `api/academy/[id]/courses/**`, `api/studio/preview`, `api/studio/jobs/**`, toàn bộ API buyer.
 
 ## 5. Frontend — rewrite, park, redirect
 
@@ -75,7 +75,7 @@ Journey, bài đăng, trường/ngành, chat, tìm kiếm, `auth/**`, `login`, `
 ### 5.2 Park (sửa `scripts/cins-surface.mjs`)
 
 - **Cần helper `parkNested(relPath)`** — `parkEntry` hiện chỉ cấp 1; phải park được `app/academy/[slug]/manage` mà giữ `(public)`/`layout.tsx`/OG, và restore đúng chỗ trong `finally`.
-- **`parkWeb()`** thêm: `app/seller`, `app/api/user/seller`, nested `app/{academy,studio,university}/[slug]/manage`, `app/api/academy` (trừ `preview`), phần quản lý `app/api/studio`/`app/api/org`.
+- **`parkWeb()`** thêm: `app/seller`, `app/api/user/seller`, nested `app/{academy,studio,university}/[slug]/manage`, `app/api/academy` (trừ `preview` + `[id]/courses/**`), phần quản lý `app/api/studio`/`app/api/org`.
   - Giữ pattern `WEB_KEEP_*` cho server action nào UI public còn import (rà `academy/**/actions.ts`, `studio/**/actions.ts`).
 - **`parkManage()`** sửa: bỏ park `seller` + `api/shop` + `api/academy` + `api/studio`(quản lý) + `api/user/seller`; **vẫn** park `(public)` của academy/studio/university (manage không cần trang công khai) → park theo nested `(public)` thay vì cả `[slug]`.
   - `MANAGE_KEEP_API_DIRS`: `admin`,`auth`,`academy`,`studio`,`shop`,`org`,`user`.
@@ -111,7 +111,7 @@ Tổng quát hoá `lib/cins/manage-site.ts` thêm `manageHref(path)` (đã có `
 ## 7. Các bước (rủi ro tăng dần — mỗi bước deploy + verify riêng)
 
 - **B1 — Shop/seller trước** (gọn nhất). Park `app/seller`+`api/user/seller` khỏi web; manage giữ `seller`+`api/shop`. Rewrite `/shop/:slug/*`→`/seller/*`. Redirect `/seller/*`. Đổi link web→manage. `deploy:manage` → `deploy:web` → đo size → smoke: bán trên `manage.cins.vn/shop/...`, mua trên `cins.vn`.
-- **B2 — CSĐT.** `parkNested academy/[slug]/manage` + `api/academy` (trừ preview). Rewrite `/academy/:slug/*`. Verify public `/academy/[slug]` còn trên web; quản lý học viên/học phí trên manage.
+- **B2 — CSĐT.** `parkNested academy/[slug]/manage` + `api/academy` (trừ preview + `[id]/courses/**`). Rewrite `/academy/:slug/*`. Verify public `/academy/[slug]` còn trên web; quản lý học viên/học phí trên manage.
 - **B3 — Studio.** Tương tự; tách `api/studio` quản lý vs `jobs`/`preview`.
 - **B4 — University manage.**
 - **B5 — Đo & chốt.** Ghi gzip hai worker vào `PLAN_tach_worker.md`. Nếu web vẫn > trần → Phase 5 (tách `api/shop` buyer/seller, hoặc chuyển chat).

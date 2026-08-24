@@ -1566,6 +1566,34 @@ export async function sendRoomMessage(
     });
   }
 
+  /* FCM tin nhắn mới — bỏ system / card đơn (đơn đẩy ở don-hang.ts). */
+  const skipPush =
+    loaiTinForce === "system" ||
+    (contextCard &&
+      typeof contextCard === "object" &&
+      (contextCard as { loai?: string }).loai === "don_hang");
+  if (visibleToSender && !skipPush) {
+    void (async () => {
+      try {
+        const { firePushTinNhanMoi, listRoomMemberIdsExcept } = await import(
+          "@/lib/push/su-kien"
+        );
+        const recipients = await listRoomMemberIdsExcept(roomId, viewerId);
+        const visibleRecipients = chiHienCho?.length
+          ? recipients.filter((id) => chiHienCho.includes(id))
+          : recipients;
+        firePushTinNhanMoi({
+          roomId,
+          senderId: viewerId,
+          recipientIds: visibleRecipients,
+          preview: messagePreview(data),
+        });
+      } catch (err) {
+        console.error("[sendRoomMessage] push", err);
+      }
+    })();
+  }
+
   return { ok: true, message };
 }
 

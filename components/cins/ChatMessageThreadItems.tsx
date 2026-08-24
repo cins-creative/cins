@@ -769,7 +769,24 @@ function SingleMessageBubble({
   if (msg.deleted) return null;
 
   if (msg.kind === "canvas_binh_luan" || msg.canvasBinhLuan) {
-    return null;
+    return (
+      <div
+        id={messageRowId(msg.id)}
+        className={`cins-chat-bubble-row is-canvas-comment-notice ${isMe ? "is-me" : "is-them"}`}
+      >
+        <div className="cins-chat-bubble is-canvas-comment-notice">
+          <ChatMessageBody
+            msg={msg}
+            roomId={roomId}
+            viewerUserId={viewerUserId}
+            onPollUpdated={onPollUpdated}
+            onOpenCanvasComments={onOpenCanvasComments}
+            canConfirmHocPhi={canConfirmHocPhi}
+            orgBrand={orgBrand}
+          />
+        </div>
+      </div>
+    );
   }
 
   if (msg.kind === "cuoc_goi" || msg.cuocGoi) {
@@ -1181,8 +1198,9 @@ export function ChatMessageThreadItems({
   canConfirmHocPhi = false,
   orgBrand = null,
 }: ChatMessageThreadItemsProps) {
+  /* Thu hồi: bỏ hẳn khỏi list trước group/cluster — tránh stamp giờ treo không bubble. */
   const visibleMessages = useMemo(
-    () => hideSupersededMocNotices(messages),
+    () => hideSupersededMocNotices(messages).filter((m) => !m.deleted),
     [messages],
   );
   const items = useMemo(
@@ -1222,6 +1240,7 @@ export function ChatMessageThreadItems({
         ) : null;
         if (item.type === "single") {
           const msg = item.message;
+          if (msg.deleted) return null;
           return (
             <Fragment key={msg.id}>
               {sessionStamp}

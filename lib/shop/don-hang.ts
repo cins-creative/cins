@@ -1618,6 +1618,39 @@ async function bumpDonHangChatMessage(
     .from("chat_phong")
     .update({ cap_nhat_luc: now })
     .eq("id", msg.id_phong);
+
+  /* FCM đổi trạng thái đơn → đối phương (không push cho actor). */
+  try {
+    const peerId =
+      actorId === don.idNguoiBan
+        ? don.idNguoiMua
+        : actorId === don.idNguoiMua
+          ? don.idNguoiBan
+          : null;
+    if (peerId) {
+      const { firePushDonHang } = await import("@/lib/push/su-kien");
+      const ma = don.maDon?.trim() || don.id.slice(0, 8);
+      const label = SHOP_TRANG_THAI_DON_LABEL[don.trangThai] ?? don.trangThai;
+      firePushDonHang({
+        recipientId: peerId,
+        maDon: ma,
+        donId: don.id,
+        title: "Cập nhật đơn hàng",
+        body:
+          suKien === "yeu_cau_huy"
+            ? `Shop đề nghị hủy đơn ${ma}`
+            : suKien === "bo_yeu_cau_huy"
+              ? `Shop rút yêu cầu hủy đơn ${ma}`
+              : `Đơn ${ma}: ${label}`,
+        deepLink:
+          peerId === don.idNguoiBan
+            ? `/seller/orders?id=${encodeURIComponent(don.id)}`
+            : `/chat`,
+      });
+    }
+  } catch (e) {
+    console.error("[shop] bumpDonHangChat push", e);
+  }
 }
 
 /**
@@ -1649,6 +1682,25 @@ export async function notifySellerDonHangChat(
     });
     if (!card.ok) {
       console.error("[shop] notifyDonHangChat card", card.error);
+    } else {
+      /* FCM đơn mới / card đơn — người nhận = peer (thường seller). */
+      try {
+        const { firePushDonHang } = await import("@/lib/push/su-kien");
+        const ma = don.maDon?.trim() || don.id.slice(0, 8);
+        const isSellerRecipient = peerId === don.idNguoiBan;
+        firePushDonHang({
+          recipientId: peerId,
+          maDon: ma,
+          donId: don.id,
+          title: isSellerRecipient ? "Đơn hàng mới" : "Cập nhật đơn hàng",
+          body: ctx.tieuDe,
+          deepLink: isSellerRecipient
+            ? `/seller/orders?id=${encodeURIComponent(don.id)}`
+            : `/chat`,
+        });
+      } catch (e) {
+        console.error("[shop] notifyDonHangChat push", e);
+      }
     }
   } catch (e) {
     console.error("[shop] notifyDonHangChat", e);

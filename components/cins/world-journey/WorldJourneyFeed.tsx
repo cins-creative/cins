@@ -28,7 +28,6 @@ import { CinsFeedComposer } from "@/components/cins/CinsFeedComposer";
 import { WorldJourneyFeedTimeline } from "@/components/cins/world-journey/WorldJourneyFeedTimeline";
 import { WorldJourneyGuestLeftAside } from "@/components/cins/world-journey/WorldJourneyGuestLeftAside";
 import { WorldJourneyGuestRightAside } from "@/components/cins/world-journey/WorldJourneyGuestRightAside";
-import { useMobileFeedChromeHide } from "@/components/cins/world-journey/useMobileFeedChromeHide";
 import { useWorldJourneyAsideSwipe } from "@/components/cins/world-journey/useWorldJourneyAsideSwipe";
 import { WorldJourneyOpenFeedVideoProvider } from "@/components/cins/world-journey/WorldJourneyOpenFeedVideoContext";
 import { WorldJourneyVideoFeed } from "@/components/cins/world-journey/WorldJourneyVideoFeed";
@@ -415,7 +414,6 @@ export function WorldJourneyFeed({
   const openAsideRef = useRef<OpenAside>(null);
   openAsideRef.current = openAside;
 
-  useMobileFeedChromeHide(homeRootRef, !openAside && !reelSession);
   useWorldJourneyAsideSwipe({
     rootRef: homeRootRef,
     openAsideRef,
@@ -1776,6 +1774,7 @@ export function WorldJourneyFeed({
             className="wj-feed-header"
             title="Cuộn lên đầu và tải nội dung mới"
             onClick={handleFeedHeaderClick}
+            hidden={isVideoPlaying || undefined}
           >
             <span className="j-tlb-streak-slow" aria-hidden="true" />
             <WorldJourneyFilterBar

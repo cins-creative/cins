@@ -63,6 +63,7 @@ import {
   danhGiaGioiThieuKiosk,
   doKichThuocAnh,
   mapAnhUrlLoaiHang,
+  nhomGioiThieuCanhBao,
   shopGioiThieuDraftScope,
   thuThapAnhLoaiHang,
 } from "@/lib/shop/gioi-thieu";
@@ -252,6 +253,10 @@ export function ShopKhoClient({
   const [ownerSlug, setOwnerSlug] = useState<string | null>(null);
   const [shopTen, setShopTen] = useState<string | null>(null);
   const [gioiThieuBusy, setGioiThieuBusy] = useState(false);
+  /** Lần giới thiệu gần nhất (`shop_nhom_gioi_thieu.tao_luc`); null nếu chưa từng / chưa biết. */
+  const [gioiThieuLastAt, setGioiThieuLastAt] = useState<string | null>(null);
+  /** true chỉ khi GET /about thành công — tránh highlight sai khi lỗi mạng. */
+  const [gioiThieuAboutKnown, setGioiThieuAboutKnown] = useState(false);
   const [gioiThieuToast, setGioiThieuToast] = useState<{
     message: string;
     postHref?: string | null;
@@ -608,33 +613,6 @@ export function ShopKhoClient({
       activeNhom.id,
     );
   }, [ownerSlug, shopTen, activeNhom]);
-
-  /** Khi loại chưa có giaMacDinh — lấy giá phổ biến nhất từ bảng giá mẫu trong loại. */
-  const suggestedGiaMacDinh = useMemo(() => {
-    if (!activeNhom || activeNhom.giaMacDinh != null) return null;
-    const bg = bangGiaId
-      ? priceLists.find((b) => b.id === bangGiaId)
-      : priceLists[0];
-    if (!bg) return null;
-    const counts = new Map<number, number>();
-    for (const p of products) {
-      if (p.idNhom !== activeNhom.id) continue;
-      for (const bt of p.bienThe) {
-        const d = bg.dong.find((x) => x.idBienThe === bt.id);
-        if (d == null || !Number.isFinite(d.gia) || d.gia < 0) continue;
-        counts.set(d.gia, (counts.get(d.gia) ?? 0) + 1);
-      }
-    }
-    let best: number | null = null;
-    let bestN = 0;
-    for (const [gia, n] of counts) {
-      if (n > bestN) {
-        best = gia;
-        bestN = n;
-      }
-    }
-    return best;
-  }, [activeNhom, bangGiaId, priceLists, products]);
 
   /* Số mẫu lấy từ cache `so_mau` (server duy trì bằng trigger) — không đếm
      mảng `products` (bị cắt 200 → sai). Cập nhật khi thêm/sửa/xóa mẫu. */
@@ -2332,6 +2310,41 @@ export function ShopKhoClient({
     [],
   );
 
+  /** Trạng thái «đã từng giới thiệu» cho loại đang mở — GET /about. */
+  useEffect(() => {
+    if (!activeNhomId || activeNhomId === KHO_ORPHAN_KEY) {
+      setGioiThieuLastAt(null);
+      setGioiThieuAboutKnown(false);
+      return;
+    }
+    const ac = new AbortController();
+    setGioiThieuLastAt(null);
+    setGioiThieuAboutKnown(false);
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/shop/groups/${encodeURIComponent(activeNhomId)}/about`,
+          { signal: ac.signal },
+        );
+        if (ac.signal.aborted) return;
+        if (!res.ok) {
+          setGioiThieuAboutKnown(false);
+          return;
+        }
+        const data = (await res.json()) as { lastAt?: unknown };
+        if (ac.signal.aborted) return;
+        setGioiThieuLastAt(
+          typeof data.lastAt === "string" ? data.lastAt : null,
+        );
+        setGioiThieuAboutKnown(true);
+      } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        if (!ac.signal.aborted) setGioiThieuAboutKnown(false);
+      }
+    })();
+    return () => ac.abort();
+  }, [activeNhomId]);
+
   useEffect(() => {
     function onPublished(event: Event) {
       const detail = (event as CustomEvent<ComposePublishedDetail>).detail;
@@ -2348,6 +2361,11 @@ export function ShopKhoClient({
 
       /* Ghi cooldown ngay sau publish — kể cả khi gắn kiosk thất bại. */
       void recordGioiThieuAfterPublish(pending.nhomId, detail.cotMocId);
+      /* Tắt highlight ngay (optimistic) — độc lập với audit/kiosk. */
+      if (pending.nhomId === activeNhomId) {
+        setGioiThieuLastAt(new Date().toISOString());
+        setGioiThieuAboutKnown(true);
+      }
 
       if (!pending.bangGia) {
         setGioiThieuToast({
@@ -2390,11 +2408,26 @@ export function ShopKhoClient({
     return () =>
       window.removeEventListener(COMPOSE_PUBLISHED_EVENT, onPublished);
   }, [
+    activeNhomId,
     attachKioskAfterPublish,
     composeOwnerSlug,
     ownerSlug,
     recordGioiThieuAfterPublish,
   ]);
+
+  /** Nút «Giới thiệu» chỉ hiện khi đủ ảnh + ≥1 mẫu + giá mặc định. */
+  const gioiThieuVisible = useMemo(() => {
+    if (!activeNhom) return false;
+    const soMau =
+      mauCountByNhomId[activeNhom.id] ?? activeNhom.soMau ?? 0;
+    return (
+      nhomGioiThieuCanhBao({ ...activeNhom, soMau }).length === 0
+    );
+  }, [activeNhom, mauCountByNhomId]);
+
+  /** Highlight khi đã biết chắc chưa từng đăng bài giới thiệu. */
+  const gioiThieuChuaCo =
+    gioiThieuVisible && gioiThieuAboutKnown && gioiThieuLastAt === null;
 
   const gioiThieuDisabledReason = useMemo(() => {
     if (!activeNhom) return null;
@@ -2605,7 +2638,6 @@ export function ShopKhoClient({
             key={activeNhom.id}
             nhom={activeNhom}
             mauCount={mauCountByNhomId[activeNhom.id] ?? 0}
-            suggestedGiaMacDinh={suggestedGiaMacDinh}
             storefrontLoaiHref={activeNhomStorefrontHref}
             onBack={goKhoHub}
             onUpdated={(n) => {
@@ -2627,6 +2659,8 @@ export function ShopKhoClient({
             gioiThieuBusy={gioiThieuBusy}
             gioiThieuDisabledReason={gioiThieuDisabledReason}
             gioiThieuKioskWarn={gioiThieuKioskWarn}
+            gioiThieuVisible={gioiThieuVisible}
+            gioiThieuChuaCo={gioiThieuChuaCo}
           />
         ) : (
           <div className="shop-kho-loai-meta">
@@ -3268,7 +3302,7 @@ export function ShopKhoClient({
                         title={
                           cellChanged("gia")
                             ? "Ô đã sửa — sẽ áp dụng khi bấm Áp dụng"
-                            : "Giá gốc riêng của mẫu — «Áp dụng» ở meta loại sẽ ghi đè cả cột"
+                            : "Giá gốc riêng của mẫu"
                         }
                       >
                         {cellApplyBtn("gia")}

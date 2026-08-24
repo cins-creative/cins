@@ -1025,8 +1025,6 @@
   gap: 4px;
   padding: 4px;
   margin: 4px 0;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
 }
 
 .app-user-theme-btn {
@@ -1238,7 +1236,7 @@
     .tdh-page .filter-bar,
     .cd-v4-id,
     .cd-v4-event-rail,
-    .wj-feed-header:not(.wj-chrome-follow)
+    .wj-feed-header
   ) {
     transition: transform var(--app-nav-dur) var(--app-nav-ease);
     transform: translate3d(0, var(--cins-sticky-follow, 0px), 0);
@@ -1858,15 +1856,21 @@
 
 .cins-app-topbar .j-notify-menu,
 .j-notify-menu.is-portal {
+  --j-notify-ink: #f8fafc;
+  --j-notify-ink-muted: rgba(248, 250, 252, 0.62);
+  --j-notify-item-bg: rgba(255, 255, 255, 0.06);
+  --j-notify-item-hover: rgba(255, 255, 255, 0.1);
+  --j-notify-border: rgba(255, 255, 255, 0.1);
   width: min(320px, calc(100vw - 32px));
   max-height: min(480px, calc(100vh - 120px));
   display: flex;
   flex-direction: column;
   padding: 10px;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
-  background: var(--bg-surface);
-  box-shadow: var(--shadow-lg);
+  background: #050505;
+  color: var(--j-notify-ink);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
   pointer-events: auto;
 }
 
@@ -1906,8 +1910,25 @@
 }
 
 .j-notify-panel-close:hover {
-  color: var(--ink-display);
-  background: var(--bg-page, #f4f5f8);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.j-notify-menu .j-notify-head strong,
+.j-notify-menu #j-notify-title {
+  color: #fff;
+}
+
+.j-notify-menu .j-notify-head span,
+.j-notify-menu .j-notify-empty,
+.j-notify-menu .j-notify-more-hint,
+.j-notify-menu .j-notify-list-loading,
+.j-notify-menu .j-notify-item small {
+  color: var(--j-notify-ink-muted);
+}
+
+.j-notify-menu .j-notify-panel-close {
+  color: var(--j-notify-ink-muted);
 }
 
 @media (max-width: 960px) {
@@ -1948,10 +1969,10 @@
   gap: 6px;
   min-height: 32px;
   padding: 0 10px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--j-notify-border, var(--border));
   border-radius: 999px;
-  background: var(--bg-surface);
-  color: var(--ink-muted);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--j-notify-ink-muted, var(--ink-muted));
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -1971,9 +1992,9 @@
 }
 
 .j-notify-tab.is-active {
-  border-color: var(--cins-blue);
-  background: var(--cins-blue-soft);
-  color: var(--cins-blue);
+  border-color: rgba(125, 211, 252, 0.45);
+  background: rgba(125, 211, 252, 0.14);
+  color: #7dd3fc;
 }
 
 .j-notify-toolbar {
@@ -1985,7 +2006,7 @@
 .j-notify-mark-all {
   border: none;
   background: transparent;
-  color: var(--cins-blue);
+  color: #7dd3fc;
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
@@ -2032,31 +2053,46 @@
 }
 
 .j-notify-item.is-history {
-  background: var(--neutral-100);
-  opacity: 0.92;
-  color: var(--ink-muted);
+  background: rgba(255, 255, 255, 0.04);
+  opacity: 0.88;
+  color: rgba(248, 250, 252, 0.72);
 }
 
 .j-notify-item.is-history:hover {
   opacity: 1;
-  color: var(--ink-body);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .j-notify-item.is-unread {
-  background: color-mix(in srgb, var(--cins-blue) 10%, var(--neutral-50));
-  border-color: color-mix(in srgb, var(--cins-blue) 28%, transparent);
-  box-shadow: inset 3px 0 0 var(--cins-blue);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: transparent;
+  box-shadow: none;
+  color: #ffffff;
+}
+
+.j-notify-item.is-unread,
+.j-notify-item.is-unread strong,
+.j-notify-item.is-unread span,
+.j-notify-item.is-unread b {
+  color: #ffffff;
+  opacity: 1;
+}
+
+.j-notify-item.is-unread small {
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .j-notify-item.is-unread:hover {
-  background: var(--cins-blue-soft);
-  border-color: color-mix(in srgb, var(--cins-blue) 45%, var(--border));
+  background: rgba(255, 255, 255, 0.12);
+  border-color: transparent;
 }
 
 .j-notify-item.is-pending {
-  border-color: color-mix(in srgb, var(--cins-blue) 32%, transparent);
-  background: color-mix(in srgb, var(--cins-blue) 12%, var(--neutral-50));
-  box-shadow: inset 3px 0 0 var(--cins-blue);
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+  color: #ffffff;
 }
 
 .j-notify-head {
@@ -2102,16 +2138,16 @@
   padding: 10px;
   border: 1px solid transparent;
   border-radius: 12px;
-  background: var(--neutral-50);
-  color: var(--ink-body);
+  background: var(--j-notify-item-bg, var(--neutral-50));
+  color: var(--j-notify-ink, var(--ink-body));
   text-align: left;
   cursor: pointer;
   text-decoration: none;
 }
 
 .j-notify-item:hover {
-  border-color: color-mix(in srgb, var(--cins-blue) 45%, var(--border));
-  background: var(--cins-blue-soft);
+  border-color: transparent;
+  background: var(--j-notify-item-hover, var(--cins-blue-soft));
 }
 
 .j-notify-item.is-accepted {
@@ -2126,9 +2162,10 @@
 .j-notify-item.is-coauthor-review,
 .j-notify-item.is-coauthor-invite {
   align-items: flex-start;
-  border-color: color-mix(in srgb, var(--cins-blue) 30%, transparent);
-  background: var(--cins-blue-soft);
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.08);
   cursor: default;
+  color: #fff;
 }
 
 .j-notify-item.is-coauthor-review {
@@ -2150,11 +2187,11 @@
   flex: 1;
   font-size: 12px;
   line-height: 1.45;
-  color: var(--ink-body);
+  color: rgba(248, 250, 252, 0.88);
 }
 
 .j-notify-coauthor-review-lead strong {
-  color: var(--ink-display);
+  color: #ffffff;
   font-weight: 700;
 }
 
@@ -2276,7 +2313,10 @@
   cursor: pointer;
 }
 
-.j-notify-item span:not(.j-notify-avatar) {
+.j-notify-item
+  span:not(.j-notify-avatar):not(.j-notify-media):not(.j-notify-action-line):not(
+    .j-notify-action-icon
+  ) {
   display: flex;
   min-width: 0;
   flex-direction: column;
@@ -2285,8 +2325,20 @@
   line-height: 1.35;
 }
 
-.j-notify-item span:not(.j-notify-avatar) b {
-  color: var(--cins-blue);
+.j-notify-item
+  span:not(.j-notify-avatar):not(.j-notify-media):not(.j-notify-action-line):not(
+    .j-notify-action-icon
+  )
+  b {
+  color: #7dd3fc;
+}
+
+.j-notify-item.is-unread
+  span:not(.j-notify-avatar):not(.j-notify-media):not(.j-notify-action-line):not(
+    .j-notify-action-icon
+  )
+  b {
+  color: #ffffff;
 }
 
 /* Chữ trong thông báo mời (cộng đồng / đồng tác giả / cơ sở đào tạo).
@@ -2295,15 +2347,15 @@
    tối). Đặt token tại đây (luôn kèm dropdown) để đúng cả sáng lẫn tối. */
 .j-notify-item .j-coauthor-invite-message,
 .j-notify-item .j-coauthor-pending-message {
-  color: var(--ink-body);
+  color: rgba(248, 250, 252, 0.88);
 }
 .j-notify-item .j-coauthor-invite-message strong,
 .j-notify-item .j-coauthor-invite-sender strong,
 .j-notify-item .j-coauthor-invite-work {
-  color: var(--ink-display);
+  color: #ffffff;
 }
 .j-notify-item .j-coauthor-invite-message em {
-  color: var(--cins-blue);
+  color: #7dd3fc;
 }
 .j-notify-item .j-user-pop-trigger:hover .j-coauthor-invite-sender strong {
   color: var(--cins-blue);
@@ -2322,11 +2374,11 @@
 
 .j-notify-mini-action {
   min-width: 58px;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 999px;
   padding: 5px 8px;
-  background: var(--bg-surface);
-  color: var(--ink-body);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
   font-size: 11px;
   font-weight: 800;
   cursor: pointer;
@@ -2366,9 +2418,158 @@ a.j-notify-mini-action.is-link:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--cins-blue-soft);
-  color: var(--cins-blue);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
   font-weight: 800;
+}
+
+.j-notify-media {
+  position: relative;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+}
+
+.j-notify-media .j-notify-avatar {
+  width: 100%;
+  height: 100%;
+}
+
+.j-notify-action-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: inherit;
+  font: inherit;
+  line-height: 1.35;
+}
+
+.j-notify-action-icon {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: #fff;
+}
+
+.j-notify-action-icon.is-comment {
+  background: #3b82f6;
+}
+.j-notify-action-icon.is-friend {
+  background: #22c55e;
+}
+.j-notify-action-icon.is-connect {
+  background: #14b8a6;
+}
+.j-notify-action-icon.is-message {
+  background: #f59e0b;
+}
+.j-notify-action-icon.is-video {
+  background: #a855f7;
+}
+.j-notify-action-icon.is-approved {
+  background: #10b981;
+}
+.j-notify-action-icon.is-rejected {
+  background: #ef4444;
+}
+.j-notify-action-icon.is-edit {
+  background: #f97316;
+}
+.j-notify-action-icon.is-shop {
+  background: #6366f1;
+}
+.j-notify-action-icon.is-tag {
+  background: #ec4899;
+}
+.j-notify-action-icon.is-coauthor {
+  background: #8b5cf6;
+}
+.j-notify-action-icon.is-community {
+  background: #0ea5e9;
+}
+.j-notify-action-icon.is-staff {
+  background: #eab308;
+}
+
+/* Avatar hệ thống (không phải ảnh người) — nền màu theo loại */
+.j-notify-avatar.is-comment {
+  background: rgba(59, 130, 246, 0.22);
+  color: #60a5fa;
+}
+.j-notify-avatar.is-friend {
+  background: rgba(34, 197, 94, 0.22);
+  color: #4ade80;
+}
+.j-notify-avatar.is-connect {
+  background: rgba(20, 184, 166, 0.22);
+  color: #2dd4bf;
+}
+.j-notify-avatar.is-message,
+.j-notify-avatar.is-verified.is-message {
+  background: rgba(245, 158, 11, 0.22);
+  color: #fbbf24;
+}
+.j-notify-avatar.is-video {
+  background: rgba(168, 85, 247, 0.22);
+  color: #c084fc;
+}
+.j-notify-avatar.is-verified {
+  background: rgba(16, 185, 129, 0.22);
+  color: #34d399;
+}
+.j-notify-avatar.is-rejected {
+  background: rgba(239, 68, 68, 0.22);
+  color: #f87171;
+}
+.j-notify-avatar.is-edit {
+  background: rgba(249, 115, 22, 0.22);
+  color: #fb923c;
+}
+.j-notify-avatar.is-shop {
+  background: rgba(99, 102, 241, 0.22);
+  color: #818cf8;
+}
+.j-notify-avatar.is-tag {
+  background: rgba(236, 72, 153, 0.22);
+  color: #f472b6;
+}
+.j-notify-avatar.is-coauthor {
+  background: rgba(139, 92, 246, 0.22);
+  color: #a78bfa;
+}
+
+/* journey.css gắn màu sáng cho một số avatar — giữ palette tối trong panel */
+.j-notify-menu .j-notify-avatar.is-video {
+  background: rgba(168, 85, 247, 0.22);
+  color: #c084fc;
+}
+.j-notify-menu .j-notify-avatar.is-verified {
+  background: rgba(16, 185, 129, 0.22);
+  color: #34d399;
+}
+.j-notify-menu .j-notify-avatar.is-rejected {
+  background: rgba(239, 68, 68, 0.22);
+  color: #f87171;
+}
+.j-notify-menu .j-notify-avatar.is-edit {
+  background: rgba(249, 115, 22, 0.22);
+  color: #fb923c;
+}
+.j-notify-menu .j-notify-item--cso-staff,
+.j-notify-menu .j-notify-item.is-unread,
+.j-notify-menu .j-notify-item.is-pending {
+  border-left: none;
+  box-shadow: none;
+}
+.j-notify-menu .j-notify-item.is-org-milestone-tag strong,
+.j-notify-menu .j-notify-item.is-video-ready strong,
+.j-notify-menu .j-notify-item.is-unread strong {
+  color: #ffffff;
 }
 
 .j-notify-avatar.is-large {

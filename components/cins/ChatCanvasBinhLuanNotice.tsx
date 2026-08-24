@@ -5,12 +5,17 @@ import { MessageCircle } from "lucide-react";
 import type { ChatCanvasBinhLuanNotice } from "@/lib/chat/types";
 
 function noticeCopy(notice: ChatCanvasBinhLuanNotice) {
+  const name = notice.tenNguoi;
+  if (notice.isReply && notice.hostTen) {
+    const action =
+      notice.soLuong <= 1
+        ? `đã trả lời bình luận của ${notice.hostTen}`
+        : `đã trả lời ${notice.soLuong} lần bình luận của ${notice.hostTen}`;
+    return { name, action };
+  }
   const count =
     notice.soLuong <= 1 ? "một bình luận" : `${notice.soLuong} bình luận`;
-  return {
-    name: notice.tenNguoi,
-    count,
-  };
+  return { name, action: `vừa có ${count}` };
 }
 
 export function ChatCanvasBinhLuanNoticeBubble({
@@ -24,7 +29,7 @@ export function ChatCanvasBinhLuanNoticeBubble({
   fallbackBody?: string;
   onOpen?: (nodeIds: string[], messageId: string) => void;
 }) {
-  const { name, count } = noticeCopy(notice);
+  const { name, action } = noticeCopy(notice);
 
   return (
     <button
@@ -39,10 +44,8 @@ export function ChatCanvasBinhLuanNoticeBubble({
         {name ? (
           <>
             <strong>{name}</strong>
-            {" vừa có "}
-            <span className="cins-chat-canvas-comment-notice-count">
-              {count}
-            </span>
+            {" "}
+            {action}
             {" trong Canvas"}
           </>
         ) : (

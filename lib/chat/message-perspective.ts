@@ -114,12 +114,17 @@ export function parseChatCanvasBinhLuan(
     typeof r.soLuong === "number" && Number.isFinite(r.soLuong)
       ? Math.max(1, Math.floor(r.soLuong))
       : Math.max(1, nodeIds.length);
+  const hostId = typeof r.hostId === "string" ? r.hostId : null;
+  const hostTen = typeof r.hostTen === "string" ? r.hostTen.trim() : "";
   return {
     canvasId,
     soLuong,
     nodeIds,
     tenNguoi,
     avatarUrl: typeof r.avatarUrl === "string" ? r.avatarUrl : null,
+    isReply: r.isReply === true || Boolean(hostId),
+    hostId,
+    hostTen: hostTen || null,
   };
 }
 

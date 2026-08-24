@@ -46,12 +46,7 @@ export function useCinsSidebarNav(
       const y = Math.max(0, window.scrollY);
       topbar.classList.toggle("scrolled", y > 4);
 
-      // World Journey tự điều khiển transform — đừng chồng is-hidden.
-      if (
-        !mobileMq.matches ||
-        topbar.classList.contains("wj-chrome-follow") ||
-        sidebar?.classList.contains("open")
-      ) {
+      if (!mobileMq.matches || sidebar?.classList.contains("open")) {
         topbar.classList.remove("is-hidden");
         lastY = y;
         return;

@@ -14,7 +14,15 @@ export type CanvasCommentAuthor = {
   avatarUrl?: string | null;
 };
 
-function noticeBody(ten: string, soLuong: number): string {
+function noticeBody(
+  ten: string,
+  soLuong: number,
+  hostTen?: string | null,
+): string {
+  if (hostTen) {
+    if (soLuong <= 1) return `${ten} đã trả lời bình luận của ${hostTen}`;
+    return `${ten} đã trả lời ${soLuong} lần bình luận của ${hostTen}`;
+  }
   if (soLuong <= 1) return `${ten} vừa có một bình luận`;
   return `${ten} vừa có ${soLuong} bình luận`;
 }
@@ -25,6 +33,8 @@ function buildNguCanh(input: {
   nodeIds: string[];
   tenNguoi: string;
   avatarUrl?: string | null;
+  hostId?: string | null;
+  hostTen?: string | null;
 }) {
   return {
     loai: "canvas_binh_luan",
@@ -33,6 +43,9 @@ function buildNguCanh(input: {
     soLuong: input.soLuong,
     nodeIds: input.nodeIds,
     avatarUrl: input.avatarUrl ?? null,
+    isReply: Boolean(input.hostId),
+    hostId: input.hostId ?? null,
+    hostTen: input.hostTen ?? null,
   };
 }
 
@@ -74,7 +87,10 @@ export async function notifyCanvasComment(input: {
   nodeId: string;
   author: CanvasCommentAuthor;
   viewerId: string;
+  host?: CanvasCommentAuthor | null;
 }): Promise<ChatMessage | null> {
+  const host =
+    input.host && input.host.id !== input.author.id ? input.host : null;
   const admin = createServiceRoleClient();
   const since = new Date(Date.now() - AGGREGATE_WINDOW_MS).toISOString();
 
@@ -104,6 +120,8 @@ export async function notifyCanvasComment(input: {
         : null;
     if (ctx?.loai !== "canvas_binh_luan") continue;
     if (ctx.id !== input.canvasId) continue;
+    const rowHost = typeof ctx.hostId === "string" ? ctx.hostId : null;
+    if (rowHost !== (host?.id ?? null)) continue;
     target = row as Row & Record<string, unknown>;
     break;
   }
@@ -127,8 +145,10 @@ export async function notifyCanvasComment(input: {
       nodeIds,
       tenNguoi: input.author.ten,
       avatarUrl: input.author.avatarUrl,
+      hostId: host?.id ?? null,
+      hostTen: host?.ten ?? null,
     });
-    const noi_dung = noticeBody(input.author.ten, soLuong);
+    const noi_dung = noticeBody(input.author.ten, soLuong, host?.ten ?? null);
 
     const { data: updated, error } = await admin
       .from("chat_tin_nhan")
@@ -160,6 +180,8 @@ export async function notifyCanvasComment(input: {
     nodeIds: [input.nodeId],
     tenNguoi: input.author.ten,
     avatarUrl: input.author.avatarUrl,
+    hostId: host?.id ?? null,
+    hostTen: host?.ten ?? null,
   });
 
   const { data: inserted, error } = await admin
@@ -167,7 +189,7 @@ export async function notifyCanvasComment(input: {
     .insert({
       id_phong: input.roomId,
       id_nguoi_gui: input.author.id,
-      noi_dung: noticeBody(input.author.ten, 1),
+      noi_dung: noticeBody(input.author.ten, 1, host?.ten ?? null),
       loai_tin: "system",
       ngu_canh,
       da_xoa: false,

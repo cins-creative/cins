@@ -19091,12 +19091,17 @@ a.action-btn {
   position: fixed;
   bottom: auto;
   translate: -50% -100%;
+  max-width: calc(100vw - 16px);
   /* Trên sheet BL 10845 · kebab 10870; dưới chat overlay 11000. */
   z-index: 10890;
   background: var(--bg-surface, #fff);
   border: 1px solid var(--border, transparent);
   border-radius: 999px;
   box-shadow: 0 10px 28px color-mix(in srgb, var(--ink1, #0f172a) 18%, transparent);
+}
+
+.j-reaction-picker--portal.is-below {
+  translate: -50% 0;
 }
 
 .j-reaction-picker--portal::before {
@@ -19459,6 +19464,17 @@ a.action-btn {
   align-items: center;
   gap: 5px;
   padding: 6px 10px;
+}
+/* Đồng bộ nền nút action trong cluster: cùng chiều cao; nút chỉ-icon vuông đều */
+.jcard-actions-cluster .action-btn,
+.jcard-actions-cluster .action-btn--split,
+.jcard-actions-cluster .share-btn {
+  min-height: 32px;
+  box-sizing: border-box;
+  justify-content: center;
+}
+.jcard-actions-cluster .action-btn:not(.action-btn--split) {
+  min-width: 32px;
 }
 .action-btn-part {
   display: inline-flex;

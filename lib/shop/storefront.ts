@@ -434,13 +434,12 @@ export async function listShopStorefrontNhomCards(opts: {
     anh_id: string | null;
     thu_tu: number;
     noi_bat: boolean;
-    gia_mac_dinh: number | string | null;
   };
   const nhomById = new Map<string, NhomMeta>();
   if (nhomIds.length > 0) {
     const { data } = await admin
       .from("shop_nhom")
-      .select("id, nhan, mo_ta, anh_id, thu_tu, noi_bat, gia_mac_dinh")
+      .select("id, nhan, mo_ta, anh_id, thu_tu, noi_bat")
       .in("id", nhomIds)
       .eq("da_xoa", false)
       .eq("truc", 1);
@@ -457,7 +456,6 @@ export async function listShopStorefrontNhomCards(opts: {
     anhUrl: string | null;
     thuTu: number;
     noiBat: boolean;
-    giaMacDinh: number | null;
     soMau: number;
     giaTu: number | null;
     giaDen: number | null;
@@ -475,11 +473,6 @@ export async function listShopStorefrontNhomCards(opts: {
     const nhom = key === SHOP_STOREFRONT_KHAC_SLUG ? null : nhomById.get(key);
     let agg = byKey.get(key);
     if (!agg) {
-      const rawGia = nhom?.gia_mac_dinh;
-      const giaN =
-        rawGia == null || rawGia === ""
-          ? null
-          : Number(rawGia);
       agg = {
         id: key,
         nhan: nhom?.nhan ?? "Khác",
@@ -487,8 +480,6 @@ export async function listShopStorefrontNhomCards(opts: {
         anhUrl: shopImageUrl(nhom?.anh_id ?? null),
         thuTu: nhom?.thu_tu ?? 9999,
         noiBat: nhom?.noi_bat === true,
-        giaMacDinh:
-          giaN != null && Number.isFinite(giaN) && giaN >= 0 ? giaN : null,
         soMau: 0,
         giaTu: null,
         giaDen: null,
@@ -553,9 +544,9 @@ export async function listShopStorefrontNhomCards(opts: {
         moTa: a.moTa,
         anhUrl: a.anhUrl,
         soMau: a.soMau,
-        giaTu: a.giaMacDinh ?? a.giaTu,
-        giaDen: a.giaMacDinh ?? a.giaDen,
-        giaMacDinh: a.giaMacDinh,
+        giaTu: a.giaTu,
+        giaDen: a.giaDen,
+        giaMacDinh: null,
         tienTe: a.tienTe,
         soLuongBan: a.soLuongBan,
         hetHang: !a.anyInStock,
@@ -753,11 +744,11 @@ export async function getShopStorefrontNhomDetail(opts: {
     let giaDen: number | null = null;
     let tienTe = "VND";
     for (const item of filtered) {
-      if (item.giaHienThi == null) continue;
-      giaTu =
-        giaTu == null ? item.giaHienThi : Math.min(giaTu, item.giaHienThi);
-      giaDen =
-        giaDen == null ? item.giaHienThi : Math.max(giaDen, item.giaHienThi);
+      /* Min/max theo giá gốc niêm yết (không lấy giá giảm). */
+      const giaGocMau = item.giaGoc ?? item.giaHienThi;
+      if (giaGocMau == null) continue;
+      giaTu = giaTu == null ? giaGocMau : Math.min(giaTu, giaGocMau);
+      giaDen = giaDen == null ? giaGocMau : Math.max(giaDen, giaGocMau);
       tienTe = item.tienTe || tienTe;
     }
 
@@ -765,7 +756,7 @@ export async function getShopStorefrontNhomDetail(opts: {
     const { data: nhom } = await admin
       .from("shop_nhom")
       .select(
-        "id, nhan, mo_ta, anh_id, overlay_anh_id, anh_phu_ids, video_phu_id, gia_mac_dinh, id_nguoi_dung, truc",
+        "id, nhan, mo_ta, anh_id, overlay_anh_id, anh_phu_ids, video_phu_id, id_nguoi_dung, truc",
       )
       .eq("id", opts.nhomIdOrKhac)
       .eq("id_nguoi_dung", opts.sellerId)
@@ -778,7 +769,6 @@ export async function getShopStorefrontNhomDetail(opts: {
         overlay_anh_id: string | null;
         anh_phu_ids: string[] | null;
         video_phu_id: string | null;
-        gia_mac_dinh: number | string | null;
         id_nguoi_dung: string;
         truc: number;
       }>();
@@ -789,11 +779,6 @@ export async function getShopStorefrontNhomDetail(opts: {
       mau.find((m) => m.anhUrl)?.anhUrl ??
       mau.flatMap((m) => m.bienThe).find((b) => b.anhUrl)?.anhUrl ??
       null;
-    const rawGia = nhom.gia_mac_dinh;
-    const giaN =
-      rawGia == null || rawGia === "" ? null : Number(rawGia);
-    const giaMacDinh =
-      giaN != null && Number.isFinite(giaN) && giaN >= 0 ? giaN : null;
     const anhPhuIds = Array.isArray(nhom.anh_phu_ids)
       ? nhom.anh_phu_ids
           .filter((id): id is string => typeof id === "string" && Boolean(id.trim()))
@@ -819,9 +804,9 @@ export async function getShopStorefrontNhomDetail(opts: {
         videoPhuId && isStreamUid(videoPhuId)
           ? buildStreamThumbnailUrl(videoPhuId)
           : null,
-      giaMacDinh,
-      giaTu: giaMacDinh ?? giaTu,
-      giaDen: giaMacDinh ?? giaDen,
+      giaMacDinh: null,
+      giaTu,
+      giaDen,
       tienTe,
       sellerId: opts.sellerId,
       ownerSlug: opts.ownerSlug,
@@ -866,11 +851,10 @@ export async function getShopStorefrontNhomDetail(opts: {
   let giaDen: number | null = null;
   let tienTe = "VND";
   for (const item of filtered) {
-    if (item.giaHienThi == null) continue;
-    giaTu =
-      giaTu == null ? item.giaHienThi : Math.min(giaTu, item.giaHienThi);
-    giaDen =
-      giaDen == null ? item.giaHienThi : Math.max(giaDen, item.giaHienThi);
+    const giaGocMau = item.giaGoc ?? item.giaHienThi;
+    if (giaGocMau == null) continue;
+    giaTu = giaTu == null ? giaGocMau : Math.min(giaTu, giaGocMau);
+    giaDen = giaDen == null ? giaGocMau : Math.max(giaDen, giaGocMau);
     tienTe = item.tienTe || tienTe;
   }
 

@@ -4127,7 +4127,9 @@ body:has(.cins-shell--chat-page) .cins-chat-root.is-chat-fullscreen,
 
 .cins-canvas-card-comment {
   display: block;
-  width: 100%;
+  width: max-content;
+  min-width: 132px;
+  max-width: 320px;
   height: auto;
   min-height: 0;
   padding: 0;
@@ -4183,7 +4185,9 @@ body:has(.cins-shell--chat-page) .cins-chat-root.is-chat-fullscreen,
   display: flex;
   flex-direction: column;
   gap: 3px;
-  min-width: 0;
+  flex: 1 1 auto;
+  width: max-content;
+  min-width: 88px;
   max-width: 100%;
   padding: 8px 12px 9px;
   border-radius: 5px 16px 16px 16px;
@@ -4243,6 +4247,245 @@ body:has(.cins-shell--chat-page) .cins-chat-root.is-chat-fullscreen,
 
 .cins-canvas-card-comment .cins-canvas-sticky-editor.is-comment::placeholder {
   color: #64748b;
+}
+
+.cins-canvas-comment-reply {
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cins-blue, #1f74c9);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.3;
+  cursor: pointer;
+  align-self: flex-end;
+}
+
+.cins-canvas-comment-reply:hover {
+  color: #3b8ddd;
+}
+
+.cins-canvas-comment-compose {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 6px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.cins-canvas-comment-sizer {
+  grid-column: 1;
+  grid-row: 1;
+  visibility: hidden;
+  pointer-events: none;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.cins-canvas-comment-compose .cins-canvas-sticky-editor.is-comment,
+.cins-canvas-card-comment .cins-canvas-comment-compose .cins-canvas-sticky-editor.is-comment {
+  grid-column: 1;
+  grid-row: 1;
+  flex: none;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 20px;
+}
+
+.cins-canvas-comment-send {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  align-self: end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-bottom: 1px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--cins-blue, #1f74c9);
+  color: #fff;
+  cursor: pointer;
+}
+
+.cins-canvas-comment-send:hover {
+  background: #3b8ddd;
+}
+
+.cins-canvas-comment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.cins-canvas-comment-edit {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.3;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.cins-canvas-comment-edit.is-icon {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  justify-content: center;
+  border-radius: 999px;
+}
+
+.cins-canvas-comment-edit:hover,
+.cins-canvas-comment-edit.is-icon:hover {
+  color: #e2e8f0;
+}
+
+.cins-canvas-comment-edit.is-icon:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.cins-canvas-comment-nested-body .cins-canvas-comment-edit {
+  margin-top: 2px;
+}
+
+.cins-canvas-comment-compose .cins-chat-at-menu {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  right: 32px;
+}
+
+.cins-canvas-comment-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cins-canvas-comment-nested {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.cins-canvas-comment-nested-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+  position: relative;
+}
+
+.cins-canvas-comment-head,
+.cins-canvas-comment-nested-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  width: 100%;
+}
+
+.cins-canvas-comment-head .cins-canvas-comment-name,
+.cins-canvas-comment-nested-head .cins-canvas-comment-name {
+  flex: 1;
+}
+
+.cins-canvas-comment-more-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.cins-canvas-comment-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.cins-canvas-comment-more:hover,
+.cins-canvas-comment-more[aria-expanded="true"] {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+}
+
+.cins-canvas-comment-more-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 12;
+  min-width: 112px;
+  padding: 4px;
+  border-radius: 8px;
+  background: #2a2e38;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.cins-canvas-comment-more-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #e2e8f0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  cursor: pointer;
+  text-align: left;
+}
+
+.cins-canvas-comment-more-menu button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.cins-canvas-comment-more-menu button.is-danger {
+  color: #f87171;
+}
+
+.cins-canvas-comment-avatar.is-nested {
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+}
+
+.cins-canvas-comment-avatar.is-fallback.is-nested {
+  font-size: 9px;
 }
 
 .cins-canvas-table-chrome {
@@ -4570,6 +4813,17 @@ button.cins-canvas-table-cell-text {
   cursor: crosshair;
 }
 
+/* Tool đặt: click xuyên node/group — tạo object, không chọn. */
+.cins-board.is-place-tool .cins-board-node,
+.cins-board.is-text-tool .cins-board-node,
+.cins-board.is-place-tool .cins-board-node *,
+.cins-board.is-text-tool .cins-board-node *,
+.cins-board.is-place-tool .cins-board-wire,
+.cins-board.is-text-tool .cins-board-wire {
+  pointer-events: none !important;
+  cursor: inherit;
+}
+
 .cins-board-draw-draft {
   pointer-events: none;
 }
@@ -4693,6 +4947,9 @@ button.cins-canvas-table-cell-text {
   cursor: default;
   touch-action: none;
   overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .cins-board-world,
@@ -10408,6 +10665,7 @@ button.cins-chat-don-card-cta.is-action:disabled {
   flex-direction: column;
   border-radius: 18px;
   overflow: hidden;
+  overscroll-behavior: contain;
   background: var(--bg-surface, #fff);
   border: 1px solid var(--border);
   box-shadow:
@@ -10582,6 +10840,9 @@ button.cins-chat-don-card-cta.is-action:disabled {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  /* Chặn scroll chaining → timeline phía sau (mobile). */
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   padding: 14px 12px;
   display: flex;
   flex-direction: column;
@@ -10838,6 +11099,13 @@ button.cins-chat-don-card-cta.is-action:disabled {
     width: min(360px, calc(100vw - 24px));
     height: min(520px, calc(100dvh - 96px));
     border-radius: 16px;
+    /* Kéo trên head/compose không lan scroll ra trang. */
+    touch-action: none;
+  }
+
+  .j-chat-mini-messages,
+  .j-chat-mini-compose-row textarea {
+    touch-action: pan-y;
   }
 }
 
@@ -14953,7 +15221,9 @@ button.cins-chat-project-card-mark:hover {
 }
 
 .cins-chat-canvas-comment-notice {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin: 0 auto;
   padding: 0;
   border: 0;
@@ -14964,6 +15234,11 @@ button.cins-chat-project-card-mark:hover {
   line-height: 1.35;
   text-align: center;
   cursor: pointer;
+}
+
+.cins-chat-canvas-comment-notice-icon {
+  display: inline-flex;
+  color: var(--cins-blue, #1f74c9);
 }
 
 .cins-chat-canvas-comment-notice:hover,

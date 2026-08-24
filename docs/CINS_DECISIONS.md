@@ -23,7 +23,7 @@
 | O12 | Học phí theo gói tháng (1/2/3/6) cho mô hình liên tục | **Mở lại — thiết kế** (L34): catalog `org_goi_hoc_phi` (tháng/khóa); **bỏ gói theo buổi** phase này; entitlement = **ngày lịch** | Chốt cột bảng mới + ALTER (nếu có) trước migration; đóng khi seed gói Sine Art chạy được. |
 | O15 | Tỉ lệ chèn bài org chưa-follow vào feed giữa + có nên chèn không? | **Tạm 1 org / 10 người, tối đa 1 bài/org, gắn nhãn "Gợi ý", không engagement-sort** (L21 #3) | Khi đo được feed thật: org-post có bị bỏ qua / báo phiền không. Có thể hạ về 0 (chỉ giữ kênh gợi ý + attribution) nếu chèn feed gây loãng. Chốt trước khi scale ngoài cohort đầu. |
 | O16 | Dedupe phòng nhóm trùng tập thành viên | **Defer** — quản lý nhóm cơ bản + project workspace đã có (L25/L28) | Khi có báo cáo spam hoặc nhiều phòng trùng thành viên từ cohort thật. |
-| O17 | Nhắc mốc chat (`chat_moc`) — tin system trong phòng khi tạo / tới lúc nhắc / đến hạn; tick client + `POST /api/chat/mocs/tick` | **Partial** — chưa push/email ngoài app | Mở rộng push/email khi có worker ổn định. |
+| O17 | Nhắc mốc chat (`chat_moc`) — tin system trong phòng khi tạo / tới lúc nhắc / đến hạn; tick client + `POST /api/chat/mocs/tick` | **Đóng phần push (2026-08-23)** — FCM từ `room-moc-notify` (nhắc/đến hạn). Email ngoài app vẫn chưa | A2 `PLAN_app_mobile_*`. Email để sau. |
 | O19 | Bán vé sự kiện / tồn kho / gắn `id_loai_ve` vào `org_dang_ky_su_kien` / QR check-in? | **Defer** — phase 1 chỉ catalog loại vé (`org_su_kien_loai_ve`) | Khi chốt mô hình tiền (P2P như shop hoặc ngoài CINs) + nhu cầu cohort thật. Không mở payment trên CINs trước đó. |
 | O20 | Tỷ lệ phí nền tảng (%) + giữ **trả sau** hay chuyển **trả trước / ký quỹ**? | Đề xuất **5% GMV, kỳ tháng, trả sau** (2026-07-30). ⚠️ **Xét lại từ gốc (2026-08-20):** định vị mới = hạ tầng SaaS, CINs không mang buyer và không cầm tiền → thu **% GMV** khó biện minh với seller ("tôi tự tìm khách, tự nhận tiền, sao trả % cho anh?") và khó thu (phải tin seller tự khai GMV). Cân nhắc **subscription / gói theo hạn mức** thay vì % GMV. | Chốt con số **và mô hình thu** trước khi bật thu phí thật. Xem lại trả sau khi đo được tỉ lệ seller nợ phí thực tế. |
 | O21 | Hạ tầng chạy job định kỳ (chốt kỳ phí tháng) — Cloudflare Workers `triggers` hay GitHub Actions? | **Chưa có cron trong repo**; ưu tiên Workers cron + route nội bộ `xacThucBearerSecret()` | Khi bật thu phí nền tảng thật. Đóng khi chạy thử được 1 kỳ chốt phí trên staging. |
@@ -43,6 +43,66 @@
 ---
 
 ## LOG — quyết định đã chốt
+
+### App RN R9 — JSON listing hub shop cho native (2026-08-23)
+
+- **Chốt:** thêm `GET /api/shop/listing?mode=hang|shop` (JSON, cache ngắn) bọc `listPublicShopCuaHang` — web hub vẫn SSR; app native không parse HTML.
+- **Checkout app:** dùng giỏ chung sẵn có (`/api/shop/shared-cart` + `/orders`) — tiền / biên lai / chấp nhận rủi ro **server-only**; không tính tiền client.
+- **Hệ quả file:** `cins/app/api/shop/listing/route.ts` · `cins_app_main` R9 (`docs/SHOP.md`, tab Khám phá, `/shop/*`).
+- **Deploy:** route listing phải lên `cins.vn` trước khi Explore production có data.
+
+### App mobile — đảo hướng Capacitor → full React Native (2026-08-23, chiều)
+
+- **Chốt:** bỏ Capacitor (bọc web). Viết **app native đầy đủ bằng React Native/Expo**. Lý do user: app native thật, preview Metro/Dev Client quen tay, không phụ thuộc WebView-OAuth.
+- **Tái dùng nguyên vẹn:** server push **A1–A2** (`lib/push/*`, `/api/push/register|go`, bảng `user_web_push`), toàn bộ Supabase + RLS, các `/api/*`, Cloudflare Images variants. **Không** làm lại.
+- **Viết lại:** toàn bộ UI (feed, post blocks, gallery, chat, shop, quản lý). Backend giữ nguyên → API-first.
+- **Stack chốt:** Expo managed + EAS · Expo Router · `@react-native-firebase/messaging` · Supabase JS + SecureStore + native Google Sign-In · TanStack Query · FlashList · expo-image.
+- **Native hết — KHÔNG WebView** (M2): mọi bề mặt viết native, kể cả Seller/Academy/University/Community/Billing/Admin (R10–R12 tách session con). Ngoại lệ hẹp: fallback loại block Journey chưa hỗ trợ trong R6.
+- **Đóng băng feature lớn trên web** khi dựng RN lõi (M6) — tránh làm hai lần.
+- **Repo:** `cins_app_main` re-scaffold Expo (gỡ Capacitor).
+- **Plan:** [`PLAN_app_native_rn.md`](./PLAN_app_native_rn.md) + [`PLAN_app_native_rn_BUILD_SESSIONS.md`](./PLAN_app_native_rn_BUILD_SESSIONS.md). Cũ [`PLAN_app_mobile_*`](./PLAN_app_mobile_boc_web.md) = SUPERSEDED (giữ lịch sử).
+
+### App RN R16 — Universal / App Links + phát hành (2026-08-24)
+
+- **Chốt:** phục vụ `/.well-known/apple-app-site-association` + `/.well-known/assetlinks.json` từ web (route handler, bypass middleware redirect). Env `APPLE_TEAM_ID` · `ANDROID_CERT_SHA256` (điền sau EAS). Package `vn.cins.app`.
+- *Hệ quả:* deploy web trước khi verify App Link / Universal Link. Submit store = thao tác tay (Play Console / App Store Connect).
+
+### App RN R15 — `GET /api/search` JSON (2026-08-24)
+
+- **Chốt:** bọc `runGlobalSearch` thành `GET /api/search?q=&kind=` cho app native (web `/search` vẫn SSR stream). Không đổi schema.
+- *Hệ quả:* deploy web trước khi search app prod. App map `href` web → route native (profile/org/post); article/course/job mở browser tạm.
+
+### App RN R12b — Admin `/api/admin/*` nhận Bearer (2026-08-24)
+
+- **Vấn đề:** `getCurrentUserSystemRole` / `getCurrentUserProfileId` chỉ đọc cookie Supabase → app native gửi Bearer luôn bị xem `thanh_vien` → 403 mọi `/api/admin/*`.
+- **Chốt:** hai helper đi qua `getCurrentSessionAndProfile` (đã ưu tiên Bearer, fallback cookie). Không đổi schema / không endpoint mới.
+- *Hệ quả:* deploy web trước khi admin native prod. `getCurrentUserIsCinsAdmin` kế thừa fix.
+
+### App RN R6 — POST comment cột mốc Bearer JSON (2026-08-23)
+
+- **Chốt:** thêm `POST /api/journey/milestone/[milestoneId]/comments` (JSON + Bearer) cho app native — insert `social_binh_luan`, engagement + notify giống web. Body `{ noi_dung }`. Không đổi schema.
+- **Fallback block:** app dùng `expo-web-browser` (không WebView toàn màn) cho `embed`/`table` — khớp ngoại lệ M2.
+- *Hệ quả:* deploy web trước khi comment trên prod; app doc `cins_app_main/docs/POST.md`.
+
+### App push A2 — nối 4 nguồn (2026-08-23)
+
+- **Chốt:** FCM fire-and-forget từ `lib/push/su-kien.ts`. Chỉ 4 loại: tin nhắn · đơn · mốc lớp · hoá đơn. Vanity không push.
+- **Wire:** `sendRoomMessage` (tin, bỏ system/card đơn) · `don-hang` notify/bump · `room-moc-notify` (O17 nhắc/đến hạn) · `notifyHoaDonMoi` · hook allowlist trong `insertSocialThongBao` (shop đi qua don-hang để tránh double).
+- **Gom nhóm:** coalesce 45s cùng user+phòng cho tin nhắn (per-isolate).
+- *Hệ quả:* A2 `PLAN_app_mobile_BUILD_SESSIONS.md`. Gửi thật cần `FCM_*` (A1). A3: cài đặt theo loại + cron.
+
+### App push — mở rộng `user_web_push` (FCM native), không bảng thứ hai (2026-08-23)
+
+- **Chốt:** SSOT scan thấy `user_web_push` (Web Push keys, 3 row). Cùng grain 1 user ↔ N thiết bị → **Option A**: ALTER mở rộng bảng này cho FCM (`nen_tang` · `token` · `mat_hieu_luc_luc`), không CREATE `user_thiet_bi_push`.
+- **API:** `POST /api/push/register` · `POST /api/push/go` (legacy `/api/push/dang-ky` → 308). Lib `lib/push/*` (gui FCM HTTP v1; thiếu env → skip an toàn).
+- **Env (chưa có trên máy):** `FCM_PROJECT_ID` · `FCM_CLIENT_EMAIL` · `FCM_PRIVATE_KEY` (hoặc `FCM_SERVICE_ACCOUNT_JSON`) — secret, không commit.
+- *Hệ quả:* inventory **A26** · `migration_user_web_push_fcm.sql` · `PLAN_app_mobile_boc_web.md` M1. Plan: `PLAN_app_mobile_BUILD_SESSIONS.md` A1.
+
+### Shop — bỏ «Giá gốc hiển thị» meta loại; card dùng min giá gốc mẫu (2026-08-23)
+
+- **Chốt:** Gỡ UI «Giá gốc hiển thị / Áp dụng» khỏi meta loại (`ShopKhoLoaiMeta`). Card mặt tiền / hub / OG **không còn ưu tiên** `shop_nhom.gia_mac_dinh` — hiện **min `shop_bang_gia_dong.gia`** của mẫu trong loại («Từ X» khi nhiều mức).
+- **Giữ:** cột `gia_mac_dinh` + `apply-price` / fallback checkout (`bang-gia.ts`) / auto-seed mẫu mới — chỉ lưới an toàn, không đường ghi từ UI meta.
+- *Hệ quả file:* `ShopKhoLoaiHub.tsx` · `ShopKhoClient.tsx` · `lib/shop/storefront.ts` · `JourneyShopStorefront.tsx` · `JourneyShopLoaiClient.tsx` · `cua-hang-listing.ts` · `shop-loai-og-fetch.ts` · `docs/PLAN_bo_gia_goc_hien_thi.md`.
 
 ### Global surface = English chỉ để XEM; đa quốc gia/thanh toán ngoại = defer-gated (2026-08-21)
 
@@ -491,6 +551,7 @@
 | A23 | `shop_don_hang` | Thêm `phien_id` | `text` NULL + index partial `shop_don_hang_phien_idx` | YES | Hash phiên client để đo xem→mua; không lưu UUID thô | Đơn cũ = NULL | **Đã chạy** 2026-08-09 · `migration_shop_don_phien_id.sql` |
 | A24 | `shop_don_hang` | Thêm `yeu_cau_huy_luc`, `yeu_cau_huy_ly_do`, `yeu_cau_huy_boi` | `timestamptz` · `text` · `uuid` → `user_nguoi_dung` ON DELETE SET NULL | YES | Shop nhờ khách hủy đơn `da_nhan_tien`; buyer bấm đồng ý | Đơn cũ = NULL (không có yêu cầu) | **Đã duyệt + chạy** 2026-08-13 · `migration_shop_don_yeu_cau_huy.sql` · `npm run migrate:shop-don-yeu-cau-huy` |
 | A25 | `org_chi_nhanh` | Thêm `cover_id` | `text` | YES | Ảnh CF chi nhánh — chuyển khỏi `cau_hinh.chi_nhanh[].cover_id` khi gộp SoT CSĐT | NULL; backfill từ JSON | **Đã duyệt + chạy** 2026-08-21 · `migration_org_chi_nhanh_cover_id.sql` · `npm run migrate:org-chi-nhanh-cover` |
+| A26 | `user_web_push` | Thêm `nen_tang`, `token`, `mat_hieu_luc_luc`; DROP NOT NULL `endpoint`/`p256dh`/`auth`; CHECK credential theo nền tảng; unique partial `token` | `text` · `text` · `timestamptz` | `token`/`mat_hieu_luc_luc` YES; `nen_tang` NO default `web` | Mở rộng SoT push cho FCM native (ios/android); **không** CREATE bảng thứ hai cùng grain. User chốt Option A 2026-08-23 | 3 row web cũ giữ nguyên (`nen_tang=web`) | **Đã duyệt + chạy** 2026-08-23 · `migration_user_web_push_fcm.sql` · `npm run migrate:user-web-push-fcm` |
 
 > Khi user duyệt một dòng → đổi **Trạng thái** thành `Đã duyệt YYYY-MM-DD` rồi mới viết/chạy file migration. Khi đã apply trên DB → `Đã chạy` + tên file SQL. Mọi ALTER phát sinh thêm ngoài bảng này → **thêm dòng mới vào inventory trước**, không lén vào migration khác.
 

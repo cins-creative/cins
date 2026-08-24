@@ -34,6 +34,32 @@ const EMOJI_ARC_SLOT_PX = 28;
 const EMOJI_ARC_DOWN_PX = 24;
 export const EMOJI_PICK_DELAY_MS = 280;
 const EMOJI_PICK_CANCEL_Y = 100;
+const PORTAL_PAD_PX = 8;
+const PORTAL_PICKER_FALLBACK_W = 224;
+const PORTAL_PICKER_FALLBACK_H = 40;
+
+function clampReactionPortalAnchor(
+  wrap: DOMRect,
+  pickerW: number,
+  pickerH: number,
+): { left: number; top: number; below: boolean } {
+  const vw = window.visualViewport?.width ?? window.innerWidth;
+  const vh = window.visualViewport?.height ?? window.innerHeight;
+  let left = wrap.left + wrap.width / 2;
+  const half = pickerW / 2;
+  const minLeft = PORTAL_PAD_PX + half;
+  const maxLeft = vw - PORTAL_PAD_PX - half;
+  left =
+    minLeft <= maxLeft
+      ? Math.min(Math.max(left, minLeft), maxLeft)
+      : vw / 2;
+  const gap = 6;
+  const below = wrap.top - gap - pickerH < PORTAL_PAD_PX;
+  const top = below
+    ? Math.min(wrap.bottom + gap, vh - PORTAL_PAD_PX)
+    : wrap.top - gap;
+  return { left, top, below };
+}
 
 type Opts = {
   reactionEmoji: string | null;
@@ -44,6 +70,11 @@ type Opts = {
   showArcActors?: boolean;
   /** Desktop: portal + fixed — thoát overflow unfold / comment sheet. */
   portalDesktop?: boolean;
+  /**
+   * Luôn bảng ngang portal (tap mở → chọn emoji).
+   * Tắt cung giữ-vuốt — dùng cho reaction trên bình luận mobile.
+   */
+  forcePortal?: boolean;
   onPickEmoji: (key: CommentReactionKey) => void;
   onOpenActors?: () => void;
 };
@@ -56,11 +87,12 @@ export function useReactionEmojiPicker({
   actorsCount = 0,
   showArcActors = false,
   portalDesktop = false,
+  forcePortal = false,
   onPickEmoji,
   onOpenActors,
 }: Opts) {
   const isCoarse = useCoarsePointer();
-  const useArc = useArcReactionPicker();
+  const useArc = useArcReactionPicker() && !forcePortal;
   const wrapRef = useRef<HTMLSpanElement>(null);
   const pickerLayerRef = useRef<HTMLDivElement>(null);
   const hoverCloseTimer = useRef(0);
@@ -83,6 +115,7 @@ export function useReactionEmojiPicker({
   const [desktopPos, setDesktopPos] = useState<{
     left: number;
     top: number;
+    below: boolean;
   } | null>(null);
 
   const closePicker = useCallback(() => {
@@ -138,7 +171,7 @@ export function useReactionEmojiPicker({
 
   useEffect(() => {
     /* Option 2: chỉ mở khi giữ — không bung picker ngay touchstart. */
-    if (!isCoarse || useArc) return;
+    if (!isCoarse || useArc || forcePortal) return;
     const wrap = wrapRef.current;
     if (!wrap) return;
     const onStart = (event: TouchEvent) => {
@@ -153,7 +186,7 @@ export function useReactionEmojiPicker({
     };
     wrap.addEventListener("touchstart", onStart, { passive: true });
     return () => wrap.removeEventListener("touchstart", onStart);
-  }, [isCoarse, useArc]);
+  }, [forcePortal, isCoarse, useArc]);
 
   useEffect(() => {
     if (!pickerOpen) return;
@@ -188,18 +221,30 @@ export function useReactionEmojiPicker({
       const wrap = wrapRef.current;
       if (!wrap) return;
       const r = wrap.getBoundingClientRect();
-      setDesktopPos({
-        left: r.left + r.width / 2,
-        top: r.top - 6,
-      });
+      const layer = pickerLayerRef.current;
+      const next = clampReactionPortalAnchor(
+        r,
+        layer?.offsetWidth || PORTAL_PICKER_FALLBACK_W,
+        layer?.offsetHeight || PORTAL_PICKER_FALLBACK_H,
+      );
+      setDesktopPos((prev) =>
+        prev &&
+        Math.abs(prev.left - next.left) < 0.5 &&
+        Math.abs(prev.top - next.top) < 0.5 &&
+        prev.below === next.below
+          ? prev
+          : next,
+      );
     };
     sync();
+    const raf = window.requestAnimationFrame(sync);
     window.addEventListener("scroll", sync, true);
     window.addEventListener("resize", sync);
     const vv = window.visualViewport;
     vv?.addEventListener("scroll", sync);
     vv?.addEventListener("resize", sync);
     return () => {
+      window.cancelAnimationFrame(raf);
       window.removeEventListener("scroll", sync, true);
       window.removeEventListener("resize", sync);
       vv?.removeEventListener("scroll", sync);
@@ -223,7 +268,8 @@ export function useReactionEmojiPicker({
   }, []);
 
   useEffect(() => {
-    if (!pickerOpen || !isCoarse) {
+    /* Portal-tap: chọn bằng click emoji, không auto-pick lúc nhấc ngón. */
+    if (!pickerOpen || !isCoarse || forcePortal) {
       document.documentElement.removeAttribute("data-cins-reaction-picking");
       return;
     }
@@ -325,6 +371,7 @@ export function useReactionEmojiPicker({
     };
   }, [
     closePicker,
+    forcePortal,
     isCoarse,
     onOpenActors,
     onPickEmoji,
@@ -348,7 +395,9 @@ export function useReactionEmojiPicker({
     <div
       ref={portalDesktop ? pickerLayerRef : undefined}
       className={
-        "j-reaction-picker" + (portalDesktop ? " j-reaction-picker--portal" : "")
+        "j-reaction-picker" +
+        (portalDesktop ? " j-reaction-picker--portal" : "") +
+        (portalDesktop && desktopPos?.below ? " is-below" : "")
       }
       role="menu"
       aria-label="Đổi emoji"

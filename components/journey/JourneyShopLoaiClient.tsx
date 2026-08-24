@@ -732,15 +732,6 @@ export function JourneyShopLoaiClient({
         tienTe: selectedBt.tienTe,
       };
     }
-    if (detail.giaMacDinh != null) {
-      return {
-        kind: "loai" as const,
-        gia: detail.giaMacDinh,
-        giaGoc: null as number | null,
-        tienTe: detail.tienTe,
-        range: false,
-      };
-    }
     if (detail.giaTu != null) {
       const range =
         detail.giaDen != null && detail.giaDen !== detail.giaTu;

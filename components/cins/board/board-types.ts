@@ -58,9 +58,14 @@ export const BOARD_DEFAULT_NODE_H = 200;
 export const BOARD_MIN_NODE_SIZE = 60;
 
 /** Bubble bình luận trên canvas — dãn theo chữ. */
-export const BOARD_COMMENT_MIN_W = 140;
-export const BOARD_COMMENT_MAX_W = 280;
-export const BOARD_COMMENT_MIN_H = 52;
+export const BOARD_COMMENT_MIN_W = 132;
+export const BOARD_COMMENT_MAX_W = 320;
+/** Ô nhập trong bubble: trừ avatar + padding + nút gửi. */
+export const BOARD_COMMENT_COMPOSE_MIN_W = 48;
+export const BOARD_COMMENT_COMPOSE_MAX_W = 228;
+export const BOARD_COMMENT_MIN_H = 48;
+export const BOARD_COMMENT_REPLY_INDENT = 22;
+export const BOARD_COMMENT_STACK_GAP = 8;
 
 /** Kích thước tối đa khi dán/kéo ảnh lên board (giữ tỉ lệ gốc). */
 export const BOARD_IMAGE_MAX_W = 360;

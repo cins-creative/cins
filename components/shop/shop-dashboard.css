@@ -1,12 +1,5 @@
 @import "./shop-anh-caro.css";
 
-/* Trang quản lý shop — ẩn chat dock (tránh chồng UI mobile). */
-body:has(.shop-dash) .j-chat-dock,
-body:has(.shop-dash-loading) .j-chat-dock,
-body:has(.shop-dash-gate) .j-chat-dock {
-  display: none !important;
-}
-
 /* Ná»n trÆ¡n cho trang quáº£n lÃ½ kho / Ä‘Æ¡n */
 .cins-shell-column:has(.shop-dash),
 .cins-shell-column:has(.shop-dash-loading),
@@ -2475,6 +2468,43 @@ body:has(.shop-dash-gate) .j-chat-dock {
   border-color: color-mix(in srgb, var(--cins-orange, #fdad4c) 45%, var(--border));
   background: color-mix(in srgb, var(--cins-orange, #fdad4c) 14%, var(--bg-surface));
   color: color-mix(in srgb, var(--cins-orange, #fdad4c) 35%, var(--ink-body));
+}
+
+/* Chưa từng giới thiệu — glow xanh mạnh để hút mắt (ưu tiên thấp hơn .is-warn). */
+@keyframes shop-kho-gioi-thieu-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 0 color-mix(in srgb, var(--cins-blue) 0%, transparent),
+      0 0 0 0 color-mix(in srgb, var(--cins-blue) 0%, transparent);
+    border-color: color-mix(in srgb, var(--cins-blue) 55%, var(--border));
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px color-mix(in srgb, var(--cins-blue) 28%, transparent),
+      0 0 18px 2px color-mix(in srgb, var(--cins-blue) 45%, transparent);
+    border-color: var(--cins-blue);
+  }
+}
+
+.shop-kho-loai-gioi-thieu.is-fresh {
+  border-color: var(--cins-blue);
+  background: color-mix(in srgb, var(--cins-blue-soft) 85%, var(--bg-surface));
+  color: var(--cins-blue-dark);
+  animation: shop-kho-gioi-thieu-glow 1.6s ease-in-out infinite;
+}
+
+.shop-kho-loai-gioi-thieu.is-fresh:hover:not(:disabled) {
+  background: var(--cins-blue-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shop-kho-loai-gioi-thieu.is-fresh {
+    animation: none;
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--cins-blue) 22%, transparent),
+      0 0 12px 1px color-mix(in srgb, var(--cins-blue) 35%, transparent);
+  }
 }
 
 .shop-kho-gioi-thieu-warn {

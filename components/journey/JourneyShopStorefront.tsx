@@ -120,16 +120,14 @@ function TypeCard({
 }) {
   const t = useT();
   const locale = useLocale();
-  const giaLabel =
-    card.giaMacDinh != null
-      ? formatGia(card.giaMacDinh, card.tienTe, locale)
-      : card.giaTu != null
-        ? card.giaDen != null && card.giaDen !== card.giaTu
-          ? t("shop.from", {
-              price: formatGia(card.giaTu, card.tienTe, locale),
-            })
-          : formatGia(card.giaTu, card.tienTe, locale)
-        : t("shop.noPrice");
+  const giaRange =
+    card.giaTu != null &&
+    card.giaDen != null &&
+    card.giaDen !== card.giaTu;
+  const giaSo =
+    card.giaTu != null
+      ? formatGia(card.giaTu, card.tienTe, locale)
+      : null;
   const href =
     card.href?.trim() || shopLoaiHref(ownerSlug, shopSlug, card.id);
   const showFeature = featureChrome && card.noiBat;
@@ -186,7 +184,18 @@ function TypeCard({
         <span
           className={`j-shop-sf-card-price${card.giaTu == null ? " is-empty" : ""}`}
         >
-          {giaLabel}
+          {giaSo == null ? (
+            t("shop.noPrice")
+          ) : giaRange ? (
+            <>
+              <span className="j-shop-sf-card-price-from">
+                {t("shop.fromPrefix")}
+              </span>
+              {giaSo}
+            </>
+          ) : (
+            giaSo
+          )}
         </span>
       </span>
     </Link>

@@ -4920,13 +4920,13 @@
   flex-shrink: 0;
 }
 .cins-post-view .post-comments-v1 .post-comments-meme-btn-icon {
-  font-size: 18px !important;
-  line-height: 1;
-  font-variation-settings:
-    "FILL" 0,
-    "wght" 400,
-    "GRAD" 0,
-    "opsz" 20;
+  display: block;
+  width: 18px;
+  height: 18px;
+  background: url("/assets/sticker-meme-on-light.svg") center / contain no-repeat;
+}
+:root[data-theme="dark"] .cins-post-view .post-comments-v1 .post-comments-meme-btn-icon {
+  background-image: url("/assets/sticker-meme-on-dark.svg");
 }
 .cins-post-view .post-comments-v1 .post-comments-meme-btn:hover:not(:disabled),
 .cins-post-view .post-comments-v1 .post-comments-meme-btn[aria-expanded="true"] {
@@ -5483,6 +5483,13 @@
   }
   .cins-post-view .sub-in.sub-ro {
     font-size: 17px;
+  }
+  /* Hàng hành động bình luận: căn phải, thứ tự dislike · like · trả lời */
+  .cins-post-view .post-comments-v1 .post-comments-actions {
+    justify-content: flex-end;
+  }
+  .cins-post-view .post-comments-v1 .post-comments-votes {
+    flex-direction: row-reverse;
   }
 }
 
