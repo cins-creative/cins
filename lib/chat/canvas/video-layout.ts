@@ -18,6 +18,14 @@ export function fitCanvasVideoMediaSize(
   };
 }
 
+/** Fit ảnh vào khung tối đa, giữ tỉ lệ — không crop. */
+export function fitCanvasImageSize(
+  naturalW: number,
+  naturalH: number,
+): { w: number; h: number } {
+  return fitCanvasVideoMediaSize(naturalW, naturalH);
+}
+
 /** Khung node link video = media fit + footer info. */
 export function fitCanvasVideoLinkSize(
   naturalW: number,

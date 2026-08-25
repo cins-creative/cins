@@ -7,6 +7,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { GiaiDoan } from "@/lib/auth/session";
+import { SUPER_ADMIN_EMAIL, normalizeEmail } from "@/lib/auth/system-role";
 import {
   coVaultMatKhau,
   giaiMaMatKhau,
@@ -491,24 +492,25 @@ export async function kiemTraTaiKhoanDichTrong(
     if (n > 0) vuong.push(`${checks[i]!.label} (${n})`);
   }
 
-  const { data: quyen } = await db
-    .from("user_quyen_he_thong")
-    .select("vai_tro")
-    .eq("id_nguoi_dung", id)
-    .maybeSingle();
-  if (
-    quyen?.vai_tro &&
-    ["admin", "super_admin", "curator"].includes(String(quyen.vai_tro))
-  ) {
-    vuong.push(`user_quyen_he_thong (${quyen.vai_tro})`);
-  }
-
   let email: string | null = null;
   if (profile.auth_user_id) {
     const { data: authUser } = await db.auth.admin.getUserById(
       profile.auth_user_id,
     );
     email = authUser.user?.email ?? null;
+  }
+
+  if (normalizeEmail(email) === SUPER_ADMIN_EMAIL) {
+    vuong.push("Admin tối cao (email cố định)");
+  }
+
+  const { data: quyen } = await db
+    .from("user_quyen_he_thong")
+    .select("vai_tro")
+    .eq("id_nguoi_dung", id)
+    .maybeSingle();
+  if (quyen?.vai_tro === "admin" || quyen?.vai_tro === "curator") {
+    vuong.push(`user_quyen_he_thong (${quyen.vai_tro})`);
   }
 
   return {

@@ -1,38 +1,76 @@
 import type { ComponentPropsWithoutRef } from "react";
+import { Suspense } from "react";
 import clsx from "clsx";
 
 import { CinsAppTopbar } from "@/components/cins/CinsAppTopbar";
+import { CinsAppTopbarFallback } from "@/components/cins/CinsAppTopbarFallback";
 import { CinsChatShellBridge } from "@/components/cins/CinsChatShellBridge";
 import { CinsShellNav } from "@/components/cins/CinsShellNav";
+import { StaleTabReload } from "@/components/cins/StaleTabReload";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 
+import "@/components/auth/auth-enter-overlay.css";
+
+type ShellProps = ComponentPropsWithoutRef<"div"> & { children: React.ReactNode };
+
 /**
- * Server shell — sidebar nav (client) + topbar (async server, session).
+ * Server shell — sidebar nav (client) + topbar (async, Suspense).
+ * Trang guest-home vẫn await session (class authed + chat id).
+ * Trang còn lại không await — chat id hydrate phía client nếu layout chưa có.
  */
-export async function CinsShell({
+export function CinsShell({ children, className, ...shellProps }: ShellProps) {
+  const isGuestHome =
+    typeof className === "string" && className.includes("cins-shell--guest-home");
+
+  if (isGuestHome) {
+    return (
+      <CinsShellGuestHome className={className} {...shellProps}>
+        {children}
+      </CinsShellGuestHome>
+    );
+  }
+
+  return (
+    <CinsShellFrame className={className} viewerProfileId={null} {...shellProps}>
+      {children}
+    </CinsShellFrame>
+  );
+}
+
+async function CinsShellGuestHome({
   children,
   className,
   ...shellProps
-}: ComponentPropsWithoutRef<"div"> & { children: React.ReactNode }) {
+}: ShellProps) {
   const session = await getCurrentSessionAndProfile();
-  const guestHomeAuthed =
-    Boolean(session?.profile) &&
-    typeof className === "string" &&
-    className.includes("cins-shell--guest-home");
+  const guestHomeAuthed = Boolean(session?.profile);
 
   return (
-    <div
-      className={clsx(
-        "cins-shell",
-        className,
-        guestHomeAuthed && "cins-shell--guest-home-authed",
-      )}
+    <CinsShellFrame
+      className={clsx(className, guestHomeAuthed && "cins-shell--guest-home-authed")}
+      viewerProfileId={session?.profile?.id ?? null}
       {...shellProps}
     >
+      {children}
+    </CinsShellFrame>
+  );
+}
+
+function CinsShellFrame({
+  children,
+  className,
+  viewerProfileId,
+  ...shellProps
+}: ShellProps & { viewerProfileId: string | null }) {
+  return (
+    <div className={clsx("cins-shell", className)} {...shellProps}>
+      <StaleTabReload />
       <CinsShellNav />
-      <CinsChatShellBridge viewerProfileId={session?.profile?.id ?? null}>
+      <CinsChatShellBridge viewerProfileId={viewerProfileId}>
         <div className="cins-shell-column">
-          <CinsAppTopbar />
+          <Suspense fallback={<CinsAppTopbarFallback />}>
+            <CinsAppTopbar />
+          </Suspense>
           <main className="cins-main">{children}</main>
         </div>
       </CinsChatShellBridge>

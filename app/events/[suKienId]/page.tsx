@@ -47,6 +47,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     metadataBase,
     title,
     description,
+    alternates: { canonical: pagePath },
     openGraph: {
       type: "article",
       siteName: "CINs",

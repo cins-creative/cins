@@ -38,7 +38,7 @@ export async function JourneyProfilePageLoader({
   searchParams,
   /** Trang `/{slug}/shop` — không redirect vòng, ép view shop. */
   storefront = false,
-  /** Trang `/{slug}/shop/loai/[nhomId]` — panel chính = chi tiết loại. */
+  /** Trang `/{slug}/shop/{shopSlug}/collections/[nhomId]` — panel chính = chi tiết loại. */
   shopNhomId = null,
 }: {
   params: Params;

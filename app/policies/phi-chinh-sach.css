@@ -54,13 +54,22 @@
 
 .cps-title {
   margin: 0;
-  max-width: 22ch;
+  width: 100%;
+  max-width: none;
   font-family: var(--font-sans);
   font-weight: 800;
   font-size: clamp(2rem, 5vw, 3.3rem);
   line-height: 1.08;
   letter-spacing: -0.03em;
   color: var(--ink-display);
+}
+
+.cps-masthead > .cps-title {
+  margin-bottom: clamp(16px, 2.5vw, 22px);
+}
+
+.cps-masthead-grid .cps-lede {
+  margin-top: 0;
 }
 
 .cps-lede {

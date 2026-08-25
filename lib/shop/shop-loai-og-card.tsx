@@ -23,6 +23,17 @@ export type ShopLoaiOgContext = {
   nhomId: string;
 };
 
+export type ShopStorefrontOgContext = {
+  shopTen: string;
+  shopAvatarUrl: string | null;
+  sellerTen: string;
+  coverUrl: string | null;
+  summary: string | null;
+  loaiCountLabel: string | null;
+  ownerSlug: string;
+  shopSlug: string;
+};
+
 function SoftChip({ children }: { children: string }) {
   return (
     <div
@@ -91,7 +102,7 @@ function ShopRow({
   );
 }
 
-/** OG card động cho loại hàng (`/{slug}/shop/{shopSlug}/loai/{nhomId}`). */
+/** OG card động cho loại hàng (`/{slug}/shop/{shopSlug}/collections/{nhomId}`). */
 export function ShopLoaiOgShareCard({
   ctx,
   logoUrl,
@@ -99,7 +110,7 @@ export function ShopLoaiOgShareCard({
   ctx: ShopLoaiOgContext;
   logoUrl: string;
 }) {
-  const urlPill = `cins.vn/${ctx.ownerSlug}/shop/…/loai`;
+  const urlPill = `cins.vn/${ctx.ownerSlug}/shop/…/collections`;
   return (
     <OgCardRoot>
       <div
@@ -214,6 +225,102 @@ export function ShopLoaiOgShareCard({
             {ctx.sellerTen}
           </span>
         </div>
+      </div>
+
+      <div style={{ flex: 1, display: "flex", position: "relative" }}>
+        <OgCoverFrame src={ctx.coverUrl} fallbackLabel="Shop" />
+      </div>
+    </OgCardRoot>
+  );
+}
+
+/** OG card storefront `/{slug}/shop/{shopSlug}`. */
+export function ShopStorefrontOgShareCard({
+  ctx,
+  logoUrl,
+}: {
+  ctx: ShopStorefrontOgContext;
+  logoUrl: string;
+}) {
+  const urlPill = `cins.vn/${ctx.ownerSlug}/shop/${ctx.shopSlug}`;
+  return (
+    <OgCardRoot>
+      <div
+        style={{
+          flex: 1.5,
+          display: "flex",
+          flexDirection: "column",
+          padding: "50px 30px 44px 58px",
+          position: "relative",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 20,
+          }}
+        >
+          <OgBrand logoUrl={logoUrl} />
+          <SoftChip>Đang bán</SoftChip>
+        </div>
+
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            gap: 16,
+          }}
+        >
+          <OgEyebrow label="Cửa hàng" />
+
+          <div
+            style={{
+              fontSize: ctx.shopTen.length > 28 ? 46 : 56,
+              fontWeight: 800,
+              color: OG_INK,
+              lineHeight: 1.03,
+              letterSpacing: "-0.025em",
+              display: "flex",
+              maxWidth: 640,
+            }}
+          >
+            {ctx.shopTen}
+          </div>
+
+          <ShopRow ten={ctx.sellerTen} avatarUrl={ctx.shopAvatarUrl} />
+
+          {ctx.summary ? (
+            <div
+              style={{
+                fontSize: 21,
+                lineHeight: 1.4,
+                color: "#334155",
+                display: "flex",
+                maxWidth: 640,
+              }}
+            >
+              {ctx.summary}
+            </div>
+          ) : null}
+
+          {ctx.loaiCountLabel ? (
+            <span
+              style={{
+                fontSize: 19,
+                fontWeight: 600,
+                color: OG_MUTED,
+              }}
+            >
+              {ctx.loaiCountLabel}
+            </span>
+          ) : null}
+        </div>
+
+        <OgUrlPill>{urlPill}</OgUrlPill>
       </div>
 
       <div style={{ flex: 1, display: "flex", position: "relative" }}>

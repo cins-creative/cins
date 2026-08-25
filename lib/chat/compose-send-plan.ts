@@ -10,6 +10,8 @@ export type ChatSendPayload = {
   video_media_id?: string;
   id_emoji_muc?: string;
   id_tin_tra_loi?: string;
+  /** GIF picker — gửi như meme (`loai_tin=sticker`), không đưa lên canvas. */
+  as_sticker?: boolean;
 };
 
 export type ChatSendPlanItem = {

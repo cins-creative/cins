@@ -4,6 +4,11 @@ const THREADS_PREFIX = "cins-chat-threads:v1:";
 const MESSAGES_PREFIX = "cins-chat-messages:v1:";
 /** Cache phiên — đủ nhanh khi mở FAB/mini, không thay server truth lâu dài. */
 export const CHAT_SESSION_CACHE_TTL_MS = 10 * 60 * 1000;
+/**
+ * Trần tin mỗi phòng trong sessionStorage — chặn JSON.stringify phình + quota ~5MB.
+ * State React (overlay/mini) không bị cắt; chỉ bản cache mở nguội.
+ */
+export const CHAT_SESSION_MESSAGES_CAP = 200;
 
 type CacheEntry<T> = {
   savedAt: number;
@@ -80,7 +85,11 @@ export function writeRoomMessagesCache(
   roomId: string,
   messages: ChatMessage[],
 ): void {
-  writeEntry(messagesKey(viewerProfileId, roomId), messages);
+  const capped =
+    messages.length > CHAT_SESSION_MESSAGES_CAP
+      ? messages.slice(-CHAT_SESSION_MESSAGES_CAP)
+      : messages;
+  writeEntry(messagesKey(viewerProfileId, roomId), capped);
 }
 
 /** Ghi unread một phòng vào cache phiên — tránh reload hiện lại badge đỏ. */

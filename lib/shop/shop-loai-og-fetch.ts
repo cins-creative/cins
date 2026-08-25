@@ -5,7 +5,10 @@ import { cache } from "react";
 import { shopSlugFromTen } from "@/lib/shop/cua-hang-href";
 import { parseShopNhomMoTa } from "@/lib/shop/nhom-mo-ta";
 import { shopImageUrl } from "@/lib/shop/settings";
-import type { ShopLoaiOgContext } from "@/lib/shop/shop-loai-og-card";
+import type {
+  ShopLoaiOgContext,
+  ShopStorefrontOgContext,
+} from "@/lib/shop/shop-loai-og-card";
 import { SHOP_STOREFRONT_KHAC_SLUG } from "@/lib/shop/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -229,5 +232,158 @@ async function loadShopLoaiOgContext(
   }
 }
 
-/** OG context nhẹ cho trang chi tiết loại hàng. */
+/** OG context đầy đủ — chỉ `/opengraph-image` (crawler), không chặn document RSC. */
 export const fetchShopLoaiOgContext = cache(loadShopLoaiOgContext);
+
+export type ShopLoaiDocumentMeta = {
+  title: string;
+  shopTen: string;
+  summary: string | null;
+};
+
+/** Title/description cho `<head>` — không quét giá / cover catalog. */
+async function loadShopLoaiDocumentMeta(
+  ownerSlug: string,
+  shopSlug: string,
+  nhomId: string,
+): Promise<ShopLoaiDocumentMeta | null> {
+  const slug = ownerSlug.trim();
+  const shopSeg = shopSlug.trim();
+  const nhom = nhomId.trim();
+  if (!slug || !shopSeg || !nhom) return null;
+
+  try {
+    const admin = createServiceRoleClient();
+    const { data: owner } = await admin
+      .from("user_nguoi_dung")
+      .select("id, slug, ten_hien_thi, ban_hang_bat, shop_hien_thi")
+      .eq("slug", slug)
+      .maybeSingle<{
+        id: string;
+        slug: string;
+        ten_hien_thi: string | null;
+        ban_hang_bat: boolean | null;
+        shop_hien_thi: boolean | null;
+      }>();
+    if (!owner) return null;
+    if (owner.ban_hang_bat !== true || owner.shop_hien_thi !== true) return null;
+
+    const { data: shop } = await admin
+      .from("shop_cua_hang")
+      .select("ten")
+      .eq("id_nguoi_dung", owner.id)
+      .eq("da_xoa", false)
+      .maybeSingle<{ ten: string | null }>();
+
+    const resolvedShopSlug = shopSlugFromTen(shop?.ten, owner.slug);
+    if (resolvedShopSlug !== shopSeg) return null;
+
+    const shopTen =
+      shop?.ten?.trim() || `${owner.ten_hien_thi?.trim() || owner.slug} — cửa hàng`;
+
+    if (nhom === SHOP_STOREFRONT_KHAC_SLUG) {
+      return {
+        title: "Khác",
+        shopTen,
+        summary: "Sản phẩm chưa gắn loại trên cửa hàng.",
+      };
+    }
+
+    const { data: row } = await admin
+      .from("shop_nhom")
+      .select("nhan, mo_ta, truc")
+      .eq("id", nhom)
+      .eq("id_nguoi_dung", owner.id)
+      .eq("da_xoa", false)
+      .maybeSingle<{ nhan: string; mo_ta: string | null; truc: number }>();
+    if (!row || row.truc !== 1) return null;
+
+    return {
+      title: row.nhan?.trim() || "Loại hàng",
+      shopTen,
+      summary: summaryFromMoTa(row.mo_ta),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export const fetchShopLoaiDocumentMeta = cache(loadShopLoaiDocumentMeta);
+
+async function loadShopStorefrontOgContext(
+  ownerSlug: string,
+  shopSlug: string,
+): Promise<ShopStorefrontOgContext | null> {
+  const slug = ownerSlug.trim();
+  const shopSeg = shopSlug.trim();
+  if (!slug || !shopSeg) return null;
+
+  try {
+    const admin = createServiceRoleClient();
+    const { data: owner } = await admin
+      .from("user_nguoi_dung")
+      .select("id, slug, ten_hien_thi, avatar_id, ban_hang_bat, shop_hien_thi")
+      .eq("slug", slug)
+      .maybeSingle<{
+        id: string;
+        slug: string;
+        ten_hien_thi: string | null;
+        avatar_id: string | null;
+        ban_hang_bat: boolean | null;
+        shop_hien_thi: boolean | null;
+      }>();
+    if (!owner) return null;
+    if (owner.ban_hang_bat !== true || owner.shop_hien_thi !== true) return null;
+
+    const { data: shop } = await admin
+      .from("shop_cua_hang")
+      .select("ten, mo_ta, avatar_id, cover_id")
+      .eq("id_nguoi_dung", owner.id)
+      .eq("da_xoa", false)
+      .maybeSingle<{
+        ten: string | null;
+        mo_ta: string | null;
+        avatar_id: string | null;
+        cover_id: string | null;
+      }>();
+
+    const resolvedShopSlug = shopSlugFromTen(shop?.ten, owner.slug);
+    if (resolvedShopSlug !== shopSeg) return null;
+
+    const shopTen =
+      shop?.ten?.trim() ||
+      `${owner.ten_hien_thi?.trim() || owner.slug} — cửa hàng`;
+    const shopAvatarUrl =
+      shopImageUrl(shop?.avatar_id ?? null, "avatar") ??
+      shopImageUrl(owner.avatar_id, "avatar");
+    const sellerTen = owner.ten_hien_thi?.trim() || owner.slug;
+    const coverUrl =
+      shopImageUrl(shop?.cover_id, "medium") ??
+      shopImageUrl(shop?.cover_id) ??
+      (await fallbackCoverFromCatalog(owner.id, null));
+
+    const { count } = await admin
+      .from("shop_nhom")
+      .select("id", { count: "exact", head: true })
+      .eq("id_nguoi_dung", owner.id)
+      .eq("da_xoa", false)
+      .eq("truc", 1);
+
+    const loai = count ?? 0;
+
+    return {
+      shopTen,
+      shopAvatarUrl,
+      sellerTen,
+      coverUrl,
+      summary: summaryFromMoTa(shop?.mo_ta) ?? "Mua bán sáng tạo trên CINs.",
+      loaiCountLabel: loai > 0 ? `${loai} loại hàng` : null,
+      ownerSlug: owner.slug,
+      shopSlug: resolvedShopSlug,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export const fetchShopStorefrontOgContext = cache(loadShopStorefrontOgContext);

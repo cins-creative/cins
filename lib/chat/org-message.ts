@@ -878,6 +878,7 @@ export async function sendOrgMessageToStudent(params: {
   body?: string;
   cloudflareImageId?: string;
   emojiMucId?: string;
+  asSticker?: boolean;
   /** Phòng đang mở trên inbox — tránh gửi lệch phòng khác cùng cặp org↔HV. */
   roomId?: string | null;
   replyToId?: string | null;
@@ -959,6 +960,7 @@ export async function sendOrgMessageToStudent(params: {
       body: text,
       cloudflareImageId,
       emojiMucId,
+      asSticker: params.asSticker === true,
       replyToId,
     });
 

@@ -4,36 +4,27 @@ import { assertCanvasWritable, loadCanvasContext } from "@/lib/chat/canvas/acces
 import { getOrCreateRoomCanvas } from "@/lib/chat/canvas/boards";
 import { resolveCanvasMessageMedia } from "@/lib/chat/canvas/message-media";
 import { createNode } from "@/lib/chat/canvas/nodes";
+import {
+  CANVAS_PACK_CELL_H,
+  CANVAS_PACK_CELL_W,
+  occupiedRectsFromNodes,
+  maxLayoutZ,
+  nextPackedLayout,
+} from "@/lib/chat/canvas/pack-layout";
 import type {
   CanvasNodeLayout,
   CanvasNodeLoai,
   CanvasResult,
   ChatCanvasNode,
 } from "@/lib/chat/canvas/types";
-import { fitCanvasVideoLinkSize } from "@/lib/chat/canvas/video-layout";
+import { fitCanvasImageSize, fitCanvasVideoLinkSize } from "@/lib/chat/canvas/video-layout";
 import { MAX_CANVAS_NODES, MAX_CANVAS_STICKY_LEN } from "@/lib/chat/constants";
 import { findFirstHttpUrl } from "@/lib/link/og-preview";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
-const GRID_COLS = 4;
-const CELL_W = 260;
-const CELL_H = 210;
-const GRID_GAP = 24;
 const NODE_SELECT =
   "id, id_canvas, loai, id_tin_nhan, url, noi_dung, layout, id_nguoi_tao, tao_luc, cap_nhat_luc";
 const NODE_LOAI: CanvasNodeLoai[] = ["anh", "link", "sticky", "frame", "connector"];
-
-function gridLayout(position: number): CanvasNodeLayout {
-  const col = position % GRID_COLS;
-  const row = Math.floor(position / GRID_COLS);
-  return {
-    x: col * (CELL_W + GRID_GAP),
-    y: row * (CELL_H + GRID_GAP),
-    w: CELL_W,
-    h: CELL_H,
-    z: position,
-  };
-}
 
 function coerceLayout(raw: unknown): CanvasNodeLayout {
   const obj = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
@@ -220,33 +211,51 @@ export async function addMessageToCanvas(
     return { ok: true, node: mapNode(existing), created: false };
   }
 
-  const { count } = await admin
+  const { data: boardNodes } = await admin
     .from("chat_canvas_node")
-    .select("id", { count: "exact", head: true })
+    .select("loai, layout")
     .eq("id_canvas", canvasId);
 
-  if ((count ?? 0) >= MAX_CANVAS_NODES) {
+  const existingNodes = boardNodes ?? [];
+  if (existingNodes.length >= MAX_CANVAS_NODES) {
     return { ok: false, error: `Canvas tối đa ${MAX_CANVAS_NODES} block.` };
   }
 
-  let layout = gridLayout(count ?? 0);
+  const occupied = occupiedRectsFromNodes(existingNodes);
+  let size = { w: CANVAS_PACK_CELL_W, h: CANVAS_PACK_CELL_H };
+  let imageFitted = false;
+  let mediaW: number | undefined;
+  let mediaH: number | undefined;
   if (
+    media?.kind === "anh" &&
+    media.width &&
+    media.height &&
+    media.width > 0 &&
+    media.height > 0
+  ) {
+    size = fitCanvasImageSize(media.width, media.height);
+    imageFitted = true;
+    mediaW = media.width;
+    mediaH = media.height;
+  } else if (
     media?.kind === "video" &&
     media.width &&
     media.height &&
     media.width > 0 &&
     media.height > 0
   ) {
-    const size = fitCanvasVideoLinkSize(media.width, media.height);
-    layout = {
-      ...layout,
-      w: size.w,
-      h: size.h,
-      imageFitted: true,
-      mediaW: media.width,
-      mediaH: media.height,
-    };
+    size = fitCanvasVideoLinkSize(media.width, media.height);
+    imageFitted = true;
+    mediaW = media.width;
+    mediaH = media.height;
   }
+
+  const layout = {
+    ...nextPackedLayout(occupied, size, maxLayoutZ(existingNodes) + 1),
+    ...(imageFitted ? { imageFitted: true as const } : {}),
+    ...(mediaW != null ? { mediaW } : {}),
+    ...(mediaH != null ? { mediaH } : {}),
+  };
 
   const created = await createNode(canvasId, viewerId, {
     loai,

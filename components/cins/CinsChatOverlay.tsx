@@ -38,6 +38,7 @@ import {
   useState,
   type ClipboardEvent,
   type DragEvent as ReactDragEvent,
+  type PointerEvent as ReactPointerEvent,
 } from "react";
 import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
@@ -93,7 +94,10 @@ import {
 } from "@/components/cins/ChatThreadRowMenu";
 import { OrgNotifySettingsMenu } from "@/components/cins/OrgNotifySettingsMenu";
 import type { ChatMessageActionHandlers } from "@/components/cins/ChatMessageActions";
-import { canvasBridge } from "@/components/cins/canvas/canvas-bridge";
+import {
+  canvasBridge,
+  ingestAddedCanvasNode,
+} from "@/components/cins/canvas/canvas-bridge";
 import { addChatMessageToCanvas } from "@/lib/chat/canvas/add-message-client";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { useShopReadyGate } from "@/lib/shop/use-shop-ready-gate";
@@ -1050,6 +1054,11 @@ export function CinsChatOverlay({
     () => Boolean(launch?.thread && launch.thread.roomId !== "__open_list__"),
   );
   const [mobileNarrow, setMobileNarrow] = useState(false);
+  const [headerPullDy, setHeaderPullDy] = useState(0);
+  const headerPullRef = useRef<{
+    pointerId: number;
+    startY: number;
+  } | null>(null);
   const [sidePanel, setSidePanel] = useState<ChatSidePanel | null>(null);
   const [membersPopoverOpen, setMembersPopoverOpen] = useState(false);
   const skipPersistSidePanelRef = useRef(true);
@@ -1292,6 +1301,55 @@ export function CinsChatOverlay({
     /* Launch stub dùng roomId làm id — khớp cả roomId khi list API khác id. */
     return threads.find((t) => t.roomId === activeId) ?? null;
   }, [threads, activeId]);
+
+  const minimizeActiveToBubble = useCallback(() => {
+    if (!active?.roomId || isPendingRoomId(active.roomId)) return;
+    const parentId = active.parentRoomId?.trim();
+    const parentThread = parentId
+      ? threads.find((t) => t.roomId === parentId)
+      : undefined;
+    popOutRoomToBubble(active, parentThread ? [parentThread] : undefined);
+  }, [active, popOutRoomToBubble, threads]);
+
+  const onConvoHeadPointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLElement>) => {
+      if (!mobileNarrow) return;
+      if (e.button !== 0) return;
+      if (
+        e.target instanceof Element &&
+        e.target.closest("button, a, input, textarea, [role='dialog']")
+      ) {
+        return;
+      }
+      if (!active?.roomId || isPendingRoomId(active.roomId)) return;
+      headerPullRef.current = { pointerId: e.pointerId, startY: e.clientY };
+      e.currentTarget.setPointerCapture(e.pointerId);
+    },
+    [active?.roomId, mobileNarrow],
+  );
+
+  const onConvoHeadPointerMove = useCallback(
+    (e: ReactPointerEvent<HTMLElement>) => {
+      const pull = headerPullRef.current;
+      if (!pull || e.pointerId !== pull.pointerId) return;
+      const dy = Math.max(0, e.clientY - pull.startY);
+      if (dy > 6) e.preventDefault();
+      setHeaderPullDy(Math.min(160, dy));
+    },
+    [],
+  );
+
+  const onConvoHeadPointerEnd = useCallback(
+    (e: ReactPointerEvent<HTMLElement>) => {
+      const pull = headerPullRef.current;
+      if (!pull || e.pointerId !== pull.pointerId) return;
+      headerPullRef.current = null;
+      const dy = Math.max(0, e.clientY - pull.startY);
+      setHeaderPullDy(0);
+      if (dy >= 72) minimizeActiveToBubble();
+    },
+    [minimizeActiveToBubble],
+  );
 
   useEffect(() => {
     if (!canvasBridge.pendingOpenCanvas) return;
@@ -3235,6 +3293,11 @@ export function CinsChatOverlay({
       sendableImages.length > 0 ||
       activePendingCard != null);
 
+  const composeDirty =
+    draft.trim().length > 0 ||
+    pendingImages.length > 0 ||
+    activePendingCard != null;
+
   const activePinnedMessages = useMemo(
     () =>
       (active?.roomId ? pinnedByRoom[active.roomId] ?? [] : []).filter(
@@ -3755,6 +3818,20 @@ export function CinsChatOverlay({
     [viewerProfileId],
   );
 
+  const pinChatImagesToCanvas = useCallback(
+    (roomId: string, messages: ChatMessage[]) => {
+      void (async () => {
+        for (const msg of messages) {
+          if (msg.kind === "sticker" || msg.deleted) continue;
+          const res = await addChatMessageToCanvas(roomId, msg.id);
+          if ("error" in res) continue;
+          ingestAddedCanvasNode(res.node);
+        }
+      })();
+    },
+    [],
+  );
+
   /** Thả nội dung chia sẻ (post/ảnh) vào một thread — gửi ngay vào phòng đó. */
   const handleShareDrop = useCallback(
     (thread: ChatThread, payload: CinsSharePayload) => {
@@ -3778,7 +3855,9 @@ export function CinsChatOverlay({
           thread,
           { cloudflare_image_id: payload.imageId },
           optimistic.id,
-        );
+        ).then((confirmed) => {
+          if (confirmed) pinChatImagesToCanvas(thread.roomId, [confirmed]);
+        });
         return;
       }
 
@@ -3792,6 +3871,7 @@ export function CinsChatOverlay({
     [
       appendOptimisticMessages,
       completeShareDrop,
+      pinChatImagesToCanvas,
       selectThread,
       submitRoomMessage,
       viewerProfileId,
@@ -4044,15 +4124,7 @@ export function CinsChatOverlay({
           if (!confirmed || sidePanel !== "canvas") return;
           void addChatMessageToCanvas(thread.roomId, confirmed.id).then((res) => {
             if ("error" in res) return;
-            if (canvasBridge.ingestNode) {
-              canvasBridge.ingestNode(res.node);
-            } else {
-              canvasBridge.pendingIngestNode = res.node;
-            }
-            window.setTimeout(() => {
-              canvasBridge.ingestNode?.(res.node);
-              canvasBridge.highlightNodes?.([res.node.id]);
-            }, 120);
+            ingestAddedCanvasNode(res.node);
           });
         })
         .finally(() => {
@@ -4117,6 +4189,7 @@ export function CinsChatOverlay({
           }),
         );
         pendingAlbumByRoomRef.current.delete(thread.roomId);
+        pinChatImagesToCanvas(thread.roomId, realMessages);
         return true;
       } catch (error) {
         pendingAlbumByRoomRef.current.delete(thread.roomId);
@@ -4136,7 +4209,7 @@ export function CinsChatOverlay({
         return false;
       }
     },
-    [viewerProfileId],
+    [pinChatImagesToCanvas, viewerProfileId],
   );
 
   const sendSticker = useCallback(
@@ -4165,7 +4238,7 @@ export function CinsChatOverlay({
     ) => {
       const optimistic = createOptimisticChatMessage({
         body: "",
-        kind: "media",
+        kind: "sticker",
         imageId: null,
         imageUrl: payload.previewUrl,
       });
@@ -4177,7 +4250,7 @@ export function CinsChatOverlay({
         });
         await submitRoomMessage(
           thread,
-          { cloudflare_image_id: imported.imageId },
+          { cloudflare_image_id: imported.imageId, as_sticker: true },
           optimistic.id,
         );
       } catch (error) {
@@ -5153,8 +5226,24 @@ export function CinsChatOverlay({
           className={`cins-chat-main${mobileShowThread ? " is-visible-mobile" : ""}${hideConvoForMobileCanvas ? " is-canvas-mobile-focus" : ""}`}
         >
           {active && !hideConvoForMobileCanvas ? (
-          <div className="cins-chat-convo">
-          <header className="cins-chat-convo-head">
+          <div
+            className={`cins-chat-convo${headerPullDy > 0 ? " is-header-pull" : ""}`}
+            style={
+              headerPullDy > 0
+                ? {
+                    transform: `translateY(${headerPullDy}px)`,
+                    opacity: Math.max(0.45, 1 - headerPullDy / 280),
+                  }
+                : undefined
+            }
+          >
+          <header
+            className="cins-chat-convo-head"
+            onPointerDown={onConvoHeadPointerDown}
+            onPointerMove={onConvoHeadPointerMove}
+            onPointerUp={onConvoHeadPointerEnd}
+            onPointerCancel={onConvoHeadPointerEnd}
+          >
             <button
               type="button"
               className="cins-chat-back-mobile"
@@ -5312,7 +5401,7 @@ export function CinsChatOverlay({
                   </button>
                 </>
               ) : null}
-              {active.roomId && !isPendingRoomId(active.roomId) ? (
+              {active.roomId && !isPendingRoomId(active.roomId) && !mobileNarrow ? (
                 <button
                   type="button"
                   className={`cins-chat-icon-btn cins-chat-bubble-pin${isRoomPinned(active.roomId) ? " is-active" : ""}`}
@@ -5335,15 +5424,7 @@ export function CinsChatOverlay({
                       togglePinRoom(active.roomId, active);
                       return;
                     }
-                    // Ghim → đóng bảng → mở bubble mini của hội thoại này.
-                    const parentId = active.parentRoomId?.trim();
-                    const parentThread = parentId
-                      ? threads.find((t) => t.roomId === parentId)
-                      : undefined;
-                    popOutRoomToBubble(
-                      active,
-                      parentThread ? [parentThread] : undefined,
-                    );
+                    minimizeActiveToBubble();
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
                 >
@@ -5589,7 +5670,10 @@ export function CinsChatOverlay({
             <div ref={messagesEndRef} />
           </div>
 
-          <footer className={`cins-chat-compose${lopFrozen ? " is-lop-frozen" : ""}`}>
+          <footer
+            className={`cins-chat-compose${lopFrozen ? " is-lop-frozen" : ""}`}
+            {...(composeDirty ? { "data-cins-compose-dirty": "" } : {})}
+          >
             {composeError ? (
               <p className="cins-chat-compose-error" role="alert">
                 <span>{composeError}</span>
@@ -6484,6 +6568,7 @@ export function CinsChatOverlay({
               className="cins-call-fullscreen"
               role="dialog"
               aria-label={t("chat.callTitle")}
+              data-cins-call-active=""
             >
               <PhongHocMeeting
                 authToken={phongHoc.token}

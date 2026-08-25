@@ -1005,7 +1005,7 @@ function CoSoRoomsPane({
     if (!selectedRoomId || pending) return;
     const optimistic = createOptimisticChatMessage({
       body: "",
-      kind: "media",
+      kind: "sticker",
       imageId: null,
       imageUrl: payload.previewUrl,
     });
@@ -1019,7 +1019,7 @@ function CoSoRoomsPane({
           });
           await submitRoomPayload(
             selectedRoomId,
-            { cloudflare_image_id: imported.imageId },
+            { cloudflare_image_id: imported.imageId, as_sticker: true },
             optimistic.id,
           );
         } catch (error) {

@@ -52,11 +52,11 @@ export default async function ChinhSachPhiCsdtPage() {
       <div className="cps-page">
         <header className="cps-masthead">
           <p className="cps-kicker">Chính sách phí — Cơ sở đào tạo</p>
+          <h1 className="cps-title">
+            Phí nền tảng cho cơ sở đào tạo, minh bạch và trả sau.
+          </h1>
           <div className="cps-masthead-grid">
             <div className="cps-masthead-lead">
-              <h1 className="cps-title">
-                Phí nền tảng cho cơ sở đào tạo, minh bạch và trả sau.
-              </h1>
               <p className="cps-lede">
                 CINs cung cấp công cụ quản lý ngành, khoá học và tuyển sinh. Học
                 phí học viên chuyển thẳng cho cơ sở — chúng tôi không cầm học

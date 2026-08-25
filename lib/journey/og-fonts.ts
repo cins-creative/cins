@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import "server-only";
 
 type OgFont = {
@@ -7,35 +9,28 @@ type OgFont = {
   style: "normal";
 };
 
-const FONT_SOURCES: Array<{ weight: 400 | 600 | 700; url: string }> = [
-  {
-    weight: 400,
-    url: "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/bevietnampro/BeVietnamPro-Regular.ttf",
-  },
-  {
-    weight: 600,
-    url: "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/bevietnampro/BeVietnamPro-SemiBold.ttf",
-  },
-  {
-    weight: 700,
-    url: "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/bevietnampro/BeVietnamPro-Bold.ttf",
-  },
+const FONT_FILES: Array<{ weight: 400 | 600 | 700; rel: string }> = [
+  { weight: 400, rel: "lib/journey/fonts/BeVietnamPro-Regular.ttf" },
+  { weight: 600, rel: "lib/journey/fonts/BeVietnamPro-SemiBold.ttf" },
+  { weight: 700, rel: "lib/journey/fonts/BeVietnamPro-Bold.ttf" },
 ];
+
+function toArrayBuffer(buf: Buffer): ArrayBuffer {
+  const copy = new Uint8Array(buf.byteLength);
+  copy.set(buf);
+  return copy.buffer;
+}
 
 let fontsPromise: Promise<OgFont[]> | null = null;
 
 export function loadOgFonts(): Promise<OgFont[]> {
   if (!fontsPromise) {
     fontsPromise = Promise.all(
-      FONT_SOURCES.map(async ({ weight, url }) => {
-        const res = await fetch(url, { next: { revalidate: 60 * 60 * 24 * 7 } });
-        if (!res.ok) {
-          throw new Error(`OG font fetch failed (${weight}): ${res.status}`);
-        }
-        const data = await res.arrayBuffer();
+      FONT_FILES.map(async ({ weight, rel }) => {
+        const buf = await readFile(join(process.cwd(), rel));
         return {
           name: "Be Vietnam Pro",
-          data,
+          data: toArrayBuffer(buf),
           weight,
           style: "normal" as const,
         };

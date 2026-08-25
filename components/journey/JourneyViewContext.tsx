@@ -17,6 +17,7 @@ import {
   type GalleryDisplay,
 } from "@/lib/journey/gallery-display-url";
 import {
+  isShopCollectionPathSegment,
   shopEntryHref,
   shopPublicHref,
 } from "@/lib/shop/cua-hang-href";
@@ -39,18 +40,20 @@ function isShopPathname(pathname: string, slug: string): boolean {
 
 /**
  * Root storefront: `/{slug}/shop` (entry) hoặc `/{slug}/shop/{shopSlug}`.
- * Không gồm `.../loai/...`.
+ * Không gồm `.../collections/...` (hay `.../loai/...` cũ).
  */
 function isShopRootPathname(pathname: string, slug: string): boolean {
   const segments = pathname.replace(/\/+$/, "").split("/").filter(Boolean);
   if (!slugSegmentMatches(segments[0] ?? "", slug)) return false;
   if (segments[1] !== "shop") return false;
   if (segments.length === 2) return true;
-  if (segments.length === 3 && segments[2] !== "loai") return true;
+  if (segments.length === 3 && !isShopCollectionPathSegment(segments[2]!)) {
+    return true;
+  }
   return false;
 }
 
-/** Id loại hàng từ `/{slug}/shop/{shopSlug}/loai/[nhomId]` (hoặc legacy không shopSlug). */
+/** Id loại hàng từ `/{slug}/shop/{shopSlug}/collections/[nhomId]` (hoặc legacy). */
 export function shopNhomIdFromPathname(
   pathname: string,
   slug: string,
@@ -59,16 +62,16 @@ export function shopNhomIdFromPathname(
   if (!slugSegmentMatches(segments[0] ?? "", slug)) return null;
   if (segments[1] !== "shop") return null;
 
-  /* Canonical: /{slug}/shop/{shopSlug}/loai/{nhomId} */
-  if (segments.length >= 5 && segments[3] === "loai") {
+  /* Canonical: /{slug}/shop/{shopSlug}/collections/{nhomId} */
+  if (segments.length >= 5 && isShopCollectionPathSegment(segments[3]!)) {
     try {
       return decodeURIComponent(segments[4]!) || null;
     } catch {
       return segments[4] || null;
     }
   }
-  /* Legacy: /{slug}/shop/loai/{nhomId} */
-  if (segments.length >= 4 && segments[2] === "loai") {
+  /* Legacy: /{slug}/shop/collections/{nhomId} (hoặc /loai/ trước 308). */
+  if (segments.length >= 4 && isShopCollectionPathSegment(segments[2]!)) {
     try {
       return decodeURIComponent(segments[3]!) || null;
     } catch {
@@ -78,7 +81,7 @@ export function shopNhomIdFromPathname(
   return null;
 }
 
-/** shopSlug từ `/{slug}/shop/{shopSlug}` (null trên entry / loai-only legacy). */
+/** shopSlug từ `/{slug}/shop/{shopSlug}` (null trên entry / collections-only). */
 export function shopSlugFromPathname(
   pathname: string,
   slug: string,
@@ -87,7 +90,7 @@ export function shopSlugFromPathname(
   if (!slugSegmentMatches(segments[0] ?? "", slug)) return null;
   if (segments[1] !== "shop") return null;
   if (segments.length < 3) return null;
-  if (segments[2] === "loai") return null;
+  if (isShopCollectionPathSegment(segments[2]!)) return null;
   try {
     return decodeURIComponent(segments[2]!) || null;
   } catch {

@@ -58,7 +58,7 @@ type Props = {
   initialCompose?: JourneyComposeState | null;
   /** Hiện tab Shop (bật bán hàng, hoặc chính chủ). */
   showShop?: boolean;
-  /** Chi tiết loại hàng trong panel shop (`/{slug}/shop/loai/...`). */
+  /** Chi tiết loại hàng trong panel shop (`/{slug}/shop/{shopSlug}/collections/...`). */
   shopNhomId?: string | null;
 };
 

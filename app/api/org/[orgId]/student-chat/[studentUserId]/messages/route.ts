@@ -76,6 +76,7 @@ export async function POST(req: Request, context: RouteContext) {
     noi_dung?: string;
     cloudflare_image_id?: string;
     id_emoji_muc?: string;
+    as_sticker?: boolean;
     roomId?: string;
     id_tin_tra_loi?: string;
   };
@@ -92,6 +93,7 @@ export async function POST(req: Request, context: RouteContext) {
     body: body.noi_dung ?? "",
     cloudflareImageId: body.cloudflare_image_id,
     emojiMucId: body.id_emoji_muc,
+    asSticker: body.as_sticker === true,
     roomId: body.roomId,
     replyToId: body.id_tin_tra_loi,
   });

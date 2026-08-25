@@ -3547,6 +3547,23 @@
   line-height: 1.6;
 }
 
+.cins-admin .admin-gate-current {
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-sm);
+  color: var(--fg-3);
+}
+
+.cins-admin .admin-gate-current strong {
+  color: var(--fg-1);
+  font-weight: var(--weight-bold);
+}
+
+.cins-admin .admin-gate-actions {
+  margin-top: var(--space-6);
+  display: flex;
+  justify-content: center;
+}
+
 .cins-admin .admin-error-msg {
   padding: var(--space-8);
   color: var(--danger);

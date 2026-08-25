@@ -16,6 +16,7 @@ const HUB_DESC =
 export const metadata: Metadata = {
   title: HUB_TITLE,
   description: HUB_DESC,
+  alternates: { canonical: "/events" },
   openGraph: {
     type: "website",
     siteName: "CINs",

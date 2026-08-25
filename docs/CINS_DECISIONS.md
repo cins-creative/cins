@@ -44,6 +44,18 @@
 
 ## LOG — quyết định đã chốt
 
+### L35c — Tab stale hard reload kiểu Facebook (2026-08-25)
+
+- **Chốt:** tab nền ≥ **90 phút** rồi `visibility` → visible → `location.reload()` một lần (cùng URL). Cooldown 60s chống loop. Skip nếu đang gọi (`data-cins-call-active`), compose chat bẩn (`data-cins-compose-dirty`), hoặc đang focus form có nội dung.
+- **Lý do:** L35b soft-reconnect không dọn heap/DOM feed; Facebook/IG web dùng hard refresh cho idle dài.
+- **Không** soft `router.refresh` song song. Plan: [`PLAN_tab_stale_refresh.md`](./PLAN_tab_stale_refresh.md).
+- *Hệ quả:* `components/cins/StaleTabReload.tsx` · mount `CinsShell.tsx` · attr guard trên call/compose.
+
+### L35b — Realtime watchdog + cap cache tin phiên (2026-08-25)
+
+- **Chốt:** nối L35 — `CLOSED` + watchdog 25s + `await removeChannel` + `TOKEN_REFRESHED`/`setAuth` trên 3 hook chat realtime; cap 200 tin/`sessionStorage` phòng. Plan: [`PLAN_realtime_lag_thong_bao.md`](./PLAN_realtime_lag_thong_bao.md). Chi tiết đầy đủ dưới mục L35b trong LOG (cạnh L35).
+- **P2 (chưa làm):** ảo hóa feed World Journey; LRU cache RAM; gộp helper resilient channel.
+
 ### App RN R9 — JSON listing hub shop cho native (2026-08-23)
 
 - **Chốt:** thêm `GET /api/shop/listing?mode=hang|shop` (JSON, cache ngắn) bọc `listPublicShopCuaHang` — web hub vẫn SSR; app native không parse HTML.
@@ -511,6 +523,19 @@
 - **Nguyên nhân thật (client):** `lib/chat/use-chat-realtime.ts` (và `use-chat-read-cursors-realtime.ts`) chỉ gọi `.subscribe()` một lần, không theo dõi trạng thái kênh. Khi socket "chết lâm sàng" (máy ngủ, tab bị hệ điều hành suspend trên mobile, mất mạng chớp nhoáng) mà không bắn lỗi rõ ràng, app không tự nối lại → mất hết `INSERT`/`UPDATE` real-time cho tới khi user thao tác thứ gì đó gọi lại REST (mở khung chat) mới đồng bộ.
 - **Đã sửa:** cả hai hook theo dõi `.subscribe(status => ...)` — `CHANNEL_ERROR`/`TIMED_OUT` tự tạo lại kênh (backoff 1s→2s→…→tối đa 15s); thêm listener `visibilitychange` (tab về foreground) và `online` (có mạng lại) để chủ động dọn kênh cũ + mở kênh mới, phòng socket "treo" im lặng không báo lỗi. Không đổi logic nghiệp vụ (mapping tin, unread, âm thanh, watermark đã đọc).
 - *Hệ quả file:* `lib/chat/use-chat-realtime.ts`, `lib/chat/use-chat-read-cursors-realtime.ts`, script chẩn đoán mới `scripts/check-chat-realtime.mjs` (giữ lại để tái sử dụng khi nghi ngờ lần sau).
+
+### L35b — Realtime watchdog + CLOSED + token refresh; cap cache tin phiên (2026-08-25)
+
+- **Triệu chứng:** user ở `cins.vn` lâu → lag dần + mất báo tin nhắn (âm thanh/badge/bubble); F5 lại hết. Cảm giác "cache đầy".
+- **Chẩn đoán:** L35 đã vá `CHANNEL_ERROR`/`TIMED_OUT` + reconnect khi đổi tab/mạng, nhưng **không** xử lý `CLOSED`, **không** có watchdog khi tab vẫn `visible` (tắt màn hình Windows thường không bắn `hidden`), `removeChannel` không await → chồng socket, JWT ~1h hết hạn khi timer bị throttle. Song song: `writeRoomMessagesCache` stringify cả phòng vào `sessionStorage` **không cap** → quota/phình main thread.
+- **Đã sửa (P0 + P1a):** cả ba hook `use-chat-realtime` / `use-chat-read-cursors-realtime` / `use-room-presence` — `CLOSED` vào reconnect; `await removeChannel` + cờ `reconnecting`; watchdog 25s (`channel.state` ≠ `joined`/`joining` khi tab visible); `realtime.setAuth()` + reconnect khi `TOKEN_REFRESHED`. Cap `CHAT_SESSION_MESSAGES_CAP = 200` tin cuối trong `chat-session-cache.ts` (chỉ cache phiên, không cắt state React). Không đổi mapping tin / unread / âm thanh / watermark.
+- **Ngoài phạm vi (P2 — brief riêng):** ảo hóa World Journey feed; LRU Map cache RAM; gộp 3 hook → `useResilientRealtimeChannel`.
+- *Hệ quả file:* `lib/chat/use-chat-realtime.ts`, `lib/chat/use-chat-read-cursors-realtime.ts`, `lib/chat/use-room-presence.ts`, `lib/chat/chat-session-cache.ts`; plan [`PLAN_realtime_lag_thong_bao.md`](./PLAN_realtime_lag_thong_bao.md).
+
+### L35c — Tab stale hard reload kiểu Facebook (2026-08-25)
+
+- **Chốt:** sau L35b — tab `hidden` ≥ 90 phút rồi quay lại → `window.location.reload()` (1 lần, cooldown 60s). Guard: cuộc gọi, compose chat dirty, form đang focus có nội dung. Không dùng `router.refresh`.
+- *Hệ quả file:* `components/cins/StaleTabReload.tsx`, `CinsShell.tsx`, attr trên `ChatIncomingCallHost` / overlay / mini compose; plan [`PLAN_tab_stale_refresh.md`](./PLAN_tab_stale_refresh.md).
 
 ### L34 — CSĐT vận hành học (chat-first) + gate ALTER cột cũ (2026-07-24)
 

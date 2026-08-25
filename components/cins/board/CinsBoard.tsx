@@ -3986,7 +3986,8 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           return;
         }
 
-        // Nền trống → marquee. Cảm ứng: giữ im ~1s rồi kéo = pan (tool bàn tay).
+        // Nền trống. Cảm ứng: giữ im 1s → bật công cụ bàn tay (và pan ngay).
+        // Kéo trước 1s → marquee chọn.
         const start = pageFromClient(e.clientX, e.clientY);
         const additive = e.shiftKey;
         const baseSelection = additive
@@ -4012,6 +4013,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
             holdPanTimerRef.current = 0;
             const cur = gestureRef.current;
             if (!cur || cur.type !== "hold-wait") return;
+            setTool("pan");
             gestureRef.current = {
               type: "pan",
               pointerId: cur.pointerId,

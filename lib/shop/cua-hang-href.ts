@@ -2,8 +2,22 @@ import { manageSellerHref } from "@/lib/cins/manage-site";
 
 const MAX_SHOP_SLUG_LEN = 64;
 
+/** Segment loại hàng trên storefront (canonical). */
+export const SHOP_COLLECTION_SEGMENT = "collections";
+/** Segment cũ — middleware 308 sang `collections`. */
+export const SHOP_COLLECTION_SEGMENT_LEGACY = "loai";
+
 /** Segment route bị reserve — không dùng làm shopSlug. */
-export const SHOP_SLUG_RESERVED = new Set(["loai"]);
+export const SHOP_SLUG_RESERVED = new Set([
+  SHOP_COLLECTION_SEGMENT,
+  SHOP_COLLECTION_SEGMENT_LEGACY,
+]);
+
+export function isShopCollectionPathSegment(seg: string): boolean {
+  return (
+    seg === SHOP_COLLECTION_SEGMENT || seg === SHOP_COLLECTION_SEGMENT_LEGACY
+  );
+}
 
 /** Slugify tên cửa hàng (cùng kiểu org: NFD, đ→d, [a-z0-9-]). */
 export function slugifyShopName(value: string): string {
@@ -41,13 +55,13 @@ export function shopEntryHref(ownerSlug: string): string {
   return `/${encodeURIComponent(ownerSlug.trim())}/shop`;
 }
 
-/** Trang loại hàng — `/{slug}/shop/{shopSlug}/loai/{nhomId}`. */
+/** Trang loại hàng — `/{slug}/shop/{shopSlug}/collections/{nhomId}`. */
 export function shopLoaiHref(
   ownerSlug: string,
   shopSlug: string,
   nhomId: string,
 ): string {
-  return `${shopPublicHref(ownerSlug, shopSlug)}/loai/${encodeURIComponent(nhomId.trim())}`;
+  return `${shopPublicHref(ownerSlug, shopSlug)}/${SHOP_COLLECTION_SEGMENT}/${encodeURIComponent(nhomId.trim())}`;
 }
 
 /** Trang loại + chọn sẵn mẫu (`?variant=` = sanPhamId). */

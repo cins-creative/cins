@@ -20,7 +20,7 @@ type MediaJoin =
   | undefined;
 
 export type CanvasMessageMedia =
-  | { kind: "anh"; url: string }
+  | { kind: "anh"; url: string; width: number | null; height: number | null }
   | { kind: "video"; url: string; width: number | null; height: number | null };
 
 /** Ảnh CF Images hoặc video chat R2 từ join `content_media`. */
@@ -54,5 +54,5 @@ export function resolveCanvasMessageMedia(
   }
 
   const imageUrl = chatImageDeliveryUrl(cfId);
-  return imageUrl ? { kind: "anh", url: imageUrl } : null;
+  return imageUrl ? { kind: "anh", url: imageUrl, width, height } : null;
 }

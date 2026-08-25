@@ -271,11 +271,15 @@ BEGIN
   SELECT count(*) INTO v_cnt FROM public.org_to_chuc WHERE nguoi_tao = v_dich.id;
   IF v_cnt > 0 THEN RAISE EXCEPTION 'dich_la_nguoi_tao_org'; END IF;
 
+  -- Enum vai_tro_he_thong_enum chỉ có admin/curator (super_admin = email app, không lưu DB).
   SELECT count(*) INTO v_cnt
   FROM public.user_quyen_he_thong
-  WHERE id_nguoi_dung = v_dich.id
-    AND vai_tro IN ('admin', 'super_admin', 'curator');
+  WHERE id_nguoi_dung = v_dich.id;
   IF v_cnt > 0 THEN RAISE EXCEPTION 'dich_la_admin_curator'; END IF;
+
+  IF lower(trim(COALESCE(p_email_dich, ''))) = 'info.cins.vn@gmail.com' THEN
+    RAISE EXCEPTION 'dich_la_admin_curator';
+  END IF;
 
   SELECT count(*) INTO v_so_cot_moc
   FROM public.content_cot_moc

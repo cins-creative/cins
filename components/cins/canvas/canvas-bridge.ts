@@ -39,3 +39,16 @@ export const canvasBridge: {
   highlightNodes: null,
   ingestCommentNotice: null,
 };
+
+/** Đưa node vừa tạo lên board (hoặc xếp hàng nếu board chưa hydrate). */
+export function ingestAddedCanvasNode(node: ChatCanvasNode): void {
+  if (canvasBridge.ingestNode) {
+    canvasBridge.ingestNode(node);
+  } else {
+    canvasBridge.pendingIngestNode = node;
+  }
+  window.setTimeout(() => {
+    canvasBridge.ingestNode?.(node);
+    canvasBridge.highlightNodes?.([node.id]);
+  }, 120);
+}

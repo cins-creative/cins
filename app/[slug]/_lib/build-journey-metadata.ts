@@ -1,18 +1,23 @@
 import type { Metadata } from "next";
 
 import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
-import {
-  fetchOgShareContext,
-  type OgShareSearch,
-} from "@/lib/journey/og-share-fetch";
+import { getT } from "@/lib/i18n/t";
+import { getCinsLocale } from "@/lib/locale/server";
+import { ogLocale } from "@/lib/locale/types";
 import {
   buildJourneyOgImagePath,
   buildOgImageVersion,
   buildOgPageSearchParams,
 } from "@/lib/journey/og-image-url";
-import { getT } from "@/lib/i18n/t";
-import { getCinsLocale } from "@/lib/locale/server";
-import { ogLocale } from "@/lib/locale/types";
+import type { OgShareSearch } from "@/lib/journey/og-share-fetch";
+import { ogKindFromSearch } from "@/lib/journey/og-share-fetch";
+import { fetchOwnerBySlug } from "@/lib/journey/profile-page-fetch";
+import {
+  buildShareOgSnapshotKey,
+  cfImagePublicUrl,
+  parseShareOgThemeState,
+  resolveShareOgSnapshotUrl,
+} from "@/lib/journey/share-og-theme";
 
 function pagePathForShare(slug: string, search: OgShareSearch): string {
   const params = buildOgPageSearchParams(search);
@@ -21,37 +26,70 @@ function pagePathForShare(slug: string, search: OgShareSearch): string {
   return qs ? `${base}?${qs}` : base;
 }
 
-/** Metadata journey/gallery (+ filter) — nhận giá trị đã resolve. */
+function truncateBio(text: string | null | undefined, max = 140): string | null {
+  const trimmed = text?.trim();
+  if (!trimmed) return null;
+  if (trimmed.length <= max) return trimmed;
+  return `${trimmed.slice(0, max - 1).trimEnd()}…`;
+}
+
+/**
+ * Metadata document — chỉ hồ sơ + theme snapshot.
+ * Không đếm gallery (đó là việc của `/opengraph-image` khi crawler lấy ảnh).
+ */
 export async function buildJourneyMetadata(
   slug: string,
   search: OgShareSearch | string | undefined = {},
 ): Promise<Metadata> {
-  /* Tương thích call cũ: buildJourneyMetadata(slug, view?) */
   const resolved: OgShareSearch =
     typeof search === "string" || search === undefined
       ? { view: typeof search === "string" ? search : undefined }
       : search;
 
-  const ctx = await fetchOgShareContext(slug, resolved);
+  const [{ owner }, locale] = await Promise.all([
+    fetchOwnerBySlug(slug),
+    getCinsLocale(),
+  ]);
   const siteOrigin = getConfiguredSiteOrigin() ?? "https://cins.vn";
-  const pagePath = pagePathForShare(slug, resolved);
-  const locale = await getCinsLocale();
   const t = getT(locale);
+  const pagePath = pagePathForShare(slug, resolved);
 
-  const title = ctx
-    ? `${ctx.displayTitle} · CINS`
+  const displayName = owner?.ten_hien_thi?.trim() || slug;
+  const bio = owner ? truncateBio(owner.bio) : null;
+  const kind = ogKindFromSearch(resolved.view);
+  const title = owner
+    ? kind === "gallery"
+      ? `Portfolio · ${displayName} · CINS`
+      : `${displayName} · CINS`
     : `Journey · ${slug} · CINS`;
   const description =
-    ctx?.description ?? t("profile.journeyOf", { name: slug });
+    bio ??
+    (owner
+      ? kind === "gallery"
+        ? `${displayName} trên CINs.`
+        : t("profile.journeyOf", { name: displayName })
+      : t("profile.journeyOf", { name: slug }));
 
-  const themeVersion = ctx
-    ? buildOgImageVersion(ctx.theme, ctx.layout, ctx.filterVersion)
-    : null;
-
-  /** Ưu tiên PNG đã snapshot từ modal; fallback Satori `/opengraph-image`. */
-  const ogImageUrl =
-    ctx?.ogSnapshotUrl ??
-    buildJourneyOgImagePath(slug, resolved, themeVersion);
+  let ogImageUrl = buildJourneyOgImagePath(slug, resolved, null);
+  if (owner) {
+    const themeState = parseShareOgThemeState(owner.theme, owner.slug);
+    const layout =
+      kind === "gallery" ? themeState.layouts.gallery : themeState.layouts.journey;
+    const themeVersion = buildOgImageVersion(themeState.active, layout, null);
+    const snapshotUrl =
+      themeState.active.kind === "custom"
+        ? cfImagePublicUrl(themeState.active.imageId)
+        : resolveShareOgSnapshotUrl(
+            themeState,
+            buildShareOgSnapshotKey({
+              kind,
+              filterVersion: null,
+              layout,
+              theme: themeState.active,
+            }),
+          );
+    ogImageUrl = snapshotUrl ?? buildJourneyOgImagePath(slug, resolved, themeVersion);
+  }
 
   return {
     metadataBase: new URL(siteOrigin),

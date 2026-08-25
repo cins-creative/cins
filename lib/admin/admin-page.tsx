@@ -8,6 +8,7 @@ import {
   isAdminPathHidden,
 } from "@/lib/admin/admin-tab-visibility";
 import { checkAdminAccess, type AdminGateResult } from "@/lib/admin/require-admin";
+import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import {
   canAccessAdminPanel,
   getCurrentUserProfileId,
@@ -55,10 +56,16 @@ export async function renderAdminPage(content: ReactNode) {
   return <AdminShell hiddenTabHrefs={hiddenTabHrefs}>{content}</AdminShell>;
 }
 
-function AdminGateWrapper({ gate }: { gate: Extract<AdminGateResult, { ok: false }> }) {
+async function AdminGateWrapper({
+  gate,
+}: {
+  gate: Extract<AdminGateResult, { ok: false }>;
+}) {
+  const session =
+    gate.reason === "no_role" ? await getCurrentSessionAndProfile() : null;
   return (
     <div className="cins-admin">
-      <AdminGate gate={gate} />
+      <AdminGate gate={gate} currentSlug={session?.profile?.slug ?? null} />
     </div>
   );
 }

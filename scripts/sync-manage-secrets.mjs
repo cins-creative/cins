@@ -7,6 +7,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const NAMES = [
+  "CINS_CLONE_PASSWORD_KEY",
   "CINS_ORG_DELEGATION_PASSWORD",
   "CLOUDFLARE_IMAGES_API_TOKEN",
   "CLOUDFLARE_STREAM_API_TOKEN",

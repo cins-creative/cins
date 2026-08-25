@@ -2,28 +2,25 @@ import "server-only";
 
 import { loadCanvasContext } from "@/lib/chat/canvas/access";
 import { resolveCanvasMessageMedia } from "@/lib/chat/canvas/message-media";
+import {
+  CANVAS_PACK_CELL_H,
+  CANVAS_PACK_CELL_W,
+  layoutToPackRect,
+  maxLayoutZ,
+  nextPackedLayout,
+  occupiedRectsFromNodes,
+} from "@/lib/chat/canvas/pack-layout";
 import type { CanvasNodeLayout, CanvasResult } from "@/lib/chat/canvas/types";
-import { fitCanvasVideoLinkSize } from "@/lib/chat/canvas/video-layout";
-import { CANVAS_SYNC_MESSAGE_LIMIT } from "@/lib/chat/constants";
+import {
+  fitCanvasImageSize,
+  fitCanvasVideoLinkSize,
+} from "@/lib/chat/canvas/video-layout";
+import {
+  CANVAS_SYNC_MESSAGE_LIMIT,
+  MAX_CANVAS_NODES,
+} from "@/lib/chat/constants";
 import { findFirstHttpUrl } from "@/lib/link/og-preview";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-
-const GRID_COLS = 4;
-const CELL_W = 260;
-const CELL_H = 210;
-const GRID_GAP = 24;
-
-function gridLayout(position: number): CanvasNodeLayout {
-  const col = position % GRID_COLS;
-  const row = Math.floor(position / GRID_COLS);
-  return {
-    x: col * (CELL_W + GRID_GAP),
-    y: row * (CELL_H + GRID_GAP),
-    w: CELL_W,
-    h: CELL_H,
-    z: position,
-  };
-}
 
 type MessageRow = {
   id: string;
@@ -50,7 +47,7 @@ type MessageRow = {
  * Đồng bộ tin nhắn ảnh/video/URL của phòng lên canvas dưới dạng node (idempotent).
  * - 1 tin ⇒ tối đa 1 node (ảnh ưu tiên; video chat R2 → link; không thì URL đầu tiên).
  * - Bỏ qua tin đã ẩn (chat_canvas_tin_an) và tin đã có node.
- * - Node mới xếp lưới nối tiếp sau các node hiện có; user kéo lại sẽ giữ nguyên.
+ * - Node mới xếp ô lưới trống; node user đã kéo giữ nguyên.
  */
 export async function syncCanvasFromMessages(
   canvasId: string,
@@ -62,7 +59,7 @@ export async function syncCanvasFromMessages(
   const admin = createServiceRoleClient();
   const roomId = loaded.ctx.roomId;
 
-  const [messagesRes, existingRes, hiddenRes, countRes] = await Promise.all([
+  const [messagesRes, existingRes, hiddenRes] = await Promise.all([
     admin
       .from("chat_tin_nhan")
       .select(
@@ -72,12 +69,11 @@ export async function syncCanvasFromMessages(
       .eq("da_xoa", false)
       .order("tao_luc", { ascending: true })
       .limit(CANVAS_SYNC_MESSAGE_LIMIT),
-    admin.from("chat_canvas_node").select("id_tin_nhan").eq("id_canvas", canvasId),
-    admin.from("chat_canvas_tin_an").select("id_tin_nhan").eq("id_canvas", canvasId),
     admin
       .from("chat_canvas_node")
-      .select("id", { count: "exact", head: true })
+      .select("id_tin_nhan, loai, layout")
       .eq("id_canvas", canvasId),
+    admin.from("chat_canvas_tin_an").select("id_tin_nhan").eq("id_canvas", canvasId),
   ]);
 
   if (messagesRes.error) return { ok: false, error: "Không tải được tin nhắn." };
@@ -91,7 +87,17 @@ export async function syncCanvasFromMessages(
     (hiddenRes.data ?? []).map((r) => (r as { id_tin_nhan: string }).id_tin_nhan),
   );
 
-  let position = countRes.count ?? 0;
+  const existingNodes = (existingRes.data ?? []) as Array<{
+    id_tin_nhan: string | null;
+    loai: string | null;
+    layout: unknown;
+  }>;
+  if (existingNodes.length >= MAX_CANVAS_NODES) {
+    return { ok: true, created: 0 };
+  }
+
+  const occupied = occupiedRectsFromNodes(existingNodes);
+  let nextZ = maxLayoutZ(existingNodes) + 1;
   const rows: Array<{
     id_canvas: string;
     loai: "anh" | "link";
@@ -102,39 +108,53 @@ export async function syncCanvasFromMessages(
     id_nguoi_tao: string;
   }> = [];
 
+  const takeSlot = (size: { w: number; h: number }) => {
+    const layout = nextPackedLayout(occupied, size, nextZ++);
+    occupied.push(layoutToPackRect(layout));
+    return layout;
+  };
+
   for (const raw of (messagesRes.data ?? []) as MessageRow[]) {
     if (raw.loai_tin === "sticker") continue;
     if (existingMsgIds.has(raw.id) || hiddenMsgIds.has(raw.id)) continue;
+    if (existingNodes.length + rows.length >= MAX_CANVAS_NODES) break;
 
     const body = typeof raw.noi_dung === "string" ? raw.noi_dung : "";
     const media = resolveCanvasMessageMedia(raw.content_media);
 
     if (media?.kind === "anh") {
+      const size =
+        media.width && media.height && media.width > 0 && media.height > 0
+          ? fitCanvasImageSize(media.width, media.height)
+          : { w: CANVAS_PACK_CELL_W, h: CANVAS_PACK_CELL_H };
+      const layout = takeSlot(size);
+      if (media.width && media.height) {
+        layout.imageFitted = true;
+        layout.mediaW = media.width;
+        layout.mediaH = media.height;
+      }
       rows.push({
         id_canvas: canvasId,
         loai: "anh",
         id_tin_nhan: raw.id,
         url: media.url,
         noi_dung: body.trim() || null,
-        layout: gridLayout(position),
+        layout,
         id_nguoi_tao: viewerId,
       });
-      position += 1;
       continue;
     }
 
     if (media?.kind === "video") {
-      let layout = gridLayout(position);
-      if (media.width && media.height && media.width > 0 && media.height > 0) {
-        const size = fitCanvasVideoLinkSize(media.width, media.height);
-        layout = {
-          ...layout,
-          w: size.w,
-          h: size.h,
-          imageFitted: true,
-          mediaW: media.width,
-          mediaH: media.height,
-        };
+      const size =
+        media.width && media.height && media.width > 0 && media.height > 0
+          ? fitCanvasVideoLinkSize(media.width, media.height)
+          : { w: CANVAS_PACK_CELL_W, h: CANVAS_PACK_CELL_H };
+      const layout = takeSlot(size);
+      if (media.width && media.height) {
+        layout.imageFitted = true;
+        layout.mediaW = media.width;
+        layout.mediaH = media.height;
       }
       rows.push({
         id_canvas: canvasId,
@@ -148,7 +168,6 @@ export async function syncCanvasFromMessages(
         layout,
         id_nguoi_tao: viewerId,
       });
-      position += 1;
       continue;
     }
 
@@ -160,10 +179,9 @@ export async function syncCanvasFromMessages(
         id_tin_nhan: raw.id,
         url: linkUrl,
         noi_dung: body.trim() || null,
-        layout: gridLayout(position),
+        layout: takeSlot({ w: CANVAS_PACK_CELL_W, h: CANVAS_PACK_CELL_H }),
         id_nguoi_tao: viewerId,
       });
-      position += 1;
     }
   }
 

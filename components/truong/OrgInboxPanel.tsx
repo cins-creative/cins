@@ -675,7 +675,7 @@ export function OrgInboxPanel({
     const studentUserId = selected.studentUserId;
     const optimistic = createOptimisticChatMessage({
       body: "",
-      kind: "media",
+      kind: "sticker",
       imageId: null,
       imageUrl: payload.previewUrl,
     });
@@ -689,7 +689,7 @@ export function OrgInboxPanel({
           });
           const ok = await submitInboxPayload(
             studentUserId,
-            { cloudflare_image_id: imported.imageId },
+            { cloudflare_image_id: imported.imageId, as_sticker: true },
             optimistic.id,
           );
           if (!ok) return;

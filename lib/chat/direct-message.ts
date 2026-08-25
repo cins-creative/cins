@@ -1334,6 +1334,8 @@ export async function sendRoomMessage(
         cloudflareImageId?: string;
         videoMediaId?: string;
         emojiMucId?: string;
+        /** Ảnh CF gửi như meme (GIF) — `loai_tin=sticker`, canvas bỏ qua. */
+        asSticker?: boolean;
         replyToId?: string;
         nguCanh?: unknown;
         /**
@@ -1355,6 +1357,8 @@ export async function sendRoomMessage(
     typeof input === "string" ? undefined : input.videoMediaId?.trim();
   const emojiMucId =
     typeof input === "string" ? undefined : input.emojiMucId?.trim();
+  const asSticker =
+    typeof input === "string" ? false : Boolean(input.asSticker);
   const replyToId =
     typeof input === "string" ? undefined : input.replyToId?.trim();
   const contextCard =
@@ -1449,6 +1453,7 @@ export async function sendRoomMessage(
     if (!mediaId) {
       return { ok: false, error: "Không lưu được ảnh đính kèm." };
     }
+    if (asSticker) stickerCloudflareId = cloudflareImageId;
   } else if (videoMediaId) {
     /* videoMediaId là content_media.id đã tạo bởi API upload video chat.
        Xác minh là video của chính viewer trước khi đính kèm. */

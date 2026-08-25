@@ -13,6 +13,8 @@ export type ChatDaDocRealtimeRow = {
 
 const MAX_RETRY_DELAY_MS = 15_000;
 const BASE_RETRY_DELAY_MS = 1_000;
+/** Watchdog: kênh có thể "chết im" không bắn CLOSED/ERROR (máy ngủ, tab throttle). */
+const HEARTBEAT_MS = 25_000;
 
 /**
  * Subscribe cursor đã đọc trong 1 phòng (watermark Messenger).
@@ -38,14 +40,28 @@ export function useChatReadCursorsRealtime(
     }
 
     let disposed = false;
+    let reconnecting = false;
     let retryCount = 0;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let watchdogTimer: ReturnType<typeof setInterval> | null = null;
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
     const clearRetryTimer = () => {
       if (retryTimer) {
         clearTimeout(retryTimer);
         retryTimer = null;
+      }
+    };
+
+    const teardown = async () => {
+      const current = channel;
+      channel = null;
+      if (current) {
+        try {
+          await supabase.removeChannel(current);
+        } catch {
+          /* ignore */
+        }
       }
     };
 
@@ -85,21 +101,37 @@ export function useChatReadCursorsRealtime(
             retryCount = 0;
             return;
           }
-          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          if (
+            status === "CHANNEL_ERROR" ||
+            status === "TIMED_OUT" ||
+            status === "CLOSED"
+          ) {
             scheduleReconnect();
           }
         });
     };
 
-    const teardown = () => {
-      if (channel) {
-        void supabase.removeChannel(channel);
-        channel = null;
+    const hardReconnect = async () => {
+      if (disposed || reconnecting) return;
+      reconnecting = true;
+      clearRetryTimer();
+      try {
+        await teardown();
+        if (disposed) return;
+        try {
+          await supabase.realtime.setAuth();
+        } catch {
+          /* token callback lỗi — vẫn thử subscribe lại */
+        }
+        if (disposed) return;
+        connect();
+      } finally {
+        reconnecting = false;
       }
     };
 
     const scheduleReconnect = () => {
-      if (disposed) return;
+      if (disposed || reconnecting) return;
       clearRetryTimer();
       const delay = Math.min(
         BASE_RETRY_DELAY_MS * 2 ** retryCount,
@@ -108,38 +140,59 @@ export function useChatReadCursorsRealtime(
       retryCount += 1;
       retryTimer = setTimeout(() => {
         if (disposed) return;
-        teardown();
-        connect();
+        void hardReconnect();
       }, delay);
     };
 
-    /* Trở lại tab / có mạng lại — làm mới kênh phòng khi socket cũ có thể đã
+    /* Trở lại tab / có mạng lại — làm mới kênh khi socket cũ có thể đã
        treo im lặng (không bắn CHANNEL_ERROR nhưng cũng không còn nhận frame). */
     const onVisible = () => {
-      if (document.visibilityState === "visible") {
-        clearRetryTimer();
-        retryCount = 0;
-        teardown();
-        connect();
-      }
+      if (document.visibilityState !== "visible") return;
+      clearRetryTimer();
+      retryCount = 0;
+      void hardReconnect();
     };
     const onOnline = () => {
       clearRetryTimer();
       retryCount = 0;
-      teardown();
-      connect();
+      void hardReconnect();
     };
 
+    const {
+      data: { subscription: authSub },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "TOKEN_REFRESHED") {
+        clearRetryTimer();
+        retryCount = 0;
+        void hardReconnect();
+      }
+    });
+
     connect();
+    watchdogTimer = setInterval(() => {
+      if (disposed || reconnecting) return;
+      if (document.visibilityState !== "visible") return;
+      const state = channel?.state;
+      if (state === "joined" || state === "joining") return;
+      clearRetryTimer();
+      retryCount = 0;
+      void hardReconnect();
+    }, HEARTBEAT_MS);
+
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("online", onOnline);
 
     return () => {
       disposed = true;
       clearRetryTimer();
+      if (watchdogTimer) {
+        clearInterval(watchdogTimer);
+        watchdogTimer = null;
+      }
+      authSub.unsubscribe();
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("online", onOnline);
-      teardown();
+      void teardown();
     };
   }, [roomId, viewerProfileId]);
 }

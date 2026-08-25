@@ -2608,15 +2608,9 @@ html.is-cins-share-dropping {
   width: min(1280px, 100%);
 }
 
-.cins-chat-convo {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  background: #f4f5f8;
-  border-radius: inherit;
-  /* visible: header actions (ghim bubble) vẫn nhận click khi sát mép phải */
-  overflow: visible;
+.cins-chat-convo.is-header-pull {
+  will-change: transform, opacity;
+  transition: none;
 }
 
 .cins-chat-convo-head {
@@ -2631,6 +2625,7 @@ html.is-cins-share-dropping {
   z-index: 30;
   /* Khớp bo góc phải panel — tránh nền trắng góc vuông lòi ra ngoài. */
   border-radius: 0 var(--radius-xl) 0 0;
+  touch-action: pan-y;
 }
 
 .cins-chat-back-mobile {
@@ -11187,6 +11182,11 @@ button.cins-chat-don-card-cta.is-action:disabled {
     flex-shrink: 0;
     position: relative;
     z-index: 30;
+    touch-action: none;
+  }
+
+  .cins-chat-bubble-pin {
+    display: none !important;
   }
 
   .cins-chat-messages {

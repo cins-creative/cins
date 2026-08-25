@@ -1910,6 +1910,9 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
     Boolean(miniThread) &&
     (draft.trim().length > 0 || sendableImages.length > 0);
 
+  const composeDirty =
+    draft.trim().length > 0 || pendingImages.length > 0;
+
   const appendOptimisticMessages = useCallback(
     (roomId: string, optimistics: ChatMessage[]) => {
       if (optimistics.length === 0) return;
@@ -2380,7 +2383,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       shouldScrollToBottomRef.current = true;
       const optimistic = createOptimisticChatMessage({
         body: "",
-        kind: "media",
+        kind: "sticker",
         imageId: null,
         imageUrl: payload.previewUrl,
       });
@@ -2392,7 +2395,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         });
         await submitRoomMessage(
           roomId,
-          { cloudflare_image_id: imported.imageId },
+          { cloudflare_image_id: imported.imageId, as_sticker: true },
           optimistic.id,
         );
       } catch (error) {
@@ -2713,7 +2716,10 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
             <div ref={messagesEndRef} />
           </div>
 
-          <footer className="j-chat-mini-compose">
+          <footer
+            className="j-chat-mini-compose"
+            {...(composeDirty ? { "data-cins-compose-dirty": "" } : {})}
+          >
             {replyTarget ? (
               <ChatReplyComposeBar
                 target={replyTarget}
@@ -3079,6 +3085,7 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
               className="cins-call-fullscreen"
               role="dialog"
               aria-label={t("chat.callTitle")}
+              data-cins-call-active=""
             >
               <PhongHocMeeting
                 authToken={phongHoc.token}

@@ -117,7 +117,7 @@ type Props = {
   isOwner: boolean;
   viewerProfileId: string | null;
   filterVisibility: LoaiMocVisibilityMap;
-  /** SSR từ `/{slug}/shop/loai/[nhomId]` — client sync lại theo URL. */
+  /** SSR từ `/{slug}/shop/{shopSlug}/collections/[nhomId]` — client sync lại theo URL. */
   shopNhomId?: string | null;
 };
 

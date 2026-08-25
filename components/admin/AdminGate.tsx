@@ -1,7 +1,13 @@
+import { AdminSwitchAccountButton } from "@/components/admin/AdminSwitchAccountButton";
 import type { AdminGateResult } from "@/lib/admin/require-admin";
 import { SUPER_ADMIN_EMAIL } from "@/lib/auth/system-role";
 
-export function AdminGate({ gate }: { gate: Extract<AdminGateResult, { ok: false }> }) {
+type Props = {
+  gate: Extract<AdminGateResult, { ok: false }>;
+  currentSlug?: string | null;
+};
+
+export function AdminGate({ gate, currentSlug }: Props) {
   if (gate.reason === "no_role") {
     return (
       <div className="cins-admin admin-gate">
@@ -11,6 +17,14 @@ export function AdminGate({ gate }: { gate: Extract<AdminGateResult, { ok: false
           <code>{SUPER_ADMIN_EMAIL}</code>{" "}
           nếu bạn cần quyền truy cập.
         </p>
+        {currentSlug ? (
+          <p className="admin-gate-current">
+            Đang đăng nhập với <strong>@{currentSlug}</strong>
+          </p>
+        ) : null}
+        <div className="admin-gate-actions">
+          <AdminSwitchAccountButton />
+        </div>
       </div>
     );
   }

@@ -6,7 +6,8 @@ import { shopLoaiHref } from "@/lib/shop/cua-hang-href";
 type Params = Promise<{ slug: string; nhomId: string }>;
 
 /**
- * Legacy `/{slug}/shop/loai/{nhomId}` → `/{slug}/shop/{shopSlug}/loai/{nhomId}`.
+ * Legacy không shopSlug: `/{slug}/shop/collections/{nhomId}` (và `/loai/` trước 308)
+ * → `/{slug}/shop/{shopSlug}/collections/{nhomId}`.
  */
 export default async function LegacyShopLoaiRedirect({
   params,

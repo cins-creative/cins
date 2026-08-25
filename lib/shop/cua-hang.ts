@@ -16,6 +16,7 @@ import type {
   ShopTrangThaiHoatDong,
 } from "@/lib/shop/types";
 import { isShopTamDongActive, normalizeShopTamDongLyDo } from "@/lib/shop/tam-dong";
+import { fetchOwnerBySlug } from "@/lib/journey/profile-page-fetch";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type CuaHangRow = {
@@ -639,13 +640,9 @@ export async function resolveShopSlugForOwnerSlug(
 ): Promise<{ shopSlug: string; href: string; ten: string | null } | null> {
   const slug = ownerSlug.trim();
   if (!slug) return null;
-  const admin = createServiceRoleClient();
-  const { data: owner, error: ownerErr } = await admin
-    .from("user_nguoi_dung")
-    .select("id, slug")
-    .eq("slug", slug)
-    .maybeSingle<{ id: string; slug: string }>();
+  const { owner, error: ownerErr } = await fetchOwnerBySlug(slug);
   if (ownerErr || !owner) return null;
+  const admin = createServiceRoleClient();
   const { data: shop } = await admin
     .from("shop_cua_hang")
     .select("ten")

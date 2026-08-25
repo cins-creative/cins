@@ -411,6 +411,7 @@ export function ChatIncomingCallHost() {
         className="cins-call-fullscreen"
         role="dialog"
         aria-label={t("chat.callTitle")}
+        data-cins-call-active=""
       >
         <PhongHocMeeting
           authToken={activeCall.token}
@@ -428,7 +429,12 @@ export function ChatIncomingCallHost() {
   if (!offer) return null;
 
   return createPortal(
-    <div className="cins-incoming-call" role="dialog" aria-label={t("chat.callIncoming")}>
+    <div
+      className="cins-incoming-call"
+      role="dialog"
+      aria-label={t("chat.callIncoming")}
+      data-cins-call-active=""
+    >
       <div className="cins-incoming-call-card">
         <div className="cins-incoming-call-pulse" aria-hidden />
         <p className="cins-incoming-call-eyebrow">{t("chat.callIncoming")}</p>

@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 
-import { JourneyProfilePageLoader } from "@/app/[slug]/_components/JourneyProfilePageLoader";
 import { JourneyProfilePageSkeleton } from "@/app/[slug]/_components/JourneyProfilePage.skeleton";
+import { ShopLoaiBody } from "@/app/[slug]/shop/_components/ShopStorefrontBody";
 import { CinsShell } from "@/components/cins/CinsShell";
 import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
-import { resolveShopSlugForOwnerSlug } from "@/lib/shop/cua-hang";
-import { shopLoaiHref, SHOP_SLUG_RESERVED } from "@/lib/shop/cua-hang-href";
-import { fetchShopLoaiOgContext } from "@/lib/shop/shop-loai-og-fetch";
+import { shopLoaiHref } from "@/lib/shop/cua-hang-href";
+import { fetchShopLoaiDocumentMeta } from "@/lib/shop/shop-loai-og-fetch";
 
 type Params = Promise<{ slug: string; shopSlug: string; nhomId: string }>;
 
@@ -24,21 +22,16 @@ export async function generateMetadata({
   } catch {
     /* keep raw */
   }
-  const resolved = await resolveShopSlugForOwnerSlug(slug);
-  const siteOrigin = getConfiguredSiteOrigin() ?? "https://cins.vn";
-  const path = resolved
-    ? shopLoaiHref(slug, resolved.shopSlug, nhomId)
-    : shopLoaiHref(slug, shopSlug, nhomId);
-  const canonicalShopSlug = resolved?.shopSlug ?? shopSlug;
-
-  const og = await fetchShopLoaiOgContext(slug, canonicalShopSlug, nhomId);
+  const og = await fetchShopLoaiDocumentMeta(slug, shopSlug, nhomId);
   const titleBase = og?.title ?? (nhomId === "khac" ? "Khác" : "Loại hàng");
-  const shopLabel = og?.shopTen ?? resolved?.ten?.trim() ?? "Cửa hàng";
+  const shopLabel = og?.shopTen ?? "Cửa hàng";
+  const path = shopLoaiHref(slug, shopSlug, nhomId);
   const title = `${titleBase} · ${shopLabel}`;
   const description =
     og?.summary ??
     `${titleBase} tại ${shopLabel} trên CINs — mua bán sáng tạo.`;
   const ogImagePath = `${path}/opengraph-image`;
+  const siteOrigin = getConfiguredSiteOrigin() ?? "https://cins.vn";
 
   return {
     metadataBase: new URL(siteOrigin),
@@ -72,35 +65,11 @@ export async function generateMetadata({
   };
 }
 
-export default async function ShopLoaiPage({ params }: { params: Params }) {
-  const { slug, shopSlug: rawShopSlug, nhomId } = await params;
-  let shopSlug = rawShopSlug;
-  try {
-    shopSlug = decodeURIComponent(rawShopSlug);
-  } catch {
-    /* keep raw */
-  }
-
-  if (SHOP_SLUG_RESERVED.has(shopSlug.trim().toLowerCase())) {
-    notFound();
-  }
-
-  const resolved = await resolveShopSlugForOwnerSlug(slug);
-  if (!resolved) notFound();
-
-  if (shopSlug !== resolved.shopSlug) {
-    redirect(shopLoaiHref(slug, resolved.shopSlug, nhomId));
-  }
-
+export default function ShopLoaiPage({ params }: { params: Params }) {
   return (
     <CinsShell data-screen-label="Shop loại hàng">
       <Suspense fallback={<JourneyProfilePageSkeleton />}>
-        <JourneyProfilePageLoader
-          params={Promise.resolve({ slug })}
-          searchParams={Promise.resolve({ view: "shop" })}
-          storefront
-          shopNhomId={nhomId}
-        />
+        <ShopLoaiBody params={params} />
       </Suspense>
     </CinsShell>
   );
