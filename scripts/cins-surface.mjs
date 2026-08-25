@@ -201,8 +201,10 @@ export function parkWeb() {
     copyKept("app", ["admin", ...parts], ["admin", ...parts]);
   }
 
+  /* Dashboard seller (app/seller) sang manage. NHƯNG giữ api/user/seller
+     trên web: modal "Cài đặt → Bán hàng" hiển thị ở cins.vn gọi cùng origin
+     để bật/tắt bán hàng + tải điều khoản; park nó ra khiến GET/PATCH 404. */
   parkRel("app", ["seller"]);
-  parkRel("api", ["user", "seller"]);
 
   for (const org of ORG_APP_DIRS) {
     parkRel("app", [org, "[slug]", "manage"]);
