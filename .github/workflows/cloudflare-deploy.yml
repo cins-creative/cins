@@ -49,8 +49,11 @@ jobs:
           NEXT_PUBLIC_CHAT_VIDEO_BASE_URL: ${{ secrets.NEXT_PUBLIC_CHAT_VIDEO_BASE_URL }}
         run: bash scripts/ci-prepare-deploy-env.sh
 
-      - name: Deploy to Cloudflare Workers
+      # Split surface: 1 Worker gộp cả app vượt trần 10 MiB của Cloudflare.
+      # deploy:all = deploy:manage (manage.cins.vn) + deploy:web (cins.vn),
+      # mỗi Worker nhỏ hơn nhờ park route theo bề mặt (scripts/cins-surface.mjs).
+      - name: Deploy to Cloudflare Workers (manage + web)
         env:
           # Giữ lại nếu prepare chưa ghi GITHUB_ENV (phòng runner cache)
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: npm run deploy
+        run: npm run deploy:all
