@@ -4,6 +4,90 @@ import { getCfAccountHash } from "@/lib/cloudflare/account-hash";
 import type { CfNamedVariant } from "@/lib/cloudflare/cf-image-variants";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
+/**
+ * Lỗi kết nối Worker↔Supabase (fetch failed / timeout / DNS / 5xx gateway) thường
+ * chập chờn. Trên Cloudflare (HTTP/2) `statusText` rỗng nên supabase-js có thể trả
+ * `error.message === ""` — cần coi là transient để retry thay vì báo lỗi chết.
+ */
+function isTransientDbError(info: {
+  message?: string | null;
+  code?: string | null;
+}): boolean {
+  const msg = (info.message ?? "").toLowerCase();
+  if (msg === "") return true; // HTTP/2 statusText rỗng → lỗi mạng bị che
+  return [
+    "fetch failed",
+    "failed to fetch",
+    "network",
+    "timeout",
+    "timed out",
+    "etimedout",
+    "enotfound",
+    "econnreset",
+    "econnrefused",
+    "socket hang up",
+    "gateway",
+    "502",
+    "503",
+    "504",
+  ].some((k) => msg.includes(k));
+}
+
+type SupabaseErrorLike = {
+  message?: string;
+  code?: string;
+  details?: string;
+  hint?: string;
+};
+
+/** Chuyển `error` của supabase-js thành Error có cờ `transient` để retry phân loại. */
+function toDbError(err: SupabaseErrorLike | null, fallback: string): Error {
+  const e = new Error(err?.message || fallback) as Error & {
+    transient?: boolean;
+    supabase?: SupabaseErrorLike | null;
+  };
+  e.transient = isTransientDbError(err ?? {});
+  e.supabase = err ?? null;
+  return e;
+}
+
+/**
+ * Chạy một thao tác DB với retry ngắn khi gặp lỗi transient (mạng/timeout).
+ * - Lỗi permanent (SQL/permission/thiếu env) → ném ngay, giữ nguyên message thật.
+ * - Hết lượt mà vẫn transient → ném `DB_UNREACHABLE` (kèm `cause`) để tầng trên báo "thử lại".
+ */
+async function withDbRetry<T>(
+  label: string,
+  fn: () => Promise<T>,
+  attempts = 3,
+): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      const flagged = Boolean((e as { transient?: boolean } | null)?.transient);
+      const transient =
+        flagged ||
+        isTransientDbError({
+          message: e instanceof Error ? e.message : String(e ?? ""),
+        });
+      if (!transient) throw e;
+      if (i === attempts - 1) {
+        console.error(`[shop] ${label} transient exhausted`, e);
+        const wrapped = new Error("DB_UNREACHABLE") as Error & {
+          cause?: unknown;
+        };
+        wrapped.cause = e;
+        throw wrapped;
+      }
+      await new Promise((r) => setTimeout(r, 150 * (i + 1)));
+    }
+  }
+  throw lastErr;
+}
+
 export function shopImageUrl(
   imageId: string | null | undefined,
   variant: CfNamedVariant = "public",
@@ -70,16 +154,16 @@ function rowToSettings(data: BanHangRow | null): BanHangSettings {
 export async function getBanHangSettings(
   userId: string,
 ): Promise<BanHangSettings> {
-  const admin = createServiceRoleClient();
-  const { data, error } = await admin
-    .from("user_nguoi_dung")
-    .select("ban_hang_bat, shop_hien_thi, ban_hang_dieu_khoan_luc")
-    .eq("id", userId)
-    .maybeSingle<BanHangRow>();
-  if (error) {
-    console.error("[shop] getBanHangSettings", error);
-    throw new Error(error.message || "LOAD_FAILED");
-  }
+  const data = await withDbRetry("getBanHangSettings", async () => {
+    const admin = createServiceRoleClient();
+    const { data, error } = await admin
+      .from("user_nguoi_dung")
+      .select("ban_hang_bat, shop_hien_thi, ban_hang_dieu_khoan_luc")
+      .eq("id", userId)
+      .maybeSingle<BanHangRow>();
+    if (error) throw toDbError(error, "LOAD_FAILED");
+    return data;
+  });
   return rowToSettings(data);
 }
 
@@ -101,14 +185,13 @@ export async function setBanHangEnabled(
     /* Tắt bán hàng → ẩn shop công khai. */
     patch.shop_hien_thi = false;
   }
-  const { error } = await admin
-    .from("user_nguoi_dung")
-    .update(patch)
-    .eq("id", userId);
-  if (error) {
-    console.error("[shop] setBanHangEnabled", error);
-    throw new Error(error.message || "UPDATE_FAILED");
-  }
+  await withDbRetry("setBanHangEnabled", async () => {
+    const { error } = await admin
+      .from("user_nguoi_dung")
+      .update(patch)
+      .eq("id", userId);
+    if (error) throw toDbError(error, "UPDATE_FAILED");
+  });
   if (enabled) {
     try {
       const { seedShopKhachHangTagsIfEmpty } = await import(
@@ -131,13 +214,12 @@ export async function setShopHienThi(
   if (shopVisible && !current.enabled) {
     throw new Error("BAN_HANG_OFF");
   }
-  const { error } = await admin
-    .from("user_nguoi_dung")
-    .update({ shop_hien_thi: shopVisible && current.enabled })
-    .eq("id", userId);
-  if (error) {
-    console.error("[shop] setShopHienThi", error);
-    throw new Error(error.message || "UPDATE_FAILED");
-  }
+  await withDbRetry("setShopHienThi", async () => {
+    const { error } = await admin
+      .from("user_nguoi_dung")
+      .update({ shop_hien_thi: shopVisible && current.enabled })
+      .eq("id", userId);
+    if (error) throw toDbError(error, "UPDATE_FAILED");
+  });
   return getBanHangSettings(userId);
 }

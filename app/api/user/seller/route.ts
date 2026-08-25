@@ -37,7 +37,12 @@ export async function GET(request: Request) {
   }
 
   const [settings, ready, dangApDung, thongBao] = await Promise.all([
-    getBanHangSettings(acting.ownerId),
+    // Lỗi đọc settings (mạng/timeout) không được làm hỏng cả response — nếu không,
+    // client mất luôn điều khoản (vốn là hằng số). Default off + cờ `settingsError`.
+    getBanHangSettings(acting.ownerId).catch((settingsErr) => {
+      console.error("[api/user/seller] getBanHangSettings", settingsErr);
+      return null;
+    }),
     getShopReady(acting.ownerId).catch((readyErr) => {
       console.error("[api/user/seller] getShopReady", readyErr);
       return { shopReady: false, missing: null };
@@ -46,7 +51,10 @@ export async function GET(request: Request) {
     listPhiThongBaoCongBo("shop", 10),
   ]);
   return NextResponse.json({
-    ...settings,
+    enabled: settings?.enabled ?? false,
+    shopVisible: settings?.shopVisible ?? false,
+    termsAcceptedAt: settings?.termsAcceptedAt ?? null,
+    settingsError: settings == null,
     shopReady: ready.shopReady,
     shopReadyMissing: ready.missing,
     shopSetupHref: shopSetupHref(acting.ownerSlug),
@@ -142,9 +150,24 @@ export async function PATCH(request: Request) {
         { status: 422 },
       );
     }
+    if (msg === "DB_UNREACHABLE") {
+      console.error(
+        "[api/user/seller] PATCH transient",
+        e,
+        (e as { cause?: unknown }).cause,
+      );
+      return NextResponse.json(
+        {
+          error:
+            "Mất kết nối tạm thời tới máy chủ dữ liệu. Vui lòng thử lại sau giây lát.",
+          retryable: true,
+        },
+        { status: 503 },
+      );
+    }
     console.error("[api/user/seller] PATCH", e);
     return NextResponse.json(
-      { error: msg && msg !== "UPDATE_FAILED" ? msg : "Không lưu được." },
+      { error: msg && msg !== "UPDATE_FAILED" ? msg : "Không lưu được, vui lòng thử lại." },
       { status: 500 },
     );
   }

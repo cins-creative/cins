@@ -5638,7 +5638,8 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         onPointerUp={finishGesture}
         onPointerCancel={finishGesture}
         onContextMenu={(e) => {
-          if (e.nativeEvent.pointerType === "touch") e.preventDefault();
+          if ((e.nativeEvent as PointerEvent).pointerType === "touch")
+            e.preventDefault();
         }}
         onDrop={onDrop}
         onDragOver={onDragOver}
