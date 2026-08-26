@@ -26,6 +26,10 @@ import {
   isPortraitGridImage,
   mediaNaturalAspect,
 } from "@/lib/journey/image-grid";
+import {
+  enrichGridImageDims,
+  subscribeImageDimensions,
+} from "@/lib/journey/image-dimension-cache";
 import type { MilestoneCardContentKind } from "@/lib/journey/milestone-card-kind";
 import { milestonePhotoLayout } from "@/lib/journey/milestone-card-kind";
 import {
@@ -99,6 +103,10 @@ type Props = {
   compactMediaPreview?: boolean;
   /** Trang chủ World Journey — click poster Stream mở Reels, không lightbox. */
   onOpenStreamVideo?: () => void;
+  /**
+   * Feed trang chủ — tải ảnh sớm (eager + warm), không đợi native lazy vào frame.
+   */
+  eagerMedia?: boolean;
   /** Org bài đăng / feed — caption photo/video là nội dung chính, không thu gọn. */
   disableCaptionCollapse?: boolean;
   /** `inline` — «xem thêm...» cuối dòng; `overlay` — CTA «Xem đầy đủ» (mặc định Journey). */
@@ -135,6 +143,7 @@ export function JourneyMilestoneCardBodyContent({
   readMoreHref = null,
   compactMediaPreview = false,
   onOpenStreamVideo,
+  eagerMedia = false,
   disableCaptionCollapse = false,
   captionExpandMode = "overlay",
   hasLinkedPost = false,
@@ -148,7 +157,13 @@ export function JourneyMilestoneCardBodyContent({
    * không mang cover — album ảnh vẫn hiện từ blocks.
    */
   const hasCoverPreview = Boolean(preview?.src);
-  const photoGridImages = photoGridOverride ?? null;
+  const [dimEpoch, setDimEpoch] = useState(0);
+  useEffect(() => subscribeImageDimensions(() => setDimEpoch((n) => n + 1)), []);
+  const photoGridImages = useMemo(() => {
+    if (!photoGridOverride?.length) return photoGridOverride ?? null;
+    return photoGridOverride.map((img) => enrichGridImageDims(img));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- dimEpoch khi warm đo xong
+  }, [photoGridOverride, dimEpoch]);
   const albumLayoutMode = useMemo(() => {
     const mode = albumLayoutModeFromBlocks(blocks);
     /* Timeline: không xổ stack Behance full chiều cao — justified gọn; stack giữ trên /p/. */
@@ -695,6 +710,7 @@ export function JourneyMilestoneCardBodyContent({
                     alt={compactPhotoPreview.label || title}
                     objectPosition={compactPhotoPreview.objectPosition}
                     zoom={compactPhotoPreview.zoom}
+                    loading={eagerMedia ? "eager" : undefined}
                   />
                 ) : null}
                 <span className="jcard-expand-cta" aria-hidden>
@@ -722,6 +738,7 @@ export function JourneyMilestoneCardBodyContent({
               }
               noiDungBlocks={blocks ?? undefined}
               onPlay={onOpenStreamVideo}
+              eagerPoster={eagerMedia}
             />
           ) : isAlbumHeroGrid && hasCoverPreview && preview && photoGridImages?.length ? (
             <div className="jcard-photo-album">
@@ -751,6 +768,7 @@ export function JourneyMilestoneCardBodyContent({
                   alt={preview.label || title}
                   objectPosition={preview.objectPosition}
                   zoom={preview.zoom}
+                  loading={eagerMedia ? "eager" : undefined}
                 />
               </button>
               <div className="preview preview--photo-grid">
@@ -758,6 +776,7 @@ export function JourneyMilestoneCardBodyContent({
                   images={photoGridImages}
                   readOnly
                   timelineLightbox
+                  eagerLoad={eagerMedia}
                   albumLayoutMode={albumLayoutMode}
                   lightboxIndex={albumLightboxIndex}
                   onLightboxIndexChange={setAlbumLightboxIndex}
@@ -773,6 +792,7 @@ export function JourneyMilestoneCardBodyContent({
                 images={photoGridImages}
                 readOnly
                 timelineLightbox
+                eagerLoad={eagerMedia}
                 albumLayoutMode={albumLayoutMode}
                 onOpenOverride={onOpenStreamVideo}
               />
@@ -796,6 +816,7 @@ export function JourneyMilestoneCardBodyContent({
                 images={photoGridImages}
                 readOnly
                 timelineLightbox
+                eagerLoad={eagerMedia}
                 albumLayoutMode={albumLayoutMode}
                 onOpenOverride={onOpenStreamVideo}
               />
@@ -826,6 +847,7 @@ export function JourneyMilestoneCardBodyContent({
                 alt={preview.label || title}
                 objectPosition={preview.objectPosition}
                 zoom={preview.zoom}
+                loading={eagerMedia ? "eager" : undefined}
               />
             </div>
           ) : isPhotoCard && hasCoverPreview && preview ? (
@@ -854,6 +876,7 @@ export function JourneyMilestoneCardBodyContent({
                 alt={preview.label || title}
                 objectPosition={preview.objectPosition}
                 zoom={preview.zoom}
+                loading={eagerMedia ? "eager" : undefined}
               />
             </div>
           ) : isEmbedInteractivePeek && blocks?.length ? (
@@ -892,6 +915,7 @@ export function JourneyMilestoneCardBodyContent({
                   alt={preview.label || title}
                   objectPosition={preview.objectPosition}
                   zoom={preview.zoom}
+                  loading={eagerMedia ? "eager" : undefined}
                 />
               ) : (
                 <div className="preview-inner">
@@ -921,6 +945,7 @@ export function JourneyMilestoneCardBodyContent({
                 alt={preview!.label || title}
                 objectPosition={preview!.objectPosition}
                 zoom={preview!.zoom}
+                loading={eagerMedia ? "eager" : undefined}
               />
               {showExpandTrigger ? expandCtaOverlay : null}
             </div>

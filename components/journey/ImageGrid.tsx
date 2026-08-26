@@ -38,6 +38,11 @@ import {
   type GridUploadSlotState,
 } from "@/lib/journey/image-grid";
 import {
+  enrichGridImageDims,
+  rememberImageDimensions,
+  subscribeImageDimensions,
+} from "@/lib/journey/image-dimension-cache";
+import {
   insertIndexFromSnap,
   sameDragSnap,
   snapFromPointer,
@@ -69,6 +74,11 @@ type Props = {
   images: GridImage[];
   /** Nhóm ảnh đầu trong post → eager load. */
   isFirstGroup?: boolean;
+  /**
+   * Feed World Journey — eager mọi ô (prefetch khi card đã mount / vừa load-more),
+   * không đợi native lazy sát viewport.
+   */
+  eagerLoad?: boolean;
   /** Ô đang upload (compose preview). */
   uploadingSlots?: ReadonlySet<number>;
   /** % upload theo index (compose preview). */
@@ -117,6 +127,8 @@ type CellProps = {
   image: GridImage;
   slotIndex: number;
   isFirstGroup: boolean;
+  /** Eager mọi ô — feed trang chủ. */
+  eagerLoad?: boolean;
   useButtonCells: boolean;
   isUploading: boolean;
   uploadProgress?: number;
@@ -149,6 +161,7 @@ function ImageGridCell({
   image,
   slotIndex,
   isFirstGroup,
+  eagerLoad = false,
   useButtonCells,
   isUploading,
   uploadProgress,
@@ -188,10 +201,11 @@ function ImageGridCell({
   const reportAspect = useCallback(
     (width: number, height: number) => {
       if (width > 0 && height > 0) {
+        rememberImageDimensions(image.id, width, height);
         onNaturalAspect?.(slotIndex, width / height);
       }
     },
-    [onNaturalAspect, slotIndex],
+    [image.id, onNaturalAspect, slotIndex],
   );
   useEffect(() => {
     const el = imgRef.current;
@@ -362,9 +376,7 @@ function ImageGridCell({
             preferPublicSrc || image.height <= 0 ? undefined : image.height
           }
           loading={
-            isFirstGroup && slotIndex === 0
-              ? "eager"
-              : "lazy"
+            eagerLoad || (isFirstGroup && slotIndex === 0) ? "eager" : "lazy"
           }
           decoding="async"
           draggable={false}
@@ -463,6 +475,7 @@ function ImageGridCell({
 export function ImageGrid({
   images,
   isFirstGroup = false,
+  eagerLoad = false,
   uploadingSlots,
   uploadProgressBySlot,
   slotErrors,
@@ -480,6 +493,16 @@ export function ImageGrid({
   albumLayoutMode = DEFAULT_ALBUM_LAYOUT_MODE,
   onOpenOverride,
 }: Props) {
+  const [dimEpoch, setDimEpoch] = useState(0);
+  useEffect(() => subscribeImageDimensions(() => setDimEpoch((n) => n + 1)), []);
+
+  /** Block thiếu width/height — bổ sung từ warm cache để layout ngay (không is-measuring). */
+  const layoutImages = useMemo(
+    () => images.map((img) => enrichGridImageDims(img)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- dimEpoch bump khi warm đo xong
+    [images, dimEpoch],
+  );
+
   const [internalLightboxIndex, setInternalLightboxIndex] = useState<number | null>(
     null,
   );
@@ -552,7 +575,7 @@ export function ImageGrid({
 
   const lightboxPool = lightboxImagesProp ?? images;
 
-  const layout = resolveAlbumLayout(images, showAllImages, albumLayoutMode);
+  const layout = resolveAlbumLayout(layoutImages, showAllImages, albumLayoutMode);
 
   const renderCell = (
     slotIndex: number,
@@ -566,7 +589,7 @@ export function ImageGrid({
       useTallVariant?: boolean;
     },
   ) => {
-    const image = images[slotIndex];
+    const image = layoutImages[slotIndex] ?? images[slotIndex];
     if (!image) return null;
     const uploadState = uploadBySlot?.get(slotIndex);
     return (
@@ -575,6 +598,7 @@ export function ImageGrid({
         image={image}
         slotIndex={slotIndex}
         isFirstGroup={isFirstGroup}
+        eagerLoad={eagerLoad}
         useButtonCells={useButtonCells}
         isUploading={uploadingSlots?.has(slotIndex) ?? false}
         uploadProgress={uploadProgressBySlot?.get(slotIndex)}
@@ -648,7 +672,7 @@ export function ImageGrid({
     /* Chỉ tách hàng khi mọi ô đã có tỉ lệ thật (block hoặc onLoad). */
     const baseCells = layout.rows.flat();
     const cellsWithAspect = baseCells.map((c) => {
-      const img = images[c.index];
+      const img = layoutImages[c.index];
       const measured = measuredAspectByIndex[c.index];
       if (measured != null && measured > 0) {
         return { ...c, aspect: measured, ready: true };
@@ -704,7 +728,7 @@ export function ImageGrid({
     body = (
       <div className="image-grid image-grid-col image-grid--stack" data-count={total}>
         {layout.cells.map((c: AlbumCell) => {
-          const img = images[c.index];
+          const img = layoutImages[c.index];
           const w = img?.width ?? 0;
           const h = img?.height ?? 0;
           const tallClip =

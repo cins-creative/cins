@@ -24,6 +24,7 @@ import {
   WORLD_JOURNEY_FEED_PREFETCH_REMAINING_POSTS,
   WORLD_JOURNEY_FEED_SCROLL_ROOT_MARGIN,
 } from "@/lib/cins/worldJourneyFeedConstants";
+import { warmFeedMediaUrls } from "@/lib/journey/warm-feed-media";
 import {
   FEED_INLINE_PROMO_INTERVAL,
   FEED_PROMO_CYCLE,
@@ -180,6 +181,11 @@ export function WorldJourneyFeedTimeline({
     () => groupByYearPreserveOrder(milestones),
     [milestones],
   );
+
+  /* Warm cover + album thumbs (+ đo size vào cache) khi có data — trước khi scroll tới. */
+  useEffect(() => {
+    warmFeedMediaUrls(milestones);
+  }, [milestones]);
 
   const promoInsertMap = useMemo(
     () =>
@@ -353,6 +359,7 @@ export function WorldJourneyFeedTimeline({
             entityLens
             analyticsNguon="journey_home"
             viewerProfileId={viewerProfileId}
+            eagerMedia
             inlineExpand={inlineExpand}
             onTogglePost={handleToggleContent}
             onOpenComments={handleOpenComments}

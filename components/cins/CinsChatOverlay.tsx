@@ -33,6 +33,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -1275,11 +1276,12 @@ export function CinsChatOverlay({
   const scrollMessagesToBottom = useCallback((behavior: ScrollBehavior = "auto") => {
     const el = messagesContainerRef.current;
     if (!el) return;
-    if (behavior === "auto") {
-      el.scrollTop = el.scrollHeight;
+    const top = el.scrollHeight;
+    if (behavior === "smooth") {
+      el.scrollTo({ top, behavior: "smooth" });
       return;
     }
-    messagesEndRef.current?.scrollIntoView({ behavior });
+    el.scrollTop = top;
   }, []);
   const scrollMessagesToBottomRef = useRef(scrollMessagesToBottom);
   scrollMessagesToBottomRef.current = scrollMessagesToBottom;
@@ -2733,9 +2735,32 @@ export function CinsChatOverlay({
     if (!el || !roomId || loadingOlderRoomId || !hasMoreByRoomRef.current.get(roomId)) {
       return;
     }
+    const gap = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (shouldScrollToBottomRef.current) {
+      if (gap <= 80) return;
+      shouldScrollToBottomRef.current = false;
+    }
     if (el.scrollTop > 72) return;
     void loadOlderMessages(roomId);
   }, [loadOlderMessages, loadingOlderRoomId]);
+
+  useLayoutEffect(() => {
+    if (!shouldScrollToBottomRef.current) return;
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [active?.roomId, active?.messages.length, active?.messages.at(-1)?.id]);
+
+  useEffect(() => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    const snapIfPinned = () => {
+      if (!shouldScrollToBottomRef.current) return;
+      el.scrollTop = el.scrollHeight;
+    };
+    el.addEventListener("load", snapIfPinned, true);
+    return () => el.removeEventListener("load", snapIfPinned, true);
+  }, [active?.roomId]);
 
   useEffect(() => {
     const roomId = active?.roomId;

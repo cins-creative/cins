@@ -186,6 +186,8 @@ type Props = {
   feedCompactMedia?: boolean;
   /** Permalink — dùng cho ảnh/video trên feed (không unfold inline). */
   readMoreHref?: string | null;
+  /** Feed trang chủ — prefetch ảnh trước viewport. */
+  eagerMedia?: boolean;
   /** Trang org đang mở — ẩn bar xác thực nếu attr trùng org này. */
   hostOrgSlug?: string | null;
   hostOrgName?: string | null;
@@ -468,6 +470,7 @@ export function JourneyMilestoneCard({
   inlineExpand,
   feedCompactMedia = false,
   readMoreHref = null,
+  eagerMedia = false,
   hostOrgSlug = null,
   hostOrgName = null,
   showJourneyPin = false,
@@ -2599,6 +2602,7 @@ export function JourneyMilestoneCard({
               contentKind={cardContentKind}
               compactMediaPreview={useFeedCompactMedia}
               onOpenStreamVideo={onOpenStreamVideo}
+              eagerMedia={eagerMedia}
               readMoreHref={cardReadMoreHref}
               hasLinkedPost={Boolean(postSlug)}
               captionExpandMode={

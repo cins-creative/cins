@@ -13,6 +13,11 @@ type Props = {
   sizes?: string;
   /** Above-the-fold — eager + fetchPriority high. */
   priority?: boolean;
+  /**
+   * Override `loading`. Mặc định lazy; feed World Journey truyền `eager`
+   * để bắt đầu tải trước khi ảnh vào viewport (tránh giật khi scroll).
+   */
+  loading?: "lazy" | "eager";
   className?: string;
   /** Điểm neo thumbnail — `object-position`. */
   objectPosition?: string;
@@ -32,6 +37,7 @@ function imagedeliveryPublicUrl(url: string): string {
 
 /**
  * `<img>` chuẩn Journey — lazy mặc định, dimensions chống CLS, srcset CF.
+ * Feed trang chủ: truyền `loading="eager"` (hoặc `priority`) để prefetch trước viewport.
  */
 export function JourneyCoverImage({
   src,
@@ -41,6 +47,7 @@ export function JourneyCoverImage({
   srcSet,
   sizes,
   priority = false,
+  loading,
   className,
   objectPosition,
   zoom,
@@ -60,6 +67,8 @@ export function JourneyCoverImage({
     return next;
   })();
 
+  const resolvedLoading = priority ? "eager" : (loading ?? "lazy");
+
   return (
     /* eslint-disable-next-line @next/next/no-img-element */
     <img
@@ -69,9 +78,9 @@ export function JourneyCoverImage({
       width={width}
       height={height}
       alt={alt}
-      loading={priority ? "eager" : "lazy"}
+      loading={resolvedLoading}
       fetchPriority={priority ? "high" : undefined}
-      decoding={priority ? "sync" : "async"}
+      decoding={priority || resolvedLoading === "eager" ? "async" : "async"}
       className={className}
       style={style}
       onError={(event) => {

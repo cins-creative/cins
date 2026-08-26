@@ -41,6 +41,8 @@ type Props = {
   noiDungBlocks?: Block[] | null;
   /** Thay phát inline — vd. mở Reels trên World Journey. */
   onPlay?: () => void;
+  /** Feed trang chủ — poster eager (không đợi lazy sát frame). */
+  eagerPoster?: boolean;
 };
 
 export function resolveVideoPoster(
@@ -66,6 +68,7 @@ export function JourneyCardVideo({
   preview,
   noiDungBlocks,
   onPlay,
+  eagerPoster = false,
 }: Props) {
   const [playing, setPlaying] = useState(false);
   const [iframeReady, setIframeReady] = useState(false);
@@ -149,6 +152,7 @@ export function JourneyCardVideo({
           height={posterHeight}
           alt=""
           objectPosition={preview?.objectPosition}
+          loading={eagerPoster ? "eager" : undefined}
         />
         {showLoading ? (
           <span className="jcard-video-play jcard-video-play--loading" aria-hidden>
@@ -240,6 +244,7 @@ export function JourneyCardVideo({
             height={posterHeight}
             alt=""
             objectPosition={preview?.objectPosition}
+            loading={eagerPoster ? "eager" : undefined}
           />
           <span className="jcard-video-play" aria-hidden>
             <Play size={28} strokeWidth={2} fill="currentColor" />

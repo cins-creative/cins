@@ -52,6 +52,8 @@ type Props = {
   analyticsNguon?: NguonSuKien;
   /** Feed tổng hợp — ảnh/video preview gọn, bấm → permalink (không full grid). */
   feedCompactMedia?: boolean;
+  /** Feed trang chủ — prefetch ảnh media trước viewport. */
+  eagerMedia?: boolean;
   /** Permalink bài — dùng khi `feedCompactMedia`. */
   milestonePermalink?(milestone: MilestoneItem): string | null;
   /** Trang org đang mở — forward sang card để ẩn bar xác thực trùng org. */
@@ -88,6 +90,7 @@ export function JourneyYearBlock({
   entityLens = false,
   analyticsNguon,
   feedCompactMedia = false,
+  eagerMedia = false,
   milestonePermalink,
   hostOrgSlug = null,
   hostOrgName = null,
@@ -131,6 +134,7 @@ export function JourneyYearBlock({
               hostOrgSlug={hostOrgSlug}
               hostOrgName={hostOrgName}
               showJourneyPin={showJourneyPin}
+              eagerMedia={eagerMedia}
               readMoreHref={
                 feedCompactMedia && milestonePermalink
                   ? worldJourneyMilestoneCardKind(m) === "photo"

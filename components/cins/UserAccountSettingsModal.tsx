@@ -32,6 +32,7 @@ import { LayoutThumbIcon } from "@/components/editor/LayoutThumbIcon";
 import { ShopDonDetailModal } from "@/components/shop/ShopDonDetailModal";
 import { formatCurrency, formatDate, formatMoney } from "@/lib/format";
 import { useLocale } from "@/lib/locale/context";
+import { shopTermsForLocale } from "@/lib/shop/terms";
 import {
   shopTrangThaiDonLabel,
   type ShopDonHang,
@@ -1155,15 +1156,16 @@ function PhiSanPanel({ dangApDung, thongBao, chinhSachHref }: PhiSanPanelProps) 
 
 function BanHangSettingsSection({ titleId }: { titleId: string }) {
   const t = useT();
+  const locale = useLocale();
   const router = useRouter();
+  const termsDisplay = shopTermsForLocale(locale);
 
   type BanHangJson = {
     enabled?: boolean;
     shopVisible?: boolean;
     shopReady?: boolean;
     shopSetupHref?: string | null;
-    terms?: { title?: string; body?: string };
-    phiSan?: {
+            phiSan?: {
       dangApDung?: {
         tyLePercent?: number;
         nguongVnd?: number;
@@ -1189,8 +1191,6 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
   const [shopReady, setShopReady] = useState(false);
   const [shopSetupHref, setShopSetupHref] = useState<string | null>(null);
   const [acceptTerms, setAcceptTerms] = useState(false);
-  const [termsBody, setTermsBody] = useState("");
-  const [termsTitle, setTermsTitle] = useState("");
   const [phiSan, setPhiSan] = useState<BanHangJson["phiSan"] | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -1220,8 +1220,6 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
         }
         applyBanHangJson(json);
         setAcceptTerms(json?.enabled === true);
-        if (json?.terms?.title) setTermsTitle(json.terms.title);
-        if (json?.terms?.body) setTermsBody(json.terms.body);
         if (json?.phiSan) setPhiSan(json.phiSan);
       } catch {
         if (!cancelled) setErr(t("account.settings.selling.loadError"));
@@ -1371,9 +1369,9 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
 
           <details open style={{ marginBottom: 16 }}>
             <summary style={{ cursor: "pointer", fontWeight: 600 }}>
-              {termsTitle || t("account.settings.selling.termsTitle")}
+              {termsDisplay.title}
             </summary>
-            <TermsBody body={termsBody} />
+            <TermsBody body={termsDisplay.body} />
           </details>
 
           {phiSan?.dangApDung ? (
