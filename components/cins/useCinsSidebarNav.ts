@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 const MOBILE_MQ = "(max-width: 960px)";
 const SHOW_AT_TOP_PX = 8;
-const HIDE_DELTA_PX = 10;
+const HIDE_DELTA_PX = 14;
 
 function isDesktopSidebarRail(): boolean {
   return window.matchMedia("(min-width: 961px)").matches;

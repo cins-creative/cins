@@ -44,6 +44,13 @@
 
 ## LOG — quyết định đã chốt
 
+### Shell mobile — `#app-topbar` dính đáy (2026-08-26)
+
+- **Chốt:** viewport ≤960px, `#app-topbar` / `.topbar-inner` **cố định đáy** (`position: fixed; bottom: 0` + `env(safe-area-inset-bottom)`). Desktop ≥961px giữ sticky top.
+- **Ẩn khi cuộn xuống** vẫn còn; transform `translateY(100%)` (xuống dưới), không kéo sticky-top của trang (`--cins-sticky-follow: 0`). Offset `top` của chrome trang dùng `--site-nav-sticky-top` (0 trên mobile).
+- **Layout chrome 5 ô** (không phải 5-tab destination của PLAN_responsive_mobile §2.1): burger · nhóm giỏ/shop · **chat FAB nổi giữa** · thông báo · tài khoản. Nhóm giỏ/shop **ẩn** khi giỏ trống và chưa mở shop. Page-slot (admin/shop dash) nổi phía trên bar.
+- *Hệ quả:* `cins-app-nav.css` · `CinsChatDock` portal FAB vào `#app-topbar-chat-slot` · `use-chrome-stuck.ts` · padding `--cins-botbar-h` trên `.cins-main`. Guest-home / chat page / Reels ẩn bar như cũ.
+
 ### L35c — Tab stale hard reload kiểu Facebook (2026-08-25)
 
 - **Chốt:** tab nền ≥ **90 phút** rồi `visibility` → visible → `location.reload()` một lần (cùng URL). Cooldown 60s chống loop. Skip nếu đang gọi (`data-cins-call-active`), compose chat bẩn (`data-cins-compose-dirty`), hoặc đang focus form có nội dung.
@@ -95,6 +102,12 @@
 - **Chốt:** thêm `POST /api/journey/milestone/[milestoneId]/comments` (JSON + Bearer) cho app native — insert `social_binh_luan`, engagement + notify giống web. Body `{ noi_dung }`. Không đổi schema.
 - **Fallback block:** app dùng `expo-web-browser` (không WebView toàn màn) cho `embed`/`table` — khớp ngoại lệ M2.
 - *Hệ quả:* deploy web trước khi comment trên prod; app doc `cins_app_main/docs/POST.md`.
+
+### App RN — `POST /api/posts/publish` bọc `publishPost` (2026-08-26)
+
+- **Vấn đề:** tạo bài web đi server action `publishPost` — native không gọi được Next action, chỉ `/api/*` + Bearer.
+- **Chốt:** route JSON `POST /api/posts/publish` gọi lại `publishPost` (không fork logic, không đổi schema). Mặc định `visibility=public`, `loaiMoc=ca_nhan`. Editor TipTap / Stream TUS / phrase cột mốc đầy đủ **chưa** port — app dùng màn compose tối thiểu (chữ · album ảnh CF · URL embed).
+- *Hệ quả:* deploy web trước khi đăng bài trên prod; app `docs/FEED.md` §Composer.
 
 ### App push A2 — nối 4 nguồn (2026-08-23)
 

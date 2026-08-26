@@ -5,9 +5,8 @@ import { useEffect, useRef, type RefObject } from "react";
 const MOBILE_MQ = "(max-width: 960px)";
 
 /**
- * Đánh `.is-chrome-stuck` khi sticky chrome đã chạm mép dưới topbar.
- * Mobile: chỉ lúc đó mới được `transform` follow topbar ẩn — tránh kéo
- * thanh lên khi còn giữa trang (dưới hero / profile).
+ * Đánh `.is-chrome-stuck` khi sticky chrome đã chạm mép trên viewport.
+ * Mobile: topbar nằm đáy — không trừ chiều cao nav khi tính stuck.
  */
 export function useChromeStuck(
   ref: RefObject<HTMLElement | null>,
@@ -28,7 +27,10 @@ export function useChromeStuck(
         el.classList.remove("is-chrome-stuck");
         return;
       }
-      const navH = document.getElementById("app-topbar")?.offsetHeight ?? 64;
+      /* Mobile: app topbar dính đáy — chrome trang dính mép trên viewport. */
+      const navH = mq.matches
+        ? 0
+        : (document.getElementById("app-topbar")?.offsetHeight ?? 64);
       const extra = extraRef.current?.() ?? 0;
       el.classList.toggle(
         "is-chrome-stuck",

@@ -6,7 +6,7 @@
 
 .sw-page--can-edit .sw-admin-toolbar-host {
   position: sticky;
-  top: var(--site-nav-height, 64px);
+  top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
   z-index: 55;
   background: var(--bg-page);
 }

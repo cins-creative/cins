@@ -33,6 +33,8 @@ import {
   type VideoPrepareResponse,
 } from "@/lib/video/upload-tus";
 import { ShopKhoLoaiTaxonomy } from "@/components/shop/ShopKhoLoaiTaxonomy";
+import { formatMoney } from "@/lib/format";
+import { useLocale } from "@/lib/locale/context";
 import type { ShopNhom } from "@/lib/shop/types";
 import {
   SHOP_NHOM_ANH_PHU_MAX,
@@ -42,6 +44,7 @@ import {
 import {
   labelNhomGioiThieuCanhBao,
   nhomGioiThieuCanhBao,
+  type NhomGiaTuDen,
 } from "@/lib/shop/gioi-thieu";
 
 import { ShopNhomMoTaField } from "./ShopNhomMoTaField";
@@ -88,6 +91,11 @@ type Props = {
   onError: (msg: string | null) => void;
   /** Tiếp cận theo loại trục 1 — chỉ hiện khi luotThay > 0. */
   tiepCanByNhomId?: Record<string, { luotThay: number; nguoiThay: number }>;
+  /**
+   * Min/max giá gốc mẫu theo loại. `null` = đã thấy mẫu nhưng chưa có giá.
+   * Thiếu key = chưa biết (list kho cắt 200) — không cảnh báo giá.
+   */
+  giaHubByNhomId?: Record<string, NhomGiaTuDen | null>;
 };
 
 export function ShopKhoLoaiHub({
@@ -100,7 +108,9 @@ export function ShopKhoLoaiHub({
   onNhomsChanged,
   onError,
   tiepCanByNhomId = {},
+  giaHubByNhomId = {},
 }: Props) {
+  const locale = useLocale();
   const loaiList = nhoms.filter((n) => n.truc === 1);
   const featureCount = loaiList.filter((n) => n.noiBat).length;
   const [creating, setCreating] = useState(false);
@@ -429,10 +439,18 @@ export function ShopKhoLoaiHub({
         {loaiList.map((n) => {
           const featBusy = featureBusyId === n.id;
           const capped = !n.noiBat && featureCount >= SHOP_NHOM_FEATURE_MAX;
-          const canhBao = nhomGioiThieuCanhBao(n);
+          const giaHub = giaHubByNhomId[n.id];
+          const canhBao = nhomGioiThieuCanhBao(
+            n,
+            giaHub !== undefined ? { giaTu: giaHub?.tu ?? null } : undefined,
+          );
           const warnTitle =
             canhBao.length > 0
               ? canhBao.map(labelNhomGioiThieuCanhBao).join(" · ")
+              : null;
+          const giaLabel =
+            giaHub != null
+              ? `Từ ${formatMoney(giaHub.tu, locale)}`
               : null;
           return (
             <li key={n.id}>
@@ -466,6 +484,9 @@ export function ShopKhoLoaiHub({
                   <span className="shop-kho-loai-card-body">
                     <strong>{n.nhan}</strong>
                     <span>{mauCountByNhomId[n.id] ?? 0} mẫu</span>
+                    {giaLabel ? (
+                      <span className="shop-kho-loai-card-gia">{giaLabel}</span>
+                    ) : null}
                     {(tiepCanByNhomId[n.id]?.luotThay ?? 0) > 0 ? (
                       <span className="shop-kho-loai-reach">
                         {tiepCanByNhomId[n.id]!.luotThay.toLocaleString("vi-VN")}{" "}

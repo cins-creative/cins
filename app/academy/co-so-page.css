@@ -25,7 +25,7 @@
 
 .tdh-page--cso .school-side.cso-ss-side {
   position: sticky;
-  top: var(--site-nav-height, 64px);
+  top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
   align-self: start;
   display: flex;
   flex-direction: column;
@@ -1131,7 +1131,7 @@
   }
 
   .tdh-page--cso .tdh-v6-shell--mobile-tabs .tdh-v6-tabs-bar {
-    top: var(--site-nav-height, 64px);
+    top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
     z-index: 40;
     margin-top: 0;
     margin-bottom: 0;
@@ -1301,7 +1301,7 @@
   .tdh-page--cso .tdh-v6-shell--mobile-tabs #tdh-panel-bai-dang .org-baidang-tlb {
     margin-top: 0;
     top: calc(
-      var(--site-nav-height, 64px) + var(--tdh-v6-tabs-bar-h, 50px)
+      var(--site-nav-sticky-top, var(--site-nav-height, 64px)) + var(--tdh-v6-tabs-bar-h, 50px)
     );
   }
 

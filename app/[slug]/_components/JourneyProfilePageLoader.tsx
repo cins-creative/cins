@@ -51,7 +51,10 @@ export async function JourneyProfilePageLoader({
 
   const [{ owner, error }, session] = await Promise.all([
     fetchOwnerBySlug(slug),
-    getCurrentSessionAndProfile(),
+    getCurrentSessionAndProfile().catch((err) => {
+      console.error("[journey-profile] session", err);
+      return null;
+    }),
   ]);
 
   if (error || !owner) {
@@ -98,11 +101,16 @@ export async function JourneyProfilePageLoader({
 
   const initialKetBanStatusPromise: Promise<KetBanStatusSummary | null> =
     viewerProfileId && !manageAsOwner
-      ? getQuanHeDetail(viewerProfileId, owner.id).then((detail) => ({
-          trang_thai: detail.trangThai,
-          ket_ban_id: detail.ketBanId,
-          chan_boi_toi: detail.blockedByMe,
-        }))
+      ? getQuanHeDetail(viewerProfileId, owner.id)
+          .then((detail) => ({
+            trang_thai: detail.trangThai,
+            ket_ban_id: detail.ketBanId,
+            chan_boi_toi: detail.blockedByMe,
+          }))
+          .catch((err) => {
+            console.error("[journey-profile] ket-ban", err);
+            return null;
+          })
       : Promise.resolve(null);
 
   const emailPublic = owner.visibility_email === "public";

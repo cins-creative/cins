@@ -5,6 +5,8 @@
 .cins-shell--guest-home {
   --gh-aside-w: 392px;
   --site-nav-height: 0px;
+  --site-nav-sticky-top: 0px;
+  --cins-botbar-h: 0px;
   --cins-sidebar-collapsed: 0px;
 }
 
@@ -1654,7 +1656,7 @@
 .gh-aside {
   position: fixed;
   right: 0;
-  top: var(--site-nav-height, 64px);
+  top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
   /* Dưới topbar (200), trên nội dung cuộn */
   z-index: 40;
   box-sizing: border-box;

@@ -862,7 +862,7 @@
 
 .cd-list-toolbar {
   position: sticky;
-  top: var(--site-nav-height, 64px);
+  top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
   z-index: 30;
   width: 100%;
   margin: 0 0 22px;
@@ -2006,7 +2006,7 @@
 }
 
 .cd-v4-event-rail {
-  --cd-v4-id-sticky-top: var(--site-nav-height, 64px);
+  --cd-v4-id-sticky-top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
   position: sticky;
   top: calc(
     var(--cd-v4-id-sticky-top) + var(--cd-v4-page-pad-block, 28px)
@@ -2798,7 +2798,7 @@
 }
 
 .cd-v4-id {
-  --cd-v4-id-sticky-top: var(--site-nav-height, 64px);
+  --cd-v4-id-sticky-top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
   position: sticky;
   top: var(--cd-v4-id-sticky-top);
   align-self: stretch;

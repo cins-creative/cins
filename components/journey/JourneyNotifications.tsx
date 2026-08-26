@@ -181,6 +181,20 @@ function coAuthorReviewPostHref(review: {
 
 const EMPTY_HISTORY_FEED = EMPTY_NOTIFICATION_HISTORY_FEED;
 
+function pagingFromCachedHistory(feed: NotificationFeed | null): {
+  entries: HistoryTimelineEntry[];
+  hasMore: boolean;
+  nextOffset: number;
+} {
+  if (!feed) return { entries: [], hasMore: false, nextOffset: 0 };
+  const entries = buildHistoryTimeline(feed);
+  return {
+    entries,
+    hasMore: entries.length >= NOTIFICATION_LIST_PAGE_SIZE,
+    nextOffset: entries.length,
+  };
+}
+
 function formatNotifyTime(iso?: string | null): string {
   if (!iso) return "";
   const date = new Date(iso);
@@ -696,6 +710,7 @@ export function JourneyNotifications({
 }: Props) {
   const cachedUnread = readUnreadNotificationsCache(viewerProfileId);
   const cachedHistory = readHistoryNotificationsCache(viewerProfileId);
+  const cachedHistoryPaging = pagingFromCachedHistory(cachedHistory);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<PendingFollowRequest | null>(null);
   const [feed, setFeed] = useState<NotificationFeed>(() =>
@@ -713,10 +728,14 @@ export function JourneyNotifications({
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [loadingMoreHistory, setLoadingMoreHistory] = useState(false);
   const [historyEntries, setHistoryEntries] = useState<HistoryTimelineEntry[]>(
-    () => (cachedHistory ? buildHistoryTimeline(cachedHistory) : []),
+    () => cachedHistoryPaging.entries,
   );
-  const [historyHasMore, setHistoryHasMore] = useState(false);
-  const [historyNextOffset, setHistoryNextOffset] = useState(0);
+  const [historyHasMore, setHistoryHasMore] = useState(
+    () => cachedHistoryPaging.hasMore,
+  );
+  const [historyNextOffset, setHistoryNextOffset] = useState(
+    () => cachedHistoryPaging.nextOffset,
+  );
   const [visibleInfoCount, setVisibleInfoCount] = useState(NOTIFICATION_LIST_PAGE_SIZE);
   const [unreadLoaded, setUnreadLoaded] = useState(() => Boolean(cachedUnread));
   const [error, setError] = useState<string | null>(null);
@@ -735,8 +754,10 @@ export function JourneyNotifications({
   const listRef = useRef<HTMLUListElement>(null);
   const sentinelRef = useRef<HTMLLIElement>(null);
   const loadingMoreRef = useRef(false);
-  const historyNextOffsetRef = useRef(0);
-  const historyHasMoreRef = useRef(false);
+  const historyNextOffsetRef = useRef(cachedHistoryPaging.nextOffset);
+  const historyHasMoreRef = useRef(cachedHistoryPaging.hasMore);
+  const hasMoreInfoRef = useRef(false);
+  const unreadInfoLenRef = useRef(0);
 
   useEffect(() => {
     setPortalReady(true);
@@ -847,6 +868,36 @@ export function JourneyNotifications({
     [viewerProfileId],
   );
 
+  const applyHistoryPage = useCallback(
+    (
+      parsed: {
+        feed: NotificationFeed;
+        hasMore: boolean;
+        nextOffset: number;
+      },
+      reset: boolean,
+    ) => {
+      const timeline = buildHistoryTimeline(parsed.feed);
+      if (!reset && timeline.length === 0) {
+        setHistoryHasMore(false);
+        historyHasMoreRef.current = false;
+        return;
+      }
+      if (reset) {
+        setHistoryFeed(parsed.feed);
+        setHistoryEntries(timeline);
+        writeHistoryNotificationsCache(viewerProfileId, parsed.feed);
+      } else {
+        setHistoryEntries((prev) => appendHistoryTimeline(prev, timeline));
+      }
+      setHistoryHasMore(parsed.hasMore);
+      setHistoryNextOffset(parsed.nextOffset);
+      historyHasMoreRef.current = parsed.hasMore;
+      historyNextOffsetRef.current = parsed.nextOffset;
+    },
+    [viewerProfileId],
+  );
+
   const prefetchUnreadFeed = useCallback(async () => {
     const res = await fetch("/api/notifications?filter=unread", {
       cache: "no-store",
@@ -869,11 +920,9 @@ export function JourneyNotifications({
     if (!res.ok) return null;
     const parsed = parseNotificationFeedPage(json);
     if (!parsed) return null;
-    writeHistoryNotificationsCache(viewerProfileId, parsed.feed);
-    setHistoryFeed(parsed.feed);
-    setHistoryEntries(buildHistoryTimeline(parsed.feed));
+    applyHistoryPage(parsed, true);
     return parsed.feed;
-  }, [viewerProfileId]);
+  }, [applyHistoryPage]);
 
   const fetchUnreadFeed = useCallback(async () => {
     const res = await fetch("/api/notifications?filter=unread", {
@@ -913,16 +962,16 @@ export function JourneyNotifications({
       if (next) {
         applyFeed(next);
         setHistoryFeed(null);
-        void fetch("/api/notifications?filter=history", { cache: "no-store" })
+        void fetch(
+          `/api/notifications?filter=history&offset=0&limit=${NOTIFICATION_LIST_PAGE_SIZE}`,
+          { cache: "no-store" },
+        )
           .then((historyRes) =>
             historyRes.ok ? historyRes.json() : null,
           )
           .then((historyJson) => {
-            if (historyJson) {
-              const history = parseFeedPayload(historyJson) ?? EMPTY_HISTORY_FEED;
-              setHistoryFeed(history);
-              writeHistoryNotificationsCache(viewerProfileId, history);
-            }
+            const parsed = parseNotificationFeedPage(historyJson);
+            if (parsed) applyHistoryPage(parsed, true);
           })
           .catch(() => {
             /* lịch sử load lazy khi mở menu */
@@ -931,7 +980,7 @@ export function JourneyNotifications({
     } catch {
       setError("Không cập nhật được thông báo.");
     }
-  }, [applyFeed, viewerProfileId]);
+  }, [applyFeed, applyHistoryPage]);
 
   const unreadCount = feed.unreadCount;
   const pendingActionCount = useMemo(
@@ -985,23 +1034,12 @@ export function JourneyNotifications({
         }
         const parsed = parseNotificationFeedPage(json);
         if (!parsed) return;
-        const timeline = buildHistoryTimeline(parsed.feed);
-        if (reset) {
-          setHistoryFeed(parsed.feed);
-          setHistoryEntries(timeline);
-          writeHistoryNotificationsCache(viewerProfileId, parsed.feed);
-        } else {
-          setHistoryEntries((prev) => appendHistoryTimeline(prev, timeline));
-        }
-        setHistoryHasMore(parsed.hasMore);
-        setHistoryNextOffset(parsed.nextOffset);
-        historyHasMoreRef.current = parsed.hasMore;
-        historyNextOffsetRef.current = parsed.nextOffset;
+        applyHistoryPage(parsed, reset);
       } finally {
         if (reset && !silent) setLoadingHistory(false);
       }
     },
-    [viewerProfileId],
+    [applyHistoryPage],
   );
 
   const loadMoreHistory = useCallback(async () => {
@@ -1331,6 +1369,18 @@ export function JourneyNotifications({
     unreadLoaded && pendingActionCount > displayedPendingCount;
 
   const canLoadMoreList = hasMoreInfo || historyHasMore;
+  hasMoreInfoRef.current = hasMoreInfo;
+  unreadInfoLenRef.current = unreadInfoTimeline.length;
+
+  const requestMoreList = useCallback(() => {
+    if (hasMoreInfoRef.current) {
+      setVisibleInfoCount((count) =>
+        Math.min(count + NOTIFICATION_LIST_PAGE_SIZE, unreadInfoLenRef.current),
+      );
+      return;
+    }
+    void loadMoreHistory();
+  }, [loadMoreHistory]);
 
   useEffect(() => {
     if (!open || !canLoadMoreList) return;
@@ -1341,26 +1391,30 @@ export function JourneyNotifications({
     const observer = new IntersectionObserver(
       (entries) => {
         if (!entries.some((entry) => entry.isIntersecting)) return;
-        if (hasMoreInfo) {
-          setVisibleInfoCount((count) =>
-            Math.min(count + NOTIFICATION_LIST_PAGE_SIZE, unreadInfoTimeline.length),
-          );
-          return;
-        }
-        void loadMoreHistory();
+        requestMoreList();
       },
-      { root, rootMargin: "48px 0px", threshold: 0 },
+      { root, rootMargin: "120px 0px", threshold: 0 },
     );
     observer.observe(node);
     return () => observer.disconnect();
+  }, [open, canLoadMoreList, requestMoreList, listCount, loadingHistory]);
+
+  /* Overlay 90vh: trang đầu thường chưa đầy khung → sentinel luôn trong view
+     nhưng IO không re-fire. Nạp tiếp đến khi list cuộn được hoặc hết trang. */
+  useLayoutEffect(() => {
+    if (!open || !canLoadMoreList || loadingMoreHistory || loadingHistory) return;
+    const root = listRef.current;
+    if (!root) return;
+    if (root.scrollHeight > root.clientHeight + 24) return;
+    requestMoreList();
   }, [
     open,
     canLoadMoreList,
-    hasMoreInfo,
-    loadMoreHistory,
-    unreadInfoTimeline.length,
-    filteredHistoryTimeline.length,
+    loadingMoreHistory,
+    loadingHistory,
+    listCount,
     visibleInfoCount,
+    requestMoreList,
   ]);
 
   const title =
@@ -1978,7 +2032,7 @@ function Avatar({
     <span className={large ? "j-notify-avatar is-large" : "j-notify-avatar"}>
       {request.avatarUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={request.avatarUrl} alt="" />
+        <img src={request.avatarUrl} alt="" loading="lazy" decoding="async" />
       ) : (
         <span aria-hidden>{initial}</span>
       )}

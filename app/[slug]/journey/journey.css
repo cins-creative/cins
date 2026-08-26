@@ -102,7 +102,7 @@
  * ──────────────────────────────────────────────────────────────── */
 .j-sidebar {
   position: sticky;
-  top: var(--j-topbar-h);
+  top: var(--site-nav-sticky-top, var(--j-topbar-h));
   padding: 16px 0 32px;
   max-height: calc(100vh - var(--j-topbar-h));
   overflow-x: clip;
@@ -3581,7 +3581,7 @@ button.j-main-gallery-info-title {
  * Frosted glass + 2 streak: `app/cins-frost-sticky.css` (đồng bộ listing/hub). */
 .j-tlb {
   position: sticky;
-  top: var(--j-topbar-h);
+  top: var(--site-nav-sticky-top, var(--j-topbar-h));
   z-index: 120;
   pointer-events: auto;
   background: transparent;
@@ -8367,7 +8367,7 @@ button.j-m-card-hit {
  * ──────────────────────────────────────────────────────────────── */
 .j-gallery {
   position: sticky;
-  top: var(--j-topbar-h);
+  top: var(--site-nav-sticky-top, var(--j-topbar-h));
   min-width: 0;
   padding: 16px 0 32px;
   max-height: calc(100vh - var(--j-topbar-h));

@@ -23,7 +23,9 @@ export function JourneyShopSectionHead({ children }: { children: ReactNode }) {
         el.classList.remove("is-chrome-stuck");
         return;
       }
-      const navH = document.getElementById("app-topbar")?.offsetHeight ?? 64;
+      const navH = mq.matches
+        ? 0
+        : (document.getElementById("app-topbar")?.offsetHeight ?? 64);
       el.classList.toggle(
         "is-chrome-stuck",
         el.getBoundingClientRect().top <= navH + 2,

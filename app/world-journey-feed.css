@@ -93,7 +93,7 @@
 /* ── Feed header: sticky glass như `.j-tlb` (cins-frost-sticky.css) ── */
 .wj-feed-header {
   position: sticky;
-  top: var(--wj-sticky-top, var(--site-nav-height, 64px));
+  top: var(--site-nav-sticky-top, var(--wj-sticky-top, var(--site-nav-height, 64px)));
   z-index: 40;
   display: flex;
   align-items: stretch;
@@ -624,7 +624,7 @@
 .wj-aside-right {
   position: sticky;
   /* Header filter chỉ trong cột feed — aside sticky dưới topbar. */
-  top: var(--wj-sticky-top, var(--j-topbar-h, 64px));
+  top: var(--site-nav-sticky-top, var(--wj-sticky-top, var(--j-topbar-h, 64px)));
   align-self: start;
   display: flex;
   flex-direction: column;
@@ -3272,7 +3272,7 @@
 /* ── Guest-page sidebars (cins-trang-khach.html) ───────────── */
 .wj-guest-aside {
   position: sticky;
-  top: var(--wj-sticky-top);
+  top: var(--site-nav-sticky-top, var(--wj-sticky-top));
   align-self: start;
   display: flex;
   flex-direction: column;
@@ -4062,7 +4062,7 @@
     flex-direction: column;
     gap: 16px;
     position: fixed;
-    top: var(--site-nav-height, 64px);
+    top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
     right: 0;
     bottom: 0;
     left: auto;
@@ -4179,7 +4179,7 @@
     flex-direction: column;
     gap: 10px;
     position: fixed;
-    top: var(--site-nav-height, 64px);
+    top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
     left: 0;
     right: auto;
     bottom: 0;
@@ -4419,6 +4419,7 @@
  * (`cins-home-feed-root`), selector con trực tiếp không khớp → player cao 0px. */
 body:has(.world-journey-home.view-video) .cins-shell,
 body:has(.world-journey-home.view-video) .cins-shell-column {
+  --cins-botbar-h: 0px;
   min-height: 100dvh;
   height: 100dvh;
   max-height: 100dvh;
@@ -5476,7 +5477,7 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 .world-journey-home .ha-col {
   gap: 14px;
   position: sticky;
-  top: var(--wj-sticky-top);
+  top: var(--site-nav-sticky-top, var(--wj-sticky-top));
   align-self: start;
   min-width: 0;
   width: 100%;
@@ -5500,7 +5501,7 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
     width: 100%;
     height: calc(100dvh - var(--site-nav-height, 64px));
     max-height: none;
-    top: var(--site-nav-height, 64px);
+    top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
     padding-top: 0;
     padding-bottom: 0;
     z-index: calc(var(--cins-app-topbar-z, 200) + 20);
@@ -5512,7 +5513,7 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   .world-journey-home .wj-shell[data-open-aside="right"] > .ha-col.wj-guest-aside--right {
     display: flex;
     position: fixed;
-    top: var(--site-nav-height, 64px);
+    top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
     right: 0;
     bottom: 0;
     left: auto;
@@ -5535,7 +5536,7 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
     width: 100%;
     height: calc(100dvh - var(--site-nav-height, 64px));
     max-height: none;
-    top: var(--site-nav-height, 64px);
+    top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
     padding-top: 0;
     padding-bottom: 0;
     z-index: calc(var(--cins-app-topbar-z, 200) + 20);
@@ -5547,7 +5548,7 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   .world-journey-home .wj-shell[data-open-aside="left"] > .ha-col.wj-guest-aside--left {
     display: flex;
     position: fixed;
-    top: var(--site-nav-height, 64px);
+    top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
     left: 0;
     right: auto;
     bottom: 0;
@@ -8420,7 +8421,7 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
 /* Sticky bar full-bleed trên nền xám; inner card căn như .wj-shell (1360 / pad 16). */
 .ha-edit-bar {
   position: sticky;
-  top: var(--wj-sticky-top, var(--j-topbar-h, 64px));
+  top: var(--site-nav-sticky-top, var(--wj-sticky-top, var(--j-topbar-h, 64px)));
   /* Trên drawer cột L/R (z=90) và feed header khi mở drawer (z=100). */
   z-index: 110;
   margin: 0;

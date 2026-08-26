@@ -2074,7 +2074,7 @@
 
   /* Content tabs — đồng bộ visual desktop (atelier underline), chỉ thêm scroll ngang */
   .tdh-page--studio .tdh-v6-shell--studio-sticky .tdh-v6-center > .tdh-v6-tabs-bar {
-    top: var(--site-nav-height, 64px);
+    top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
     z-index: 40;
     height: var(--tdh-v6-tabs-bar-h);
     min-height: var(--tdh-v6-tabs-bar-h);
@@ -2151,7 +2151,7 @@
   .tdh-page--studio .tdh-v6-shell--studio-sticky #cso-panel-bai-dang .org-baidang-tlb,
   .tdh-page--studio .tdh-v6-shell--studio-sticky #cso-panel-showcase .org-baidang-tlb {
     top: calc(
-      var(--site-nav-height, 64px) + var(--tdh-v6-tabs-bar-h, 50px)
+      var(--site-nav-sticky-top, var(--site-nav-height, 64px)) + var(--tdh-v6-tabs-bar-h, 50px)
     );
   }
 

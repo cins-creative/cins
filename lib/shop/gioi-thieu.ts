@@ -252,13 +252,53 @@ export type NhomGioiThieuCanhBao =
   | "chua_co_mau"
   | "chua_co_gia";
 
-export function nhomGioiThieuCanhBao(nhom: ShopNhom): NhomGioiThieuCanhBao[] {
+/** Min/max giá gốc niêm yết theo loại — card hub hiện «Từ X», không dùng `giaMacDinh`. */
+export type NhomGiaTuDen = { tu: number; den: number };
+
+export function minMaxGiaGocTheoNhom(input: {
+  mau: ShopSanPham[];
+  bangGia: ShopBangGia | null;
+}): Record<string, NhomGiaTuDen> {
+  const giaByBt = new Map<string, number>();
+  for (const d of input.bangGia?.dong ?? []) {
+    if (Number.isFinite(d.gia) && d.gia >= 0) {
+      giaByBt.set(d.idBienThe, d.gia);
+    }
+  }
+  const out: Record<string, NhomGiaTuDen> = {};
+  for (const p of input.mau) {
+    const nhomId = p.idNhom?.trim();
+    if (!nhomId) continue;
+    for (const bt of p.bienThe) {
+      const gia = giaByBt.get(bt.id);
+      if (gia == null) continue;
+      const cur = out[nhomId];
+      if (!cur) out[nhomId] = { tu: gia, den: gia };
+      else {
+        if (gia < cur.tu) cur.tu = gia;
+        if (gia > cur.den) cur.den = gia;
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * @param opts.giaTu min giá gốc mẫu đã biết. `null` = đã thấy mẫu nhưng chưa có giá.
+ *   Bỏ `opts` khi chưa biết (list kho cắt 200) — không cảnh báo giá.
+ */
+export function nhomGioiThieuCanhBao(
+  nhom: ShopNhom,
+  opts?: { giaTu?: number | null },
+): NhomGioiThieuCanhBao[] {
   const out: NhomGioiThieuCanhBao[] = [];
   const hasAnh =
     Boolean(nhom.anhId?.trim()) || (nhom.anhPhuIds?.length ?? 0) > 0;
   if (!hasAnh) out.push("thieu_anh");
   if ((nhom.soMau ?? 0) <= 0) out.push("chua_co_mau");
-  if (nhom.giaMacDinh == null) out.push("chua_co_gia");
+  if ((nhom.soMau ?? 0) > 0 && opts && opts.giaTu == null) {
+    out.push("chua_co_gia");
+  }
   return out;
 }
 
@@ -271,7 +311,7 @@ export function labelNhomGioiThieuCanhBao(
     case "chua_co_mau":
       return "Chưa có mẫu";
     case "chua_co_gia":
-      return "Chưa có giá mặc định";
+      return "Chưa có giá";
   }
 }
 

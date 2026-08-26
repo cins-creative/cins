@@ -1,4 +1,4 @@
-﻿.j-shop {
+.j-shop {
   min-width: 0;
   padding: 4px 2px 48px;
   color: var(--ink-body);
@@ -784,7 +784,7 @@
 
 .j-shop-sf-section-head {
   position: sticky;
-  top: var(--j-topbar-h, var(--site-nav-height, 64px));
+  top: var(--site-nav-sticky-top, var(--j-topbar-h, var(--site-nav-height, 64px)));
   z-index: 120;
   display: flex;
   flex-wrap: nowrap;
@@ -3801,7 +3801,7 @@
 .j-shop-loai-gallery-col {
   position: sticky;
   top: calc(
-    var(--j-topbar-h, var(--site-nav-height, 64px)) +
+    var(--site-nav-sticky-top, var(--j-topbar-h, var(--site-nav-height, 64px))) +
       var(--j-ctx-h, 56px) +
       10px
   );

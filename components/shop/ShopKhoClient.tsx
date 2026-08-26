@@ -63,6 +63,7 @@ import {
   danhGiaGioiThieuKiosk,
   doKichThuocAnh,
   mapAnhUrlLoaiHang,
+  minMaxGiaGocTheoNhom,
   nhomGioiThieuCanhBao,
   shopGioiThieuDraftScope,
   thuThapAnhLoaiHang,
@@ -621,6 +622,26 @@ export function ShopKhoClient({
     for (const n of nhoms) map[n.id] = n.soMau ?? 0;
     return map;
   }, [nhoms]);
+
+  /** Min/max giá gốc mẫu theo loại. `null` = đã thấy mẫu nhưng chưa có dòng giá. */
+  const giaHubByNhomId = useMemo(() => {
+    const range = minMaxGiaGocTheoNhom({
+      mau: products,
+      bangGia:
+        (bangGiaId
+          ? priceLists.find((b) => b.id === bangGiaId)
+          : null) ??
+        priceLists[0] ??
+        null,
+    });
+    const map: Record<string, { tu: number; den: number } | null> = {};
+    for (const p of products) {
+      const id = p.idNhom?.trim();
+      if (!id || id in map) continue;
+      map[id] = range[id] ?? null;
+    }
+    return map;
+  }, [products, priceLists, bangGiaId]);
 
   /** Khi mở 1 loại: kéo thêm mẫu theo id_nhom (tránh lệch do list kho limit 200). */
   useEffect(() => {
@@ -2415,15 +2436,16 @@ export function ShopKhoClient({
     recordGioiThieuAfterPublish,
   ]);
 
-  /** Nút «Giới thiệu» chỉ hiện khi đủ ảnh + ≥1 mẫu + giá mặc định. */
+  /** Nút «Giới thiệu» chỉ hiện khi đủ ảnh + ≥1 mẫu + giá mẫu (min bang_gia_dong). */
   const gioiThieuVisible = useMemo(() => {
     if (!activeNhom) return false;
     const soMau =
       mauCountByNhomId[activeNhom.id] ?? activeNhom.soMau ?? 0;
+    const giaTu = giaHubByNhomId[activeNhom.id]?.tu ?? null;
     return (
-      nhomGioiThieuCanhBao({ ...activeNhom, soMau }).length === 0
+      nhomGioiThieuCanhBao({ ...activeNhom, soMau }, { giaTu }).length === 0
     );
-  }, [activeNhom, mauCountByNhomId]);
+  }, [activeNhom, mauCountByNhomId, giaHubByNhomId]);
 
   /** Highlight khi đã biết chắc chưa từng đăng bài giới thiệu. */
   const gioiThieuChuaCo =
@@ -2577,6 +2599,7 @@ export function ShopKhoClient({
             onNhomsChanged={setNhoms}
             onError={setErr}
             tiepCanByNhomId={tiepCanByNhomId}
+            giaHubByNhomId={giaHubByNhomId}
           />
         </section>
       </>

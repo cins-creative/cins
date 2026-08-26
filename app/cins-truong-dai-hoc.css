@@ -1317,7 +1317,7 @@ footer:not(.footer):not(.hn-role-foot):not(.tdh-inline-modal-actions):not(.tdh-m
   padding-top: 0;
 }
 .tdh-page .filter-bar {
-  top: var(--site-nav-height, 56px);
+  top: var(--site-nav-sticky-top, var(--site-nav-height, 56px));
 }
 
 .tdh-page {

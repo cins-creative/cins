@@ -26,6 +26,7 @@ import type { KetBanStatusSummary } from "@/lib/social/types";
 import { JourneyFeaturedAsideSection } from "@/app/[slug]/_components/JourneyFeaturedAsideSection";
 import { JourneyFeaturedAsideOnDemand } from "@/app/[slug]/_components/JourneyFeaturedAsideOnDemand";
 import { JourneyFeaturedAsideSectionSkeleton } from "@/app/[slug]/_components/JourneyFeaturedAsideSection.skeleton";
+import { SoftErrorBoundary } from "@/components/cins/SoftErrorBoundary";
 
 type OwnerRow = {
   id: string;
@@ -149,12 +150,18 @@ async function JourneyProfileInitialLoader({
   filterVisibility: LoaiMocVisibilityMap;
   shopNhomId?: string | null;
 }) {
-  const initialData = await loadInitialData(activeView, {
-    ownerId,
-    ownerSlug,
-    isOwner,
-    viewerProfileId,
-  });
+  let initialData: JourneyProfileInitialData;
+  try {
+    initialData = await loadInitialData(activeView, {
+      ownerId,
+      ownerSlug,
+      isOwner,
+      viewerProfileId,
+    });
+  } catch (err) {
+    console.error("[journey-profile] loadInitialData", err);
+    initialData = {};
+  }
 
   return (
     <JourneyProfileContent
@@ -189,9 +196,12 @@ export function JourneyProfileShell({
   showShop = false,
   shopNhomId = null,
 }: Props) {
-  const countsPromise = getCachedJourneySwitchNavCounts({ ownerId: owner.id }).then(
-    ({ friendCount, orgCount }) => ({ friendCount, orgCount }),
-  );
+  const countsPromise = getCachedJourneySwitchNavCounts({ ownerId: owner.id })
+    .then(({ friendCount, orgCount }) => ({ friendCount, orgCount }))
+    .catch((err) => {
+      console.error("[journey-profile] switch-nav counts", err);
+      return { friendCount: 0, orgCount: 0 };
+    });
 
   return (
     <JourneyProfileShellClient
@@ -220,43 +230,47 @@ export function JourneyProfileShell({
       countsPromise={countsPromise}
       showShop={showShop}
       mainPanel={
-        <Suspense
-          fallback={
-            <JourneyProfileInstantFallback
-              ownerSlug={owner.slug}
+        <SoftErrorBoundary message="Không tải được nội dung trang.">
+          <Suspense
+            fallback={
+              <JourneyProfileInstantFallback
+                ownerSlug={owner.slug}
+                ownerId={owner.id}
+                ownerName={ownerName}
+                ownerAvatarUrl={ownerAvatarUrl}
+                isOwner={isOwner}
+                viewerProfileId={viewerProfileId}
+                filterVisibility={filterVisibility}
+              />
+            }
+          >
+            <JourneyProfileInitialLoader
+              activeView={activeView}
               ownerId={owner.id}
+              ownerSlug={owner.slug}
               ownerName={ownerName}
               ownerAvatarUrl={ownerAvatarUrl}
+              ownerAvatarId={owner.avatar_id}
               isOwner={isOwner}
               viewerProfileId={viewerProfileId}
               filterVisibility={filterVisibility}
+              shopNhomId={shopNhomId}
             />
-          }
-        >
-          <JourneyProfileInitialLoader
-            activeView={activeView}
-            ownerId={owner.id}
-            ownerSlug={owner.slug}
-            ownerName={ownerName}
-            ownerAvatarUrl={ownerAvatarUrl}
-            ownerAvatarId={owner.avatar_id}
-            isOwner={isOwner}
-            viewerProfileId={viewerProfileId}
-            filterVisibility={filterVisibility}
-            shopNhomId={shopNhomId}
-          />
-        </Suspense>
+          </Suspense>
+        </SoftErrorBoundary>
       }
       featuredAside={
         activeView === "journey" ? (
-          <Suspense fallback={<JourneyFeaturedAsideSectionSkeleton />}>
-            <JourneyFeaturedAsideSection
-              ownerId={owner.id}
-              ownerSlug={owner.slug}
-              isOwner={isOwner}
-              viewerId={viewerProfileId}
-            />
-          </Suspense>
+          <SoftErrorBoundary message="Không tải được bài nổi bật.">
+            <Suspense fallback={<JourneyFeaturedAsideSectionSkeleton />}>
+              <JourneyFeaturedAsideSection
+                ownerId={owner.id}
+                ownerSlug={owner.slug}
+                isOwner={isOwner}
+                viewerId={viewerProfileId}
+              />
+            </Suspense>
+          </SoftErrorBoundary>
         ) : (
           <JourneyFeaturedAsideOnDemand
             ownerSlug={owner.slug}

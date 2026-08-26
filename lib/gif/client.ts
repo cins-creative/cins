@@ -15,12 +15,19 @@ export class GifClientError extends Error {
 }
 
 async function parseError(res: Response): Promise<GifClientError> {
-  const json = (await res.json().catch(() => null)) as {
-    error?: string;
-    code?: string;
-  } | null;
+  const text = await res.text().catch(() => "");
+  let json: { error?: string; code?: string } | null = null;
+  try {
+    json = text ? (JSON.parse(text) as { error?: string; code?: string }) : null;
+  } catch {
+    json = null;
+  }
+  const html = /^\s*</.test(text);
   return new GifClientError(
-    json?.error ?? `Lỗi GIF (${res.status}).`,
+    json?.error?.trim() ||
+      (html
+        ? "Không tải được GIF trên trang này."
+        : `Lỗi GIF (${res.status}).`),
     res.status,
     json?.code,
   );

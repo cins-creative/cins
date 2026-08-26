@@ -18,7 +18,7 @@
 
 .nct-page--can-edit .nct-admin-toolbar-host {
   position: sticky;
-  top: var(--site-nav-height, 64px);
+  top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
   z-index: 55;
   background: var(--bg-page, #f4f5f8);
 }
@@ -60,7 +60,7 @@
 }
 
 .nct-page--can-edit .nct-side-col {
-  top: calc(var(--site-nav-height, 64px) + var(--nct-admin-toolbar-height) + 10px);
+  top: calc(var(--site-nav-sticky-top, var(--site-nav-height, 64px)) + var(--nct-admin-toolbar-height) + 10px);
 }
 
 @media (max-width: 720px) {

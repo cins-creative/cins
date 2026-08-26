@@ -34,7 +34,7 @@
 /* ── Hub header (search + lọc) — frosted glass + streak: cins-frost-sticky.css ── */
 .tkh-hub-header {
   position: sticky;
-  top: var(--site-nav-height, 64px);
+  top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
   z-index: 30;
   margin: 0 0 10px;
 }

@@ -247,7 +247,7 @@
 @media (min-width: 961px) {
   .billing-layout-aside {
     position: sticky;
-    top: calc(var(--site-nav-height, 64px) + 0.65rem);
+    top: calc(var(--site-nav-sticky-top, var(--site-nav-height, 64px)) + 0.65rem);
   }
 }
 

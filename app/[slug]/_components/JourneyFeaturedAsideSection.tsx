@@ -14,17 +14,22 @@ export async function JourneyFeaturedAsideSection({
   isOwner = false,
   viewerId = null,
 }: Props) {
-  const { pinned } = await getCachedGalleryForUser({
-    userId: ownerId,
-    ownerSlug,
-    viewerId: isOwner ? viewerId ?? ownerId : viewerId,
-  });
+  try {
+    const { pinned } = await getCachedGalleryForUser({
+      userId: ownerId,
+      ownerSlug,
+      viewerId: isOwner ? viewerId ?? ownerId : viewerId,
+    });
 
-  return (
-    <JourneyFeaturedAsidePanel
-      ownerSlug={ownerSlug}
-      initialPinned={pinned}
-      isOwner={isOwner}
-    />
-  );
+    return (
+      <JourneyFeaturedAsidePanel
+        ownerSlug={ownerSlug}
+        initialPinned={pinned}
+        isOwner={isOwner}
+      />
+    );
+  } catch (err) {
+    console.error("[journey-profile] featured-aside", err);
+    return null;
+  }
 }

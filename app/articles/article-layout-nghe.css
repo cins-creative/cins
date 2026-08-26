@@ -215,7 +215,7 @@
 @media (min-width: 721px) {
   .nghe-entity-sidebar {
     position: sticky;
-    top: calc(var(--site-nav-height, 56px) + 12px);
+    top: calc(var(--site-nav-sticky-top, var(--site-nav-height, 56px)) + 12px);
     z-index: 1;
   }
 
@@ -297,7 +297,7 @@
 
 .arv2-nghe .nghe-content-layout .nghe-article-toc {
   position: sticky;
-  top: calc(var(--site-nav-height, 56px) + 14px);
+  top: calc(var(--site-nav-sticky-top, var(--site-nav-height, 56px)) + 14px);
   align-self: start;
 }
 
@@ -401,7 +401,7 @@
 
 .arv2-nghe .nghe-article-toc {
   position: sticky;
-  top: calc(var(--site-nav-height, 56px) + 14px);
+  top: calc(var(--site-nav-sticky-top, var(--site-nav-height, 56px)) + 14px);
   align-self: start;
 }
 
@@ -555,7 +555,7 @@
 @media (min-width: 721px) {
   .arv2-nghe .nghe-main-sidebar-row > .article-side {
     position: sticky;
-    top: calc(var(--site-nav-height, 56px) + 12px);
+    top: calc(var(--site-nav-sticky-top, var(--site-nav-height, 56px)) + 12px);
     z-index: 1;
   }
 }
@@ -675,7 +675,7 @@
 }
 
 .arv2-nghe .nghe-tagged-works .entity-light-bar {
-  top: calc(var(--site-nav-height, 56px) + 0px);
+  top: calc(var(--site-nav-sticky-top, var(--site-nav-height, 56px)) + 0px);
   background: var(--bg-page);
 }
 

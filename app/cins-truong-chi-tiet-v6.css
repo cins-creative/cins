@@ -45,7 +45,7 @@
 /* Cột trường — sticky dưới topbar app, cuộn nội dung riêng */
 .tdh-page--v6 .school-side {
   position: sticky;
-  top: var(--site-nav-height, 64px);
+  top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
   align-self: start;
   width: 100%;
   max-height: calc(100dvh - var(--site-nav-height, 64px));
@@ -130,7 +130,7 @@
 /* Cột lịch tuyển sinh — sticky, full chiều cao viewport dưới topbar */
 :is(.tdh-page--v6, .cd-v4-page) .tdh-admission-side {
   position: sticky;
-  top: var(--site-nav-height, 64px);
+  top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
   align-self: start;
   width: 100%;
   box-sizing: border-box;
@@ -1341,7 +1341,7 @@
 
 .tdh-page--v6 .tdh-v6-tabs-bar {
   position: sticky;
-  top: var(--site-nav-height, 64px);
+  top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
   z-index: 30;
   max-width: 100%;
   overflow-x: auto;
@@ -2578,7 +2578,7 @@
 
 .tdh-page--v6 .tdh-admin-toolbar-host {
   position: sticky;
-  top: var(--site-nav-height, 64px);
+  top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
   z-index: 53;
 }
 
@@ -3603,7 +3603,7 @@
   }
 
   .tdh-page--v6 .tdh-v6-shell--mobile-tabs .tdh-v6-tabs-bar {
-    top: var(--site-nav-height, 64px);
+    top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
     z-index: 40;
     margin-top: 0;
     margin-bottom: 0;
@@ -3743,7 +3743,7 @@
   .tdh-page--v6:not(.tdh-page--cso) .tdh-v6-shell--mobile-tabs #tdh-panel-bai-dang .org-baidang-tlb {
     margin-top: 0;
     top: calc(
-      var(--site-nav-height, 64px) + var(--tdh-v6-tabs-bar-h, 50px)
+      var(--site-nav-sticky-top, var(--site-nav-height, 64px)) + var(--tdh-v6-tabs-bar-h, 50px)
     );
   }
 
@@ -5117,7 +5117,7 @@
 .tdh-page--v6 #cso-panel-bai-dang,
 .tdh-page--v6 #cso-panel-showcase {
   --j-topbar-h: calc(
-    var(--site-nav-height, 64px) + var(--tdh-v6-tabs-h, 50px)
+    var(--site-nav-sticky-top, var(--site-nav-height, 64px)) + var(--tdh-v6-tabs-h, 50px)
   );
   --j-ctx-h: 56px;
   --j-rail-x: 0px;
@@ -5224,7 +5224,7 @@
 .tdh-page--v6 #tdh-panel-bai-dang .org-baidang-tlb,
 .tdh-page--v6 #cso-panel-bai-dang .org-baidang-tlb,
 .tdh-page--v6 #cso-panel-showcase .org-baidang-tlb {
-  top: var(--j-topbar-h);
+  top: var(--site-nav-sticky-top, var(--j-topbar-h));
   z-index: 25;
   margin-bottom: 0;
   /* Full-bleed: kéo bar phủ hết chiều ngang panel, bù padding ngang 24px.
@@ -5612,7 +5612,7 @@
     /* Khớp chiều cao thanh tab cố định — tránh hở với filter sticky */
     --tdh-v6-tabs-h: var(--tdh-v6-tabs-bar-h, 50px);
     --j-topbar-h: calc(
-      var(--site-nav-height, 64px) + var(--tdh-v6-tabs-bar-h, 50px)
+      var(--site-nav-sticky-top, var(--site-nav-height, 64px)) + var(--tdh-v6-tabs-bar-h, 50px)
     );
   }
 
@@ -5675,7 +5675,7 @@
     border-top: none;
     box-shadow: none;
     top: calc(
-      var(--site-nav-height, 64px) + var(--tdh-v6-tabs-bar-h, 50px)
+      var(--site-nav-sticky-top, var(--site-nav-height, 64px)) + var(--tdh-v6-tabs-bar-h, 50px)
     );
   }
 

@@ -26,7 +26,7 @@
   --org-notify-fab-inset: 16px;
   /* Fallback (studio/cộng đồng chưa có host trong tlb) */
   --org-notify-fab-top: calc(
-    var(--site-nav-height, 64px) + 50px + 12px + env(safe-area-inset-top, 0px)
+    var(--site-nav-sticky-top, var(--site-nav-height, 64px)) + 50px + 12px + env(safe-area-inset-top, 0px)
   );
   --org-notify-drawer-w: min(88vw, 420px);
 }

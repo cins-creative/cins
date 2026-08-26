@@ -40,10 +40,6 @@ import {
 import type { MutualFriendProfile } from "@/lib/social/types";
 
 import {
-  readAdminInboxVisible,
-  setAdminInboxVisible,
-} from "@/lib/admin/admin-inbox-visibility";
-import {
   HOME_FEED_LAYOUT_OPTIONS,
   readHomeFeedLayout,
   setHomeFeedLayout,
@@ -73,21 +69,17 @@ type SettingsSection =
   | "lich-su-mua"
   | "ban-hang"
   | "thanh-toan"
-  | "admin"
   | "user-management"
   | "security-2fa";
 
 const NAV: ReadonlyArray<{
   id: SettingsSection;
   labelKey: MessageKey;
-  /** Chỉ hiện với `super_admin` / `admin` hệ thống. */
-  adminOnly?: boolean;
 }> = [
   { id: "journey-display", labelKey: "account.settings.nav.display" },
   { id: "lich-su-mua", labelKey: "account.settings.nav.orders" },
   { id: "ban-hang", labelKey: "account.settings.nav.selling" },
   { id: "thanh-toan", labelKey: "account.settings.nav.billing" },
-  { id: "admin", labelKey: "account.settings.nav.admin", adminOnly: true },
   { id: "user-management", labelKey: "account.settings.nav.users" },
   { id: "security-2fa", labelKey: "account.settings.nav.security" },
 ];
@@ -169,7 +161,6 @@ export function UserAccountSettingsModal({
   const [initial, setInitial] = useState<JourneyDefaultView>("timeline");
   const [applyToMe, setApplyToMe] = useState(false);
   const [initialApplyToMe, setInitialApplyToMe] = useState(false);
-  const [isCinsAdmin, setIsCinsAdmin] = useState(false);
 
   const loadSettings = useCallback(async () => {
     setLoading(true);
@@ -207,28 +198,10 @@ export function UserAccountSettingsModal({
     setSavedTick(false);
     setHomeLayout(readHomeFeedLayout());
     setFeedSource(readFeedSourceDefault());
-    setIsCinsAdmin(false);
     void loadSettings();
-    let cancelled = false;
-    void (async () => {
-      try {
-        const res = await fetch("/api/auth/session-profile", {
-          cache: "no-store",
-        });
-        const json = (await res.json().catch(() => null)) as {
-          isCinsAdmin?: boolean;
-        } | null;
-        if (!cancelled) setIsCinsAdmin(json?.isCinsAdmin === true);
-      } catch {
-        if (!cancelled) setIsCinsAdmin(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
   }, [open, initialSection, loadSettings]);
 
-  const navItems = NAV.filter((item) => !item.adminOnly || isCinsAdmin);
+  const navItems = NAV;
 
   const chooseHomeLayout = useCallback((layout: HomeFeedLayout) => {
     setHomeLayout(layout);
@@ -625,10 +598,6 @@ export function UserAccountSettingsModal({
               />
             ) : null}
 
-            {section === "admin" && isCinsAdmin ? (
-              <AdminSettingsSection titleId={`${titleId}-admin`} />
-            ) : null}
-
             {section === "user-management" ? (
               <UserManagementSection titleId={`${titleId}-um`} />
             ) : null}
@@ -806,49 +775,6 @@ function LichSuMuaHangSection({ titleId }: { titleId: string }) {
           );
         }}
       />
-    </section>
-  );
-}
-
-function AdminSettingsSection({ titleId }: { titleId: string }) {
-  const t = useT();
-  const [inboxVisible, setInboxVisible] = useState(() =>
-    readAdminInboxVisible(),
-  );
-
-  return (
-    <section className="uas-section" aria-labelledby={titleId}>
-      <div className="uas-section-head">
-        <h3 id={titleId} className="uas-section-title">
-          {t("account.settings.nav.admin")}
-        </h3>
-        <p className="uas-section-hint">{t("account.settings.admin.hint")}</p>
-      </div>
-
-      <div className="uas-toggle-row" style={{ marginBottom: 12 }}>
-        <span className="uas-toggle-text">
-          <span className="uas-toggle-label">
-            {t("account.settings.admin.inbox")}
-          </span>
-          <span className="uas-toggle-desc">
-            {t("account.settings.admin.inboxDesc")}
-          </span>
-        </span>
-        <button
-          type="button"
-          className={`uas-switch${inboxVisible ? " on" : ""}`}
-          role="switch"
-          aria-checked={inboxVisible}
-          aria-label={t("account.settings.admin.inbox")}
-          onClick={() => {
-            const next = !inboxVisible;
-            setInboxVisible(next);
-            setAdminInboxVisible(next);
-          }}
-        >
-          <span className="uas-switch-knob" aria-hidden />
-        </button>
-      </div>
     </section>
   );
 }

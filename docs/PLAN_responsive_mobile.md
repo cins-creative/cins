@@ -12,7 +12,7 @@
 | Cách làm responsive | **CSS thủ công, ~407 `@media`**, desktop-first (`max-width:`) |
 | Tailwind | v4 qua PostCSS, **không** custom breakpoint; responsive utility gần như không dùng trong TSX (~8 chỗ) |
 | Breakpoint de-facto | 1199.98 · **991.98** (layout 3-col) · **960/961** (shell nav) · 767.98 (phone) · 575.98 (xs) + rải rác 480→1280 |
-| Shell mobile | Drawer sidebar (≤960px) + topbar. **Không** bottom nav |
+| Shell mobile | Drawer sidebar (≤960px) + **app chrome dính đáy** (`#app-topbar`, không phải 5-tab nav) |
 | Token | `app/cins-design-tokens.css` — spacing/type **scale rời rạc**, không fluid |
 | Hook viewport | 7 hook rời, mỗi chỗ hard-code media query. Không có `useMediaQuery`/`useIsMobile` |
 | Ảnh | `next/image` ~62 file (có `sizes`), nhưng **~150+ file vẫn `<img>`** thủ công |

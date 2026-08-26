@@ -68,9 +68,9 @@
 
 .shop-topbar-menu.is-portal {
   position: fixed;
-  z-index: 250;
+  z-index: 500;
   width: min(380px, calc(100vw - 32px));
-  max-height: min(520px, calc(100vh - 100px));
+  max-height: min(520px, calc(100dvh - 24px));
   display: flex;
   flex-direction: column;
   gap: 10px;

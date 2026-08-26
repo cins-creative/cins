@@ -3,11 +3,16 @@
 .cins-shell {
   --cins-sidebar-collapsed: 64px;
   --site-nav-height: 64px;
+  /* Offset `top` của chrome dính theo topbar. Mobile botbar → 0 (xem ≤960px). */
+  --site-nav-sticky-top: var(--site-nav-height);
+  --cins-botbar-h: 0px;
   /* Topbar trên sticky nội dung trang (~120); sidebar trên topbar khi expand/mobile. */
   --cins-app-topbar-z: 200;
   --cins-app-sidebar-z: 210;
   --app-nav-ease: cubic-bezier(0.2, 0.7, 0.3, 1);
   --app-nav-dur: 0.18s;
+  --cins-chrome-hide-dur: 1s;
+  --cins-chrome-hide-ease: cubic-bezier(0.32, 0.72, 0, 1);
   --btn-grad-blue: linear-gradient(180deg, #2b8ae8 0%, #1f74c9 100%);
   --btn-grad-blue-hover: linear-gradient(180deg, #3296f0 0%, #247fd4 100%);
   --btn-grad-shadow: 0 4px 0 rgba(22, 86, 160, 0.35);
@@ -1192,20 +1197,34 @@
   will-change: transform;
 }
 
-/* Mobile: ẩn bằng transform — không co layout (margin âm làm giật scrollY). */
+/* Mobile: ẩn bằng transform xuống dưới — chrome dính đáy. */
 @media (max-width: 960px) {
   .cins-app-topbar.topbar.is-hidden {
-    transform: translate3d(0, -100%, 0);
+    transform: translate3d(0, calc(100% + 30px), 0);
     pointer-events: none;
+    overflow: hidden;
   }
 
-  /* Cùng transform + duration với topbar — animate `top` lệch nhịp, để hở khe. */
+  /* Botbar không còn kéo sticky-top của trang. */
   .cins-shell {
     --cins-sticky-follow: 0px;
   }
 
   .cins-shell:has(#app-topbar.is-hidden) {
-    --cins-sticky-follow: calc(-1 * var(--site-nav-height, 64px));
+    --cins-sticky-follow: 0px;
+  }
+
+  /* Feed World Journey: header ẩn lên trên cùng nhịp nav đáy. */
+  .cins-shell:has(#app-topbar.is-hidden) .wj-feed-header {
+    transform: translate3d(0, -100%, 0);
+    pointer-events: none;
+  }
+
+  .cins-app-topbar.topbar {
+    transition:
+      transform var(--cins-chrome-hide-dur) var(--cins-chrome-hide-ease),
+      margin-bottom var(--cins-chrome-hide-dur) var(--cins-chrome-hide-ease),
+      box-shadow var(--cins-chrome-hide-dur) var(--cins-chrome-hide-ease);
   }
 
   /* Sticky chrome follow topbar ẩn — chỉ khi đã dính top.
@@ -1238,8 +1257,9 @@
     .cd-v4-event-rail,
     .wj-feed-header
   ) {
-    transition: transform var(--app-nav-dur) var(--app-nav-ease);
+    transition: transform var(--cins-chrome-hide-dur) var(--cins-chrome-hide-ease);
     transform: translate3d(0, var(--cins-sticky-follow, 0px), 0);
+    will-change: transform;
   }
 
   /* Org bài đăng: khi topbar ẩn chỉ giữ hàng tab; filter tlb ẩn hết (kể cả kính). */
@@ -1286,6 +1306,22 @@
   gap: 10px;
   flex-shrink: 0;
   min-width: 0;
+}
+
+/* Giỏ trống + chưa mở shop → không để nhóm rỗng chiếm chỗ. */
+.cins-app-topbar .tb-group-shop:not(:has(.gio-chung)):not(:has(.shop-topbar-trigger)) {
+  display: none;
+}
+
+.cins-app-topbar
+  .tb-group-shop:not(:has(.gio-chung)):not(:has(.shop-topbar-trigger))
+  + .tb-divider {
+  display: none;
+}
+
+/* Ô chat giữa botbar — desktop không dùng. */
+.cins-app-topbar .tb-chat-slot {
+  display: none;
 }
 
 .cins-app-topbar .tb-left {
@@ -1599,7 +1635,12 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  z-index: 220;
+  z-index: 500;
+}
+
+/* Menu nằm trong stacking của topbar (z 200) — phải nâng cả nav mới đè chat dock (480). */
+.cins-app-topbar.topbar:has(.tb-user.open) {
+  z-index: 500;
 }
 
 .cins-app-topbar .j-notify {
@@ -1937,7 +1978,7 @@
     position: fixed;
     inset: 0;
     z-index: 249;
-    background: rgba(15, 23, 42, 0.42);
+    background: rgba(0, 0, 0, 0.8);
   }
 
   .j-notify-menu.is-portal.is-overlay {
@@ -1945,7 +1986,10 @@
     left: 50%;
     right: auto;
     width: min(400px, calc(100vw - 32px));
-    max-height: min(76dvh, 560px);
+    height: 90vh;
+    height: 90dvh;
+    max-height: 90vh;
+    max-height: 90dvh;
     transform: translate(-50%, -50%);
     z-index: 250;
   }
@@ -3250,6 +3294,52 @@ a.j-notify-mini-action.is-link:hover {
 @media (max-width: 960px) {
   .cins-shell {
     padding-left: 0;
+    --site-nav-sticky-top: 0px;
+    --cins-botbar-h: calc(
+      var(--site-nav-height, 64px) + env(safe-area-inset-bottom, 0px)
+    );
+  }
+
+  .cins-shell:not(.cins-shell--guest-home):not(.cins-shell--chat-page)
+    .cins-main {
+    padding-bottom: var(--cins-botbar-h);
+  }
+
+  /* Sticky bottom chrome — fixed để luôn trong viewport khi window scroll. */
+  .cins-app-topbar.topbar {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: auto;
+    border-bottom: none;
+    border-top: 1px solid var(--border);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    border-radius: 0;
+    box-shadow: 0 -8px 28px rgba(15, 23, 42, 0.08);
+    overflow: visible;
+  }
+
+  .cins-app-topbar.topbar.scrolled {
+    box-shadow: 0 -8px 28px rgba(15, 23, 42, 0.1);
+  }
+
+  .cins-app-topbar .tb-user-menu,
+  .cins-home-v2-page #topbar .tb-user-menu {
+    top: auto;
+    bottom: calc(100% + 8px);
+  }
+
+  .cins-app-topbar .j-notify-menu {
+    top: auto;
+    bottom: calc(100% + 10px);
+  }
+
+  .cins-app-topbar .shop-dash-tam-dong-panel {
+    top: auto;
+    bottom: calc(100% + 8px);
   }
 
   .cins-app-sidebar.sidebar {
@@ -3334,11 +3424,108 @@ a.j-notify-mini-action.is-link:hover {
 
   .cins-app-topbar .tb-burger {
     display: inline-flex;
+    width: 44px;
+    height: 44px;
   }
 
   .cins-app-topbar .topbar-inner {
-    padding: 0 12px;
+    height: var(--site-nav-height, 64px);
+    padding: 0 8px;
     gap: 6px;
+    border-radius: 0;
+  }
+
+  /* 5 ô: burger · shop · chat FAB · notify · user. Chat luôn giữa. */
+  .cins-app-topbar.is-authed .topbar-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto 1fr 1fr;
+    grid-template-areas: "burger shop chat notify user";
+    align-items: center;
+    justify-items: center;
+    gap: 0;
+    padding: 0 6px;
+    overflow: visible;
+  }
+
+  .cins-app-topbar.is-authed .tb-left {
+    grid-area: burger;
+    flex: none;
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+  }
+
+  .cins-app-topbar.is-authed .tb-page-slot {
+    position: absolute;
+    left: 12px;
+    right: auto;
+    bottom: calc(100% + 8px);
+    max-width: min(280px, calc(50vw - 48px));
+    z-index: 1;
+  }
+
+  .cins-app-topbar.is-authed .tb-chat-slot {
+    display: flex;
+    grid-area: chat;
+    align-items: center;
+    justify-content: center;
+    width: 58px;
+    height: 58px;
+    margin-top: -28px;
+    z-index: 3;
+    pointer-events: none;
+    transition: margin-top var(--cins-chrome-hide-dur) var(--cins-chrome-hide-ease);
+  }
+
+  .cins-app-topbar.topbar.is-hidden .tb-chat-slot {
+    margin-top: 0;
+  }
+
+  .cins-app-topbar.is-authed .tb-chat-slot > * {
+    pointer-events: auto;
+  }
+
+  .cins-app-topbar.is-authed .tb-right {
+    display: contents;
+  }
+
+  .cins-app-topbar.is-authed .tb-group-shop {
+    grid-area: shop;
+    justify-self: center;
+    gap: 2px;
+    max-width: 100%;
+  }
+
+  .cins-app-topbar.is-authed
+    .tb-group-shop:has(.gio-chung):has(.shop-topbar-trigger)
+    .gio-chung-trigger,
+  .cins-app-topbar.is-authed
+    .tb-group-shop:has(.gio-chung):has(.shop-topbar-trigger)
+    .shop-topbar-trigger {
+    width: 36px;
+    height: 36px;
+  }
+
+  .cins-app-topbar.is-authed .tb-group-notify {
+    grid-area: notify;
+    justify-self: center;
+  }
+
+  .cins-app-topbar.is-authed .tb-group-account {
+    grid-area: user;
+    justify-self: center;
+  }
+
+  .cins-app-topbar.is-authed .tb-user,
+  .cins-home-v2-page #topbar .tb-user {
+    padding-right: 0;
+  }
+
+  .cins-app-topbar .j-notify-trigger,
+  .cins-app-topbar .gio-chung-trigger,
+  .cins-app-topbar .shop-topbar-trigger {
+    width: 44px;
+    height: 44px;
   }
 
   .cins-app-topbar .tb-divider {

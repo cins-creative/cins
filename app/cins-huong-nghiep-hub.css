@@ -147,7 +147,7 @@
 
 .hn-rail {
   position: sticky;
-  top: var(--site-nav-height, 56px);
+  top: var(--site-nav-sticky-top, var(--site-nav-height, 56px));
   align-self: start;
   height: calc(100vh - var(--site-nav-height, 56px));
   min-height: calc(100vh - var(--site-nav-height, 56px));
@@ -793,7 +793,7 @@
 /* Dept tabs */
 .hn-dept-tabs {
   position: sticky;
-  top: var(--site-nav-height, 56px);
+  top: var(--site-nav-sticky-top, var(--site-nav-height, 56px));
   z-index: 50;
   background: color-mix(in srgb, var(--bg-page) 92%, transparent);
   backdrop-filter: blur(10px);
@@ -871,7 +871,7 @@
 /* Dept sections */
 .hn-dept {
   margin-bottom: 56px;
-  scroll-margin-top: calc(var(--site-nav-height, 56px) + 72px);
+  scroll-margin-top: calc(var(--site-nav-sticky-top, var(--site-nav-height, 56px)) + 72px);
 }
 
 .hn-dept-head {
@@ -1452,7 +1452,7 @@
 /* Hub ngành — chế độ quản trị */
 .career-hub--can-edit .hn-hub-admin-toolbar-host {
   position: sticky;
-  top: var(--site-nav-height, 64px);
+  top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
   z-index: 55;
   background: var(--bg-page, #f4f5f8);
 }
@@ -1712,7 +1712,7 @@
 
   .career-hub--hn .hn-page-head {
     position: sticky;
-    top: var(--site-nav-height, 64px);
+    top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
     z-index: 26;
   }
 
@@ -1726,7 +1726,7 @@
     align-items: center;
     gap: 10px;
     position: sticky;
-    top: calc(var(--site-nav-height, 64px) + var(--hn-page-head-h, 41px));
+    top: calc(var(--site-nav-sticky-top, var(--site-nav-height, 64px)) + var(--hn-page-head-h, 41px));
     z-index: 25;
     width: 100%;
     padding: 10px 16px;
@@ -1922,7 +1922,7 @@
 
   .hn-dept-tabs {
     top: calc(
-      var(--site-nav-height, 64px) + var(--hn-page-head-h, 41px) +
+      var(--site-nav-sticky-top, var(--site-nav-height, 64px)) + var(--hn-page-head-h, 41px) +
         var(--hn-rail-bar-h, 49px)
     );
     margin: 0 -22px 22px;

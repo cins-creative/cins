@@ -6873,7 +6873,7 @@
 
 .shop-quay-tlb.j-tlb {
   position: sticky;
-  top: var(--j-topbar-h, var(--site-nav-height, 64px));
+  top: var(--site-nav-sticky-top, var(--j-topbar-h, var(--site-nav-height, 64px)));
   z-index: 40;
   pointer-events: auto;
   background: transparent;
@@ -6896,7 +6896,7 @@
 /* Studio / cÆ¡ sá»Ÿ panel â€” dÃ­nh dÆ°á»›i topbar + tab bar. */
 .tdh-page--v6 .shop-quay-tlb.j-tlb {
   top: calc(
-    var(--site-nav-height, 64px) + var(--tdh-v6-tabs-h, 50px)
+    var(--site-nav-sticky-top, var(--site-nav-height, 64px)) + var(--tdh-v6-tabs-h, 50px)
   );
   /* Full-bleed theo padding `.tdh-v6-panel` (24px 28px). */
   margin-left: -28px;
@@ -6909,7 +6909,7 @@
 /* Trang /su-kien/[id] — dính sát mép dưới site nav + topbar SK. */
 .sk-detail .shop-quay-tlb.j-tlb {
   top: calc(
-    var(--site-nav-height, 64px) + var(--sk-detail-topbar-h, 55px) - 1px
+    var(--site-nav-sticky-top, var(--site-nav-height, 64px)) + var(--sk-detail-topbar-h, 55px) - 1px
   );
   z-index: 35;
   transition: none;
@@ -9217,7 +9217,7 @@
 
   .shop-dash-card--loai-mau .shop-dash-kho-head {
     top: calc(
-      var(--site-nav-height, 64px) + var(--shop-dash-mobile-ops-h, 44px) +
+      var(--site-nav-sticky-top, var(--site-nav-height, 64px)) + var(--shop-dash-mobile-ops-h, 44px) +
         var(--shop-dash-tabs-h, 40px)
     );
   }
@@ -9317,7 +9317,7 @@
     left: auto;
     right: auto;
     bottom: auto;
-    top: var(--site-nav-height, 64px);
+    top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
     z-index: 40;
     overflow: visible;
     margin: 0 0 8px;
@@ -9390,7 +9390,7 @@
   .shop-dash-subtabs {
     position: sticky;
     top: calc(
-      var(--site-nav-height, 64px) + var(--shop-dash-mobile-ops-h, 44px) +
+      var(--site-nav-sticky-top, var(--site-nav-height, 64px)) + var(--shop-dash-mobile-ops-h, 44px) +
         var(--shop-dash-tabs-h, 40px)
     );
     z-index: 25;
@@ -9522,7 +9522,7 @@
   .shop-don-toolbar {
     flex-direction: column;
     position: sticky;
-    top: calc(var(--site-nav-height, 64px) + var(--shop-dash-tabs-h, 40px));
+    top: calc(var(--site-nav-sticky-top, var(--site-nav-height, 64px)) + var(--shop-dash-tabs-h, 40px));
     z-index: 26;
     background: var(--bg-page, #f4f5f8);
     padding: 4px 0 8px;

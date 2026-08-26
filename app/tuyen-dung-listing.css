@@ -35,7 +35,7 @@
 /* ── Hub header (lọc) — frosted glass + streak: cins-frost-sticky.css ── */
 .td-hub-header {
   position: sticky;
-  top: var(--site-nav-height, 64px);
+  top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
   z-index: 30;
   margin: 0 0 18px;
 }

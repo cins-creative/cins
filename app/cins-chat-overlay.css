@@ -1007,7 +1007,7 @@ html.is-cins-share-dropping {
 
 .cins-chat-panel.is-share-drop {
   position: fixed;
-  top: var(--site-nav-height, 64px);
+  top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
   right: 0;
   bottom: 0;
   left: auto;
@@ -3033,7 +3033,7 @@ button.cins-chat-convo-title:focus-visible strong {
 .cins-chat-root.is-chat-fullscreen {
   position: fixed;
   inset: auto;
-  top: var(--site-nav-height, 64px);
+  top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
   left: var(--cins-sidebar-collapsed, 64px);
   right: 0;
   bottom: 0;
@@ -3085,6 +3085,7 @@ body:has(.cins-chat-root.is-chat-page) .cins-app-topbar {
 }
 
 .cins-shell--chat-page .cins-main {
+  --cins-botbar-h: 0px;
   padding: 0;
   overflow: hidden;
   min-height: 100dvh;
@@ -11068,7 +11069,6 @@ button.cins-chat-don-card-cta.is-action:disabled {
 @media (max-width: 767.98px) {
   .j-chat-dock {
     right: max(16px, env(safe-area-inset-right, 0px));
-    bottom: max(20px, env(safe-area-inset-bottom, 0px));
     gap: 8px;
   }
 
@@ -11112,6 +11112,135 @@ button.cins-chat-don-card-cta.is-action:disabled {
   .j-chat-mini-messages,
   .j-chat-mini-compose-row textarea {
     touch-action: pan-y;
+  }
+}
+
+/* Mobile botbar (≤960): FAB vào giữa nav; bubble neo trên tâm bar. */
+@media (max-width: 960px) {
+  .cins-shell .j-chat-dock {
+    bottom: max(
+      20px,
+      calc(var(--cins-botbar-h, 0px) + 12px)
+    );
+    transition:
+      bottom var(--app-nav-dur, 0.18s)
+        var(--app-nav-ease, cubic-bezier(0.2, 0.7, 0.3, 1)),
+      opacity var(--app-nav-dur, 0.18s) ease,
+      visibility var(--app-nav-dur, 0.18s) ease;
+  }
+
+  /* Tránh FAB nhảy góc → giữa: ẩn bản dock, bản botbar hiện sau portal. */
+  .cins-shell .j-chat-dock .j-chat-fab {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .cins-shell .j-chat-dock.is-botbar-anchored {
+    left: auto;
+    right: max(10px, env(safe-area-inset-right, 0px));
+    transform: none;
+    bottom: calc(var(--cins-botbar-h, 0px) + 8px);
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .cins-shell .j-chat-dock.is-botbar-anchored .j-chat-dock-launcher-row {
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: flex-end;
+    gap: 8px;
+    max-width: none;
+    flex-shrink: 0;
+  }
+
+  .cins-shell .j-chat-dock.is-botbar-anchored .j-chat-dock-launcher-row:empty {
+    display: none;
+  }
+
+  /* Bubble peek — cột dọc sát mép phải. */
+  .cins-shell .j-chat-dock.is-botbar-anchored .j-chat-bubbles {
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: flex-end;
+    max-width: none;
+    max-height: min(36dvh, 252px);
+    overflow-x: visible;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    gap: 8px;
+    padding: 2px 0;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .cins-shell .j-chat-dock.is-botbar-anchored .j-chat-bubbles::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Mini panel bên trái cột bubble, neo đáy phải. */
+  .cins-shell .j-chat-dock.is-botbar-anchored .j-chat-mini {
+    width: min(
+      360px,
+      calc(100vw - var(--j-chat-bubble-size, 44px) - 28px)
+    );
+    height: min(
+      520px,
+      calc(
+        100dvh - var(--cins-botbar-h, 64px) - env(safe-area-inset-bottom, 0px) -
+          16px
+      )
+    );
+    max-height: min(
+      520px,
+      calc(
+        100dvh - var(--cins-botbar-h, 64px) - env(safe-area-inset-bottom, 0px) -
+          16px
+      )
+    );
+    transform-origin: bottom right;
+    align-self: flex-end;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  .cins-app-topbar .j-chat-fab.is-botbar {
+    --j-chat-fab-size: 58px;
+    visibility: visible;
+    pointer-events: auto;
+    border-radius: 18px;
+    box-shadow: none;
+  }
+
+  .cins-app-topbar .j-chat-fab.is-botbar .j-chat-fab-glow {
+    display: none;
+  }
+
+  .cins-app-topbar .j-chat-fab.is-botbar .j-chat-fab-icon {
+    filter: none;
+  }
+
+  .cins-app-topbar .j-chat-fab.is-botbar .j-chat-fab-icon svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  .cins-app-topbar .j-chat-fab.is-botbar:hover {
+    transform: scale(1.06);
+    box-shadow: none;
+  }
+
+  .cins-app-topbar .j-chat-fab.is-botbar:active {
+    transform: scale(1.02);
+    box-shadow: none;
+  }
+
+  .cins-shell:has(#app-topbar.is-hidden) .j-chat-dock {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    bottom: max(20px, env(safe-area-inset-bottom, 0px));
   }
 }
 

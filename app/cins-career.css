@@ -218,7 +218,7 @@
 
 .career-page-aside {
   position: sticky;
-  top: calc(var(--site-nav-height, 56px) + 12px);
+  top: calc(var(--site-nav-sticky-top, var(--site-nav-height, 56px)) + 12px);
 }
 
 .career-surface {
@@ -600,7 +600,7 @@
 .career-hub-sidebar {
   position: sticky;
   /* Cùng thanh nav top (.site-nav / --site-nav-height trên .cins-shell) */
-  top: calc(var(--site-nav-height, 56px) + 8px);
+  top: calc(var(--site-nav-sticky-top, var(--site-nav-height, 56px)) + 8px);
   padding: 0;
   align-self: start;
 }

@@ -179,7 +179,7 @@
 
 .tdh-page .tdh-list-toolbar {
   position: sticky;
-  top: var(--site-nav-height, 56px);
+  top: var(--site-nav-sticky-top, var(--site-nav-height, 56px));
   z-index: 40;
   /* Glass + mesh + streak: cins-frost-sticky.css (chuẩn tkh-hub-header) */
   background: transparent;

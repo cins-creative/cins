@@ -78,7 +78,7 @@ Journey, bài đăng, trường/ngành, chat, tìm kiếm, `auth/**`, `login`, `
 - **`parkWeb()`** thêm: `app/seller`, `app/api/user/seller`, nested `app/{academy,studio,university}/[slug]/manage`, `app/api/academy` (trừ `preview` + `[id]/courses/**`), phần quản lý `app/api/studio`/`app/api/org`.
   - Giữ pattern `WEB_KEEP_*` cho server action nào UI public còn import (rà `academy/**/actions.ts`, `studio/**/actions.ts`).
 - **`parkManage()`** sửa: bỏ park `seller` + `api/shop` + `api/academy` + `api/studio`(quản lý) + `api/user/seller`; **vẫn** park `(public)` của academy/studio/university (manage không cần trang công khai) → park theo nested `(public)` thay vì cả `[slug]`.
-  - `MANAGE_KEEP_API_DIRS`: `admin`,`auth`,`academy`,`studio`,`shop`,`org`,`user`.
+  - `MANAGE_KEEP_API_DIRS`: `admin`,`auth`,`academy`,`studio`,`shop`,`org`,`user` + shared seller shell: `chat`,`chat-video`,`post-image`,`post-video`,`avatar`,`tag`,`friends`,`events`,`gif`,`user-emoji` (2026-08-26: thiếu chat/upload → 404; thiếu `gif`/`user-emoji` → picker meme/GIF trên manage trả HTML 404, client parse JSON fail).
 
 ### 5.3 Seller & slug
 

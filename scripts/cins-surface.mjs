@@ -50,6 +50,11 @@ const MANAGE_PARK_APP_DIRS = new Set([
   "s",
 ]);
 
+/**
+ * API giữ trên manage (same-origin). Seller layout bọc `CinsShell` → chat dock;
+ * kho hàng gọi upload ảnh/video + tag — park các cây này → 404 ("Upload ảnh thất bại",
+ * "Không tải được tin nhắn").
+ */
 const MANAGE_KEEP_API_DIRS = new Set([
   "admin",
   "auth",
@@ -58,6 +63,17 @@ const MANAGE_KEEP_API_DIRS = new Set([
   "shop",
   "org",
   "user",
+  "chat",
+  "chat-video",
+  "post-image",
+  "post-video",
+  "avatar",
+  "tag",
+  "friends",
+  "events",
+  /* Chat dock trên seller/admin: picker meme + GIF cùng origin. */
+  "gif",
+  "user-emoji",
 ]);
 
 const MANAGE_KEEP_APP_FILES = new Set([

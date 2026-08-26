@@ -2,14 +2,10 @@ import { Fragment } from "react";
 import { Menu as MenuIcon } from "lucide-react";
 import Link from "next/link";
 
-import { AdminInboxButton } from "@/components/admin/AdminInboxButton";
 import { UserAccountMenu } from "@/components/cins/UserAccountMenu";
 import { JourneyNotifications } from "@/components/journey/JourneyNotifications";
 import { ShopGioChungButton } from "@/components/shop/ShopGioChungButton";
 import { ShopTopbarButton } from "@/components/shop/ShopTopbarButton";
-import { countAdminInboxStats } from "@/lib/admin/admin-inbox-stats";
-import { EMPTY_ADMIN_INBOX_STATS } from "@/lib/admin/admin-inbox-stats-types";
-import { getCurrentUserIsCinsAdmin } from "@/lib/auth/cins-admin-server";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { getBanHangEnabled } from "@/lib/shop/settings";
@@ -29,17 +25,12 @@ export async function CinsAppTopbar() {
   const isAuthed = !!session;
   const profileId = session?.profile?.id ?? null;
 
-  const [unreadNotificationCount, isCinsAdmin, banHangEnabled] = profileId
+  const [unreadNotificationCount, banHangEnabled] = profileId
     ? await Promise.all([
         countUnreadNotifications(profileId).catch(() => 0),
-        getCurrentUserIsCinsAdmin(),
         getBanHangEnabled(profileId).catch(() => false),
       ])
-    : [0, false, false];
-
-  const adminInboxStats = isCinsAdmin
-    ? await countAdminInboxStats().catch(() => EMPTY_ADMIN_INBOX_STATS)
-    : null;
+    : [0, false];
 
   const accountProfile =
     session?.profile?.slug
@@ -53,22 +44,15 @@ export async function CinsAppTopbar() {
   const tbRightGroups: React.ReactNode[] = [];
   if (session?.profile) {
     tbRightGroups.push(
-      <div className="tb-right-group" key="shop">
+      <div className="tb-right-group tb-group-shop" key="shop">
         <ShopGioChungButton />
         {banHangEnabled ? <ShopTopbarButton /> : null}
       </div>,
     );
   }
-  if (adminInboxStats) {
-    tbRightGroups.push(
-      <div className="tb-right-group" key="admin">
-        <AdminInboxButton initialStats={adminInboxStats} />
-      </div>,
-    );
-  }
   if (session?.profile) {
     tbRightGroups.push(
-      <div className="tb-right-group" key="notify">
+      <div className="tb-right-group tb-group-notify" key="notify">
         <JourneyNotifications
           initialUnreadCount={unreadNotificationCount}
           viewerProfileId={session.profile.id}
@@ -78,14 +62,19 @@ export async function CinsAppTopbar() {
   }
   if (accountProfile) {
     tbRightGroups.push(
-      <div className="tb-right-group" key="account">
+      <div className="tb-right-group tb-group-account" key="account">
         <UserAccountMenu profile={accountProfile} placement="topbar" />
       </div>,
     );
   }
 
   return (
-    <nav className="topbar cins-app-topbar" id="app-topbar">
+    <nav
+      className={["topbar", "cins-app-topbar", isAuthed ? "is-authed" : ""]
+        .filter(Boolean)
+        .join(" ")}
+      id="app-topbar"
+    >
       <div className="topbar-inner">
         <div className="tb-left">
           <button
@@ -103,6 +92,11 @@ export async function CinsAppTopbar() {
             aria-live="polite"
           />
         </div>
+        <div
+          className="tb-chat-slot"
+          id="app-topbar-chat-slot"
+          aria-hidden={!isAuthed}
+        />
         <div className="tb-right">
           {tbRightGroups.map((group, i) => (
             <Fragment key={i}>

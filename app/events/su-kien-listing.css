@@ -530,7 +530,7 @@
 
 .sk-detail-topbar {
   position: sticky;
-  top: var(--site-nav-height, 64px);
+  top: var(--site-nav-sticky-top, var(--site-nav-height, 64px));
   z-index: 50;
   display: flex;
   align-items: center;

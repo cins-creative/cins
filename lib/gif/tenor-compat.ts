@@ -112,10 +112,10 @@ async function fetchTenorCompat(
     const res = await fetch(`${GIPHY_TENOR_HOST}${path}?${qs.toString()}`, {
       method: "GET",
       headers: { Accept: "application/json" },
-      next: { revalidate: 0 },
+      cache: "no-store",
     });
+    const text = await res.text().catch(() => "");
     if (!res.ok) {
-      const body = await res.text().catch(() => "");
       return {
         ok: false,
         error: {
@@ -124,11 +124,23 @@ async function fetchTenorCompat(
           message:
             res.status === 429
               ? "Giphy đang giới hạn tốc độ. Thử lại sau."
-              : body.slice(0, 200) || `Giphy lỗi ${res.status}.`,
+              : `Giphy lỗi ${res.status}.`,
         },
       };
     }
-    const json = (await res.json()) as TenorPageResponse;
+    let json: TenorPageResponse;
+    try {
+      json = JSON.parse(text) as TenorPageResponse;
+    } catch {
+      return {
+        ok: false,
+        error: {
+          kind: "upstream",
+          status: res.status,
+          message: "Giphy trả về dữ liệu không hợp lệ.",
+        },
+      };
+    }
     return { ok: true, page: normalizePage(json) };
   } catch (err) {
     return {
