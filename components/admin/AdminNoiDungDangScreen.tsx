@@ -7,8 +7,10 @@ import {
   LayoutGrid,
   List,
   Loader2,
+  Plus,
   Scale,
   Search,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -46,9 +48,12 @@ type Props = {
   initialView?: ViewMode;
 };
 
-/** Khớp `WORLD_BOOST_TTL_MS` (server-only) — TTL đẩy 3 ngày. */
-const WORLD_BOOST_TTL_MS = 3 * 24 * 60 * 60 * 1000;
 const NDD_PAGE_SIZE = 30;
+const NDD_DELTA_PRESETS = [
+  [10, -10],
+  [20, -20],
+  [50, -50],
+] as const;
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
@@ -69,12 +74,14 @@ function NddScoreDeltaField({
   busy,
   bumping,
   onApply,
+  autoFocus,
 }: {
   item: WorldBoostCatalogItem;
-  variant: "card" | "list";
+  variant: "card" | "list" | "sheet";
   busy: boolean;
   bumping: boolean;
   onApply: (item: WorldBoostCatalogItem, delta: number) => void;
+  autoFocus?: boolean;
 }) {
   const uu = item.diemFeed?.diem_uu_tien ?? 0;
   const [raw, setRaw] = useState("");
@@ -98,9 +105,10 @@ function NddScoreDeltaField({
         type="text"
         inputMode="numeric"
         className="ndd-delta-input"
-        placeholder={variant === "list" ? "10 / -18" : "±"}
+        placeholder={variant === "card" ? "±" : "10 / -18"}
         value={raw}
         disabled={busy}
+        autoFocus={autoFocus}
         maxLength={5}
         aria-label={`Cộng hoặc trừ điểm: ${item.tieuDe}`}
         title={`Nhập 10 hoặc -18 rồi Áp / Enter${uuHint}`}
@@ -122,6 +130,99 @@ function NddScoreDeltaField({
         {bumping ? "…" : "Áp"}
       </button>
     </span>
+  );
+}
+
+function NddScoreDeltaSheet({
+  item,
+  busy,
+  bumping,
+  onApply,
+  onClose,
+}: {
+  item: WorldBoostCatalogItem;
+  busy: boolean;
+  bumping: boolean;
+  onApply: (item: WorldBoostCatalogItem, delta: number) => void;
+  onClose: () => void;
+}) {
+  const uu = item.diemFeed?.diem_uu_tien ?? 0;
+  const uuLabel = uu === 0 ? "0" : uu > 0 ? `+${uu}` : `${uu}`;
+
+  return (
+    <div
+      className="ndd-delta-sheet-backdrop"
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        className="ndd-delta-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ndd-delta-sheet-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="ndd-delta-sheet-head">
+          <div>
+            <h2 id="ndd-delta-sheet-title">Cộng điểm</h2>
+            <p className="ndd-delta-sheet-sub">{item.tieuDe}</p>
+          </div>
+          <button
+            type="button"
+            className="ndd-delta-sheet-close"
+            onClick={onClose}
+            aria-label="Đóng"
+          >
+            <X size={18} aria-hidden />
+          </button>
+        </header>
+        <p className="ndd-delta-sheet-current">
+          Ưu tiên hiện tại <strong>{uuLabel}</strong>
+        </p>
+        <table className="ndd-delta-sheet-table">
+          <thead>
+            <tr>
+              <th>Cộng</th>
+              <th>Trừ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {NDD_DELTA_PRESETS.map(([plus, minus]) => (
+              <tr key={plus}>
+                <td>
+                  <button
+                    type="button"
+                    className="ndd-delta-preset is-plus"
+                    disabled={busy}
+                    onClick={() => onApply(item, plus)}
+                  >
+                    +{plus}
+                  </button>
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    className="ndd-delta-preset is-minus"
+                    disabled={busy}
+                    onClick={() => onApply(item, minus)}
+                  >
+                    {minus}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <NddScoreDeltaField
+          item={item}
+          variant="sheet"
+          busy={busy}
+          bumping={bumping}
+          onApply={onApply}
+          autoFocus
+        />
+      </div>
+    </div>
   );
 }
 
@@ -148,13 +249,10 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [scoreConfig, setScoreConfig] = useState<FeedScoreConfig | null>(null);
-  /** Per-item — không khóa cả lưới khi một thẻ đang gửi API. */
-  const [boostingKeys, setBoostingKeys] = useState<ReadonlySet<string>>(
-    () => new Set(),
-  );
   const [bumpingKeys, setBumpingKeys] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
+  const [deltaSheetKey, setDeltaSheetKey] = useState<string | null>(null);
 
   const panelBodyRef = useRef<HTMLDivElement>(null);
 
@@ -170,7 +268,7 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
   }
 
   function isBusy(key: string): boolean {
-    return boostingKeys.has(key) || bumpingKeys.has(key);
+    return bumpingKeys.has(key);
   }
 
   useEffect(() => {
@@ -331,100 +429,6 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
     return item.loai === "cot_moc" || item.loai === "org_bai_dang";
   }
 
-  function toggleBoost(item: WorldBoostCatalogItem) {
-    if (isBusy(item.key)) return;
-    const next = !item.dangBoost;
-    const prevItem = item;
-    const prevStats = stats;
-    const hetHanOptimistic = next
-      ? new Date(Date.now() + WORLD_BOOST_TTL_MS).toISOString()
-      : null;
-
-    setError(null);
-    setBoostingKeys((prev) => toggleKeyInSet(prev, item.key, true));
-    setItems((prev) => {
-      if (chiBoost && !next) {
-        return prev.filter((row) => row.key !== item.key);
-      }
-      return prev.map((row) =>
-        row.key === item.key
-          ? { ...row, dangBoost: next, hetHanLuc: hetHanOptimistic }
-          : row,
-      );
-    });
-    setStats((s) =>
-      s
-        ? {
-            ...s,
-            dangBoost: Math.max(0, s.dangBoost + (next ? 1 : -1)),
-          }
-        : s,
-    );
-
-    void (async () => {
-      try {
-        const res = await fetch("/api/admin/world-boost", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            loai: item.loai,
-            id: item.id,
-            dangBat: next,
-          }),
-        });
-        if (!res.ok) {
-          setItems((prev) => {
-            const had = prev.some((row) => row.key === prevItem.key);
-            if (!had && chiBoost && prevItem.dangBoost) {
-              return [prevItem, ...prev];
-            }
-            return prev.map((row) =>
-              row.key === prevItem.key ? prevItem : row,
-            );
-          });
-          setStats(prevStats);
-          setError("Không cập nhật được trạng thái đẩy.");
-          return;
-        }
-        const json = (await res.json()) as {
-          row?: { dang_bat?: boolean; het_han_luc?: string };
-        };
-        if (json.row) {
-          setItems((prev) =>
-            prev.map((row) =>
-              row.key === item.key
-                ? {
-                    ...row,
-                    dangBoost: Boolean(json.row?.dang_bat),
-                    hetHanLuc: json.row?.dang_bat
-                      ? (json.row.het_han_luc ?? row.hetHanLuc)
-                      : null,
-                  }
-                : row,
-            ),
-          );
-        }
-        /* Điểm feed đồng bộ server — refresh nền, không che lưới. */
-        void load({ silent: true });
-        void loadStats();
-      } catch {
-        setItems((prev) => {
-          const had = prev.some((row) => row.key === prevItem.key);
-          if (!had && chiBoost && prevItem.dangBoost) {
-            return [prevItem, ...prev];
-          }
-          return prev.map((row) =>
-            row.key === prevItem.key ? prevItem : row,
-          );
-        });
-        setStats(prevStats);
-        setError("Không cập nhật được trạng thái đẩy.");
-      } finally {
-        setBoostingKeys((prev) => toggleKeyInSet(prev, item.key, false));
-      }
-    })();
-  }
-
   function bumpScore(item: WorldBoostCatalogItem, delta: number) {
     if (!canBumpScore(item) || isBusy(item.key)) return;
     const parsed = parseAdminDiemUuTienDelta(delta);
@@ -531,6 +535,43 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
       />
     );
   }
+
+  function scoreOpenButton(item: WorldBoostCatalogItem) {
+    return (
+      <button
+        type="button"
+        className="ndd-score-open"
+        onClick={(e) => {
+          e.stopPropagation();
+          setDeltaSheetKey(item.key);
+        }}
+        disabled={isBusy(item.key)}
+        aria-label={`Cộng điểm: ${item.tieuDe}`}
+      >
+        <Plus size={18} strokeWidth={2.75} aria-hidden />
+      </button>
+    );
+  }
+
+  const deltaSheetItem = useMemo(
+    () => items.find((row) => row.key === deltaSheetKey) ?? null,
+    [items, deltaSheetKey],
+  );
+
+  useEffect(() => {
+    if (!deltaSheetKey) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setDeltaSheetKey(null);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [deltaSheetKey]);
+
+  useEffect(() => {
+    if (deltaSheetKey && !items.some((row) => row.key === deltaSheetKey)) {
+      setDeltaSheetKey(null);
+    }
+  }, [deltaSheetKey, items]);
 
   return (
     <div className="ndd-page">
@@ -746,23 +787,12 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
                               {item.tieuDe.slice(0, 2).toUpperCase()}
                             </span>
                           )}
-                          <span className="ndd-card-mark-row">
-                            {canBumpScore(item)
-                              ? scoreDeltaField(item, "card")
-                              : null}
-                            <button
-                              type="button"
-                              className="ndd-card-mark"
-                              onClick={() => toggleBoost(item)}
-                              disabled={isBusy(item.key)}
-                              aria-pressed={item.dangBoost}
-                              aria-label={
-                                item.dangBoost
-                                  ? `Tắt đẩy: ${item.tieuDe}`
-                                  : `Đẩy nội dung: ${item.tieuDe}`
-                              }
-                            />
-                          </span>
+                          {canBumpScore(item) ? (
+                            <span className="ndd-card-mark-row">
+                              {scoreDeltaField(item, "card")}
+                              {scoreOpenButton(item)}
+                            </span>
+                          ) : null}
                           {item.laNickSeed ? (
                             <span className="ndd-card-seed">Nick seed</span>
                           ) : null}
@@ -810,7 +840,7 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
                     <table className="data-table ndd-list-table">
                       <thead>
                         <tr>
-                          <th className="ndd-list-col-boost">Đẩy</th>
+                          <th className="ndd-list-col-boost">Cộng điểm</th>
                           <th className="ndd-list-col-thumb" aria-label="Ảnh" />
                           <th>Nội dung</th>
                           <th className="ndd-list-col-score">Điểm</th>
@@ -832,20 +862,12 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
                               .join(" ") || undefined}
                           >
                             <td className="ndd-list-col-boost">
-                              <span className="ndd-list-boost-actions">
-                                {canBumpScore(item)
-                                  ? scoreDeltaField(item, "list")
-                                  : null}
-                                <button
-                                  type="button"
-                                  className={`ndd-list-toggle${item.dangBoost ? " is-on" : ""}`}
-                                  onClick={() => toggleBoost(item)}
-                                  disabled={isBusy(item.key)}
-                                  aria-pressed={item.dangBoost}
-                                >
-                                  {item.dangBoost ? "Bật" : "Tắt"}
-                                </button>
-                              </span>
+                              {canBumpScore(item) ? (
+                                <span className="ndd-list-boost-actions">
+                                  {scoreDeltaField(item, "list")}
+                                  {scoreOpenButton(item)}
+                                </span>
+                              ) : null}
                             </td>
                             <td className="ndd-list-col-thumb">
                               <span className="ndd-list-thumb">
@@ -1006,18 +1028,12 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
                             <span className="ndd-verified-pill">Đã XT</span>
                           ) : null}
                           <span className="ndd-list-boost-actions">
-                            {canBumpScore(item)
-                              ? scoreDeltaField(item, "list")
-                              : null}
-                            <button
-                              type="button"
-                              className={`ndd-list-toggle${item.dangBoost ? " is-on" : ""}`}
-                              onClick={() => toggleBoost(item)}
-                              disabled={isBusy(item.key)}
-                              aria-pressed={item.dangBoost}
-                            >
-                              {item.dangBoost ? "Bật" : "Tắt"}
-                            </button>
+                            {canBumpScore(item) ? (
+                              <>
+                                {scoreDeltaField(item, "list")}
+                                {scoreOpenButton(item)}
+                              </>
+                            ) : null}
                           </span>
                         </div>
                       </li>
@@ -1072,6 +1088,15 @@ export function AdminNoiDungDangScreen({ initialView }: Props) {
           </section>
         )}
       </div>
+      {deltaSheetItem ? (
+        <NddScoreDeltaSheet
+          item={deltaSheetItem}
+          busy={isBusy(deltaSheetItem.key)}
+          bumping={bumpingKeys.has(deltaSheetItem.key)}
+          onApply={bumpScore}
+          onClose={() => setDeltaSheetKey(null)}
+        />
+      ) : null}
     </div>
   );
 }

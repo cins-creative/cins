@@ -8742,7 +8742,7 @@
   vertical-align: middle;
 }
 .cins-admin .ndd-list-col-boost {
-  width: 72px;
+  width: 132px;
 }
 .cins-admin .ndd-list-col-thumb {
   width: 104px;
@@ -8975,6 +8975,155 @@
   outline: 2px solid #2563eb;
   outline-offset: 2px;
 }
+.cins-admin .ndd-score-open {
+  display: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1.5px solid #d97706;
+  color: #92400e;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+.cins-admin .ndd-score-open:hover:not(:disabled) {
+  background: #fffbeb;
+}
+.cins-admin .ndd-score-open:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+.cins-admin .ndd-score-open:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+.cins-admin .ndd-delta-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.55);
+}
+.cins-admin .ndd-delta-sheet {
+  width: min(440px, 100%);
+  max-height: min(88vh, 640px);
+  overflow: auto;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  border-radius: 16px 16px 0 0;
+  background: var(--bg-surface, #fff);
+  color: var(--fg-1, #0f172a);
+  border: 1px solid var(--border, #e2e8f0);
+  box-shadow: var(--shadow-lg, 0 12px 40px rgba(15, 23, 42, 0.24));
+}
+.cins-admin .ndd-delta-sheet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.cins-admin .ndd-delta-sheet-head h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+.cins-admin .ndd-delta-sheet-sub {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--fg-4, #64748b);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cins-admin .ndd-delta-sheet-close {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: -8px -8px 0 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--fg-3, #475569);
+  cursor: pointer;
+}
+.cins-admin .ndd-delta-sheet-close:hover {
+  background: var(--neutral-100, #f1f5f9);
+}
+.cins-admin .ndd-delta-sheet-current {
+  margin: 12px 0 10px;
+  font-size: 13px;
+  color: var(--fg-3, #475569);
+}
+.cins-admin .ndd-delta-sheet-current strong {
+  font-variant-numeric: tabular-nums;
+  color: #92400e;
+}
+.cins-admin .ndd-delta-sheet-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 8px;
+  margin: 0 -8px 4px;
+}
+.cins-admin .ndd-delta-sheet-table th {
+  padding: 0 4px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--fg-4, #64748b);
+  text-align: center;
+}
+.cins-admin .ndd-delta-sheet-table td {
+  padding: 0;
+  width: 50%;
+}
+.cins-admin .ndd-delta-preset {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.cins-admin .ndd-delta-preset.is-plus {
+  border: 1.5px solid #d97706;
+  background: #fffbeb;
+  color: #92400e;
+}
+.cins-admin .ndd-delta-preset.is-minus {
+  border: 1.5px solid #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+}
+.cins-admin .ndd-delta-preset:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.cins-admin .ndd-score-delta--sheet {
+  width: 100%;
+  margin-top: 8px;
+  gap: 8px;
+}
+.cins-admin .ndd-score-delta--sheet .ndd-delta-input {
+  flex: 1;
+  width: auto;
+  height: 44px;
+  font-size: 16px;
+}
+.cins-admin .ndd-score-delta--sheet .ndd-delta-apply {
+  height: 44px;
+  min-width: 64px;
+  font-size: 14px;
+}
 .cins-admin .ndd-card-bump {
   min-width: 28px;
   height: 22px;
@@ -9182,6 +9331,11 @@
   min-height: 44px;
   min-width: 44px;
   padding: 0 14px;
+}
+.cins-admin .ndd-mobile-actions .ndd-score-open {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0;
 }
 .cins-admin .ndd-mobile-actions .ndd-delta-input {
   width: 88px;
@@ -9806,9 +9960,16 @@
     justify-content: flex-end;
     max-width: calc(100% - 8px);
   }
-  .cins-admin .ndd-card-mark {
-    width: 22px;
-    height: 22px;
+  .cins-admin .ndd-score-delta--card,
+  .cins-admin .ndd-score-delta--list {
+    display: none;
+  }
+  .cins-admin .ndd-score-open {
+    display: grid;
+  }
+  .cins-admin .ndd-card-mark-row .ndd-score-open {
+    width: 36px;
+    height: 36px;
   }
   .cins-admin .ndd-card-bump {
     min-width: 26px;
@@ -10085,9 +10246,27 @@
   color: var(--fg-4) !important;
 }
 
-:root[data-theme="dark"] .cins-admin .ndd-card-mark {
+:root[data-theme="dark"] .cins-admin .ndd-card-mark,
+:root[data-theme="dark"] .cins-admin .ndd-score-open {
   background: color-mix(in srgb, var(--bg-surface) 88%, transparent);
-  border-color: var(--border-strong, #4b5563);
+  border-color: color-mix(in srgb, #fbbf24 50%, var(--border));
+  color: #fdba74;
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-delta-sheet-current strong,
+:root[data-theme="dark"] .cins-admin .ndd-delta-preset.is-plus {
+  color: #fdba74;
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-delta-preset.is-plus {
+  background: color-mix(in srgb, #fbbf24 12%, var(--bg-surface));
+  border-color: color-mix(in srgb, #fbbf24 50%, var(--border));
+}
+
+:root[data-theme="dark"] .cins-admin .ndd-delta-preset.is-minus {
+  background: var(--neutral-100, #1e2430);
+  border-color: var(--border);
+  color: var(--fg-3);
 }
 
 :root[data-theme="dark"] .cins-admin .ndd-delta-input,

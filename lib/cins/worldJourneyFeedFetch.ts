@@ -61,10 +61,15 @@ import {
 } from "@/lib/cins/worldJourneyFeedSource";
 import { withWorldBoostMilestones } from "@/lib/cins/world-boost";
 
-const FEED_POOL_LIMIT = 80;
-/** Pool rộng khi đang lọc — đủ bài để filter media/nhúng/lĩnh vực có kết quả. */
-const FEED_FILTER_POOL_LIMIT = 240;
-const QUERY_LIMIT = 120;
+/**
+ * Trần an toàn sau rank (L18: phân bổ không kìm bằng pool nhỏ kiểu anti-viral).
+ * Hết thật ≈ hết cửa sổ decay / hết ứng viên nguồn — không cắt sớm ~80.
+ */
+const FEED_POOL_LIMIT = 500;
+/** Cùng trần khi lọc media/nhúng/lĩnh vực — không tách home hẹp / filter rộng. */
+const FEED_FILTER_POOL_LIMIT = FEED_POOL_LIMIT;
+/** Scan mỗi nguồn (own / bạn / follow / discover…) trước khi rank. */
+const QUERY_LIMIT = 300;
 
 const COT_MOC_FEED_SELECT =
   "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc, id_nguoi_dung, id_to_chuc, id_khoa_hoc, id_lop_hoc";
@@ -337,7 +342,8 @@ function applyLensOwners(
  * 2. Sort diem_hien_tai DESC
  * 3. Soft quota max N bài/tác giả
  * 4. Promote tối đa N bài fresh vào đầu pool (để client first-impression có payload)
- * Cắt còn `poolLimit`. Boost merge ở `fetchWorldJourneyFeedPage*`.
+ * 5. Cắt `poolLimit` (safety cap, mặc định FEED_POOL_LIMIT) — không phải luật chống-viral.
+ * Boost merge ở `fetchWorldJourneyFeedPage*`.
  */
 async function rankFeedByScore(
   viewerId: string,
