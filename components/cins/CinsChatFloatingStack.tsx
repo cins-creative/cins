@@ -355,9 +355,14 @@ function MiniAvatar({
 
 type CinsChatFloatingStackProps = {
   launcher: ReactNode;
+  /** Mobile botbar: bấm bubble → overlay `/chat`, không mở mini panel. */
+  bubbleOpensFullChat?: boolean;
 };
 
-export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) {
+export function CinsChatFloatingStack({
+  launcher,
+  bubbleOpensFullChat = false,
+}: CinsChatFloatingStackProps) {
   const {
     open,
     openChat,
@@ -1791,16 +1796,12 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
   ]);
 
   /**
-   * Mở overlay đầy đủ cho đúng thread. `openChat({ thread })` chỉ set state
-   * (setLaunch + setOpen) — không điều hướng. React commit unmount mini +
+   * Overlay `/chat` cho đúng thread. `openChat({ thread })` chỉ set state
+   * (setLaunch + setOpen) — không điều hướng. React commit unmount mini/dock +
    * mount overlay trong cùng một pass, nên không có khe «lọt click» xuống dưới.
    */
-  const expandMiniToFullChat = useCallback(
-    (event?: { preventDefault?: () => void; stopPropagation?: () => void }) => {
-      event?.preventDefault?.();
-      event?.stopPropagation?.();
-      const thread = miniThreadRef.current;
-      if (!thread) return;
+  const openThreadInFullChat = useCallback(
+    (thread: ChatThread) => {
       saveComposeForRoom(thread.roomId);
       const liveMessages = roomStatesRef.current[thread.roomId]?.messages;
       const threadWithMessages = liveMessages?.length
@@ -1820,6 +1821,17 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
       });
     },
     [openChat, saveComposeForRoom, viewerProfileId],
+  );
+
+  const expandMiniToFullChat = useCallback(
+    (event?: { preventDefault?: () => void; stopPropagation?: () => void }) => {
+      event?.preventDefault?.();
+      event?.stopPropagation?.();
+      const thread = miniThreadRef.current;
+      if (!thread) return;
+      openThreadInFullChat(thread);
+    },
+    [openThreadInFullChat],
   );
 
   useChatConvoSwipe(messagesContainerRef, {
@@ -1862,9 +1874,19 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
 
   useEffect(() => {
     if (open || !pendingBubbleThread) return;
+    if (bubbleOpensFullChat) {
+      clearPendingBubble();
+      return;
+    }
     openMini(pendingBubbleThread);
     clearPendingBubble();
-  }, [clearPendingBubble, open, openMini, pendingBubbleThread]);
+  }, [
+    bubbleOpensFullChat,
+    clearPendingBubble,
+    open,
+    openMini,
+    pendingBubbleThread,
+  ]);
 
   /* Khi vừa mở mini (hoặc tin nhắn vừa hydrate) — luôn kéo xuống tin mới nhất. */
   useEffect(() => {
@@ -1899,9 +1921,13 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
         y: fromKeyboard ? rect.height / 2 : e.clientY - rect.top,
         size,
       });
+      if (bubbleOpensFullChat) {
+        openThreadInFullChat(thread);
+        return;
+      }
       toggleMini(thread);
     },
-    [toggleMini],
+    [bubbleOpensFullChat, openThreadInFullChat, toggleMini],
   );
 
   const sendableImages = pendingImages.filter((image) => !image.error);
@@ -3044,7 +3070,11 @@ export function CinsChatFloatingStack({ launcher }: CinsChatFloatingStackProps) 
                       onClick={(e) => {
                         e.stopPropagation();
                         if (showCount) {
-                          toggleMini(thread);
+                          if (bubbleOpensFullChat) {
+                            openThreadInFullChat(thread);
+                          } else {
+                            toggleMini(thread);
+                          }
                         } else {
                           dismissBubble(thread);
                         }

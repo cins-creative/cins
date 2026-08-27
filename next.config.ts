@@ -146,6 +146,8 @@ const nextConfig: NextConfig = {
   },
   /** Client video env — Cloudflare Stream / R2 chat video. */
   env: {
+    /** Bề mặt build (`web` | `manage`) — inlined client để `webHref`/`manageHref` khớp SSR. */
+    CINS_SURFACE: cinsSurface,
     /** Mã customer subdomain phát Cloudflare Stream (customer-xxxx). */
     NEXT_PUBLIC_CF_STREAM_CUSTOMER_CODE: pickEnv(
       "NEXT_PUBLIC_CF_STREAM_CUSTOMER_CODE",

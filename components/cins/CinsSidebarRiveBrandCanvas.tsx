@@ -16,6 +16,7 @@ import {
   RIVE_STATE_MACHINE,
   RIVE_TRIGGER_INPUT,
 } from "@/lib/cins/sidebar-rive-brand";
+import { webHref } from "@/lib/cins/manage-site";
 import { ensureRiveRuntime } from "@/lib/cins/rive-runtime";
 
 if (typeof window !== "undefined") {
@@ -135,7 +136,7 @@ export function CinsSidebarRiveBrandCanvas({
   }, [rive, ready, expanded, booleanInput, triggerInput]);
 
   return (
-    <Link href="/" className="sb-brand" aria-label="C.INS trang chủ">
+    <Link href={webHref("/")} className="sb-brand" aria-label="C.INS trang chủ">
       <span
         className={`sb-brand-rive${expanded ? " is-expanded" : ""}${ready ? " is-ready" : ""}`}
       >

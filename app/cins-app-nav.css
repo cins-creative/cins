@@ -1308,14 +1308,14 @@
   min-width: 0;
 }
 
-/* Giỏ trống + chưa mở shop → không để nhóm rỗng chiếm chỗ. */
-.cins-app-topbar .tb-group-shop:not(:has(.gio-chung)):not(:has(.shop-topbar-trigger)) {
+/* Giỏ trống / chưa mở shop → không để ô rỗng chiếm chỗ. */
+.cins-app-topbar .tb-group-gio:not(:has(.gio-chung)),
+.cins-app-topbar .tb-group-shop:not(:has(.shop-topbar-trigger)) {
   display: none;
 }
 
-.cins-app-topbar
-  .tb-group-shop:not(:has(.gio-chung)):not(:has(.shop-topbar-trigger))
-  + .tb-divider {
+.cins-app-topbar .tb-group-gio:not(:has(.gio-chung)) + .tb-divider,
+.cins-app-topbar .tb-group-shop:not(:has(.shop-topbar-trigger)) + .tb-divider {
   display: none;
 }
 
@@ -3292,6 +3292,13 @@ a.j-notify-mini-action.is-link:hover {
 }
 
 @media (max-width: 960px) {
+  /* Token trên html — dock/FAB portal ra body không inherit từ .cins-shell. */
+  html:has(#app-topbar.is-authed) {
+    --cins-botbar-h: calc(
+      var(--site-nav-height, 64px) + env(safe-area-inset-bottom, 0px)
+    );
+  }
+
   .cins-shell {
     padding-left: 0;
     --site-nav-sticky-top: 0px;
@@ -3361,6 +3368,7 @@ a.j-notify-mini-action.is-link:hover {
     transform: translate3d(0, 0, 0);
     visibility: visible;
     pointer-events: auto;
+    z-index: 520;
     transition:
       transform 0.34s cubic-bezier(0.32, 0.72, 0, 1),
       visibility 0s linear 0s,
@@ -3424,8 +3432,23 @@ a.j-notify-mini-action.is-link:hover {
 
   .cins-app-topbar .tb-burger {
     display: inline-flex;
-    width: 44px;
+    width: 100%;
     height: 44px;
+    min-width: 44px;
+  }
+
+  .cins-app-topbar.is-authed .tb-left {
+    grid-area: burger;
+    flex: none;
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+  }
+
+  .cins-app-topbar.is-authed .tb-left .tb-burger {
+    width: 100%;
+    height: 100%;
+    min-height: 44px;
   }
 
   .cins-app-topbar .topbar-inner {
@@ -3435,16 +3458,36 @@ a.j-notify-mini-action.is-link:hover {
     border-radius: 0;
   }
 
-  /* 5 ô: burger · shop · chat FAB · notify · user. Chat luôn giữa. */
+  /* Mỗi icon một ô — giỏ và shop không gộp group. */
   .cins-app-topbar.is-authed .topbar-inner {
     display: grid;
-    grid-template-columns: 1fr 1fr auto 1fr 1fr;
-    grid-template-areas: "burger shop chat notify user";
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-areas: "burger gio shop chat notify user";
     align-items: center;
-    justify-items: center;
+    justify-items: stretch;
     gap: 0;
-    padding: 0 6px;
+    padding: 0 4px;
     overflow: visible;
+  }
+
+  .cins-app-topbar.is-authed
+    .topbar-inner:not(:has(.tb-group-shop .shop-topbar-trigger)) {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-areas: "burger gio chat notify user";
+  }
+
+  .cins-app-topbar.is-authed
+    .topbar-inner:not(:has(.tb-group-gio .gio-chung)) {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-areas: "burger shop chat notify user";
+  }
+
+  .cins-app-topbar.is-authed
+    .topbar-inner:not(:has(.tb-group-gio .gio-chung)):not(
+      :has(.tb-group-shop .shop-topbar-trigger)
+    ) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-areas: "burger chat notify user";
   }
 
   .cins-app-topbar.is-authed .tb-left {
@@ -3465,55 +3508,53 @@ a.j-notify-mini-action.is-link:hover {
   }
 
   .cins-app-topbar.is-authed .tb-chat-slot {
-    display: flex;
+    display: block;
     grid-area: chat;
-    align-items: center;
-    justify-content: center;
-    width: 58px;
-    height: 58px;
-    margin-top: -28px;
-    z-index: 3;
+    width: 100%;
+    height: 0;
+    min-height: 0;
+    margin: 0;
     pointer-events: none;
-    transition: margin-top var(--cins-chrome-hide-dur) var(--cins-chrome-hide-ease);
-  }
-
-  .cins-app-topbar.topbar.is-hidden .tb-chat-slot {
-    margin-top: 0;
-  }
-
-  .cins-app-topbar.is-authed .tb-chat-slot > * {
-    pointer-events: auto;
+    visibility: hidden;
   }
 
   .cins-app-topbar.is-authed .tb-right {
     display: contents;
   }
 
-  .cins-app-topbar.is-authed .tb-group-shop {
-    grid-area: shop;
-    justify-self: center;
-    gap: 2px;
-    max-width: 100%;
+  .cins-app-topbar.is-authed .tb-group-gio {
+    grid-area: gio;
+    justify-self: stretch;
+    justify-content: center;
+    width: 100%;
   }
 
-  .cins-app-topbar.is-authed
-    .tb-group-shop:has(.gio-chung):has(.shop-topbar-trigger)
-    .gio-chung-trigger,
-  .cins-app-topbar.is-authed
-    .tb-group-shop:has(.gio-chung):has(.shop-topbar-trigger)
-    .shop-topbar-trigger {
-    width: 36px;
-    height: 36px;
+  .cins-app-topbar.is-authed .tb-group-shop {
+    grid-area: shop;
+    justify-self: stretch;
+    justify-content: center;
+    width: 100%;
+    max-width: none;
   }
 
   .cins-app-topbar.is-authed .tb-group-notify {
     grid-area: notify;
-    justify-self: center;
+    justify-self: stretch;
+    justify-content: center;
+    width: 100%;
   }
 
   .cins-app-topbar.is-authed .tb-group-account {
     grid-area: user;
-    justify-self: center;
+    justify-self: stretch;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .cins-app-topbar.is-authed .tb-group-gio .gio-chung-trigger,
+  .cins-app-topbar.is-authed .tb-group-shop .shop-topbar-trigger {
+    width: 40px;
+    height: 40px;
   }
 
   .cins-app-topbar.is-authed .tb-user,
@@ -3526,6 +3567,11 @@ a.j-notify-mini-action.is-link:hover {
   .cins-app-topbar .shop-topbar-trigger {
     width: 44px;
     height: 44px;
+  }
+
+  .cins-app-topbar .j-notify-count {
+    top: 2px;
+    right: 2px;
   }
 
   .cins-app-topbar .tb-divider {

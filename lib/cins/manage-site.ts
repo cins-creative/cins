@@ -2,6 +2,10 @@
 export const MANAGE_HOST = "manage.cins.vn";
 export const MANAGE_ORIGIN = `https://${MANAGE_HOST}`;
 
+/** Host public — apex. Chrome từ manage phải nhảy origin, không dùng path tương đối. */
+export const WEB_HOST = "cins.vn";
+export const WEB_ORIGIN = `https://${WEB_HOST}`;
+
 export function isManageHostname(hostname: string): boolean {
   return hostname.toLowerCase() === MANAGE_HOST;
 }
@@ -15,6 +19,12 @@ function normalizePath(path: string): string {
   return path.startsWith("/") ? path : `/${path}`;
 }
 
+function isManageClientHost(): boolean {
+  return (
+    typeof window !== "undefined" && isManageHostname(window.location.hostname)
+  );
+}
+
 /**
  * Link sang bề mặt manage.
  * Dev (monolith): path nội bộ. Prod trên cins.vn: URL tuyệt đối manage.
@@ -25,6 +35,23 @@ export function manageHref(path: string): string {
   if (process.env.NODE_ENV !== "production") return normalized;
   if (process.env.CINS_SURFACE === "manage") return normalized;
   return `${MANAGE_ORIGIN}${normalized}`;
+}
+
+/**
+ * Link sang bề mặt public (`cins.vn`) — đối xứng `manageHref`.
+ * Trên manage, `<Link href="/">` same-origin → middleware 308 `/admin`.
+ * Dev monolith: path nội bộ. Prod manage (env hoặc host): URL tuyệt đối web.
+ */
+export function webHref(path: string): string {
+  if (/^https?:\/\//i.test(path) || path.startsWith("#")) return path;
+  const normalized = normalizePath(path);
+  const onManageSurface =
+    process.env.CINS_SURFACE === "manage" || isManageClientHost();
+  if (!onManageSurface) return normalized;
+  if (process.env.NODE_ENV !== "production" && !isManageClientHost()) {
+    return normalized;
+  }
+  return `${WEB_ORIGIN}${normalized}`;
 }
 
 /** Link sang panel admin. */

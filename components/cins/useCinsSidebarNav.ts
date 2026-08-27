@@ -72,17 +72,31 @@ export function useCinsSidebarNav(
     window.addEventListener("scroll", onScroll, { passive: true });
     mobileMq.addEventListener("change", syncTopbar);
 
+    let ignoreOutsideCloseUntil = 0;
+    const toggleHit = topbar?.querySelector(".tb-left") ?? burger;
+
+    const isToggleTarget = (t: Node | null) => {
+      if (!t) return false;
+      if (burger?.contains(t)) return true;
+      if (toggleHit instanceof Node && toggleHit.contains(t)) return true;
+      return false;
+    };
+
     const onBurger = (e: MouseEvent) => {
+      e.preventDefault();
       e.stopPropagation();
       sidebar?.classList.toggle("open");
       if (sidebar?.classList.contains("open")) {
         topbar?.classList.remove("is-hidden");
+        /* Ghost click sau touchend đập vào scrim (::after) → đóng ngay. */
+        ignoreOutsideCloseUntil = Date.now() + 450;
       }
     };
     const onDocClick = (e: MouseEvent) => {
       if (!sidebar || !burger) return;
+      if (Date.now() < ignoreOutsideCloseUntil) return;
       const t = e.target as Node;
-      if (!sidebar.contains(t) && !burger.contains(t)) {
+      if (!sidebar.contains(t) && !isToggleTarget(t)) {
         sidebar.classList.remove("open");
       }
     };
@@ -107,7 +121,13 @@ export function useCinsSidebarNav(
       if (desktopMq.matches) sidebar?.classList.remove("open");
     };
 
+    const toggleEl =
+      toggleHit instanceof HTMLElement ? toggleHit : burger;
+
     burger?.addEventListener("click", onBurger);
+    if (toggleEl && toggleEl !== burger) {
+      toggleEl.addEventListener("click", onBurger);
+    }
     document.addEventListener("click", onDocClick);
     sidebar?.addEventListener("click", onSidebarClick);
     sidebar?.addEventListener("mouseleave", onSidebarMouseLeave);
@@ -171,6 +191,9 @@ export function useCinsSidebarNav(
       if (raf) window.cancelAnimationFrame(raf);
       topbar?.classList.remove("is-hidden");
       burger?.removeEventListener("click", onBurger);
+      if (toggleEl && toggleEl !== burger) {
+        toggleEl.removeEventListener("click", onBurger);
+      }
       document.removeEventListener("click", onDocClick);
       sidebar?.removeEventListener("click", onSidebarClick);
       sidebar?.removeEventListener("mouseleave", onSidebarMouseLeave);

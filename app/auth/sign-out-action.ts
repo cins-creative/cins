@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { webHref } from "@/lib/cins/manage-site";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -12,7 +13,7 @@ import { createClient } from "@/lib/supabase/server";
  *   phiên của riêng thiết bị này (không thu hồi phiên trên thiết bị khác).
  * - `revalidatePath("/", "layout")` để mọi route đang render đều flush cache
  *   liên quan tới session (sidebar, topbar, /[slug]/journey…).
- * - Sau đó `redirect("/")` đưa user về trang chủ ở trạng thái khách.
+ * - Sau đó `redirect(webHref("/"))` — trên manage là `cins.vn`, không 308 `/admin`.
  *
  * Dùng qua `<form action={signOutAction}>` từ `CinsAppTopbar`.
  */
@@ -23,5 +24,5 @@ export async function signOutAction(): Promise<void> {
   // đăng nhập trên các thiết bị khác (không bắt đăng nhập lại toàn bộ).
   await supabase.auth.signOut({ scope: "local" });
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect(webHref("/"));
 }

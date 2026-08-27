@@ -9964,6 +9964,7 @@ button.cins-chat-don-card-cta.is-action:disabled {
 
 .j-chat-fab {
   --j-chat-fab-size: 56px;
+  position: relative;
   width: var(--j-chat-fab-size);
   height: var(--j-chat-fab-size);
   padding: 0;
@@ -10050,25 +10051,11 @@ button.cins-chat-don-card-cta.is-action:disabled {
   fill: none;
 }
 
-.j-chat-fab.has-unread {
-  animation: j-chat-fab-pulse 2.4s ease-in-out infinite;
-}
-
-.j-chat-fab.has-unread::before {
-  content: "";
-  position: absolute;
-  inset: -4px;
-  border-radius: inherit;
-  border: 2px solid rgba(43, 138, 232, 0.45);
-  opacity: 0;
-  animation: j-chat-fab-ring 2.4s ease-out infinite;
-  pointer-events: none;
-}
-
 .j-chat-fab-count {
   position: absolute;
   top: -3px;
   right: -3px;
+  z-index: 1;
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
@@ -10087,34 +10074,6 @@ button.cins-chat-don-card-cta.is-action:disabled {
   border: 2px solid #fff;
   box-shadow: 0 2px 8px rgba(239, 68, 68, 0.45);
   pointer-events: none;
-}
-
-@keyframes j-chat-fab-pulse {
-  0%,
-  100% {
-    box-shadow:
-      0 4px 16px rgba(31, 116, 201, 0.38),
-      0 10px 28px rgba(18, 74, 143, 0.24),
-      inset 0 1px 0 rgba(255, 255, 255, 0.28);
-  }
-  50% {
-    box-shadow:
-      0 6px 20px rgba(31, 116, 201, 0.5),
-      0 14px 34px rgba(18, 74, 143, 0.32),
-      inset 0 1px 0 rgba(255, 255, 255, 0.34);
-  }
-}
-
-@keyframes j-chat-fab-ring {
-  0% {
-    transform: scale(0.92);
-    opacity: 0.75;
-  }
-  70%,
-  100% {
-    transform: scale(1.18);
-    opacity: 0;
-  }
 }
 
 /* Unread bubbles — avatar tròn, xếp ngang bên trái FAB */
@@ -11115,38 +11074,37 @@ button.cins-chat-don-card-cta.is-action:disabled {
   }
 }
 
-/* Mobile botbar (≤960): FAB vào giữa nav; bubble neo trên tâm bar. */
+/* Mobile botbar (≤960): FAB fixed giữa; bubble neo mép phải. */
 @media (max-width: 960px) {
-  .cins-shell .j-chat-dock {
+  .j-chat-dock {
     bottom: max(
       20px,
-      calc(var(--cins-botbar-h, 0px) + 12px)
+      calc(var(--cins-botbar-h, 64px) + 12px)
     );
     transition:
       bottom var(--app-nav-dur, 0.18s)
-        var(--app-nav-ease, cubic-bezier(0.2, 0.7, 0.3, 1)),
-      opacity var(--app-nav-dur, 0.18s) ease,
-      visibility var(--app-nav-dur, 0.18s) ease;
+        var(--app-nav-ease, cubic-bezier(0.2, 0.7, 0.3, 1));
   }
 
-  /* Tránh FAB nhảy góc → giữa: ẩn bản dock, bản botbar hiện sau portal. */
-  .cins-shell .j-chat-dock .j-chat-fab {
+  /* FAB center portal ra body — ẩn bản trong dock. */
+  .j-chat-dock .j-chat-fab {
     visibility: hidden;
     pointer-events: none;
   }
 
-  .cins-shell .j-chat-dock.is-botbar-anchored {
+  .j-chat-dock.is-botbar-anchored {
     left: auto;
     right: max(10px, env(safe-area-inset-right, 0px));
     transform: none;
-    bottom: calc(var(--cins-botbar-h, 0px) + 8px);
+    /* Fallback 64px — var 0px trên :root không kích hoạt fallback của var(). */
+    bottom: calc(var(--cins-botbar-h, 64px) + 8px);
     flex-direction: row;
     align-items: flex-end;
     justify-content: flex-end;
     gap: 8px;
   }
 
-  .cins-shell .j-chat-dock.is-botbar-anchored .j-chat-dock-launcher-row {
+  .j-chat-dock.is-botbar-anchored .j-chat-dock-launcher-row {
     flex-direction: column;
     align-items: flex-end;
     justify-content: flex-end;
@@ -11155,12 +11113,12 @@ button.cins-chat-don-card-cta.is-action:disabled {
     flex-shrink: 0;
   }
 
-  .cins-shell .j-chat-dock.is-botbar-anchored .j-chat-dock-launcher-row:empty {
+  .j-chat-dock.is-botbar-anchored .j-chat-dock-launcher-row:empty {
     display: none;
   }
 
   /* Bubble peek — cột dọc sát mép phải. */
-  .cins-shell .j-chat-dock.is-botbar-anchored .j-chat-bubbles {
+  .j-chat-dock.is-botbar-anchored .j-chat-bubbles {
     flex-direction: column;
     align-items: flex-end;
     justify-content: flex-end;
@@ -11175,12 +11133,12 @@ button.cins-chat-don-card-cta.is-action:disabled {
     scrollbar-width: none;
   }
 
-  .cins-shell .j-chat-dock.is-botbar-anchored .j-chat-bubbles::-webkit-scrollbar {
+  .j-chat-dock.is-botbar-anchored .j-chat-bubbles::-webkit-scrollbar {
     display: none;
   }
 
   /* Mini panel bên trái cột bubble, neo đáy phải. */
-  .cins-shell .j-chat-dock.is-botbar-anchored .j-chat-mini {
+  .j-chat-dock.is-botbar-anchored .j-chat-mini {
     width: min(
       360px,
       calc(100vw - var(--j-chat-bubble-size, 44px) - 28px)
@@ -11205,42 +11163,78 @@ button.cins-chat-don-card-cta.is-action:disabled {
     min-width: 0;
   }
 
-  .cins-app-topbar .j-chat-fab.is-botbar {
+  /* FAB fixed giữa màn — không ẩn khi botbar scroll hide. */
+  .j-chat-fab.is-botbar.is-botbar-center {
     --j-chat-fab-size: 58px;
+    position: fixed;
+    left: 50%;
+    /* --cins-botbar-h đã gồm safe-area — không cộng thêm. Hạ thêm 20px. */
+    bottom: calc(var(--cins-botbar-h, 64px) - 48px);
+    transform: translateX(-50%);
+    z-index: calc(var(--cins-app-topbar-z, 200) + 2);
     visibility: visible;
     pointer-events: auto;
     border-radius: 18px;
     box-shadow: none;
+    overflow: visible;
+    margin: 0;
   }
 
-  .cins-app-topbar .j-chat-fab.is-botbar .j-chat-fab-glow {
+  .j-chat-fab.is-botbar.is-botbar-center .j-chat-fab-glow {
     display: none;
   }
 
-  .cins-app-topbar .j-chat-fab.is-botbar .j-chat-fab-icon {
+  .j-chat-fab.is-botbar.is-botbar-center .j-chat-fab-icon {
     filter: none;
   }
 
-  .cins-app-topbar .j-chat-fab.is-botbar .j-chat-fab-icon svg {
+  .j-chat-fab.is-botbar.is-botbar-center .j-chat-fab-icon svg {
     width: 26px;
     height: 26px;
   }
 
-  .cins-app-topbar .j-chat-fab.is-botbar:hover {
-    transform: scale(1.06);
+  .j-chat-fab.is-botbar.is-botbar-center:hover {
+    transform: translateX(-50%) scale(1.06);
     box-shadow: none;
   }
 
-  .cins-app-topbar .j-chat-fab.is-botbar:active {
-    transform: scale(1.02);
+  .j-chat-fab.is-botbar.is-botbar-center:active {
+    transform: translateX(-50%) scale(1.02);
     box-shadow: none;
   }
 
-  .cins-shell:has(#app-topbar.is-hidden) .j-chat-dock {
-    opacity: 0;
-    visibility: hidden;
+  .j-chat-fab.is-botbar.is-botbar-center .j-chat-fab-count {
+    top: 2px;
+    right: 2px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    font-size: 10px;
+    line-height: 1;
+    border-width: 2px;
+  }
+
+  .j-chat-fab.is-botbar.is-botbar-center.has-unread {
+    animation: none;
+  }
+
+  .j-chat-fab.is-botbar.is-botbar-center.has-unread::before {
+    content: none;
+  }
+
+  /* Botbar ẩn khi scroll — bubble hạ xuống; FAB giữa vẫn cố định. */
+  body:has(#app-topbar.is-hidden) .j-chat-dock.is-botbar-anchored {
+    bottom: max(16px, env(safe-area-inset-bottom, 0px));
+    opacity: 1;
+    visibility: visible;
     pointer-events: none;
-    bottom: max(20px, env(safe-area-inset-bottom, 0px));
+  }
+
+  body:has(#app-topbar.is-hidden) .j-chat-dock.is-botbar-anchored .j-chat-bubbles,
+  body:has(#app-topbar.is-hidden) .j-chat-dock.is-botbar-anchored .j-chat-mini {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
   }
 }
 

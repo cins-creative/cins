@@ -8,6 +8,7 @@ import { ShopGioChungButton } from "@/components/shop/ShopGioChungButton";
 import { ShopTopbarButton } from "@/components/shop/ShopTopbarButton";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 import { getAvatarUrl } from "@/lib/journey/profile";
+import { webHref } from "@/lib/cins/manage-site";
 import { getBanHangEnabled } from "@/lib/shop/settings";
 import { countUnreadNotifications } from "@/lib/social/notifications";
 
@@ -44,9 +45,15 @@ export async function CinsAppTopbar() {
   const tbRightGroups: React.ReactNode[] = [];
   if (session?.profile) {
     tbRightGroups.push(
-      <div className="tb-right-group tb-group-shop" key="shop">
+      <div className="tb-right-group tb-group-gio" key="gio">
         <ShopGioChungButton />
-        {banHangEnabled ? <ShopTopbarButton /> : null}
+      </div>,
+    );
+  }
+  if (session?.profile && banHangEnabled) {
+    tbRightGroups.push(
+      <div className="tb-right-group tb-group-shop" key="shop">
+        <ShopTopbarButton />
       </div>,
     );
   }
@@ -108,10 +115,10 @@ export async function CinsAppTopbar() {
             <>
               <span className="tb-divider" aria-hidden />
               <div className="tb-auth">
-                <Link href="/login" className="tb-login">
+                <Link href={webHref("/login")} className="tb-login">
                   Đăng nhập
                 </Link>
-                <Link href="/login?auto=register" className="tb-signup">
+                <Link href={webHref("/login?auto=register")} className="tb-signup">
                   Đăng ký <span aria-hidden="true">→</span>
                 </Link>
               </div>

@@ -8,6 +8,7 @@ import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
 import { useT } from "@/lib/i18n/use-t";
 import { getNameInitials } from "@/lib/journey/profile";
 import type { MainNavItem, OrgFlyoutKind } from "@/lib/cins/mainNav";
+import { webHref } from "@/lib/cins/manage-site";
 
 type MyOrg = {
   id: string;
@@ -116,7 +117,7 @@ export function SidebarOrgFlyout({
             className={`sb-item sb-item--flyout${active ? " active" : ""}`}
           >
             <Link
-              href={item.href}
+              href={webHref(item.href)}
               className="sb-flyout-main"
               data-tip={item.tip}
               aria-current={active ? "page" : undefined}
@@ -148,7 +149,7 @@ export function SidebarOrgFlyout({
           </div>
         ) : (
           <Link
-            href={item.href}
+            href={webHref(item.href)}
             className={`sb-item${active ? " active" : ""}`}
             data-tip={item.tip}
             aria-current={active ? "page" : undefined}
@@ -169,7 +170,7 @@ export function SidebarOrgFlyout({
               ? items.map((o) => (
                   <li key={o.id}>
                     <Link
-                      href={o.href ?? "#"}
+                      href={o.href ? webHref(o.href) : "#"}
                       className="sb-subitem"
                       prefetch={false}
                       onPointerDown={(event) => {

@@ -11,25 +11,24 @@ import { isPersonalPostViewPath } from "@/lib/journey/post-view-path";
 import { useT } from "@/lib/i18n/use-t";
 
 const MOBILE_MQ = "(max-width: 960px)";
-const CHAT_SLOT_ID = "app-topbar-chat-slot";
 
-function useMobileTopbarChatSlot(): HTMLElement | null {
-  const [slot, setSlot] = useState<HTMLElement | null>(null);
+/** Mobile botbar đã mount — FAB neo fixed giữa, không portal vào nav. */
+function useMobileBotbarMode(): boolean {
+  const [active, setActive] = useState(false);
 
   useLayoutEffect(() => {
     const mq = window.matchMedia(MOBILE_MQ);
 
     const sync = () => {
       if (!mq.matches) {
-        setSlot(null);
+        setActive(false);
         return;
       }
-      const el = document.getElementById(CHAT_SLOT_ID);
-      const usable =
-        el instanceof HTMLElement &&
-        el.isConnected &&
-        Boolean(el.closest(".cins-app-topbar.is-authed"));
-      setSlot(usable ? el : null);
+      const topbar = document.getElementById("app-topbar");
+      setActive(
+        topbar instanceof HTMLElement &&
+          topbar.classList.contains("is-authed"),
+      );
     };
 
     sync();
@@ -39,6 +38,8 @@ function useMobileTopbarChatSlot(): HTMLElement | null {
     observer.observe(document.documentElement, {
       childList: true,
       subtree: true,
+      attributes: true,
+      attributeFilter: ["class"],
     });
 
     return () => {
@@ -47,7 +48,7 @@ function useMobileTopbarChatSlot(): HTMLElement | null {
     };
   }, []);
 
-  return slot;
+  return active;
 }
 
 /** FAB + unread bubbles + mini chat — neo góc dưới phải (desktop) / giữa botbar (mobile). */
@@ -55,26 +56,39 @@ export function CinsChatDock() {
   const t = useT();
   const pathname = usePathname() ?? "";
   const chat = useCinsChatContext();
-  const chatSlot = useMobileTopbarChatSlot();
+  const mobileBotbar = useMobileBotbarMode();
 
   if (isPersonalPostViewPath(pathname)) return null;
   /* Panel đang mở (fill shell, z thấp hơn dock). */
   if (chat?.open) return null;
 
   const launcher = (
-    <CinsChatLauncher variant={chatSlot ? "botbar" : "dock"} />
+    <CinsChatLauncher variant={mobileBotbar ? "botbar" : "dock"} />
   );
-  const canPortal = Boolean(chatSlot?.isConnected);
 
-  return (
+  const dock = (
     <div
       className={
-        canPortal ? "j-chat-dock is-botbar-anchored" : "j-chat-dock"
+        mobileBotbar ? "j-chat-dock is-botbar-anchored" : "j-chat-dock"
       }
       aria-label={t("chat.quickAria")}
     >
-      <CinsChatFloatingStack launcher={canPortal ? null : launcher} />
-      {canPortal && chatSlot ? createPortal(launcher, chatSlot) : null}
+      <CinsChatFloatingStack
+        launcher={mobileBotbar ? null : launcher}
+        bubbleOpensFullChat={mobileBotbar}
+      />
     </div>
   );
+
+  if (mobileBotbar) {
+    return createPortal(
+      <>
+        {launcher}
+        {dock}
+      </>,
+      document.body,
+    );
+  }
+
+  return dock;
 }

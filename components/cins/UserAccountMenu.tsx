@@ -16,6 +16,7 @@ import { HelpCenterModal } from "@/components/cins/HelpCenterModal";
 import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
 import { UserAccountSettingsModal } from "@/components/cins/UserAccountSettingsModal";
 import { OPEN_ACCOUNT_SETTINGS_EVENT } from "@/lib/cins/open-account-settings";
+import { webHref } from "@/lib/cins/manage-site";
 import { GopYModal } from "@/components/feedback/GopYModal";
 import { clearAllClientCaches } from "@/lib/client-cache";
 import { prefetchHuongDanCatalog } from "@/lib/huong-dan/catalog-client";
@@ -139,7 +140,7 @@ export function UserAccountMenu({
           aria-label={t("account.menuAria")}
         >
           <Link
-            href={`/${profile.slug}`}
+            href={webHref(`/${profile.slug}`)}
             className="app-user-menu-item"
             role="menuitem"
             onClick={() => setOpen(false)}
@@ -151,7 +152,7 @@ export function UserAccountMenu({
           </Link>
 
           <Link
-            href="/create-organization"
+            href={webHref("/create-organization")}
             className="app-user-menu-item"
             role="menuitem"
             onClick={() => setOpen(false)}
@@ -162,7 +163,7 @@ export function UserAccountMenu({
             <span>{t("account.createOrg")}</span>
           </Link>
           <Link
-            href="/community/create"
+            href={webHref("/community/create")}
             className="app-user-menu-item"
             role="menuitem"
             onClick={() => setOpen(false)}

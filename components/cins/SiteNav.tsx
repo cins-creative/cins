@@ -17,6 +17,7 @@ import {
   MAIN_NAV_ITEMS,
   type MainNavItem,
 } from "@/lib/cins/mainNav";
+import { webHref } from "@/lib/cins/manage-site";
 import {
   MAIN_NAV_LABEL_KEY,
   MAIN_NAV_TIP_KEY,
@@ -74,7 +75,7 @@ function SidebarAnchor({
 
   return (
     <Link
-      href={item.href}
+      href={webHref(item.href)}
       className={className}
       data-tip={item.flyout ? undefined : item.tip}
       aria-current={active ? "page" : undefined}
@@ -179,7 +180,7 @@ export function CinsAppSidebar() {
                     </span>
                   ) : null}
                   <Link
-                    href={item.href}
+                    href={webHref(item.href)}
                     className={`sb-foot-link${active ? " is-active" : ""}`}
                     title={item.tip}
                     aria-current={active ? "page" : undefined}
