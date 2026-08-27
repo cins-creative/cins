@@ -1,20 +1,27 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { getRoomRole } from "@/lib/chat/canvas/access";
 import {
   getOrCreateRoomCanvas,
+  setCanvasCheDoSaoChep,
   setCanvasTrangThai,
   updateCanvasMeta,
 } from "@/lib/chat/canvas/boards";
 import { listCanvasNodes } from "@/lib/chat/canvas/nodes";
 import { syncCanvasFromMessages } from "@/lib/chat/canvas/sync";
-import type { CanvasTrangThai } from "@/lib/chat/canvas/types";
+import type {
+  CanvasCheDoSaoChep,
+  CanvasTrangThai,
+} from "@/lib/chat/canvas/types";
+import { canManageGroupChat } from "@/lib/chat/group-roles";
 
 type RouteContext = {
   params: Promise<{ roomId: string }>;
 };
 
 const TRANG_THAI: CanvasTrangThai[] = ["active", "khoa", "an"];
+const CHE_DO: CanvasCheDoSaoChep[] = ["private", "public"];
 
 /** GET — lấy/tạo board mặc định của phòng, đồng bộ tin ảnh/URL, trả node. */
 export async function GET(_req: Request, context: RouteContext) {
@@ -31,8 +38,9 @@ export async function GET(_req: Request, context: RouteContext) {
     return NextResponse.json({ error: board.error }, { status: 403 });
   }
 
-  // List + sync song song — mở board không chờ sync xong rồi mới đọc node.
-  // Có node mới thì đọc lại; lỗi sync không chặn xem.
+  const role = await getRoomRole(roomId, viewerId);
+  const canManage = Boolean(role && canManageGroupChat(role));
+
   const [syncResult, listed] = await Promise.all([
     syncCanvasFromMessages(board.canvas.id, viewerId),
     listCanvasNodes(board.canvas.id, viewerId),
@@ -48,10 +56,14 @@ export async function GET(_req: Request, context: RouteContext) {
     if (fresh.ok) nodes = fresh.nodes;
   }
 
-  return NextResponse.json({ canvas: board.canvas, nodes });
+  return NextResponse.json({
+    canvas: board.canvas,
+    nodes,
+    canManage,
+  });
 }
 
-/** PATCH — đổi tên/mô tả (member) hoặc trạng thái khóa/ẩn (owner/admin). */
+/** PATCH — meta / trangThai / cheDoSaoChep. */
 export async function PATCH(req: Request, context: RouteContext) {
   const session = await getCurrentSessionAndProfile();
   if (!session?.profile) {
@@ -61,7 +73,12 @@ export async function PATCH(req: Request, context: RouteContext) {
   const { roomId } = await context.params;
   const viewerId = session.profile.id;
 
-  let body: { ten?: string; moTa?: string | null; trangThai?: string };
+  let body: {
+    ten?: string;
+    moTa?: string | null;
+    trangThai?: string;
+    cheDoSaoChep?: string;
+  };
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -71,6 +88,24 @@ export async function PATCH(req: Request, context: RouteContext) {
   const board = await getOrCreateRoomCanvas(roomId, viewerId);
   if (!board.ok) {
     return NextResponse.json({ error: board.error }, { status: 403 });
+  }
+
+  if (body.cheDoSaoChep !== undefined) {
+    if (!CHE_DO.includes(body.cheDoSaoChep as CanvasCheDoSaoChep)) {
+      return NextResponse.json(
+        { error: "Chế độ sao chép không hợp lệ." },
+        { status: 400 },
+      );
+    }
+    const result = await setCanvasCheDoSaoChep(
+      board.canvas.id,
+      viewerId,
+      body.cheDoSaoChep as CanvasCheDoSaoChep,
+    );
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 403 });
+    }
+    return NextResponse.json({ canvas: result.canvas });
   }
 
   if (body.trangThai !== undefined) {

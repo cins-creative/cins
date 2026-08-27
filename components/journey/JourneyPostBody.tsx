@@ -467,6 +467,7 @@ export function JourneyPostBody({
               milestone.cheDoHienThi,
             )}
             postSlug={postSlug ?? null}
+            editCotMocId={milestone.id}
             onAfterChange={onMilestoneUpdated}
           />
         ) : null}

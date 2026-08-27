@@ -291,6 +291,7 @@ function CongDongPostMenuInner({
                     openCompose({
                       kind: "edit",
                       postSlug: post.journeyMirror!.postSlug,
+                      cotMocId: post.journeyMirror!.milestoneId ?? undefined,
                     });
                   }}
                 >

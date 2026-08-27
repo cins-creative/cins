@@ -17,7 +17,7 @@ type Params = Promise<{ slug: string; postSlug: string }>;
  * Owner hoặc admin (nick seeding).
  */
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Params },
 ) {
   const session = await getCurrentSessionAndProfile();
@@ -51,9 +51,11 @@ export async function GET(
   }
 
   try {
+    const cotMocId = new URL(request.url).searchParams.get("cotMoc");
     const result = await fetchPostEditInitial({
       ownerId: owner.id,
       postSlug,
+      cotMocId,
     });
 
     if (!result.ok) {

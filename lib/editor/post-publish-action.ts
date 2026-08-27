@@ -45,6 +45,8 @@ import {
   VISIBILITY_CUSTOM_BASE,
 } from "@/lib/journey/milestone-visibility-custom";
 import { resolveCotMocScheduleTaoLuc } from "@/lib/journey/cot-moc-schedule";
+import { setPostHang } from "@/lib/shop/post-hang";
+import { SHOP_POST_HANG_MAX } from "@/lib/shop/types";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ Server Action: publishPost                                       ║
@@ -100,6 +102,15 @@ export type PublishPostInput = {
    * (ẩn khỏi khách/World/Gallery đến khi đến giờ).
    */
   schedulePublishAt?: string | null;
+  /**
+   * Gắn kiosk hàng bán ngay sau khi tạo cột mốc (Giới thiệu sản phẩm).
+   * Best-effort: lỗi gắn không rollback bài.
+   */
+  shopHangItems?: Array<{
+    idBienThe: string;
+    idBangGia: string;
+    thuTu?: number;
+  }>;
 };
 
 export type PublishPostResult =
@@ -109,6 +120,9 @@ export type PublishPostResult =
       cotMocId: string;
       tacPhamId: string;
       milestone?: MilestoneItem;
+      shopHangAttached?: boolean;
+      shopHangError?: string | null;
+      shopHangCount?: number;
     }
   | {
       ok: false;
@@ -484,6 +498,48 @@ export async function publishPost(
   revalidatePath(`/${contentOwnerSlug}`);
   revalidatePath("/");
 
+  /* 7. Gắn kiosk (Giới thiệu sản phẩm) — cùng request publish, không 2 bước race. */
+  let shopHangAttached = false;
+  let shopHangError: string | null = null;
+  let shopHangCount = 0;
+  const hangRaw = input.shopHangItems;
+  if (Array.isArray(hangRaw) && hangRaw.length > 0) {
+    const hangItems: Array<{
+      idBienThe: string;
+      idBangGia: string;
+      thuTu?: number;
+    }> = [];
+    for (const raw of hangRaw) {
+      const idBienThe = raw?.idBienThe?.trim();
+      const idBangGia = raw?.idBangGia?.trim();
+      if (!idBienThe || !idBangGia) continue;
+      hangItems.push({
+        idBienThe,
+        idBangGia,
+        thuTu: typeof raw.thuTu === "number" ? raw.thuTu : hangItems.length,
+      });
+      if (hangItems.length >= SHOP_POST_HANG_MAX) break;
+    }
+    if (hangItems.length > 0) {
+      try {
+        const saved = await setPostHang(contentOwnerId, cotMoc.id, hangItems);
+        shopHangAttached = saved.length > 0;
+        shopHangCount = saved.length;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "";
+        shopHangError =
+          msg === "BAN_HANG_OFF"
+            ? "Chưa bật bán hàng."
+            : msg === "SHOP_NOT_READY"
+              ? "Cần thêm tài khoản nhận tiền trước khi gắn hàng."
+              : msg === "GIA_NOT_FOUND"
+                ? "Thiếu giá cho biến thể trong bảng giá."
+                : "Không gắn được hàng bán.";
+        console.error("[publishPost] setPostHang", e);
+      }
+    }
+  }
+
   const milestone = await buildMilestoneItemForCotMoc(admin, cotMoc.id);
 
   return {
@@ -492,6 +548,9 @@ export async function publishPost(
     cotMocId: cotMoc.id,
     tacPhamId: tacPham.id,
     milestone: milestone ?? undefined,
+    shopHangAttached,
+    shopHangError,
+    shopHangCount,
   };
 }
 

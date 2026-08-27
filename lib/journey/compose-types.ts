@@ -11,8 +11,16 @@ export type ComposeIntent = "minimal" | "photo" | "video" | "full" | "embed";
 export type ComposePrefillDraft = Omit<ComposeEditorDraft, "v" | "savedAt">;
 
 /** Mock ticker kiosk trên ComposePreviewPanel (Giới thiệu sản phẩm). */
+export type ComposeShopKioskAttachItem = {
+  idBienThe: string;
+  idBangGia: string;
+  thuTu: number;
+};
+
 export type ComposeShopKioskPreview = {
   items: ShopPostHangItem[];
+  /** Payload gắn `shop_post_hang` lúc publish (không chỉ mock UI). */
+  attach?: ComposeShopKioskAttachItem[];
   /** Gợi ý thiếu hàng / hết hàng / cắt trần — hiện dưới ticker. */
   hint?: string | null;
 };
@@ -43,13 +51,18 @@ export type JourneyComposeState =
     }
   | { kind: "milestone" }
   | { kind: "milestone-edit"; cotMocId: string }
-  | { kind: "edit"; postSlug: string };
+  | { kind: "edit"; postSlug: string; cotMocId?: string };
 
 export function parseComposeSearchParams(
   params: URLSearchParams,
 ): JourneyComposeState | null {
   const editSlug = params.get("edit")?.trim();
-  if (editSlug) return { kind: "edit", postSlug: editSlug };
+  if (editSlug) {
+    const cotMocId = params.get("editMoc")?.trim();
+    return cotMocId
+      ? { kind: "edit", postSlug: editSlug, cotMocId }
+      : { kind: "edit", postSlug: editSlug };
+  }
 
   const compose = params.get("compose")?.trim();
   const cotMoc = params.get("cotMoc")?.trim();
@@ -90,12 +103,14 @@ export function composeStateToSearchParams(
   );
   next.delete("compose");
   next.delete("edit");
+  next.delete("editMoc");
   next.delete("cotMoc");
   next.delete("platform");
   next.delete("source");
   if (!state) return next;
   if (state.kind === "edit") {
     next.set("edit", state.postSlug);
+    if (state.cotMocId) next.set("editMoc", state.cotMocId);
   } else if (state.kind === "milestone-edit") {
     next.set("compose", "milestone-edit");
     next.set("cotMoc", state.cotMocId);

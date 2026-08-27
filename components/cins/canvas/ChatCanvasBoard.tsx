@@ -16,6 +16,8 @@ import {
 
 import {
   AlignHorizontalSpaceAround,
+  ClipboardPaste,
+  Copy,
   Hand,
   Maximize2,
   MessageCircle,
@@ -39,6 +41,12 @@ import {
   STICKY_PALETTE,
   isPresetPaletteColor,
 } from "@/components/cins/board/NodeCard";
+import {
+  CINS_INK_COLOR,
+  DEFAULT_DRAW_WIDTH,
+  DRAW_WIDTH_PRESETS,
+  INK_PALETTE,
+} from "@/components/cins/board/content-kinds";
 import type {
   BoardHandle,
   BoardNode,
@@ -48,19 +56,34 @@ import type {
 } from "@/components/cins/board/board-types";
 import { fetchChatComposeImageUpload } from "@/lib/chat/compose-image-upload";
 import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
-import type { ChatCanvas, ChatCanvasNode } from "@/lib/chat/canvas/types";
+import {
+  buildClipboardPayload,
+  parseClipboardPayload,
+  readCanvasClipboard,
+  rememberCanvasClipboard,
+  writeCanvasClipboard,
+} from "@/lib/chat/canvas/clipboard";
+import type {
+  CanvasCheDoSaoChep,
+  CanvasClipboardPayload,
+  ChatCanvas,
+  ChatCanvasNode,
+} from "@/lib/chat/canvas/types";
 import type { ChatGroupMember, ChatMessage } from "@/lib/chat/types";
 
 type Props = {
   roomId: string;
   onJumpToMessage: (messageId: string) => void;
   viewerUserId?: string | null;
+  /** Chỉ phòng nhóm (`nhom`) mới hiện Private/Public; 1-1 luôn Public. */
+  isGroup?: boolean;
 };
 
 export default function ChatCanvasBoard({
   roomId,
   onJumpToMessage,
   viewerUserId = null,
+  isGroup = false,
 }: Props) {
   const [nodes, setNodes] = useState<ChatCanvasNode[] | null>(null);
   const [canvas, setCanvas] = useState<ChatCanvas | null>(null);
@@ -68,6 +91,8 @@ export default function ChatCanvasBoard({
   const [syncing, setSyncing] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [stickyColor, setStickyColor] = useState(STICKY_PALETTE[0]!);
+  const [inkColor, setInkColor] = useState(CINS_INK_COLOR);
+  const [inkWidth, setInkWidth] = useState(DEFAULT_DRAW_WIDTH);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [tool, setTool] = useState<BoardTool>("select");
   const [selection, setSelection] = useState<BoardSelectionSummary>({
@@ -94,8 +119,38 @@ export default function ChatCanvasBoard({
     return ids;
   });
   const [mentionMembers, setMentionMembers] = useState<ChatGroupMember[]>([]);
+  const [canManage, setCanManage] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [noticeBusy, setNoticeBusy] = useState(false);
+  const [pasting, setPasting] = useState(false);
+  const pastingRef = useRef(false);
+  const noticeTimerRef = useRef(0);
 
   const locked = canvas?.trangThai === "khoa";
+  /** 1-1 / không phải nhóm: luôn cho copy, không UI quyền. */
+  const copyPolicyManaged = isGroup;
+  const copyEnabled =
+    !copyPolicyManaged || canvas?.cheDoSaoChep === "public";
+
+  const flash = useCallback((msg: string, opts?: { sticky?: boolean }) => {
+    setNotice(msg);
+    setNoticeBusy(Boolean(opts?.sticky));
+    if (noticeTimerRef.current) window.clearTimeout(noticeTimerRef.current);
+    noticeTimerRef.current = 0;
+    if (opts?.sticky) return;
+    noticeTimerRef.current = window.setTimeout(() => {
+      setNotice(null);
+      setNoticeBusy(false);
+      noticeTimerRef.current = 0;
+    }, 2800);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (noticeTimerRef.current) window.clearTimeout(noticeTimerRef.current);
+    },
+    [],
+  );
 
   /* ---------- bridge với overlay chat ---------- */
 
@@ -185,7 +240,11 @@ export default function ChatCanvasBoard({
     void fetch(`/api/chat/rooms/${roomId}/canvas`)
       .then(async (res) => {
         const data = (await res.json().catch(() => null)) as
-          | { canvas: ChatCanvas; nodes: ChatCanvasNode[] }
+          | {
+              canvas: ChatCanvas;
+              nodes: ChatCanvasNode[];
+              canManage?: boolean;
+            }
           | { error: string }
           | null;
         if (!alive) return;
@@ -197,6 +256,7 @@ export default function ChatCanvasBoard({
         }
         setCanvas(data.canvas);
         setNodes(data.nodes);
+        setCanManage(Boolean(data.canManage));
       })
       .catch(() => {
         if (alive) setError("Không tải được canvas.");
@@ -347,6 +407,133 @@ export default function ChatCanvasBoard({
     }
   }, [roomId]);
 
+  const handleCopy = useCallback(() => {
+    if (!copyEnabled) {
+      flash("Canvas đang Private — không sao chép được.");
+      return;
+    }
+    if (!canvas) return;
+    const selected = boardRef.current?.getNodesForCopy() ?? [];
+    if (selected.length === 0) {
+      flash("Chọn nội dung để sao chép.");
+      return;
+    }
+    const payload = buildClipboardPayload({
+      canvasId: canvas.id,
+      roomId,
+      nodes: selected,
+    });
+    if (!payload) return;
+    void writeCanvasClipboard(payload).then(() => {
+      flash(`Đã sao chép ${payload.nodes.length} mục.`);
+    });
+  }, [canvas, copyEnabled, flash, roomId]);
+
+  const pasteFromPayload = useCallback(
+    async (payload: CanvasClipboardPayload): Promise<boolean> => {
+      if (locked) {
+        flash("Canvas đang khóa.");
+        return true;
+      }
+      if (pastingRef.current) {
+        flash("Đang dán — chờ xong rồi thử lại.");
+        return true;
+      }
+      const approx = payload.nodes.filter((n) => n.loai !== "frame").length;
+      pastingRef.current = true;
+      setPasting(true);
+      /* Báo ngay trước await — double rAF để browser kịp paint. */
+      flash(
+        approx > 1 ? `Đang dán ${approx} mục…` : "Đang dán…",
+        { sticky: true },
+      );
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      });
+
+      try {
+        const res = await fetch(`/api/chat/rooms/${roomId}/canvas/nodes/paste`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nodes: payload.nodes }),
+        }).catch(() => null);
+        const data = (await res?.json().catch(() => null)) as
+          | { nodes?: BoardNode[]; error?: string }
+          | null;
+        if (!res?.ok || !data?.nodes) {
+          flash(data?.error ?? "Không dán được.");
+          return true;
+        }
+        boardRef.current?.ingestNodes(data.nodes);
+        flash(`Đã dán ${data.nodes.length} mục.`);
+        return true;
+      } finally {
+        pastingRef.current = false;
+        setPasting(false);
+      }
+    },
+    [flash, locked, roomId],
+  );
+
+  const pasteFromClipboardText = useCallback(
+    async (text: string): Promise<boolean> => {
+      const payload = parseClipboardPayload(text);
+      if (!payload) return false;
+      rememberCanvasClipboard(payload);
+      return pasteFromPayload(payload);
+    },
+    [pasteFromPayload],
+  );
+
+  const handlePasteToolbar = useCallback(() => {
+    if (locked) {
+      flash("Canvas đang khóa.");
+      return;
+    }
+    void (async () => {
+      const { payload, denied } = await readCanvasClipboard();
+      if (payload) {
+        await pasteFromPayload(payload);
+        return;
+      }
+      if (denied) {
+        flash("Trình duyệt chặn clipboard — Copy lại rồi bấm Dán, hoặc Ctrl+V.");
+        return;
+      }
+      flash("Clipboard không có nội dung canvas — hãy Copy trước.");
+    })();
+  }, [flash, locked, pasteFromPayload]);
+
+  const setCheDoSaoChep = useCallback(
+    async (cheDo: CanvasCheDoSaoChep) => {
+      if (!copyPolicyManaged || !canManage || canvas?.cheDoSaoChep === cheDo) {
+        return;
+      }
+      const prev = canvas?.cheDoSaoChep ?? "private";
+      setCanvas((c) => (c ? { ...c, cheDoSaoChep: cheDo } : c));
+      const res = await fetch(`/api/chat/rooms/${roomId}/canvas`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cheDoSaoChep: cheDo }),
+      }).catch(() => null);
+      const data = (await res?.json().catch(() => null)) as
+        | { canvas?: ChatCanvas; error?: string }
+        | null;
+      if (!res?.ok || !data?.canvas) {
+        setCanvas((c) => (c ? { ...c, cheDoSaoChep: prev } : c));
+        flash(data?.error ?? "Không đổi chế độ sao chép.");
+        return;
+      }
+      setCanvas(data.canvas);
+      flash(
+        cheDo === "public"
+          ? "Canvas Public — thành viên có thể sao chép."
+          : "Canvas Private — không sao chép được.",
+      );
+    },
+    [canManage, canvas?.cheDoSaoChep, copyPolicyManaged, flash, roomId],
+  );
+
   if (error) {
     return <p className="cins-chat-side-empty">{error}</p>;
   }
@@ -394,18 +581,53 @@ export default function ChatCanvasBoard({
               "cins-canvas-tool-btn cins-canvas-tool-btn--icon" +
               (tool === "draw" ? " is-active" : "")
             }
-            onClick={() => boardRef.current?.setTool("draw")}
+            onClick={() => {
+              boardRef.current?.setTool("draw");
+              boardRef.current?.setInkWidth(inkWidth);
+            }}
             disabled={locked}
             title={
               locked
                 ? "Canvas đang khóa"
-                : "Vẽ tự do (D) — kéo trên nền trống"
+                : "Vẽ tự do (D) — kéo trên canvas (kể cả lên object)"
             }
             aria-label="Vẽ tự do"
             aria-pressed={tool === "draw"}
           >
             <Pencil size={15} strokeWidth={1.9} aria-hidden />
           </button>
+          {tool === "draw" ? (
+            <div
+              className="cins-board-wire-opts cins-canvas-ink-width"
+              role="group"
+              aria-label="Độ dày nét"
+            >
+              {DRAW_WIDTH_PRESETS.map((width) => (
+                <button
+                  key={width}
+                  type="button"
+                  className={
+                    "cins-board-wire-opt cins-board-ink-width-opt" +
+                    (inkWidth === width ? " is-active" : "")
+                  }
+                  title={`Nét ${width}px`}
+                  aria-label={`Độ dày nét ${width}`}
+                  aria-pressed={inkWidth === width}
+                  disabled={locked}
+                  onClick={() => {
+                    setInkWidth(width);
+                    boardRef.current?.setInkWidth(width);
+                  }}
+                >
+                  <span
+                    className="cins-board-ink-width-sample"
+                    style={{ height: Math.max(2, width * 0.7) }}
+                    aria-hidden
+                  />
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
         <span className="cins-canvas-tool-sep" aria-hidden />
         <div
@@ -547,16 +769,24 @@ export default function ChatCanvasBoard({
               "cins-canvas-colorwheel" + (paletteOpen ? " is-open" : "")
             }
             disabled={locked}
-            aria-label="Màu ghi chú / hình / nét vẽ"
+            aria-label={
+              tool === "draw" ? "Màu nét vẽ" : "Màu ghi chú / hình / nét vẽ"
+            }
             aria-expanded={paletteOpen}
             aria-haspopup="dialog"
-            title="Màu — chọn trước khi thêm ghi chú, hình hoặc vẽ"
+            title={
+              tool === "draw"
+                ? "Màu nét vẽ"
+                : "Màu — chọn trước khi thêm ghi chú, hình hoặc vẽ"
+            }
             onClick={() => setPaletteOpen((open) => !open)}
           >
             <span className="cins-canvas-colorwheel-ring" aria-hidden />
             <span
               className="cins-canvas-colorwheel-current"
-              style={{ background: stickyColor }}
+              style={{
+                background: tool === "draw" ? inkColor : stickyColor,
+              }}
               aria-hidden
             />
           </button>
@@ -566,29 +796,40 @@ export default function ChatCanvasBoard({
               role="group"
               aria-label="Bảng màu"
             >
-              {STICKY_PALETTE.map((color) => (
+              {(tool === "draw" ? INK_PALETTE : STICKY_PALETTE).map((color) => (
                 <button
                   key={color}
                   type="button"
                   className={
                     "cins-canvas-swatch" +
-                    (stickyColor === color ? " is-active" : "")
+                    ((tool === "draw" ? inkColor : stickyColor) === color
+                      ? " is-active"
+                      : "")
                   }
                   style={{ background: color }}
                   aria-label={`Màu ${color}`}
-                  aria-pressed={stickyColor === color}
+                  aria-pressed={
+                    (tool === "draw" ? inkColor : stickyColor) === color
+                  }
                   onClick={() => {
-                    setStickyColor(color);
+                    if (tool === "draw") setInkColor(color);
+                    else setStickyColor(color);
                     setPaletteOpen(false);
                   }}
                 />
               ))}
               <CustomColorSwatch
-                value={stickyColor}
-                isActive={!isPresetPaletteColor(stickyColor, STICKY_PALETTE)}
+                value={tool === "draw" ? inkColor : stickyColor}
+                isActive={
+                  !isPresetPaletteColor(
+                    tool === "draw" ? inkColor : stickyColor,
+                    tool === "draw" ? INK_PALETTE : STICKY_PALETTE,
+                  )
+                }
                 ariaLabel="Màu tùy chọn"
                 onPick={(hex) => {
-                  setStickyColor(hex);
+                  if (tool === "draw") setInkColor(hex);
+                  else setStickyColor(hex);
                   setPaletteOpen(false);
                 }}
               />
@@ -601,6 +842,37 @@ export default function ChatCanvasBoard({
           role="group"
           aria-label="Chỉnh sửa"
         >
+          <button
+            type="button"
+            className="cins-canvas-tool-btn cins-canvas-tool-btn--icon"
+            onClick={handleCopy}
+            disabled={selection.selectedCount === 0}
+            title={
+              copyEnabled
+                ? "Sao chép (Ctrl+C)"
+                : "Canvas Private — không sao chép được"
+            }
+            aria-label="Sao chép"
+          >
+            <Copy size={15} strokeWidth={1.9} aria-hidden />
+          </button>
+          <button
+            type="button"
+            className="cins-canvas-tool-btn cins-canvas-tool-btn--icon"
+            onClick={handlePasteToolbar}
+            disabled={Boolean(locked) || pasting}
+            title={
+              locked
+                ? "Canvas đang khóa"
+                : pasting
+                  ? "Đang dán…"
+                  : "Dán nội dung canvas (Ctrl+V)"
+            }
+            aria-label="Dán"
+            aria-busy={pasting}
+          >
+            <ClipboardPaste size={15} strokeWidth={1.9} aria-hidden />
+          </button>
           <button
             type="button"
             className="cins-canvas-tool-btn cins-canvas-tool-btn--icon"
@@ -658,6 +930,51 @@ export default function ChatCanvasBoard({
           role="group"
           aria-label="Xem"
         >
+          {copyPolicyManaged && canManage ? (
+            <div
+              className="cins-canvas-tool-seg cins-canvas-copy-mode"
+              role="group"
+              aria-label="Chế độ sao chép"
+            >
+              <button
+                type="button"
+                className={
+                  "cins-canvas-tool-btn" +
+                  (canvas?.cheDoSaoChep !== "public" ? " is-active" : "")
+                }
+                onClick={() => void setCheDoSaoChep("private")}
+                title="Private — không sao chép được"
+                aria-pressed={canvas?.cheDoSaoChep !== "public"}
+              >
+                Private
+              </button>
+              <button
+                type="button"
+                className={
+                  "cins-canvas-tool-btn" +
+                  (canvas?.cheDoSaoChep === "public" ? " is-active" : "")
+                }
+                onClick={() => void setCheDoSaoChep("public")}
+                title="Public — cho phép sao chép sang canvas khác"
+                aria-pressed={canvas?.cheDoSaoChep === "public"}
+              >
+                Public
+              </button>
+            </div>
+          ) : copyPolicyManaged ? (
+            canvas?.cheDoSaoChep === "public" ? (
+              <span className="cins-canvas-lock-badge" title="Cho phép sao chép">
+                Public
+              </span>
+            ) : (
+              <span
+                className="cins-canvas-lock-badge"
+                title="Không sao chép được"
+              >
+                Private
+              </span>
+            )
+          ) : null}
           {locked ? (
             <span className="cins-canvas-lock-badge">Đã khóa</span>
           ) : null}
@@ -676,6 +993,25 @@ export default function ChatCanvasBoard({
           </button>
         </div>
       </div>
+      {notice ? (
+        <p
+          className={
+            "cins-canvas-notice" + (noticeBusy ? " is-busy" : "")
+          }
+          role="status"
+          aria-live="polite"
+        >
+          {noticeBusy ? (
+            <RefreshCw
+              size={14}
+              strokeWidth={2}
+              className="cins-canvas-spin"
+              aria-hidden
+            />
+          ) : null}
+          {notice}
+        </p>
+      ) : null}
       <div className="cins-canvas-board">
         {nodes === null && !error ? (
           <p className="cins-canvas-loading">Đang tải canvas…</p>
@@ -689,7 +1025,7 @@ export default function ChatCanvasBoard({
           onSelectionChange={setSelection}
           onToolChange={setTool}
           uploadImage={uploadImage}
-          inkColor={stickyColor === "transparent" ? "#1a1a1a" : stickyColor}
+          inkColor={inkColor}
           pendingFocusNodeId={pendingFocusNodeId}
           pendingHighlightNodeIds={pendingHighlightIds}
           mentionMembers={mentionMembers}
@@ -698,6 +1034,9 @@ export default function ChatCanvasBoard({
             mentionMembers.find((m) => m.isViewer)?.userId ??
             null
           }
+          copyEnabled={copyEnabled}
+          onCopyRequest={handleCopy}
+          onPasteCanvasText={pasteFromClipboardText}
         />
       </div>
     </div>

@@ -44,6 +44,13 @@
 
 ## LOG — quyết định đã chốt
 
+### Chat canvas — copy/paste + Private/Public (2026-08-27)
+
+- **Chốt:** `chat_canvas.che_do_sao_chep` = `private` (mặc định **nhóm**) | `public`. Độc lập `trang_thai` (khoa = khóa sửa). Chỉ owner/admin **phòng nhóm** đổi Public. Chat **1-1**: không UI quyền, luôn Public (tạo board + soft-fix khi mở). Copy tái dùng `url`/`noi_dung` (không upload CF mới). Paste → board phòng khác (member ghi được); **không** gắn `id_tin_nhan`; gom vào 1 frame «Nội dung được sao chép». Xóa ảnh canvas-only: chỉ `deleteCloudflareImage` khi không còn node cùng `url`.
+- **SQL:** `supabase/sql/migration_chat_canvas_che_do_sao_chep.sql` — **đã chạy** CINs 2026-08-27 (`npm run migrate:chat-canvas-che-do-sao-chep`).
+- **API:** GET/PATCH canvas (`cheDoSaoChep`, `canManage`) · `POST .../nodes/paste`.
+- **Plan:** [`PLAN_chat_canvas_copy_visibility.md`](./PLAN_chat_canvas_copy_visibility.md).
+
 ### Shell mobile — `#app-topbar` dính đáy (2026-08-26)
 
 - **Chốt:** viewport ≤960px, `#app-topbar` / `.topbar-inner` **cố định đáy** (`position: fixed; bottom: 0` + `env(safe-area-inset-bottom)`). Desktop ≥961px giữ sticky top.

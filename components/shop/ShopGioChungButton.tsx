@@ -166,6 +166,7 @@ export function ShopGioChungButton() {
   const [payMount, setPayMount] = useState<HTMLElement | null>(null);
   const [addedToast, setAddedToast] = useState(false);
   const addedToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [mobileFloat, setMobileFloat] = useState(false);
 
   const gioRef = useRef<ShopGioChung | null>(null);
   const pendingQtyRef = useRef(new Map<string, number>());
@@ -206,6 +207,14 @@ export function ShopGioChungButton() {
     setPortalReady(true);
     void load();
   }, [load]);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 960px)");
+    const sync = () => setMobileFloat(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     if (open) void load();
@@ -519,6 +528,28 @@ export function ShopGioChungButton() {
   /* Giỏ trống + panel đóng → ẩn hẳn nút khỏi topbar. */
   const showTrigger = count > 0 || open;
 
+  const triggerEl = showTrigger ? (
+    <div className={`gio-chung${mobileFloat ? " is-floating" : ""}`}>
+      <button
+        type="button"
+        className={`gio-chung-trigger${count > 0 ? " has-items" : ""}${open ? " is-open" : ""}`}
+        aria-label={
+          count > 0 ? `Giỏ chờ mua, ${count} món` : "Giỏ chờ mua"
+        }
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <ShoppingCart size={20} strokeWidth={1.8} aria-hidden />
+        {count > 0 ? (
+          <span className="gio-chung-count" aria-hidden>
+            {count > 99 ? "99+" : count}
+          </span>
+        ) : null}
+      </button>
+    </div>
+  ) : null;
+
   const toast =
     addedToast && portalReady
       ? createPortal(
@@ -545,27 +576,11 @@ export function ShopGioChungButton() {
 
   return (
     <>
-      {showTrigger ? (
-        <div className="gio-chung">
-          <button
-            type="button"
-            className={`gio-chung-trigger${count > 0 ? " has-items" : ""}${open ? " is-open" : ""}`}
-            aria-label={
-              count > 0 ? `Giỏ chờ mua, ${count} món` : "Giỏ chờ mua"
-            }
-            aria-expanded={open}
-            aria-haspopup="dialog"
-            onClick={() => setOpen((v) => !v)}
-          >
-            <ShoppingCart size={20} strokeWidth={1.8} aria-hidden />
-            {count > 0 ? (
-              <span className="gio-chung-count" aria-hidden>
-                {count > 99 ? "99+" : count}
-              </span>
-            ) : null}
-          </button>
-        </div>
-      ) : null}
+      {triggerEl
+        ? mobileFloat && portalReady
+          ? createPortal(triggerEl, document.body)
+          : triggerEl
+        : null}
       {panel}
       {toast}
       <ShopMuaHistory

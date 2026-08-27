@@ -18,6 +18,10 @@ export type ComposePublishedDetail = {
   tacPhamId?: string;
   cotMocId?: string;
   milestone?: MilestoneItem;
+  /** Đã gắn `shop_post_hang` trong cùng publish (Giới thiệu sản phẩm). */
+  shopHangAttached?: boolean;
+  shopHangError?: string | null;
+  shopHangCount?: number;
 };
 
 export function invalidateCachesAfterComposePublish(

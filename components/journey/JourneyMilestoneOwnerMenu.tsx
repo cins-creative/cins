@@ -97,6 +97,11 @@ type Props = {
   visibilityCustom?: MilestoneVisibilityCustom | null;
   /** Slug của tác phẩm đầu tiên gắn vào cột mốc — null = không có bài viết. */
   postSlug: string | null;
+  /**
+   * Cột mốc thật khi sửa bài. Mặc định = `milestoneId`.
+   * Tách khỏi id dùng cho nhãn riêng (có thể là `org_bai_dang.id`).
+   */
+  editCotMocId?: string | null;
   /** Ẩn đổi nhóm filter (cột mốc Lưu về). */
   hideTypeChange?: boolean;
   /** Ẩn sửa bài (không sửa bài người khác từ Journey Lưu về). */
@@ -206,6 +211,7 @@ export function JourneyMilestoneOwnerMenu({
   currentVisibility,
   visibilityCustom = null,
   postSlug,
+  editCotMocId = null,
   hideTypeChange = false,
   hideEdit = false,
   hideDelete = false,
@@ -830,7 +836,11 @@ export function JourneyMilestoneOwnerMenu({
               onClick={() => {
                 close();
                 if (!canCompose || !postSlug) return;
-                openCompose({ kind: "edit", postSlug });
+                openCompose({
+                  kind: "edit",
+                  postSlug,
+                  cotMocId: editCotMocId || milestoneId,
+                });
               }}
             >
               <span className="j-m-menu-ico" aria-hidden>

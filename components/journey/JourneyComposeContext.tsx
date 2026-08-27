@@ -283,12 +283,14 @@ export function JourneyComposeProvider({
     if (
       !params.has("compose") &&
       !params.has("edit") &&
+      !params.has("editMoc") &&
       !params.has("cotMoc")
     ) {
       return;
     }
     params.delete("compose");
     params.delete("edit");
+    params.delete("editMoc");
     params.delete("cotMoc");
     const qs = params.toString();
     window.history.replaceState(

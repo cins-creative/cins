@@ -24,6 +24,28 @@ export type CanvasDrawData = {
   points: Array<{ x: number; y: number }>;
 };
 
+/** Xanh logo CINS — mặc định nét vẽ. */
+export const CINS_INK_COLOR = "#1F74C9";
+
+export const INK_PALETTE = [
+  CINS_INK_COLOR,
+  "#1a1a1a",
+  "#dc2626",
+  "#16a34a",
+  "#ea580c",
+] as const;
+
+export const DRAW_WIDTH_PRESETS = [2, 4, 8] as const;
+
+export const DEFAULT_DRAW_WIDTH = 4;
+
+export function normalizeDrawWidth(value: number | null | undefined): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.min(24, Math.max(1, value));
+  }
+  return DEFAULT_DRAW_WIDTH;
+}
+
 export function normalizeContentKind(
   value: string | null | undefined,
 ): BoardContentKind | null {
@@ -290,11 +312,10 @@ export function parseDraw(raw: string | null | undefined): CanvasDrawData | null
       color:
         typeof obj.color === "string" && obj.color.trim()
           ? obj.color.trim()
-          : "#1a1a1a",
-      width:
-        typeof obj.width === "number" && Number.isFinite(obj.width)
-          ? Math.min(24, Math.max(1, obj.width))
-          : 2.5,
+          : CINS_INK_COLOR,
+      width: normalizeDrawWidth(
+        typeof obj.width === "number" ? obj.width : undefined,
+      ),
       points,
     };
   } catch {
@@ -305,7 +326,7 @@ export function parseDraw(raw: string | null | undefined): CanvasDrawData | null
 /** Rút gọn điểm theo khoảng cách tối thiểu (page units). */
 export function simplifyStroke(
   points: Array<{ x: number; y: number }>,
-  minDist = 1.5,
+  minDist = 1,
 ): Array<{ x: number; y: number }> {
   if (points.length <= 2) return points;
   const out: Array<{ x: number; y: number }> = [points[0]!];
@@ -321,13 +342,51 @@ export function simplifyStroke(
   return out;
 }
 
+function fmtPathCoord(n: number): string {
+  return n.toFixed(2);
+}
+
+/** Gom điểm từ pointermove — dùng coalesced events khi vẽ nhanh. */
+export function appendStrokePoints(
+  points: Array<{ x: number; y: number }>,
+  clientEvents: Array<{ clientX: number; clientY: number }>,
+  toPage: (clientX: number, clientY: number) => { x: number; y: number },
+  minDist = 0.6,
+): Array<{ x: number; y: number }> {
+  const out = points.slice();
+  for (const ev of clientEvents) {
+    const p = toPage(ev.clientX, ev.clientY);
+    const last = out[out.length - 1];
+    if (last && Math.hypot(p.x - last.x, p.y - last.y) < minDist) continue;
+    out.push(p);
+  }
+  return out;
+}
+
 export function pointsToSvgPath(
   points: Array<{ x: number; y: number }>,
 ): string {
-  if (points.length === 0) return "";
-  let d = `M ${points[0]!.x.toFixed(1)} ${points[0]!.y.toFixed(1)}`;
-  for (let i = 1; i < points.length; i++) {
-    d += ` L ${points[i]!.x.toFixed(1)} ${points[i]!.y.toFixed(1)}`;
+  const n = points.length;
+  if (n === 0) return "";
+  if (n === 1) {
+    const p = points[0]!;
+    return `M ${fmtPathCoord(p.x)} ${fmtPathCoord(p.y)}`;
   }
+  if (n === 2) {
+    return (
+      `M ${fmtPathCoord(points[0]!.x)} ${fmtPathCoord(points[0]!.y)}` +
+      ` L ${fmtPathCoord(points[1]!.x)} ${fmtPathCoord(points[1]!.y)}`
+    );
+  }
+  let d = `M ${fmtPathCoord(points[0]!.x)} ${fmtPathCoord(points[0]!.y)}`;
+  for (let i = 1; i < n - 1; i++) {
+    const p = points[i]!;
+    const q = points[i + 1]!;
+    d +=
+      ` Q ${fmtPathCoord(p.x)} ${fmtPathCoord(p.y)}` +
+      ` ${fmtPathCoord((p.x + q.x) / 2)} ${fmtPathCoord((p.y + q.y) / 2)}`;
+  }
+  const last = points[n - 1]!;
+  d += ` L ${fmtPathCoord(last.x)} ${fmtPathCoord(last.y)}`;
   return d;
 }

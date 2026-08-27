@@ -2,11 +2,13 @@ import { Fragment } from "react";
 import { Menu as MenuIcon } from "lucide-react";
 import Link from "next/link";
 
+import { OrgManagerButton } from "@/components/cins/OrgManagerButton";
 import { UserAccountMenu } from "@/components/cins/UserAccountMenu";
 import { JourneyNotifications } from "@/components/journey/JourneyNotifications";
 import { ShopGioChungButton } from "@/components/shop/ShopGioChungButton";
 import { ShopTopbarButton } from "@/components/shop/ShopTopbarButton";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { loadManagedEntities } from "@/lib/cins/managed-entities";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { webHref } from "@/lib/cins/manage-site";
 import { getBanHangEnabled } from "@/lib/shop/settings";
@@ -26,12 +28,13 @@ export async function CinsAppTopbar() {
   const isAuthed = !!session;
   const profileId = session?.profile?.id ?? null;
 
-  const [unreadNotificationCount, banHangEnabled] = profileId
+  const [unreadNotificationCount, banHangEnabled, managedEntities] = profileId
     ? await Promise.all([
         countUnreadNotifications(profileId).catch(() => 0),
         getBanHangEnabled(profileId).catch(() => false),
+        loadManagedEntities(profileId).catch(() => []),
       ])
-    : [0, false];
+    : [0, false, [] as Awaited<ReturnType<typeof loadManagedEntities>>];
 
   const accountProfile =
     session?.profile?.slug
@@ -44,9 +47,16 @@ export async function CinsAppTopbar() {
 
   const tbRightGroups: React.ReactNode[] = [];
   if (session?.profile) {
+    /* Desktop: giỏ trong topbar. Mobile: portal floating (ShopGioChungButton). */
     tbRightGroups.push(
       <div className="tb-right-group tb-group-gio" key="gio">
         <ShopGioChungButton />
+      </div>,
+    );
+    /* Mobile botbar ô 2 — desktop ẩn bằng CSS. */
+    tbRightGroups.push(
+      <div className="tb-right-group tb-group-org" key="org">
+        <OrgManagerButton entities={managedEntities} />
       </div>,
     );
   }

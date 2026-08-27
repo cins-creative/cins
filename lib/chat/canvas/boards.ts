@@ -2,11 +2,18 @@ import "server-only";
 
 import { assertRoomMember } from "@/lib/chat/direct-message";
 import { getRoomRole } from "@/lib/chat/canvas/access";
-import type { CanvasResult, CanvasTrangThai, ChatCanvas } from "@/lib/chat/canvas/types";
+import type {
+  CanvasCheDoSaoChep,
+  CanvasResult,
+  CanvasTrangThai,
+  ChatCanvas,
+} from "@/lib/chat/canvas/types";
 import { canManageGroupChat } from "@/lib/chat/group-roles";
+import { GROUP_ROOM, isGroupRoomId } from "@/lib/chat/group-message";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
-const CANVAS_SELECT = "id, id_phong, ten, mo_ta, trang_thai, id_nguoi_tao, tao_luc, cap_nhat_luc";
+const CANVAS_SELECT =
+  "id, id_phong, ten, mo_ta, trang_thai, che_do_sao_chep, id_nguoi_tao, tao_luc, cap_nhat_luc";
 
 type CanvasRow = {
   id: string;
@@ -14,10 +21,15 @@ type CanvasRow = {
   ten: string;
   mo_ta: string | null;
   trang_thai: string;
+  che_do_sao_chep?: string | null;
   id_nguoi_tao: string;
   tao_luc: string;
   cap_nhat_luc: string;
 };
+
+function mapCheDoSaoChep(raw: string | null | undefined): CanvasCheDoSaoChep {
+  return raw === "public" ? "public" : "private";
+}
 
 function mapCanvas(row: CanvasRow): ChatCanvas {
   return {
@@ -28,6 +40,7 @@ function mapCanvas(row: CanvasRow): ChatCanvas {
     trangThai: (["active", "khoa", "an"].includes(row.trang_thai)
       ? row.trang_thai
       : "active") as CanvasTrangThai,
+    cheDoSaoChep: mapCheDoSaoChep(row.che_do_sao_chep),
     idNguoiTao: row.id_nguoi_tao,
     taoLuc: row.tao_luc,
     capNhatLuc: row.cap_nhat_luc,
@@ -59,11 +72,32 @@ export async function getOrCreateRoomCanvas(
     .limit(1)
     .maybeSingle<CanvasRow>();
 
-  if (existing) return { ok: true, canvas: mapCanvas(existing) };
+  if (existing) {
+    /* 1-1 / không phải nhóm: luôn Public (không UI quyền). */
+    if (
+      existing.che_do_sao_chep !== "public" &&
+      !(await isGroupRoomId(roomId))
+    ) {
+      const { data: fixed } = await admin
+        .from("chat_canvas")
+        .update({ che_do_sao_chep: "public" })
+        .eq("id", existing.id)
+        .select(CANVAS_SELECT)
+        .maybeSingle<CanvasRow>();
+      if (fixed) return { ok: true, canvas: mapCanvas(fixed) };
+    }
+    return { ok: true, canvas: mapCanvas(existing) };
+  }
 
+  const isGroup = await isGroupRoomId(roomId);
   const { data: created, error } = await admin
     .from("chat_canvas")
-    .insert({ id_phong: roomId, id_nguoi_tao: viewerId })
+    .insert({
+      id_phong: roomId,
+      id_nguoi_tao: viewerId,
+      /* Nhóm: private mặc định; 1-1 và phòng khác: luôn public. */
+      che_do_sao_chep: isGroup ? "private" : "public",
+    })
     .select(CANVAS_SELECT)
     .single<CanvasRow>();
 
@@ -171,5 +205,55 @@ export async function setCanvasTrangThai(
     .single<CanvasRow>();
 
   if (error || !data) return { ok: false, error: "Không đổi được trạng thái." };
+  return { ok: true, canvas: mapCanvas(data) };
+}
+
+/** Private / Public copy — chỉ owner/admin **phòng nhóm**. */
+export async function setCanvasCheDoSaoChep(
+  canvasId: string,
+  viewerId: string,
+  cheDoSaoChep: CanvasCheDoSaoChep,
+): Promise<CanvasResult<{ canvas: ChatCanvas }>> {
+  if (cheDoSaoChep !== "private" && cheDoSaoChep !== "public") {
+    return { ok: false, error: "Chế độ sao chép không hợp lệ." };
+  }
+
+  const admin = createServiceRoleClient();
+  const { data: canvas } = await admin
+    .from("chat_canvas")
+    .select("id, id_phong")
+    .eq("id", canvasId)
+    .maybeSingle<{ id: string; id_phong: string }>();
+
+  if (!canvas) return { ok: false, error: "Không tìm thấy canvas." };
+
+  const { data: room } = await admin
+    .from("chat_phong")
+    .select("loai_phong")
+    .eq("id", canvas.id_phong)
+    .maybeSingle<{ loai_phong: string }>();
+
+  if (room?.loai_phong !== GROUP_ROOM) {
+    return {
+      ok: false,
+      error: "Chỉ phòng nhóm mới đặt Private/Public.",
+    };
+  }
+
+  const role = await getRoomRole(canvas.id_phong, viewerId);
+  if (!role || !canManageGroupChat(role)) {
+    return { ok: false, error: "Chỉ chủ nhóm/admin đổi chế độ sao chép." };
+  }
+
+  const { data, error } = await admin
+    .from("chat_canvas")
+    .update({ che_do_sao_chep: cheDoSaoChep })
+    .eq("id", canvasId)
+    .select(CANVAS_SELECT)
+    .single<CanvasRow>();
+
+  if (error || !data) {
+    return { ok: false, error: "Không đổi được chế độ sao chép." };
+  }
   return { ok: true, canvas: mapCanvas(data) };
 }

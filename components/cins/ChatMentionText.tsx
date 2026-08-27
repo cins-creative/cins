@@ -41,6 +41,8 @@ function linkifyPlainText(text: string, keyPrefix: string): ReactNode[] {
         href={href}
         target="_blank"
         rel="noopener noreferrer"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         {href}
       </a>,

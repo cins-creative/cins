@@ -6,6 +6,22 @@ export type CanvasNodeLoai = "anh" | "link" | "sticky" | "frame" | "connector";
 /** Trạng thái board. */
 export type CanvasTrangThai = "active" | "khoa" | "an";
 
+/**
+ * Chính sách sao chép node ra clipboard.
+ * private (mặc định) = không copy; public = member được copy.
+ * Không phải visibility internet — vẫn chỉ thành viên phòng đọc board.
+ */
+export type CanvasCheDoSaoChep = "private" | "public";
+
+/** Tên frame gom mọi asset sau paste. */
+export const CANVAS_PASTE_GROUP_NAME = "Nội dung được sao chép";
+
+/** Trần node/lần paste (kể cả frame nhóm mới). */
+export const MAX_CANVAS_PASTE_NODES = 50;
+
+/** Prefix clipboard text (custom MIME hay bị chặn). */
+export const CANVAS_CLIPBOARD_PREFIX = "cins-canvas-v1:";
+
 /** Vị trí + hình học của một node trên board (lưu ở cột layout jsonb). */
 export type CanvasNodeLayout = {
   x: number;
@@ -97,6 +113,7 @@ export type ChatCanvas = {
   ten: string;
   moTa: string | null;
   trangThai: CanvasTrangThai;
+  cheDoSaoChep: CanvasCheDoSaoChep;
   idNguoiTao: string;
   taoLuc: string;
   capNhatLuc: string;
@@ -124,3 +141,21 @@ export type CanvasResult<T> =
 
 /** Kết quả không kèm dữ liệu (xóa / ẩn / bỏ ẩn). */
 export type CanvasVoidResult = { ok: true } | { ok: false; error: string };
+
+/** Một node trong clipboard copy (clientKey = id nguồn để remap connector). */
+export type CanvasClipboardNode = {
+  clientKey: string;
+  loai: CanvasNodeLoai;
+  url: string | null;
+  noiDung: string | null;
+  layout: CanvasNodeLayout;
+};
+
+/** Payload Ctrl+C — paste vào board khác qua API. */
+export type CanvasClipboardPayload = {
+  v: 1;
+  sourceCanvasId: string;
+  sourceRoomId: string;
+  copiedAt: string;
+  nodes: CanvasClipboardNode[];
+};

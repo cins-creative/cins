@@ -2010,6 +2010,7 @@ export function JourneyMilestoneCard({
             currentVisibility={visibility ?? "public"}
             visibilityCustom={milestone.visibilityCustom}
             postSlug={postSlug ?? null}
+            editCotMocId={cotMocId ?? milestone.id}
             hideTypeChange={
               isBookmarkMilestone ||
               isCongDongSelfPost ||
@@ -2386,6 +2387,7 @@ export function JourneyMilestoneCard({
                     currentVisibility={visibility ?? "public"}
                     visibilityCustom={milestone.visibilityCustom}
                     postSlug={postSlug ?? null}
+                    editCotMocId={cotMocId ?? milestone.id}
                     hideTypeChange={isCongDongPost}
                     hideEdit={canManageTagged}
                     hideDelete={canManageTagged}

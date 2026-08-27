@@ -1197,12 +1197,13 @@
   will-change: transform;
 }
 
-/* Mobile: ẩn bằng transform xuống dưới — chrome dính đáy. */
+/* Mobile: ẩn bằng transform xuống dưới — chrome dính đáy.
+ * FAB chat nhô ~28px trên bar: dịch sâu hơn, không dùng overflow mask. */
 @media (max-width: 960px) {
   .cins-app-topbar.topbar.is-hidden {
-    transform: translate3d(0, calc(100% + 30px), 0);
+    transform: translate3d(0, calc(100% + 58px), 0);
     pointer-events: none;
-    overflow: hidden;
+    overflow: visible;
   }
 
   /* Botbar không còn kéo sticky-top của trang. */
@@ -1308,7 +1309,7 @@
   min-width: 0;
 }
 
-/* Giỏ trống / chưa mở shop → không để ô rỗng chiếm chỗ. */
+/* Giỏ trống / chưa mở shop → không để ô rỗng chiếm chỗ (desktop). */
 .cins-app-topbar .tb-group-gio:not(:has(.gio-chung)),
 .cins-app-topbar .tb-group-shop:not(:has(.shop-topbar-trigger)) {
   display: none;
@@ -1316,6 +1317,11 @@
 
 .cins-app-topbar .tb-group-gio:not(:has(.gio-chung)) + .tb-divider,
 .cins-app-topbar .tb-group-shop:not(:has(.shop-topbar-trigger)) + .tb-divider {
+  display: none;
+}
+
+/* «Quản lý tổ chức» — chỉ mobile botbar. */
+.cins-app-topbar .tb-group-org {
   display: none;
 }
 
@@ -3458,11 +3464,11 @@ a.j-notify-mini-action.is-link:hover {
     border-radius: 0;
   }
 
-  /* Mỗi icon một ô — giỏ và shop không gộp group. */
+  /* 5 ô cố định: burger · org · chat · notify · user. */
   .cins-app-topbar.is-authed .topbar-inner {
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    grid-template-areas: "burger gio shop chat notify user";
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-areas: "burger org chat notify user";
     align-items: center;
     justify-items: stretch;
     gap: 0;
@@ -3470,24 +3476,18 @@ a.j-notify-mini-action.is-link:hover {
     overflow: visible;
   }
 
-  .cins-app-topbar.is-authed
-    .topbar-inner:not(:has(.tb-group-shop .shop-topbar-trigger)) {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    grid-template-areas: "burger gio chat notify user";
+  /* Mobile: ẩn giỏ/shop trong bar (giỏ floating riêng); hiện org. */
+  .cins-app-topbar.is-authed .tb-group-gio,
+  .cins-app-topbar.is-authed .tb-group-shop {
+    display: none !important;
   }
 
-  .cins-app-topbar.is-authed
-    .topbar-inner:not(:has(.tb-group-gio .gio-chung)) {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    grid-template-areas: "burger shop chat notify user";
-  }
-
-  .cins-app-topbar.is-authed
-    .topbar-inner:not(:has(.tb-group-gio .gio-chung)):not(
-      :has(.tb-group-shop .shop-topbar-trigger)
-    ) {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    grid-template-areas: "burger chat notify user";
+  .cins-app-topbar.is-authed .tb-group-org {
+    display: inline-flex;
+    grid-area: org;
+    justify-self: stretch;
+    justify-content: center;
+    width: 100%;
   }
 
   .cins-app-topbar.is-authed .tb-left {
@@ -3508,33 +3508,25 @@ a.j-notify-mini-action.is-link:hover {
   }
 
   .cins-app-topbar.is-authed .tb-chat-slot {
-    display: block;
+    display: flex;
     grid-area: chat;
+    position: relative;
+    align-items: center;
+    justify-content: center;
     width: 100%;
-    height: 0;
-    min-height: 0;
-    margin: 0;
+    height: 58px;
+    margin-top: -28px;
+    z-index: 3;
     pointer-events: none;
-    visibility: hidden;
+    visibility: visible;
+  }
+
+  .cins-app-topbar.is-authed .tb-chat-slot > * {
+    pointer-events: auto;
   }
 
   .cins-app-topbar.is-authed .tb-right {
     display: contents;
-  }
-
-  .cins-app-topbar.is-authed .tb-group-gio {
-    grid-area: gio;
-    justify-self: stretch;
-    justify-content: center;
-    width: 100%;
-  }
-
-  .cins-app-topbar.is-authed .tb-group-shop {
-    grid-area: shop;
-    justify-self: stretch;
-    justify-content: center;
-    width: 100%;
-    max-width: none;
   }
 
   .cins-app-topbar.is-authed .tb-group-notify {
@@ -3551,18 +3543,13 @@ a.j-notify-mini-action.is-link:hover {
     width: 100%;
   }
 
-  .cins-app-topbar.is-authed .tb-group-gio .gio-chung-trigger,
-  .cins-app-topbar.is-authed .tb-group-shop .shop-topbar-trigger {
-    width: 40px;
-    height: 40px;
-  }
-
   .cins-app-topbar.is-authed .tb-user,
   .cins-home-v2-page #topbar .tb-user {
     padding-right: 0;
   }
 
   .cins-app-topbar .j-notify-trigger,
+  .cins-app-topbar .org-mgr-trigger,
   .cins-app-topbar .gio-chung-trigger,
   .cins-app-topbar .shop-topbar-trigger {
     width: 44px;

@@ -42,10 +42,13 @@ import {
   ArrowUp,
   ChevronsDown,
   ChevronsUp,
+  Copy,
   Group,
   Trash2,
   Ungroup,
 } from "lucide-react";
+
+import { expandNodesForCopy, parseClipboardPayload } from "@/lib/chat/canvas/clipboard";
 
 import {
   NodeCard,
@@ -74,7 +77,13 @@ import {
 } from "@/components/cins/board/NodeCard";
 import {
   createEmptyTable,
+  CINS_INK_COLOR,
+  DEFAULT_DRAW_WIDTH,
+  DRAW_WIDTH_PRESETS,
+  INK_PALETTE,
   normalizeContentKind,
+  normalizeDrawWidth,
+  appendStrokePoints,
   pointsToSvgPath,
   serializeDraw,
   serializeTable,
@@ -161,6 +170,16 @@ const HOLD_PAN_MS = 1000;
 const HOLD_PAN_STILL_PX = 12;
 /** Zoom khi đặt ô chữ — trần cố định, không nhân thêm mỗi lần tạo. */
 const TEXT_PLACE_ZOOM = 1.2;
+/** Double-click focus — padding viewport + zoom out nhẹ so với fit tight. */
+const FOCUS_NODE_PAD = 120;
+const FOCUS_NODE_ZOOM_RELAX = 0.88;
+const FOCUS_CAMERA_MS = 480;
+/** Khoảng cách tối đa giữa 2 click để coi là double-click (không startMove lần 2). */
+const NODE_DBL_TAP_MS = 400;
+
+function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+}
 
 function isLocalBoardNodeId(id: string): boolean {
   return id.startsWith("local-");
@@ -354,7 +373,7 @@ function WireArrowIcon({ arrow }: { arrow: WireArrow }) {
   );
 }
 
-type Corner = "nw" | "ne" | "sw" | "se";
+type ResizeHandle = "nw" | "ne" | "sw" | "se" | "n" | "s" | "e" | "w";
 
 type Gesture =
   | {
@@ -380,7 +399,7 @@ type Gesture =
       pointerId: number;
       startClient: { x: number; y: number };
       nodeId: string;
-      corner: Corner;
+      corner: ResizeHandle;
       startRect: { x: number; y: number; w: number; h: number };
       before: BoardLayoutSnapshot[];
       moved: boolean;
@@ -949,6 +968,11 @@ type CinsBoardProps = {
   mentionMembers?: ChatGroupMember[];
   /** User đang xem — nút Sửa trên comment của mình. */
   viewerUserId?: string | null;
+  /** Board Public — cho phép Ctrl+C. */
+  copyEnabled?: boolean;
+  onCopyRequest?: () => void;
+  /** Ctrl+V / paste event: text clipboard — true nếu đã xử lý payload canvas. */
+  onPasteCanvasText?: (text: string) => boolean | Promise<boolean>;
 };
 
 export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
@@ -962,11 +986,14 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       onCameraChange,
       onToolChange,
       uploadImage,
-      inkColor = "#1a1a1a",
+      inkColor = CINS_INK_COLOR,
       pendingFocusNodeId,
       pendingHighlightNodeIds,
       mentionMembers = [],
       viewerUserId = null,
+      copyEnabled = false,
+      onCopyRequest,
+      onPasteCanvasText,
     },
     handleRef,
   ) {
@@ -1023,10 +1050,12 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       () => new Set(),
     );
     const justPlacedIdsRef = useRef<Set<string>>(new Set());
+    const nodeDblTapRef = useRef<{ nodeId: string; t: number } | null>(null);
 
     const nodesRef = useRef<BoardNode[]>([]);
     const toolRef = useRef<BoardTool>("select");
     const inkColorRef = useRef(inkColor);
+    const inkWidthRef = useRef(DEFAULT_DRAW_WIDTH);
     const cameraRef = useRef(camera);
     const selectedRef = useRef(selectedIds);
     const lockedRef = useRef(locked);
@@ -1128,30 +1157,38 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       if (world) world.style.transform = cameraWorldTransform(cameraRef.current);
     }, []);
 
-    const animateCameraTo = useCallback(
-      (to: BoardCamera, ms = 340) => {
+    const animateCameraFocusOn = useCallback(
+      (cx: number, cy: number, toZ: number, ms = FOCUS_CAMERA_MS) => {
+        const rect = rootRef.current?.getBoundingClientRect();
+        if (!rect || rect.width <= 0 || rect.height <= 0) return;
         if (camAnimRafRef.current) {
           cancelAnimationFrame(camAnimRafRef.current);
           camAnimRafRef.current = 0;
         }
         const from = cameraRef.current;
-        if (
-          Math.abs(from.x - to.x) < 0.15 &&
-          Math.abs(from.y - to.y) < 0.15 &&
-          Math.abs(from.z - to.z) < 0.004
-        ) {
-          return;
-        }
+        const targetZ = Math.min(
+          BOARD_MAX_ZOOM,
+          Math.max(BOARD_MIN_ZOOM, toZ),
+        );
+        // Một curve duy nhất: nội suy vị trí màn hình + zoom cùng eased t (không log/linear lệch nhau).
+        const sx0 = (cx + from.x) * from.z;
+        const sy0 = (cy + from.y) * from.z;
+        const sx1 = rect.width / 2;
+        const sy1 = rect.height / 2;
+        const z0 = from.z;
+        const z1 = targetZ;
         const t0 = performance.now();
-        const easeOut = (t: number) => 1 - (1 - t) ** 3;
         const tick = (now: number) => {
           const u = Math.min(1, (now - t0) / ms);
-          const e = easeOut(u);
+          const t = easeInOutCubic(u);
+          const sx = sx0 + (sx1 - sx0) * t;
+          const sy = sy0 + (sy1 - sy0) * t;
+          const z = z0 + (z1 - z0) * t;
           commitCamera(
             {
-              x: from.x + (to.x - from.x) * e,
-              y: from.y + (to.y - from.y) * e,
-              z: from.z + (to.z - from.z) * e,
+              x: sx / z - cx,
+              y: sy / z - cy,
+              z,
             },
             { fromAnim: true },
           );
@@ -1175,21 +1212,20 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           BOARD_MAX_ZOOM,
           Math.max(cam.z, TEXT_PLACE_ZOOM),
         );
-        const to = {
-          x: rect.width / 2 / nextZ - cx,
-          y: rect.height / 2 / nextZ - cy,
-          z: nextZ,
-        };
         if (
           typeof window !== "undefined" &&
           window.matchMedia("(prefers-reduced-motion: reduce)").matches
         ) {
-          commitCamera(to);
+          commitCamera({
+            x: rect.width / 2 / nextZ - cx,
+            y: rect.height / 2 / nextZ - cy,
+            z: nextZ,
+          });
           return;
         }
-        animateCameraTo(to);
+        animateCameraFocusOn(cx, cy, nextZ);
       },
-      [animateCameraTo, commitCamera],
+      [animateCameraFocusOn, commitCamera],
     );
 
     const placeOptsRef = useRef<BoardPlaceOpts>({
@@ -1674,6 +1710,38 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         zoomToRect(nodeRect(node), Math.max(1, cameraRef.current.z));
       },
       [zoomToRect],
+    );
+
+    /** Double-click asset — zoom + căn giữa viewport (có animation). */
+    const focusNodeInView = useCallback(
+      (node: BoardNode) => {
+        const target = nodeRect(node);
+        const rect = rootRef.current?.getBoundingClientRect();
+        if (!rect || rect.width <= 0 || rect.height <= 0) return;
+        const fitZ = Math.min(
+          (rect.width - FOCUS_NODE_PAD) / Math.max(target.w, 1),
+          (rect.height - FOCUS_NODE_PAD) / Math.max(target.h, 1),
+        );
+        const z = Math.min(
+          BOARD_MAX_ZOOM,
+          Math.max(BOARD_MIN_ZOOM, fitZ * FOCUS_NODE_ZOOM_RELAX),
+        );
+        const cx = target.x + target.w / 2;
+        const cy = target.y + target.h / 2;
+        if (
+          typeof window !== "undefined" &&
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ) {
+          commitCamera({
+            x: rect.width / 2 / z - cx,
+            y: rect.height / 2 / z - cy,
+            z,
+          });
+          return;
+        }
+        animateCameraFocusOn(cx, cy, z);
+      },
+      [animateCameraFocusOn, commitCamera],
     );
 
     /* ---------- history execution ---------- */
@@ -2224,6 +2292,35 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       [addNodeInternal, commitNodes, highlightNodes],
     );
 
+    const getNodesForCopy = useCallback((): BoardNode[] => {
+      return expandNodesForCopy(nodesRef.current, selectedRef.current);
+    }, []);
+
+    const ingestNodes = useCallback(
+      (incoming: BoardNode[]) => {
+        if (incoming.length === 0) return;
+        let next = nodesRef.current;
+        const addedIds: string[] = [];
+        for (const node of incoming) {
+          if (next.some((n) => n.id === node.id)) continue;
+          const withZ: BoardNode = {
+            ...node,
+            layout: { ...node.layout, z: ++zCounterRef.current },
+          };
+          next = [...next, withZ];
+          addedIds.push(withZ.id);
+        }
+        if (addedIds.length === 0) return;
+        commitNodes(next);
+        setSelection(new Set(addedIds));
+        emitSelection();
+        highlightNodes(addedIds);
+        const first = next.find((n) => addedIds.includes(n.id));
+        if (first) requestAnimationFrame(() => zoomToNode(first));
+      },
+      [commitNodes, emitSelection, highlightNodes, setSelection, zoomToNode],
+    );
+
     /* ---------- nối dây (connector) ---------- */
 
     const createWire = useCallback(
@@ -2429,6 +2526,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           if (normalizeContentKind(n.layout.contentKind) === "draw") {
             const data = parseDraw(n.noiDung);
             if (data) {
+              inkColorRef.current = mau;
               return {
                 ...n,
                 layout: { ...n.layout, mau },
@@ -2468,6 +2566,48 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       },
       [commitNodes, emitSelection, history, persist, persistLayoutBatch],
     );
+
+    const applyDrawWidthToSelection = useCallback(
+      (width: number) => {
+        if (lockedRef.current) return;
+        const nextWidth = normalizeDrawWidth(width);
+        inkWidthRef.current = nextWidth;
+        const targets = nodesRef.current.filter(
+          (n) =>
+            selectedRef.current.has(n.id) &&
+            normalizeContentKind(n.layout.contentKind) === "draw",
+        );
+        if (targets.length === 0) return;
+        const before = targets.map(snapshotOf);
+        const next = nodesRef.current.map((n) => {
+          if (!selectedRef.current.has(n.id)) return n;
+          if (normalizeContentKind(n.layout.contentKind) !== "draw") return n;
+          const data = parseDraw(n.noiDung);
+          if (!data) return n;
+          return {
+            ...n,
+            noiDung: serializeDraw({ ...data, width: nextWidth }),
+          };
+        });
+        commitNodes(next);
+        const after = before.map((s) => {
+          const n = next.find((x) => x.id === s.nodeId)!;
+          return snapshotOf(n);
+        });
+        history.push({ type: "layout", before, after });
+        for (const n of next) {
+          if (!selectedRef.current.has(n.id)) continue;
+          if (normalizeContentKind(n.layout.contentKind) !== "draw") continue;
+          void persist.patchNode(n.id, { noiDung: n.noiDung ?? undefined });
+        }
+        emitSelection();
+      },
+      [commitNodes, emitSelection, history, persist],
+    );
+
+    const setInkWidth = useCallback((width: number) => {
+      inkWidthRef.current = normalizeDrawWidth(width);
+    }, []);
 
     const paintSelectionColorDom = useCallback((mau: string) => {
       for (const id of selectedRef.current) {
@@ -3792,18 +3932,6 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           before.push(snapshotOf(n));
         }
 
-        // Bring-to-front các card kéo (không đụng frame).
-        const zBase = zCounterRef.current;
-        let zOffset = 0;
-        commitNodes(
-          nodesRef.current.map((n) =>
-            moveIds.has(n.id) && n.loai !== "frame"
-              ? { ...n, layout: { ...n.layout, z: zBase + ++zOffset } }
-              : n,
-          ),
-        );
-        zCounterRef.current = zBase + zOffset + 1;
-
         gestureRef.current = {
           type: "move",
           pointerId: e.pointerId,
@@ -3815,7 +3943,26 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           lastDx: 0,
           lastDy: 0,
         };
-        for (const id of moveIds) {
+        (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+      },
+      [byId, membersOfFrame, setSelection],
+    );
+
+    /** Chỉ khi thật sự kéo — tránh giật z-index / is-dragging lúc double-click. */
+    const activateMoveDrag = useCallback(
+      (g: Extract<Gesture, { type: "move" }>) => {
+        const moveIds = new Set(g.nodeIds);
+        const zBase = zCounterRef.current;
+        let zOffset = 0;
+        commitNodes(
+          nodesRef.current.map((n) =>
+            moveIds.has(n.id) && n.loai !== "frame"
+              ? { ...n, layout: { ...n.layout, z: zBase + ++zOffset } }
+              : n,
+          ),
+        );
+        zCounterRef.current = zBase + zOffset + 1;
+        for (const id of g.nodeIds) {
           nodeElByIdRef.current.get(id)?.classList.add("is-dragging");
         }
         const hostOnPick = [...moveIds]
@@ -3832,13 +3979,12 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           );
         }
         setInteracting(true);
-        (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
       },
-      [byId, commitNodes, membersOfFrame, setGroupSnapHighlight, setSelection],
+      [byId, commitNodes, setGroupSnapHighlight],
     );
 
     const startResize = useCallback(
-      (e: ReactPointerEvent, nodeId: string, corner: Corner) => {
+      (e: ReactPointerEvent, nodeId: string, corner: ResizeHandle) => {
         if (pinchRef.current) return;
         const node = byId(nodeId);
         if (!node || lockedRef.current) return;
@@ -3871,14 +4017,15 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       [byId],
     );
 
-    /* Tool đặt: lắng nghe document capture — trước React (root capture) để
-     * node/group không kịp chọn/kéo. Ctrl/⌘+click: về chọn. */
+    /* Tool đặt / vẽ: document capture — trước React để node/wire không chọn/kéo.
+     * Ctrl/⌘+click: về chọn. */
     const interceptPlacePointer = useCallback(
       (e: PointerEvent) => {
         const board = rootRef.current;
         if (!board) return false;
         if (e.button !== 0 || lockedRef.current) return false;
-        if (!isBoardPlaceTool(toolRef.current)) return false;
+        const drawing = toolRef.current === "draw";
+        if (!drawing && !isBoardPlaceTool(toolRef.current)) return false;
         if (pinchRef.current || spaceHeldRef.current) return false;
         const target = e.target;
         if (!(target instanceof Node) || !board.contains(target)) return false;
@@ -3896,6 +4043,24 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           setEditingId(null);
           return true;
         }
+
+        if (drawing) {
+          const start = pageFromClient(e.clientX, e.clientY);
+          const color = inkColorRef.current || CINS_INK_COLOR;
+          const width = inkWidthRef.current;
+          gestureRef.current = {
+            type: "draw",
+            pointerId: e.pointerId,
+            color,
+            width,
+            points: [start],
+          };
+          setDrawDraft({ color, width, points: [start] });
+          setSelection(new Set());
+          setInteracting(true);
+          board.setPointerCapture?.(e.pointerId);
+          return true;
+        }
         if (toolRef.current === "text") {
           const start = pageFromClient(e.clientX, e.clientY);
           gestureRef.current = {
@@ -3911,7 +4076,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         placeArmedAtPage(pageFromClient(e.clientX, e.clientY));
         return true;
       },
-      [pageFromClient, placeArmedAtPage, setTool],
+      [pageFromClient, placeArmedAtPage, setSelection, setTool],
     );
 
     useEffect(() => {
@@ -3947,8 +4112,8 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         if (toolRef.current === "draw" && !lockedRef.current) {
           e.preventDefault();
           const start = pageFromClient(e.clientX, e.clientY);
-          const color = inkColorRef.current || "#1a1a1a";
-          const width = 2.5;
+          const color = inkColorRef.current || CINS_INK_COLOR;
+          const width = inkWidthRef.current;
           gestureRef.current = {
             type: "draw",
             pointerId: e.pointerId,
@@ -4080,16 +4245,15 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
 
         if (g.type === "move") {
           const cam = cameraRef.current;
-          if (
-            !g.moved &&
-            Math.hypot(
-              e.clientX - g.startClient.x,
-              e.clientY - g.startClient.y,
-            ) < DRAG_THRESHOLD_PX
-          ) {
-            return;
+          const dist = Math.hypot(
+            e.clientX - g.startClient.x,
+            e.clientY - g.startClient.y,
+          );
+          if (!g.moved) {
+            if (dist < DRAG_THRESHOLD_PX) return;
+            g.moved = true;
+            activateMoveDrag(g);
           }
-          g.moved = true;
           g.lastDx = (e.clientX - g.startClient.x) / cam.z;
           g.lastDy = (e.clientY - g.startClient.y) / cam.z;
           // Coalesce về 1 frame — không setState (tránh re-render card/iframe).
@@ -4319,14 +4483,18 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         }
 
         if (g.type === "draw") {
-          const p = pageFromClient(e.clientX, e.clientY);
-          const last = g.points[g.points.length - 1]!;
-          if (Math.hypot(p.x - last.x, p.y - last.y) < 1.2) return;
-          g.points.push(p);
+          const native = e.nativeEvent;
+          const events =
+            typeof native.getCoalescedEvents === "function"
+              ? native.getCoalescedEvents()
+              : [native];
+          const next = appendStrokePoints(g.points, events, pageFromClient);
+          if (next.length === g.points.length) return;
+          g.points = next;
           setDrawDraft({
             color: g.color,
             width: g.width,
-            points: [...g.points],
+            points: next,
           });
           return;
         }
@@ -4380,6 +4548,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         pageFromClient,
         previewGroupSnapHost,
         setSelection,
+        activateMoveDrag,
       ],
     );
 
@@ -4407,7 +4576,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         setMarqueeRect(null);
         setWireDraft(null);
         setWireSnap(null);
-        setDrawDraft(null);
+        if (g.type !== "draw") setDrawDraft(null);
         wirePathClickRef.current = null;
         if (g.type === "pan") {
           if (cameraFlushRafRef.current) {
@@ -4439,9 +4608,12 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         }
 
         if (g.type === "draw") {
-          const raw = simplifyStroke(g.points, 1.5);
-          if (raw.length < 2) return;
-          const pad = 10;
+          const raw = simplifyStroke(g.points, 1);
+          if (raw.length < 2) {
+            setDrawDraft(null);
+            return;
+          }
+          const pad = Math.max(12, g.width * 1.6);
           let minX = Infinity;
           let minY = Infinity;
           let maxX = -Infinity;
@@ -4463,31 +4635,59 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
             width: g.width,
             points: local,
           });
+          const tempId = `local-draw-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+          const canvasId =
+            nodesRef.current.find((n) => n.canvasId)?.canvasId ?? "";
+          const now = new Date().toISOString();
+          const layout = {
+            x: minX - pad,
+            y: minY - pad,
+            w,
+            h,
+            mau: g.color,
+            contentKind: "draw" as const,
+            z: ++zCounterRef.current,
+          };
+          const optimistic: BoardNode = {
+            id: tempId,
+            canvasId,
+            loai: "sticky",
+            messageId: null,
+            url: null,
+            noiDung,
+            layout,
+            idNguoiTao: "",
+            taoLuc: now,
+            capNhatLuc: now,
+          };
+          commitNodes([...nodesRef.current, optimistic]);
+          setSelection(new Set([tempId]));
+          emitSelection();
+          setDrawDraft(null);
           void (async () => {
             const created = await persist.createNode({
               loai: "sticky",
-              layout: {
-                x: minX - pad,
-                y: minY - pad,
-                w,
-                h,
-                mau: g.color,
-                contentKind: "draw",
-                z: zCounterRef.current++,
-              },
+              layout: toStoredLayout(optimistic),
               noiDung,
             });
-            if (!created) return;
-            const node: BoardNode = {
-              ...created,
-              layout: {
-                ...created.layout,
-                mau: g.color,
-                contentKind: "draw",
-              },
-              noiDung: created.noiDung ?? noiDung,
-            };
-            addNodeInternal(node, true);
+            const gone =
+              cancelledLocalIdsRef.current.has(tempId) ||
+              !nodesRef.current.some((n) => n.id === tempId);
+            if (!created) {
+              if (!gone) {
+                commitNodes(nodesRef.current.filter((n) => n.id !== tempId));
+                if (selectedRef.current.has(tempId)) setSelection(new Set());
+                emitSelection();
+              }
+              cancelledLocalIdsRef.current.delete(tempId);
+              return;
+            }
+            if (gone) {
+              void persist.deleteNode(created);
+              cancelledLocalIdsRef.current.delete(tempId);
+              return;
+            }
+            promoteLocalNode(tempId, created);
           })();
           return;
         }
@@ -4685,7 +4885,6 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       },
       [
         addAreaText,
-        addNodeInternal,
         addSticky,
         setTool,
         applyMovePreview,
@@ -4698,6 +4897,8 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         persist,
         persistLayoutBatch,
         persistNodeLayout,
+        promoteLocalNode,
+        toStoredLayout,
         clearGroupSnapUi,
         clearHoldPanTimer,
       ],
@@ -4744,6 +4945,12 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
           e.preventDefault();
           redo();
+          return;
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
+          if (selectedRef.current.size === 0) return;
+          e.preventDefault();
+          onCopyRequest?.();
           return;
         }
         if (!e.ctrlKey && !e.metaKey && !e.altKey) {
@@ -4831,6 +5038,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       };
     }, [
       deleteSelection,
+      onCopyRequest,
       redo,
       setSelection,
       setTool,
@@ -5122,6 +5330,12 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
     const onPaste = useCallback(
       (e: ReactClipboardEvent<HTMLDivElement>) => {
         if (editingRef.current || lockedRef.current) return;
+        const text = e.clipboardData.getData("text/plain");
+        if (text && parseClipboardPayload(text) && onPasteCanvasText) {
+          e.preventDefault();
+          void onPasteCanvasText(text);
+          return;
+        }
         const files = imageFilesFromClipboard(e.clipboardData);
         if (files.length === 0) return;
         e.preventDefault();
@@ -5133,7 +5347,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         };
         void ingestImageFiles(files, page);
       },
-      [ingestImageFiles],
+      [ingestImageFiles, onPasteCanvasText],
     );
 
     /* ---------- imperative handle ---------- */
@@ -5143,6 +5357,8 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       (): BoardHandle => ({
         addNode: (node) => addNodeInternal(node, true),
         ingestNode,
+        ingestNodes,
+        getNodesForCopy,
         addSticky,
         addText,
         addShape,
@@ -5156,6 +5372,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         deleteSelection,
         clearBoard,
         setTool,
+        setInkWidth,
         zoomIn,
         zoomOut,
         zoomReset,
@@ -5174,12 +5391,15 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         applyColorToSelection,
         clearBoard,
         deleteSelection,
+        getNodesForCopy,
         groupSelection,
         highlightNodes,
         ingestNode,
+        ingestNodes,
         redo,
         renameSelectedFrame,
         setTool,
+        setInkWidth,
         undo,
         ungroupSelection,
         zoomIn,
@@ -5268,11 +5488,15 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           (layerTargets.some((n) => n.loai === "frame") &&
             framePoolCount >= 2));
       const hasTextBlock = cards.some(isTextStickyNode);
+      const hasDrawStroke = cards.some(
+        (n) => normalizeContentKind(n.layout.contentKind) === "draw",
+      );
       const hasStickyNote = cards.some(
         (n) =>
           n.loai === "sticky" &&
           !normalizeShapeKind(n.layout.shapeKind) &&
-          !isTextStickyNode(n),
+          !isTextStickyNode(n) &&
+          normalizeContentKind(n.layout.contentKind) !== "draw",
       );
       const hasShape = selectedShapes.length > 0;
       const showWireOptions =
@@ -5322,22 +5546,39 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
 
       const palette = selFrame
         ? GROUP_PALETTE
-        : hasTextBlock && !hasStickyNote && !hasShape
-          ? TEXT_COLOR_PALETTE
-          : STICKY_PALETTE;
+        : hasDrawStroke && !hasStickyNote && !hasShape && !hasTextBlock
+          ? INK_PALETTE
+          : hasTextBlock && !hasStickyNote && !hasShape
+            ? TEXT_COLOR_PALETTE
+            : STICKY_PALETTE;
       const activeColor = selFrame
         ? (selFrame.layout.mau ?? GROUP_PALETTE[0])
-        : hasTextBlock && !hasStickyNote && !hasShape
-          ? (cards.find(isTextStickyNode)?.layout.textColor ??
-            DEFAULT_TEXT_COLOR)
-          : cards.find((n) => n.loai === "sticky")?.layout.mau;
+        : hasDrawStroke && !hasStickyNote && !hasShape && !hasTextBlock
+          ? (cards.find(
+              (n) => normalizeContentKind(n.layout.contentKind) === "draw",
+            )?.layout.mau ?? CINS_INK_COLOR)
+          : hasTextBlock && !hasStickyNote && !hasShape
+            ? (cards.find(isTextStickyNode)?.layout.textColor ??
+              DEFAULT_TEXT_COLOR)
+            : cards.find((n) => n.loai === "sticky")?.layout.mau;
       const customActive =
         Boolean(activeColor) &&
         !isPresetPaletteColor(activeColor, palette);
       const showTextOptions =
         hasTextBlock && !hasStickyNote && !hasShape && !selFrame;
+      const showDrawOptions =
+        hasDrawStroke && !hasStickyNote && !hasShape && !hasTextBlock && !selFrame;
       const activeTextSize = showTextOptions
         ? normalizeTextSize(cards.find(isTextStickyNode)?.layout.textSize)
+        : null;
+      const activeDrawWidth = showDrawOptions
+        ? normalizeDrawWidth(
+            parseDraw(
+              cards.find(
+                (n) => normalizeContentKind(n.layout.contentKind) === "draw",
+              )?.noiDung,
+            )?.width,
+          )
         : null;
 
       return (
@@ -5362,18 +5603,20 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
               onKeyDown={(e) => e.stopPropagation()}
             />
           ) : null}
-          {selFrame || hasStickyNote || hasTextBlock || hasShape ? (
+          {selFrame || hasStickyNote || hasTextBlock || hasShape || hasDrawStroke ? (
             <div
               className="cins-canvas-palette"
               role="group"
               aria-label={
                 selFrame
                   ? "Màu nền nhóm"
-                  : hasTextBlock && !hasStickyNote && !hasShape
-                    ? "Màu chữ"
-                    : hasShape && !hasStickyNote
-                      ? "Màu hình"
-                      : "Màu ghi chú"
+                  : hasDrawStroke && !hasStickyNote && !hasShape && !hasTextBlock
+                    ? "Màu nét vẽ"
+                    : hasTextBlock && !hasStickyNote && !hasShape
+                      ? "Màu chữ"
+                      : hasShape && !hasStickyNote
+                        ? "Màu hình"
+                        : "Màu ghi chú"
               }
             >
               {palette.map((color) => (
@@ -5395,15 +5638,19 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                   activeColor ??
                   (selFrame
                     ? "#1f74c9"
-                    : hasTextBlock && !hasStickyNote && !hasShape
-                      ? DEFAULT_TEXT_COLOR
-                      : STICKY_PALETTE[0]!)
+                    : hasDrawStroke && !hasStickyNote && !hasShape && !hasTextBlock
+                      ? CINS_INK_COLOR
+                      : hasTextBlock && !hasStickyNote && !hasShape
+                        ? DEFAULT_TEXT_COLOR
+                        : STICKY_PALETTE[0]!)
                 }
                 isActive={customActive}
                 ariaLabel={
                   selFrame
                     ? "Màu nhóm tùy chọn"
-                    : hasTextBlock && !hasStickyNote && !hasShape
+                    : hasDrawStroke && !hasStickyNote && !hasShape && !hasTextBlock
+                      ? "Màu nét tùy chọn"
+                      : hasTextBlock && !hasStickyNote && !hasShape
                       ? "Màu chữ tùy chọn"
                       : "Màu tùy chọn"
                 }
@@ -5418,6 +5665,34 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                   )
                 }
               />
+            </div>
+          ) : null}
+          {showDrawOptions ? (
+            <div
+              className="cins-board-wire-opts"
+              role="group"
+              aria-label="Độ dày nét"
+            >
+              {DRAW_WIDTH_PRESETS.map((width) => (
+                <button
+                  key={width}
+                  type="button"
+                  className={
+                    "cins-board-wire-opt cins-board-ink-width-opt" +
+                    (activeDrawWidth === width ? " is-active" : "")
+                  }
+                  title={`Nét ${width}px`}
+                  aria-label={`Độ dày nét ${width}`}
+                  aria-pressed={activeDrawWidth === width}
+                  onClick={() => applyDrawWidthToSelection(width)}
+                >
+                  <span
+                    className="cins-board-ink-width-sample"
+                    style={{ height: Math.max(2, width * 0.7) }}
+                    aria-hidden
+                  />
+                </button>
+              ))}
             </div>
           ) : null}
           {showTextOptions ? (
@@ -5607,6 +5882,17 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
               Bỏ nhóm
             </button>
           ) : null}
+          {copyEnabled ? (
+            <button
+              type="button"
+              className="cins-canvas-tool-btn cins-canvas-tool-btn--icon"
+              onClick={() => onCopyRequest?.()}
+              title="Sao chép (Ctrl+C) — dán sang canvas phòng khác"
+              aria-label="Sao chép"
+            >
+              <Copy size={14} strokeWidth={1.9} aria-hidden />
+            </button>
+          ) : null}
           <button
             type="button"
             className="cins-canvas-tool-btn cins-canvas-tool-btn--icon cins-canvas-tool-btn--danger"
@@ -5653,7 +5939,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
             <p>Canvas trống — bắt đầu bằng cách:</p>
             <ul>
               <li>Bấm icon ghi chú / chữ / hình / bảng / bình luận rồi click canvas để đặt</li>
-              <li>Chọn bút vẽ (D) rồi kéo trên nền trống để vẽ tự do</li>
+              <li>Chọn bút vẽ (D) rồi kéo để vẽ tự do (kể cả lên object)</li>
               <li>Kéo ảnh từ máy vào đây, hoặc dán ảnh (Ctrl+V)</li>
               <li>Trong tin nhắn có ảnh/link: menu ⋯ → «Thêm vào canvas»</li>
               <li>«Đồng bộ» để gom ảnh/link đã gửi trong phòng</li>
@@ -5715,7 +6001,8 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                     if (
                       e.button !== 0 ||
                       spaceHeldRef.current ||
-                      toolRef.current === "pan"
+                      toolRef.current === "pan" ||
+                      toolRef.current === "draw"
                     ) {
                       return;
                     }
@@ -5968,12 +6255,8 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                   if (e.button !== 0 || spaceHeldRef.current) return;
                   // Tool bàn tay: node không nuốt event — root pan.
                   if (toolRef.current === "pan") return;
-                  // Tool vẽ: click node vẫn chọn/kéo. Tool đặt: để bubble — ưu tiên tạo.
-                  if (toolRef.current === "draw") {
-                    e.stopPropagation();
-                    startMove(e, node.id);
-                    return;
-                  }
+                  /* Vẽ / đặt: để bubble lên root — không chọn/kéo object. */
+                  if (toolRef.current === "draw") return;
                   if (isBoardPlaceTool(toolRef.current)) {
                     if (e.ctrlKey || e.metaKey) {
                       setTool("select");
@@ -5989,6 +6272,16 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                   const fromTableDrag = Boolean(
                     target?.closest?.("[data-table-drag]"),
                   );
+                  /* Link / control trong card: đừng startMove + capture — nuốt click. */
+                  if (
+                    target?.closest?.(
+                      "a[href], button, textarea, input, select, [contenteditable='true']",
+                    )
+                  ) {
+                    e.stopPropagation();
+                    rootRef.current?.focus({ preventScroll: true });
+                    return;
+                  }
 
                   if (isTable && !locked) {
                     // Kéo từ thanh grip → di chuyển; còn lại → chọn + sửa ô.
@@ -6009,15 +6302,34 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                     e.stopPropagation();
                     return;
                   }
+                  const now = performance.now();
+                  const tap = nodeDblTapRef.current;
+                  if (
+                    tap &&
+                    tap.nodeId === node.id &&
+                    now - tap.t < NODE_DBL_TAP_MS
+                  ) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    return;
+                  }
+                  nodeDblTapRef.current = { nodeId: node.id, t: now };
                   e.stopPropagation();
                   startMove(e, node.id);
                 }}
                 onDoubleClick={(e) => {
-                  if (node.loai !== "sticky" || locked) return;
-                  if (contentKind === "draw") return;
-                  if (contentKind === "table") return; // bảng: click là đủ
+                  if (locked || node.loai === "connector") return;
+                  e.preventDefault();
                   e.stopPropagation();
-                  setEditingId(node.id);
+                  nodeDblTapRef.current = null;
+                  abortActiveGesture();
+                  if (!selectedRef.current.has(node.id)) {
+                    setSelection(new Set([node.id]));
+                  }
+                  const target = node;
+                  requestAnimationFrame(() => {
+                    focusNodeInView(target);
+                  });
                 }}
               >
                 <NodeCard
@@ -6063,11 +6375,29 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
                 singleSelectedId === node.id &&
                 !isComment ? (
                   <>
-                    {(["nw", "ne", "sw", "se"] as Corner[]).map((corner) => (
+                    {(
+                      [
+                        "nw",
+                        "ne",
+                        "sw",
+                        "se",
+                        "n",
+                        "s",
+                        "e",
+                        "w",
+                      ] as ResizeHandle[]
+                    ).map((handle) => (
                       <span
-                        key={corner}
-                        className={`cins-board-handle cins-board-handle--${corner}`}
-                        onPointerDown={(e) => startResize(e, node.id, corner)}
+                        key={handle}
+                        className={`cins-board-handle cins-board-handle--${handle}`}
+                        title={
+                          handle === "n" || handle === "s"
+                            ? "Kéo để đổi chiều cao"
+                            : handle === "e" || handle === "w"
+                              ? "Kéo để đổi chiều rộng"
+                              : "Kéo để đổi kích thước"
+                        }
+                        onPointerDown={(e) => startResize(e, node.id, handle)}
                       />
                     ))}
                   </>

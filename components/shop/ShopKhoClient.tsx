@@ -263,13 +263,15 @@ export function ShopKhoClient({
     postHref?: string | null;
     canRetry?: boolean;
   } | null>(null);
-  /** Đang chờ gắn kiosk sau publish — nhomId + draftScope. */
+  /** Đang chờ gắn kiosk sau publish — nhomId + draftScope + attach đã chốt lúc mở compose. */
   const pendingGioiThieuRef = useRef<{
     nhomId: string;
     draftScope: string;
     mau: ShopSanPham[];
     bangGia: ShopBangGia | null;
     nhomGiaMacDinh: number | null;
+    attach: Array<{ idBienThe: string; idBangGia: string; thuTu: number }>;
+    biCat: number;
   } | null>(null);
   const retryAttachRef = useRef<{
     cotMocId: string;
@@ -2388,33 +2390,78 @@ export function ShopKhoClient({
         setGioiThieuAboutKnown(true);
       }
 
-      if (!pending.bangGia) {
+      const slug = composeOwnerSlug || ownerSlug;
+      const link =
+        detail.postSlug && slug
+          ? `/${slug}/p/${detail.postSlug}`
+          : null;
+      const biCat = pending.biCat;
+      const catHint =
+        biCat > 0
+          ? ` Bài chỉ gắn tối đa 20 sản phẩm — ${biCat} mẫu còn lại không gắn.`
+          : "";
+
+      /* Publish đã gắn hang trong cùng request — không PUT lại (tránh race). */
+      if (detail.shopHangAttached) {
+        window.dispatchEvent(
+          new CustomEvent("cins:shop-hang-changed", {
+            detail: { milestoneId: detail.cotMocId },
+          }),
+        );
         setGioiThieuToast({
-          message: "Bài đã đăng. Tạo bảng giá để gắn hàng vào bài.",
-          postHref:
-            detail.postSlug && (composeOwnerSlug || ownerSlug)
-              ? `/${composeOwnerSlug || ownerSlug}/p/${detail.postSlug}`
-              : null,
+          message: `Đã đăng bài giới thiệu · gắn ${detail.shopHangCount ?? pending.attach.length} sản phẩm.${catHint}`,
+          postHref: link,
         });
         return;
       }
-      const nhomGia = new Map<string, number>();
-      if (pending.nhomGiaMacDinh != null) {
-        nhomGia.set(pending.nhomId, pending.nhomGiaMacDinh);
+
+      if (detail.shopHangError) {
+        if (pending.attach.length > 0) {
+          retryAttachRef.current = {
+            cotMocId: detail.cotMocId,
+            postSlug: detail.postSlug ?? null,
+            items: pending.attach,
+            biCat,
+          };
+          setGioiThieuToast({
+            message: `Bài đã đăng nhưng chưa gắn được hàng: ${detail.shopHangError}`,
+            canRetry: true,
+            postHref: link,
+          });
+        } else {
+          setGioiThieuToast({
+            message: `Bài đã đăng. ${detail.shopHangError}`,
+            postHref: link,
+          });
+        }
+        return;
       }
-      const { items, biCat } = chonBienTheChoKiosk({
-        mau: pending.mau,
-        bangGia: pending.bangGia,
-        nhomGiaById: nhomGia,
-      });
+
+      if (!pending.bangGia) {
+        setGioiThieuToast({
+          message: "Bài đã đăng. Tạo bảng giá để gắn hàng vào bài.",
+          postHref: link,
+        });
+        return;
+      }
+
+      const items =
+        pending.attach.length > 0
+          ? pending.attach
+          : chonBienTheChoKiosk({
+              mau: pending.mau,
+              bangGia: pending.bangGia,
+              nhomGiaById:
+                pending.nhomGiaMacDinh != null
+                  ? new Map([[pending.nhomId, pending.nhomGiaMacDinh]])
+                  : undefined,
+            }).items;
+
       if (items.length === 0) {
         setGioiThieuToast({
           message:
             "Bài đã đăng. Chưa gắn được hàng (thiếu giá, hết hàng hoặc mẫu ngừng bán).",
-          postHref:
-            detail.postSlug && (composeOwnerSlug || ownerSlug)
-              ? `/${composeOwnerSlug || ownerSlug}/p/${detail.postSlug}`
-              : null,
+          postHref: link,
         });
         return;
       }
@@ -2527,13 +2574,6 @@ export function ShopKhoClient({
         );
       }
       const bg = activeBangGia;
-      pendingGioiThieuRef.current = {
-        nhomId: activeNhom.id,
-        draftScope,
-        mau: filteredProducts,
-        bangGia: bg,
-        nhomGiaMacDinh: activeNhom.giaMacDinh,
-      };
       const nhomGia = new Map<string, number>();
       if (activeNhom.giaMacDinh != null) {
         nhomGia.set(activeNhom.id, activeNhom.giaMacDinh);
@@ -2543,12 +2583,22 @@ export function ShopKhoClient({
         bangGia: bg,
         nhomGiaById: nhomGia,
       });
+      pendingGioiThieuRef.current = {
+        nhomId: activeNhom.id,
+        draftScope,
+        mau: filteredProducts,
+        bangGia: bg,
+        nhomGiaMacDinh: activeNhom.giaMacDinh,
+        attach: ready.attach,
+        biCat: ready.stats.biCat,
+      };
       openCompose({
         kind: "photo",
         prefillDraft,
         draftScope,
         shopKioskPreview: {
           items: ready.items,
+          attach: ready.attach,
           hint: ready.ok
             ? ready.hint
             : ready.hint || ready.message,

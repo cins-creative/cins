@@ -21,7 +21,7 @@ export function CinsChatLauncher({
       type="button"
       className={[
         "j-chat-fab",
-        variant === "botbar" ? "is-botbar is-botbar-center" : "",
+        variant === "botbar" ? "is-botbar" : "",
         open ? "is-open" : "",
         totalUnread > 0 ? "has-unread" : "",
       ]

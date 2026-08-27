@@ -500,11 +500,19 @@ export async function deleteNode(
     );
   }
 
-  // Ảnh chỉ tồn tại trên canvas (paste/drop) — xóa luôn trên Cloudflare.
-  // Không đụng ảnh gắn tin chat (id_tin_nhan) vì tin gốc vẫn cần ảnh.
+  // Ảnh chỉ tồn tại trên canvas (paste/drop) — xóa CF khi không còn node nào
+  // dùng cùng URL (copy/paste tái dùng URL giữa board).
   if (node.loai === "anh" && !node.id_tin_nhan && node.url) {
-    const cfId = cloudflareImageIdFromUrlOrId(node.url);
-    if (cfId) void deleteCloudflareImage(cfId);
+    const { count } = await admin
+      .from("chat_canvas_node")
+      .select("id", { count: "exact", head: true })
+      .eq("loai", "anh")
+      .is("id_tin_nhan", null)
+      .eq("url", node.url);
+    if ((count ?? 0) === 0) {
+      const cfId = cloudflareImageIdFromUrlOrId(node.url);
+      if (cfId) void deleteCloudflareImage(cfId);
+    }
   }
 
   return { ok: true };

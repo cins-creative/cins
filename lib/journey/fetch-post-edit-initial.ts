@@ -87,45 +87,156 @@ function recoverEditContent(params: {
   return { blocks, moTa: moTa ?? seed };
 }
 
-export async function fetchPostEditInitial(params: {
-  ownerId: string;
-  postSlug: string;
-}): Promise<PostEditInitialResult> {
-  const { ownerId, postSlug } = params;
-  const admin = createServiceRoleClient();
+const TAC_PHAM_EDIT_SELECT =
+  "id, id_nguoi_dung, slug, tieu_de, mo_ta, cover_id, che_do_hien_thi, noi_dung_blocks";
+const COT_MOC_EDIT_SELECT =
+  "id, id_nguoi_dung, loai_moc, che_do_hien_thi, thoi_diem, mo_ta, tao_luc";
 
-  const { data: tp, error: tpErr } = await admin
+function normalizeEditPostSlug(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+  try {
+    return decodeURIComponent(trimmed);
+  } catch {
+    return trimmed;
+  }
+}
+
+async function loadTacPhamById(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  id: string,
+): Promise<TacPhamRow | null> {
+  const { data, error } = await admin
     .from("content_tac_pham")
-    .select(
-      "id, id_nguoi_dung, slug, tieu_de, mo_ta, cover_id, che_do_hien_thi, noi_dung_blocks",
-    )
-    .eq("id_nguoi_dung", ownerId)
-    .eq("slug", postSlug)
+    .select(TAC_PHAM_EDIT_SELECT)
+    .eq("id", id)
     .maybeSingle<TacPhamRow>();
+  if (error || !data) return null;
+  return data;
+}
 
-  if (tpErr || !tp) return { ok: false, error: "not_found" };
-  if (tp.slug !== postSlug) return { ok: false, error: "not_found" };
+async function loadCotMocById(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  id: string,
+): Promise<CotMocRow | null> {
+  const { data, error } = await admin
+    .from("content_cot_moc")
+    .select(COT_MOC_EDIT_SELECT)
+    .eq("id", id)
+    .maybeSingle<CotMocRow>();
+  if (error || !data) return null;
+  return data;
+}
 
+/** Ưu tiên cột mốc trên card; không lấy nhầm mốc người khác khi bài có nhiều junction. */
+async function loadOwnedCotMocForTacPham(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  params: {
+    tacPhamId: string;
+    ownerId: string;
+    preferredCotMocId?: string | null;
+  },
+): Promise<CotMocRow | null> {
   const { data: links } = await admin
     .from("content_tac_pham_thuoc_moc")
     .select("id_cot_moc, thu_tu")
-    .eq("id_tac_pham", tp.id)
+    .eq("id_tac_pham", params.tacPhamId)
     .order("thu_tu", { ascending: true })
-    .limit(1);
+    .returns<Array<{ id_cot_moc: string; thu_tu: number | null }>>();
 
-  const firstCotMocId = links?.[0]?.id_cot_moc as string | undefined;
-  if (!firstCotMocId) return { ok: false, error: "not_found" };
+  if (!links?.length) return null;
 
-  const { data: cm, error: cmErr } = await admin
+  const ids = [...new Set(links.map((l) => l.id_cot_moc))];
+  const { data: rows } = await admin
     .from("content_cot_moc")
-    .select(
-      "id, id_nguoi_dung, loai_moc, che_do_hien_thi, thoi_diem, mo_ta, tao_luc",
-    )
-    .eq("id", firstCotMocId)
-    .maybeSingle<CotMocRow>();
+    .select(COT_MOC_EDIT_SELECT)
+    .in("id", ids)
+    .eq("id_nguoi_dung", params.ownerId)
+    .returns<CotMocRow[]>();
 
-  if (cmErr || !cm || cm.id_nguoi_dung !== ownerId) {
-    return { ok: false, error: "not_found" };
+  const owned = rows ?? [];
+  if (owned.length === 0) return null;
+
+  const preferred = params.preferredCotMocId?.trim();
+  if (preferred) {
+    const match = owned.find((c) => c.id === preferred);
+    if (match) return match;
+  }
+
+  for (const link of links) {
+    const match = owned.find((c) => c.id === link.id_cot_moc);
+    if (match) return match;
+  }
+  return owned[0] ?? null;
+}
+
+async function loadOwnedPairViaCotMoc(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  params: { cotMocId: string; ownerId: string },
+): Promise<{ tp: TacPhamRow; cm: CotMocRow } | null> {
+  const cm = await loadCotMocById(admin, params.cotMocId);
+  if (!cm || cm.id_nguoi_dung !== params.ownerId) return null;
+
+  const { data: links } = await admin
+    .from("content_tac_pham_thuoc_moc")
+    .select("id_tac_pham, thu_tu")
+    .eq("id_cot_moc", cm.id)
+    .order("thu_tu", { ascending: true })
+    .limit(1)
+    .returns<Array<{ id_tac_pham: string }>>();
+
+  const tacPhamId = links?.[0]?.id_tac_pham;
+  if (!tacPhamId) return null;
+
+  const tp = await loadTacPhamById(admin, tacPhamId);
+  if (!tp || tp.id_nguoi_dung !== params.ownerId) return null;
+  return { tp, cm };
+}
+
+export async function fetchPostEditInitial(params: {
+  ownerId: string;
+  postSlug: string;
+  cotMocId?: string | null;
+}): Promise<PostEditInitialResult> {
+  const ownerId = params.ownerId;
+  const postSlug = normalizeEditPostSlug(params.postSlug);
+  const preferredCotMocId = params.cotMocId?.trim() || null;
+  const admin = createServiceRoleClient();
+
+  let tp: TacPhamRow | null = null;
+  let cm: CotMocRow | null = null;
+
+  if (preferredCotMocId) {
+    const viaMoc = await loadOwnedPairViaCotMoc(admin, {
+      cotMocId: preferredCotMocId,
+      ownerId,
+    });
+    if (viaMoc) {
+      tp = viaMoc.tp;
+      cm = viaMoc.cm;
+    }
+  }
+
+  if (!tp || !cm) {
+    if (!postSlug) return { ok: false, error: "not_found" };
+
+    const { data: tpRows, error: tpErr } = await admin
+      .from("content_tac_pham")
+      .select(TAC_PHAM_EDIT_SELECT)
+      .eq("id_nguoi_dung", ownerId)
+      .eq("slug", postSlug)
+      .limit(1)
+      .returns<TacPhamRow[]>();
+
+    tp = !tpErr ? (tpRows?.[0] ?? null) : null;
+    if (!tp) return { ok: false, error: "not_found" };
+
+    cm = await loadOwnedCotMocForTacPham(admin, {
+      tacPhamId: tp.id,
+      ownerId,
+      preferredCotMocId,
+    });
+    if (!cm) return { ok: false, error: "not_found" };
   }
 
   const { data: tagRows } = await admin
@@ -177,7 +288,7 @@ export async function fetchPostEditInitial(params: {
 
   return {
     ok: true,
-    postSlug,
+    postSlug: tp.slug,
     initial: {
       tacPhamId: tp.id,
       cotMocId: cm.id,

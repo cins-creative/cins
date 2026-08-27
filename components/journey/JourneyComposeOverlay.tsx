@@ -244,7 +244,11 @@ export function JourneyComposeOverlay({
           }>;
         })
       : fetch(
-          `/api/journey/${encodeURIComponent(ownerSlug)}/edit/${encodeURIComponent(compose.postSlug)}`,
+          `/api/journey/${encodeURIComponent(ownerSlug)}/edit/${encodeURIComponent(compose.postSlug)}${
+            compose.cotMocId
+              ? `?cotMoc=${encodeURIComponent(compose.cotMocId)}`
+              : ""
+          }`,
         ).then(async (res) => {
           if (!res.ok) {
             let detail = "";

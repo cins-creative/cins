@@ -198,7 +198,25 @@ export function nearestEdgeAttachment(
 export const WIRE_PORT_SNAP_DIST = 32;
 
 /**
+ * Núm kéo dây lệch ra ngoài bounding box (page / CSS px, cùng hệ với node).
+ * Điểm neo dây (`sideAnchor`) vẫn nằm trên cạnh object.
+ */
+export const WIRE_PORT_HANDLE_OUTSET = 14;
+
+/** Tâm núm kéo — ra ngoài cạnh; không dùng để vẽ path dây. */
+export function wirePortHandlePoint(
+  r: BoardRect,
+  side: WireSide,
+  offset = 0.5,
+): WirePoint {
+  const p = sideAnchor(r, side, offset);
+  const d = outward(side, WIRE_PORT_HANDLE_OUTSET);
+  return { x: p.x + d.x, y: p.y + d.y };
+}
+
+/**
  * Snap tới núm nối gần nhất trên một rect (4 điểm giữa cạnh).
+ * `point` luôn là neo trên bounding box — dây không đổi.
  */
 export function nearestWirePort(
   r: BoardRect,
@@ -212,10 +230,11 @@ export function nearestWirePort(
   } | null = null;
   for (const side of WIRE_SIDES) {
     const offset = 0.5;
-    const point = sideAnchor(r, side, offset);
-    const dist = Math.hypot(p.x - point.x, p.y - point.y);
+    const attach = sideAnchor(r, side, offset);
+    const handle = wirePortHandlePoint(r, side, offset);
+    const dist = Math.hypot(p.x - handle.x, p.y - handle.y);
     if (!best || dist < best.dist) {
-      best = { side, offset, point, dist };
+      best = { side, offset, point: attach, dist };
     }
   }
   return {
@@ -248,7 +267,8 @@ export function findWirePortSnap(
     for (const side of WIRE_SIDES) {
       const offset = 0.5;
       const point = sideAnchor(rect, side, offset);
-      const dist = Math.hypot(p.x - point.x, p.y - point.y);
+      const handle = wirePortHandlePoint(rect, side, offset);
+      const dist = Math.hypot(p.x - handle.x, p.y - handle.y);
       if (dist <= maxDist && (!best || dist < best.dist)) {
         best = { nodeId: id, side, offset, point, dist };
       }

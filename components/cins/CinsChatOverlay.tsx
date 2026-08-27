@@ -564,6 +564,7 @@ function ChatThreadRow({
   onCreateGroup,
   activeProjectCount = 0,
   projectsExpanded = false,
+  hasActiveProjectChild = false,
   onToggleProjects,
   shareDropActive = false,
   onShareDrop,
@@ -593,6 +594,8 @@ function ChatThreadRow({
   /** Số project active dưới nhóm gốc. */
   activeProjectCount?: number;
   projectsExpanded?: boolean;
+  /** Đang xem project con thuộc nhóm này (rail thu gọn highlight cha). */
+  hasActiveProjectChild?: boolean;
   onToggleProjects?: () => void;
   /** Drop mode chia sẻ — row nhận thả để gửi vào phòng. */
   shareDropActive?: boolean;
@@ -753,7 +756,7 @@ function ChatThreadRow({
 
   return (
     <li
-      className={`cins-chat-thread-item${thread.isSelf ? " is-self-item" : ""}${isListPinned ? " is-list-pinned" : ""}${isMenuOpen ? " is-menu-open" : ""}${isMuted ? " is-muted" : ""}${isProjectChild ? " is-project-child" : ""}${isProjectParent ? " is-project-parent" : ""}${isProjectParent && projectsExpanded ? " is-projects-expanded" : ""}${isShareTarget ? " is-share-target" : ""}`}
+      className={`cins-chat-thread-item${thread.isSelf ? " is-self-item" : ""}${isListPinned ? " is-list-pinned" : ""}${isMenuOpen ? " is-menu-open" : ""}${isMuted ? " is-muted" : ""}${isProjectChild ? " is-project-child" : ""}${isProjectParent ? " is-project-parent" : ""}${isProjectParent && projectsExpanded ? " is-projects-expanded" : ""}${hasActiveProjectChild ? " is-child-active-parent" : ""}${isShareTarget ? " is-share-target" : ""}`}
       onContextMenu={(event) => {
         if (canShowMenu) event.preventDefault();
       }}
@@ -1059,6 +1062,7 @@ export function CinsChatOverlay({
   const headerPullRef = useRef<{
     pointerId: number;
     startY: number;
+    startX: number;
   } | null>(null);
   const [sidePanel, setSidePanel] = useState<ChatSidePanel | null>(null);
   const [membersPopoverOpen, setMembersPopoverOpen] = useState(false);
@@ -1323,20 +1327,40 @@ export function CinsChatOverlay({
       ) {
         return;
       }
-      if (!active?.roomId || isPendingRoomId(active.roomId)) return;
-      headerPullRef.current = { pointerId: e.pointerId, startY: e.clientY };
-      e.currentTarget.setPointerCapture(e.pointerId);
+      headerPullRef.current = {
+        pointerId: e.pointerId,
+        startY: e.clientY,
+        startX: e.clientX,
+      };
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
     },
-    [active?.roomId, mobileNarrow],
+    [mobileNarrow],
   );
 
   const onConvoHeadPointerMove = useCallback(
     (e: ReactPointerEvent<HTMLElement>) => {
       const pull = headerPullRef.current;
       if (!pull || e.pointerId !== pull.pointerId) return;
-      const dy = Math.max(0, e.clientY - pull.startY);
-      if (dy > 6) e.preventDefault();
-      setHeaderPullDy(Math.min(160, dy));
+      const dy = e.clientY - pull.startY;
+      const dx = e.clientX - pull.startX;
+      /* Chỉ kéo xuống; hủy nếu lệch ngang rõ (tránh xung đột vuốt). */
+      if (Math.abs(dx) > 28 && Math.abs(dx) > Math.abs(dy)) {
+        headerPullRef.current = null;
+        setHeaderPullDy(0);
+        try {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch {
+          /* ignore */
+        }
+        return;
+      }
+      const down = Math.max(0, dy);
+      if (down > 6) e.preventDefault();
+      setHeaderPullDy(Math.min(200, down));
     },
     [],
   );
@@ -1346,11 +1370,21 @@ export function CinsChatOverlay({
       const pull = headerPullRef.current;
       if (!pull || e.pointerId !== pull.pointerId) return;
       headerPullRef.current = null;
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
       const dy = Math.max(0, e.clientY - pull.startY);
+      if (dy >= 72) {
+        /* Giữ offset tới khi unmount — tránh nhảy về 0 trước khi đóng. */
+        setHeaderPullDy(Math.min(200, dy));
+        onClose();
+        return;
+      }
       setHeaderPullDy(0);
-      if (dy >= 72) minimizeActiveToBubble();
     },
-    [minimizeActiveToBubble],
+    [onClose],
   );
 
   useEffect(() => {
@@ -4772,6 +4806,10 @@ export function CinsChatOverlay({
         onCreateGroup={handleCreateGroupFromThread}
         activeProjectCount={projectCount}
         projectsExpanded={expandedProjectParentIds.has(thread.roomId)}
+        hasActiveProjectChild={
+          Boolean(active?.parentRoomId) &&
+          active.parentRoomId === thread.roomId
+        }
         onToggleProjects={
           projectCount > 0
             ? () => toggleProjectParentExpanded(thread.roomId)
@@ -4990,7 +5028,7 @@ export function CinsChatOverlay({
         onClick={(e) => e.stopPropagation()}
       >
         <aside
-          className={`cins-chat-list${mobileShowThread && !shareDropMode ? " is-hidden-mobile" : ""}`}
+          className={`cins-chat-list${mobileShowThread && !shareDropMode ? " is-hidden-mobile" : ""}${sidePanel === "canvas" ? " is-rail" : ""}`}
           style={threadTabVars}
         >
           <div className="cins-chat-list-chrome">
@@ -6456,6 +6494,7 @@ export function CinsChatOverlay({
                     roomId={active.roomId}
                     onJumpToMessage={(id) => void scrollToMessage(id)}
                     viewerUserId={viewerProfileId}
+                    isGroup={Boolean(active.isGroup)}
                   />
                 ) : null}
 

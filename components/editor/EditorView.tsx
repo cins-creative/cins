@@ -3611,6 +3611,10 @@ export function EditorView({
               filterSlugs: composeFilterSlugs,
             }
           : undefined,
+        shopHangItems:
+          shopKioskPreview?.attach && shopKioskPreview.attach.length > 0
+            ? shopKioskPreview.attach
+            : undefined,
       });
 
       if (!result.ok) {
@@ -3631,6 +3635,9 @@ export function EditorView({
         tacPhamId: result.tacPhamId,
         cotMocId: result.cotMocId,
         milestone: result.milestone,
+        shopHangAttached: result.shopHangAttached,
+        shopHangError: result.shopHangError,
+        shopHangCount: result.shopHangCount,
       };
       if (isOverlay) {
         if (onPublished) onPublished(publishDetail);
@@ -3682,6 +3689,7 @@ export function EditorView({
     isLottieFileEmbedCompose,
     riveFileEmbedPreviewUrl,
     riveAssetUrl,
+    shopKioskPreview,
     videoUploading,
     riveUploading,
     lottieUploading,

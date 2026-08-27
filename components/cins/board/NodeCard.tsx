@@ -46,6 +46,8 @@ import {
   addTableHeaderCol,
   addTableHeaderRow,
   addTableRow,
+  CINS_INK_COLOR,
+  DEFAULT_DRAW_WIDTH,
   insertTableColAfter,
   insertTableRowAfter,
   normalizeContentKind,
@@ -1634,8 +1636,8 @@ function DrawBody({ node }: { node: BoardNode }) {
   const data = parseDraw(node.noiDung);
   const w = node.layout.w ?? 1;
   const h = node.layout.h ?? 1;
-  const color = data?.color || node.layout.mau || "#1a1a1a";
-  const strokeW = data?.width ?? 2.5;
+  const color = data?.color || node.layout.mau || CINS_INK_COLOR;
+  const strokeW = data?.width ?? DEFAULT_DRAW_WIDTH;
   const d = data ? pointsToSvgPath(data.points) : "";
 
   return (

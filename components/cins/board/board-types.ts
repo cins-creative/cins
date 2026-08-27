@@ -167,10 +167,16 @@ export type BoardHandle = {
   ungroupSelection: () => Promise<void>;
   /** Xóa các node đang chọn (undo được). */
   deleteSelection: () => void;
+  /** Node đang chọn (mở rộng frame→con + connector nối đủ) để copy clipboard. */
+  getNodesForCopy: () => BoardNode[];
+  /** Thêm nhiều node đã tạo từ paste API (không ghi history từng cái). */
+  ingestNodes: (nodes: BoardNode[]) => void;
   /** Xóa toàn bộ block trên board (không undo — caller phải confirm trước). */
   clearBoard: () => void;
   /** Đổi công cụ chọn / bàn tay / vẽ / đặt block. */
   setTool: (tool: BoardTool, opts?: BoardPlaceOpts) => void;
+  /** Độ dày nét vẽ cho stroke tiếp theo. */
+  setInkWidth: (width: number) => void;
   zoomIn: () => void;
   zoomOut: () => void;
   /** Về zoom 100% giữ tâm viewport. */
