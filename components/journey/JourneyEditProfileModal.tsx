@@ -22,43 +22,39 @@ import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
 import type { GiaiDoan } from "@/lib/auth/session";
 import { TINH_THANH_OPTIONS } from "@/lib/truong/contact";
 import type { ProfileThemeSlice } from "@/lib/journey/profile-theme";
+import type { ProfileAvatarFrameSlice } from "@/lib/journey/avatar-frame";
+import type { ProfilePopoverThemeSlice } from "@/lib/journey/popover-theme";
+import type { ProfileShopSwitchSlice } from "@/lib/journey/shop-switch";
 import {
   JourneyThemePicker,
   type JourneyThemePickerHandle,
 } from "@/components/journey/JourneyThemePicker";
+import {
+  JourneyAvatarFramePicker,
+  type JourneyAvatarFramePickerHandle,
+} from "@/components/journey/JourneyAvatarFramePicker";
+import {
+  JourneyPopoverPicker,
+  type JourneyPopoverPickerHandle,
+} from "@/components/journey/JourneyPopoverPicker";
+import {
+  patchGiaoDien,
+  resetGiaoDienTheme,
+} from "@/lib/journey/giao-dien-patch-client";
+import {
+  JourneyShopSwitchPicker,
+  type JourneyShopSwitchPickerHandle,
+} from "@/components/journey/JourneyShopSwitchPicker";
 
-/** Sub-tab Customize — PLAN_customize_theme §0 nhóm A–E. */
+/** Sub-tab Customize — PLAN_customize_theme §0 (Card/datebar đã gỡ khỏi UI). */
 const CUSTOMIZE_SUB_TABS = [
   { id: "theme", label: "Theme" },
   { id: "avatar", label: "Avatar" },
   { id: "shop", label: "Shop" },
-  { id: "card", label: "Card" },
-  { id: "post", label: "Bài viết" },
+  { id: "popover", label: "Popover" },
 ] as const;
 
 type CustomizeSubTab = (typeof CUSTOMIZE_SUB_TABS)[number]["id"];
-
-const CUSTOMIZE_SOON: Record<
-  Exclude<CustomizeSubTab, "theme">,
-  { title: string; blurb: string }
-> = {
-  avatar: {
-    title: "Khung & viền avatar",
-    blurb: "Tùy chỉnh khung avatar trên hồ sơ — sắp có.",
-  },
-  shop: {
-    title: "Theme shop",
-    blurb: "Màu và nhấn cho quầy hàng / shop trên Journey — sắp có.",
-  },
-  card: {
-    title: "Card user",
-    blurb: "Giao diện thẻ popover khi xem hồ sơ người khác — sắp có.",
-  },
-  post: {
-    title: "Thanh bài viết",
-    blurb: "Màu thanh ngày / card mốc trên timeline — sắp có.",
-  },
-};
 
 type AccentTone = "yellow" | "mint" | "orange" | "violet" | "blue";
 
@@ -130,6 +126,14 @@ export type EditProfileInitial = {
   giaiDoan: GiaiDoan;
   /** Theme trang hồ sơ (accent + pattern) — lưu riêng qua /api/user/giao-dien. */
   profileTheme?: ProfileThemeSlice | null;
+  /** Khung & viền avatar — nhóm B. */
+  profileAvatarFrame?: ProfileAvatarFrameSlice | null;
+  /** Card user popover — nhóm D. */
+  profilePopover?: ProfilePopoverThemeSlice | null;
+  /** Khối Shop trên sidebar. */
+  profileShopSwitch?: ProfileShopSwitchSlice | null;
+  authorAvatarUrl?: string | null;
+  authorCoverUrl?: string | null;
 };
 
 type Props = {
@@ -138,6 +142,8 @@ type Props = {
   initial: EditProfileInitial;
   /** Slug hiện tại — để revalidate / refresh sau khi lưu. */
   ownerSlug: string;
+  /** Tab mở khi `open` chuyển true. */
+  initialTab?: "thong-tin" | "customize";
 };
 
 /**
@@ -153,6 +159,7 @@ export function JourneyEditProfileModal({
   onClose,
   initial,
   ownerSlug,
+  initialTab = "thong-tin",
 }: Props) {
   const router = useRouter();
   const titleId = useId();
@@ -188,11 +195,23 @@ export function JourneyEditProfileModal({
   const [customizeSub, setCustomizeSub] =
     useState<CustomizeSubTab>("theme");
   const [themeDirty, setThemeDirty] = useState(false);
+  const [avatarDirty, setAvatarDirty] = useState(false);
+  const [popoverDirty, setPopoverDirty] = useState(false);
+  const [shopDirty, setShopDirty] = useState(false);
   const [themeSaving, setThemeSaving] = useState(false);
   const themePickerRef = useRef<JourneyThemePickerHandle>(null);
+  const avatarPickerRef = useRef<JourneyAvatarFramePickerHandle>(null);
+  const popoverPickerRef = useRef<JourneyPopoverPickerHandle>(null);
+  const shopPickerRef = useRef<JourneyShopSwitchPickerHandle>(null);
   const onCustomize = tab === "customize";
+  const customizeDirty = themeDirty || avatarDirty || popoverDirty || shopDirty;
   const themeFooter =
-    onCustomize && (customizeSub === "theme" || themeDirty);
+    onCustomize &&
+    (customizeSub === "theme" ||
+      customizeSub === "avatar" ||
+      customizeSub === "popover" ||
+      customizeSub === "shop" ||
+      customizeDirty);
   const customizeStubFooter = onCustomize && !themeFooter;
 
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -206,6 +225,15 @@ export function JourneyEditProfileModal({
 
   const onThemeDirtyChange = useCallback((dirty: boolean) => {
     setThemeDirty(dirty);
+  }, []);
+  const onAvatarDirtyChange = useCallback((dirty: boolean) => {
+    setAvatarDirty(dirty);
+  }, []);
+  const onPopoverDirtyChange = useCallback((dirty: boolean) => {
+    setPopoverDirty(dirty);
+  }, []);
+  const onShopDirtyChange = useCallback((dirty: boolean) => {
+    setShopDirty(dirty);
   }, []);
 
   /* Mount flag — portal chỉ chạy sau khi client hydrate xong (tránh SSR mismatch). */
@@ -239,13 +267,16 @@ export function JourneyEditProfileModal({
         : [{ label: "", url: "" }],
     );
     setGiaiDoan(initial.giaiDoan);
-    setTab("thong-tin");
+    setTab(initialTab);
     setCustomizeSub("theme");
     setThemeDirty(false);
+    setAvatarDirty(false);
+    setPopoverDirty(false);
+    setShopDirty(false);
     setThemeSaving(false);
     setSubmitError(null);
     setSavedFlash(false);
-  }, [open, initial, ownerSlug]);
+  }, [open, initial, ownerSlug, initialTab]);
 
   async function runSlugCheck(value: string): Promise<boolean> {
     setSlugStatus({ kind: "checking" });
@@ -297,37 +328,106 @@ export function JourneyEditProfileModal({
     onClose();
   }
 
-  /** Đóng có xác nhận nếu theme chưa lưu. Không đóng khi bấm ngoài backdrop. */
+  /** Một PATCH (hoặc DELETE khi chỉ reset theme) — không 3–4 round-trip nối tiếp. */
+  async function persistCustomize(): Promise<boolean> {
+    const themePicker = themePickerRef.current;
+    const avatarPicker = avatarPickerRef.current;
+    const popoverPicker = popoverPickerRef.current;
+    const shopPicker = shopPickerRef.current;
+    const dirtyTheme = Boolean(themePicker?.isDirty());
+    const dirtyAvatar = Boolean(avatarPicker?.isDirty());
+    const dirtyPopover = Boolean(popoverPicker?.isDirty());
+    const dirtyShop = Boolean(shopPicker?.isDirty());
+    if (!dirtyTheme && !dirtyAvatar && !dirtyPopover && !dirtyShop) {
+      return true;
+    }
+
+    const onlyResetTheme =
+      dirtyTheme &&
+      !dirtyAvatar &&
+      !dirtyPopover &&
+      !dirtyShop &&
+      (themePicker?.isDefaultDraft() ?? false);
+
+    try {
+      if (onlyResetTheme) {
+        const data = await resetGiaoDienTheme();
+        if (!data.ok) return false;
+        themePicker?.markSaved([]);
+        return true;
+      }
+      const body = {
+        ...(dirtyTheme ? themePicker?.getPatch() ?? {} : {}),
+        ...(dirtyAvatar ? avatarPicker?.getPatch() ?? {} : {}),
+        ...(dirtyPopover ? popoverPicker?.getPatch() ?? {} : {}),
+        ...(dirtyShop ? shopPicker?.getPatch() ?? {} : {}),
+      };
+      if (Object.keys(body).length === 0) return true;
+      const data = await patchGiaoDien(body);
+      if (!data.ok) return false;
+      if (dirtyTheme) themePicker?.markSaved(data.customs);
+      if (dirtyAvatar) {
+        avatarPicker?.markSaved(data.avatarFrame, data.customs);
+      }
+      if (dirtyPopover) {
+        popoverPicker?.markSaved(data.popover, data.customs);
+      }
+      if (dirtyShop) {
+        shopPicker?.markSaved(data.shopSwitch, data.customs);
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Đóng có xác nhận nếu theme/avatar/popover/shop chưa lưu. Không đóng khi bấm ngoài backdrop. */
   async function requestClose() {
     if (isPending || themeSaving) return;
-    const picker = themePickerRef.current;
-    if (picker?.isDirty()) {
+    const themePicker = themePickerRef.current;
+    const avatarPicker = avatarPickerRef.current;
+    const popoverPicker = popoverPickerRef.current;
+    const shopPicker = shopPickerRef.current;
+    const dirtyTheme = Boolean(themePicker?.isDirty());
+    const dirtyAvatar = Boolean(avatarPicker?.isDirty());
+    const dirtyPopover = Boolean(popoverPicker?.isDirty());
+    const dirtyShop = Boolean(shopPicker?.isDirty());
+    if (dirtyTheme || dirtyAvatar || dirtyPopover || dirtyShop) {
       const wantSave = window.confirm(
         "Bạn có thay đổi giao diện chưa lưu.\n\nOK = Lưu rồi đóng\nCancel = Đóng mà không lưu",
       );
       if (wantSave) {
         setThemeSaving(true);
-        const ok = await picker.save();
+        const ok = await persistCustomize();
         setThemeSaving(false);
         if (!ok) return;
-        router.refresh();
-      } else {
-        picker.discard();
         setThemeDirty(false);
+        setAvatarDirty(false);
+        setPopoverDirty(false);
+        setShopDirty(false);
+      } else {
+        themePicker?.discard();
+        avatarPicker?.discard();
+        popoverPicker?.discard();
+        shopPicker?.discard();
+        setThemeDirty(false);
+        setAvatarDirty(false);
+        setPopoverDirty(false);
+        setShopDirty(false);
       }
     }
     handleClose();
   }
 
   async function saveThemeFromFooter() {
-    const picker = themePickerRef.current;
-    if (!picker) return;
     setThemeSaving(true);
-    const ok = await picker.save();
+    const ok = await persistCustomize();
     setThemeSaving(false);
     if (ok) {
       setThemeDirty(false);
-      router.refresh();
+      setAvatarDirty(false);
+      setPopoverDirty(false);
+      setShopDirty(false);
     }
   }
 
@@ -504,39 +604,73 @@ export function JourneyEditProfileModal({
           </button>
         </header>
 
-        <div className="j-edit-tabs" role="tablist" aria-label="Mục chỉnh sửa">
-          <button
-            type="button"
-            role="tab"
-            id="j-edit-tab-thong-tin"
-            aria-selected={tab === "thong-tin"}
-            aria-controls="j-edit-panel-thong-tin"
-            tabIndex={tab === "thong-tin" ? 0 : -1}
-            className={
-              "j-edit-tab" + (tab === "thong-tin" ? " is-active" : "")
-            }
-            onClick={() => setTab("thong-tin")}
-          >
-            <UserRound size={16} strokeWidth={2.25} aria-hidden />
-            Thông tin
-          </button>
-          <button
-            type="button"
-            role="tab"
-            id="j-edit-tab-customize"
-            aria-selected={tab === "customize"}
-            aria-controls="j-edit-panel-customize"
-            tabIndex={tab === "customize" ? 0 : -1}
-            className={
-              "j-edit-tab" + (tab === "customize" ? " is-active" : "")
-            }
-            onClick={() => setTab("customize")}
-          >
-            <span className="j-edit-tab-colorwheel" aria-hidden>
-              <span className="j-edit-tab-colorwheel-ring" />
-            </span>
-            Customize
-          </button>
+        <div
+          className={
+            "j-edit-tabs-row" +
+            (tab === "customize" ? " j-edit-tabs-row--customize" : "")
+          }
+        >
+          <div className="j-edit-tabs" role="tablist" aria-label="Mục chỉnh sửa">
+            <button
+              type="button"
+              role="tab"
+              id="j-edit-tab-thong-tin"
+              aria-selected={tab === "thong-tin"}
+              aria-controls="j-edit-panel-thong-tin"
+              tabIndex={tab === "thong-tin" ? 0 : -1}
+              className={
+                "j-edit-tab" + (tab === "thong-tin" ? " is-active" : "")
+              }
+              onClick={() => setTab("thong-tin")}
+            >
+              <UserRound size={16} strokeWidth={2.25} aria-hidden />
+              Thông tin
+            </button>
+            <button
+              type="button"
+              role="tab"
+              id="j-edit-tab-customize"
+              aria-selected={tab === "customize"}
+              aria-controls="j-edit-panel-customize"
+              tabIndex={tab === "customize" ? 0 : -1}
+              className={
+                "j-edit-tab" + (tab === "customize" ? " is-active" : "")
+              }
+              onClick={() => setTab("customize")}
+            >
+              <span className="j-edit-tab-colorwheel" aria-hidden>
+                <span className="j-edit-tab-colorwheel-ring" />
+              </span>
+              Customize
+            </button>
+          </div>
+
+          {tab === "customize" ? (
+            <div
+              className="j-edit-subtabs"
+              role="tablist"
+              aria-label="Mục customize"
+            >
+              {CUSTOMIZE_SUB_TABS.map((sub) => (
+                <button
+                  key={sub.id}
+                  type="button"
+                  role="tab"
+                  id={`j-edit-subtab-${sub.id}`}
+                  aria-selected={customizeSub === sub.id}
+                  aria-controls={`j-edit-subpanel-${sub.id}`}
+                  tabIndex={customizeSub === sub.id ? 0 : -1}
+                  className={
+                    "j-edit-subtab" +
+                    (customizeSub === sub.id ? " is-active" : "")
+                  }
+                  onClick={() => setCustomizeSub(sub.id)}
+                >
+                  {sub.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         <div className="j-edit-body">
@@ -859,31 +993,6 @@ export function JourneyEditProfileModal({
             hidden={tab !== "customize"}
           >
             <div
-              className="j-edit-subtabs"
-              role="tablist"
-              aria-label="Mục customize"
-            >
-              {CUSTOMIZE_SUB_TABS.map((sub) => (
-                <button
-                  key={sub.id}
-                  type="button"
-                  role="tab"
-                  id={`j-edit-subtab-${sub.id}`}
-                  aria-selected={customizeSub === sub.id}
-                  aria-controls={`j-edit-subpanel-${sub.id}`}
-                  tabIndex={customizeSub === sub.id ? 0 : -1}
-                  className={
-                    "j-edit-subtab" +
-                    (customizeSub === sub.id ? " is-active" : "")
-                  }
-                  onClick={() => setCustomizeSub(sub.id)}
-                >
-                  {sub.label}
-                </button>
-              ))}
-            </div>
-
-            <div
               id="j-edit-subpanel-theme"
               role="tabpanel"
               aria-labelledby="j-edit-subtab-theme"
@@ -897,27 +1006,66 @@ export function JourneyEditProfileModal({
               />
             </div>
 
-            {(
-              Object.keys(CUSTOMIZE_SOON) as Array<
-                Exclude<CustomizeSubTab, "theme">
-              >
-            ).map((id) => {
-              const soon = CUSTOMIZE_SOON[id];
-              return (
-                <div
-                  key={id}
-                  id={`j-edit-subpanel-${id}`}
-                  role="tabpanel"
-                  aria-labelledby={`j-edit-subtab-${id}`}
-                  className="j-edit-subpanel j-edit-subpanel--soon"
-                  hidden={customizeSub !== id}
-                >
-                  <p className="j-edit-soon-kicker">Sắp có</p>
-                  <h3 className="j-edit-soon-title">{soon.title}</h3>
-                  <p className="j-edit-soon-blurb">{soon.blurb}</p>
-                </div>
-              );
-            })}
+            <div
+              id="j-edit-subpanel-avatar"
+              role="tabpanel"
+              aria-labelledby="j-edit-subtab-avatar"
+              className="j-edit-subpanel"
+              hidden={customizeSub !== "avatar"}
+            >
+              {tab === "customize" &&
+              (customizeSub === "avatar" || avatarDirty) ? (
+                <JourneyAvatarFramePicker
+                  ref={avatarPickerRef}
+                  initialFrame={initial.profileAvatarFrame ?? null}
+                  authorName={initial.tenHienThi}
+                  authorAvatarUrl={initial.authorAvatarUrl ?? null}
+                  onDirtyChange={onAvatarDirtyChange}
+                />
+              ) : null}
+            </div>
+
+            <div
+              id="j-edit-subpanel-popover"
+              role="tabpanel"
+              aria-labelledby="j-edit-subtab-popover"
+              className="j-edit-subpanel"
+              hidden={customizeSub !== "popover"}
+            >
+              {tab === "customize" &&
+              (customizeSub === "popover" || popoverDirty) ? (
+                <JourneyPopoverPicker
+                  ref={popoverPickerRef}
+                  initialPopover={initial.profilePopover ?? null}
+                  profileTheme={initial.profileTheme ?? null}
+                  profileAvatarFrame={initial.profileAvatarFrame ?? null}
+                  authorName={initial.tenHienThi}
+                  authorAvatarUrl={initial.authorAvatarUrl ?? null}
+                  authorCoverUrl={initial.authorCoverUrl ?? null}
+                  authorBio={initial.bio}
+                  authorSlug={ownerSlug}
+                  onDirtyChange={onPopoverDirtyChange}
+                />
+              ) : null}
+            </div>
+
+            <div
+              id="j-edit-subpanel-shop"
+              role="tabpanel"
+              aria-labelledby="j-edit-subtab-shop"
+              className="j-edit-subpanel"
+              hidden={customizeSub !== "shop"}
+            >
+              {tab === "customize" &&
+              (customizeSub === "shop" || shopDirty) ? (
+                <JourneyShopSwitchPicker
+                  ref={shopPickerRef}
+                  initialShopSwitch={initial.profileShopSwitch ?? null}
+                  ownerSlug={ownerSlug}
+                  onDirtyChange={onShopDirtyChange}
+                />
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -936,11 +1084,11 @@ export function JourneyEditProfileModal({
                 type="button"
                 className="j-edit-btn j-edit-btn--primary"
                 onClick={() => void saveThemeFromFooter()}
-                disabled={!themeDirty || themeSaving}
+                disabled={!customizeDirty || themeSaving}
               >
                 {themeSaving
                   ? "Đang lưu…"
-                  : themeDirty
+                  : customizeDirty
                     ? "Lưu giao diện"
                     : "Đã lưu"}
               </button>

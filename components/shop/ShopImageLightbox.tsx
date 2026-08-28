@@ -13,6 +13,8 @@ type Props = {
   index: number;
   watermarkText: string;
   protect?: boolean;
+  /** Tên sản phẩm tương ứng từng URL — hiện dưới ảnh khi xem catalog kiosk. */
+  captions?: Array<string | null | undefined>;
   onClose: () => void;
   onIndexChange: (index: number) => void;
 };
@@ -22,13 +24,17 @@ export function ShopImageLightbox({
   index,
   watermarkText,
   protect = true,
+  captions,
   onClose,
   onIndexChange,
 }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const activeThumbRef = useRef<HTMLButtonElement>(null);
   const total = images.length;
   const current = images[index]?.trim() || "";
+  const caption = captions?.[index]?.trim() || "";
   const hasNav = total > 1;
+  const wm = watermarkText.trim();
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -60,6 +66,15 @@ export function ShopImageLightbox({
     return () => document.removeEventListener("keydown", onKey);
   }, [hasNav, index, onClose, onIndexChange, total]);
 
+  useEffect(() => {
+    if (!hasNav) return;
+    activeThumbRef.current?.scrollIntoView({
+      behavior: "smooth",
+      inline: "center",
+      block: "nearest",
+    });
+  }, [hasNav, index]);
+
   const goPrev = useCallback(() => {
     onIndexChange((index - 1 + total) % total);
   }, [index, onIndexChange, total]);
@@ -83,8 +98,8 @@ export function ShopImageLightbox({
   return createPortal(
     <dialog
       ref={dialogRef}
-      className="shop-img-lb"
-      aria-label="Xem ảnh sản phẩm"
+      className={`shop-img-lb${hasNav ? " has-filmstrip" : ""}`}
+      aria-label={caption || "Xem ảnh sản phẩm"}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
@@ -93,55 +108,94 @@ export function ShopImageLightbox({
         if (e.target === dialogRef.current) onClose();
       }}
     >
-      <div
-        ref={viewportRef}
-        className={`shop-img-lb-stage${isZoomed ? " is-zoomed" : ""}`}
-        {...swipe}
-      >
-        <button
-          type="button"
-          className="shop-img-lb-close"
-          aria-label="Đóng"
-          onClick={onClose}
+      <div className="shop-img-lb-inner">
+        <div
+          ref={viewportRef}
+          className={`shop-img-lb-stage${isZoomed ? " is-zoomed" : ""}`}
+          {...swipe}
         >
-          <X size={22} strokeWidth={2} aria-hidden />
-        </button>
+          <button
+            type="button"
+            className="shop-img-lb-close"
+            aria-label="Đóng"
+            onClick={onClose}
+          >
+            <X size={22} strokeWidth={2} aria-hidden />
+          </button>
+          {hasNav ? (
+            <>
+              <button
+                type="button"
+                className="shop-img-lb-nav shop-img-lb-nav--prev"
+                aria-label="Ảnh trước"
+                onClick={goPrev}
+              >
+                <ChevronLeft size={28} strokeWidth={2} aria-hidden />
+              </button>
+              <button
+                type="button"
+                className="shop-img-lb-nav shop-img-lb-nav--next"
+                aria-label="Ảnh sau"
+                onClick={goNext}
+              >
+                <ChevronRight size={28} strokeWidth={2} aria-hidden />
+              </button>
+            </>
+          ) : null}
+          <figure className="shop-img-lb-figure">
+            <div ref={contentRef} className="shop-img-lb-zoom">
+              <ShopImageProtect
+                src={current}
+                alt={caption}
+                protect={protect}
+                watermarkText={wm || null}
+                fit="contain"
+                imgClassName="shop-img-lb-img"
+                decoding="async"
+              />
+            </div>
+          </figure>
+        </div>
+
         {hasNav ? (
-          <>
-            <button
-              type="button"
-              className="shop-img-lb-nav shop-img-lb-nav--prev"
-              aria-label="Ảnh trước"
-              onClick={goPrev}
-            >
-              <ChevronLeft size={28} strokeWidth={2} aria-hidden />
-            </button>
-            <button
-              type="button"
-              className="shop-img-lb-nav shop-img-lb-nav--next"
-              aria-label="Ảnh sau"
-              onClick={goNext}
-            >
-              <ChevronRight size={28} strokeWidth={2} aria-hidden />
-            </button>
-          </>
-        ) : null}
-        <figure className="shop-img-lb-figure">
-          <div ref={contentRef} className="shop-img-lb-zoom">
-            <ShopImageProtect
-              src={current}
-              alt=""
-              protect={protect}
-              watermarkText={protect ? watermarkText : null}
-              fit="contain"
-              imgClassName="shop-img-lb-img"
-              decoding="async"
-            />
+          <div
+            className="shop-img-lb-filmstrip"
+            role="tablist"
+            aria-label="Danh mục ảnh hàng"
+          >
+            {caption ? (
+              <p className="shop-img-lb-caption">{caption}</p>
+            ) : null}
+            <p className="shop-img-lb-counter" aria-live="polite">
+              {index + 1}/{total}
+            </p>
+            <div className="shop-img-lb-filmstrip-track">
+              {images.map((src, i) => {
+                const url = src.trim();
+                const label = captions?.[i]?.trim() || `Ảnh ${i + 1}`;
+                return (
+                  <button
+                    key={`${url}-${i}`}
+                    ref={i === index ? activeThumbRef : undefined}
+                    type="button"
+                    role="tab"
+                    aria-selected={i === index}
+                    aria-label={`Xem ảnh ${label}`}
+                    className={`shop-img-lb-thumb${i === index ? " is-active" : ""}`}
+                    onClick={() => onIndexChange(i)}
+                  >
+                    {url ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={url} alt="" loading="lazy" decoding="async" />
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </figure>
-        {hasNav ? (
-          <p className="shop-img-lb-counter" aria-live="polite">
-            {index + 1}/{total}
+        ) : caption ? (
+          <p className="shop-img-lb-caption shop-img-lb-caption--solo">
+            {caption}
           </p>
         ) : null}
       </div>

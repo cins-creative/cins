@@ -6,6 +6,8 @@ import {
   type JourneyProfileInitialData,
 } from "@/components/journey/JourneyProfileContent";
 import type { JourneyProfileView } from "@/components/journey/JourneySidebar";
+import type { AvatarFrameDto } from "@/lib/journey/avatar-frame";
+import type { ShopSwitchDto } from "@/lib/journey/shop-switch";
 import type { GiaiDoan } from "@/lib/auth/session";
 import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
 import type { JourneyComposeState } from "@/lib/journey/compose-types";
@@ -49,6 +51,8 @@ type Props = {
   owner: OwnerRow;
   ownerAvatarUrl: string | null;
   ownerCoverUrl: string | null;
+  /** Khung avatar từ giao_dien — null = mặc định. */
+  ownerAvatarFrame?: AvatarFrameDto | null;
   emailForView: string | null;
   ownerName: string;
   isOwner: boolean;
@@ -61,6 +65,7 @@ type Props = {
   initialCompose?: JourneyComposeState | null;
   /** Hiện tab Shop (bật bán hàng, hoặc chính chủ). */
   showShop?: boolean;
+  ownerShopSwitch?: ShopSwitchDto | null;
   /** Chi tiết loại hàng trong panel shop (`/{slug}/shop/{shopSlug}/collections/...`). */
   shopNhomId?: string | null;
 };
@@ -186,6 +191,7 @@ export function JourneyProfileShell({
   owner,
   ownerAvatarUrl,
   ownerCoverUrl,
+  ownerAvatarFrame = null,
   emailForView,
   ownerName,
   isOwner,
@@ -196,6 +202,7 @@ export function JourneyProfileShell({
   editProfileInitial,
   initialCompose = null,
   showShop = false,
+  ownerShopSwitch = null,
   shopNhomId = null,
 }: Props) {
   const countsPromise = Promise.all([
@@ -232,6 +239,7 @@ export function JourneyProfileShell({
         mxhLinks: owner.mxh_links,
         aiSummaryJourney: owner.ai_summary_journey,
         giaiDoan: owner.giai_doan,
+        avatarFrame: ownerAvatarFrame,
       }}
       ownerId={owner.id}
       ownerAvatarId={owner.avatar_id}
@@ -243,6 +251,7 @@ export function JourneyProfileShell({
       initialCompose={initialCompose}
       countsPromise={countsPromise}
       showShop={showShop}
+      ownerShopSwitch={ownerShopSwitch}
       mainPanel={
         <SoftErrorBoundary message="Không tải được nội dung trang.">
           <Suspense

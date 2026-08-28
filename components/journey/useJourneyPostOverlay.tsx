@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { JourneyPostModal } from "@/components/journey/JourneyPostModal";
+import { shouldHardNavigate } from "@/lib/navigation/hard-nav";
 import {
   CINS_HISTORY_POST,
   pushOverlayHistory,
@@ -52,6 +53,15 @@ export function useJourneyPostOverlay() {
           ? new URL(permalink).pathname + new URL(permalink).search
           : permalink
         : withSearchParam("post", id);
+
+      /* Banner gallery: pushState permalink từ `?view=` → intercept RSC 404. */
+      if (permalink) {
+        const from = `${window.location.pathname}${window.location.search}`;
+        if (shouldHardNavigate(from, href)) {
+          window.location.assign(href);
+          return;
+        }
+      }
 
       captureOverlayPageScroll();
       pushOverlayHistory(CINS_HISTORY_POST, id, href);

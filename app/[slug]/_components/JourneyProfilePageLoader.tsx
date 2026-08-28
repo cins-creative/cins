@@ -26,6 +26,8 @@ import {
   parseProfileGiaoDien,
   profileThemeCssVars,
 } from "@/lib/journey/profile-theme";
+import { resolveAvatarFrameDto } from "@/lib/journey/avatar-frame";
+import { resolveShopSwitchDto } from "@/lib/journey/shop-switch";
 import { getQuanHeDetail } from "@/lib/social/ket-ban";
 import type { KetBanStatusSummary } from "@/lib/social/types";
 
@@ -146,6 +148,8 @@ export async function JourneyProfilePageLoader({
     owner.journey_loai_moc_visibility,
   );
 
+  const giaoDien = parseProfileGiaoDien(owner.giao_dien);
+
   const editProfileInitial: EditProfileInitial | undefined = manageAsOwner
     ? {
         tenHienThi: owner.ten_hien_thi ?? "",
@@ -166,7 +170,12 @@ export async function JourneyProfilePageLoader({
           url: l.url,
         })),
         giaiDoan: owner.giai_doan ?? "dang_hoc",
-        profileTheme: parseProfileGiaoDien(owner.giao_dien).theme,
+        profileTheme: giaoDien.theme,
+        profileAvatarFrame: giaoDien.avatarFrame,
+        profilePopover: giaoDien.popover,
+        profileShopSwitch: giaoDien.shopSwitch,
+        authorAvatarUrl: getAvatarUrl(owner.avatar_id),
+        authorCoverUrl: getProfileCoverUrl(owner.cover_id),
       }
     : undefined;
 
@@ -174,6 +183,8 @@ export async function JourneyProfilePageLoader({
 
   const ownerName = owner.ten_hien_thi || `@${slug}`;
   const ownerAvatarUrl = getAvatarUrl(owner.avatar_id);
+  const avatarFrameDto = resolveAvatarFrameDto(giaoDien.avatarFrame);
+  const shopSwitchDto = resolveShopSwitchDto(giaoDien.shopSwitch);
 
   const initialCompose = manageAsOwner
       ? parseComposeSearchParams(
@@ -188,7 +199,6 @@ export async function JourneyProfilePageLoader({
 
   const initialKetBanStatus = await initialKetBanStatusPromise;
 
-  const giaoDien = parseProfileGiaoDien(owner.giao_dien);
   const themeVars = isDefaultProfileTheme(giaoDien)
     ? undefined
     : profileThemeCssVars(giaoDien);
@@ -210,6 +220,7 @@ export async function JourneyProfilePageLoader({
         owner={owner}
         ownerAvatarUrl={ownerAvatarUrl}
         ownerCoverUrl={getProfileCoverUrl(owner.cover_id)}
+        ownerAvatarFrame={avatarFrameDto}
         emailForView={emailForView}
         ownerName={ownerName}
         isOwner={manageAsOwner}
@@ -220,6 +231,7 @@ export async function JourneyProfilePageLoader({
         editProfileInitial={editProfileInitial}
         initialCompose={initialCompose}
         showShop={showShop}
+        ownerShopSwitch={shopSwitchDto}
         shopNhomId={shopNhomId}
       />
     </div>

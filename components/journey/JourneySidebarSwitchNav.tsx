@@ -28,6 +28,14 @@ import {
 } from "@/lib/shop/client-fetch-cache";
 import { isShopTamDongActive } from "@/lib/shop/tam-dong";
 import { ShopTamDongOverlay } from "@/components/shop/ShopTamDongOverlay";
+import {
+  DEFAULT_SHOP_SWITCH,
+  resolveShopSwitchDto,
+  SHOP_SWITCH_PREVIEW_EVENT,
+  shopSwitchCardStyle,
+  type ShopSwitchDto,
+  type ShopSwitchPreviewDetail,
+} from "@/lib/journey/shop-switch";
 
 type Props = {
   slug: string;
@@ -37,6 +45,8 @@ type Props = {
   showShop?: boolean;
   /** Hydrate từ SSR — tránh chờ client fetch mới hiện avatar. */
   initialShop?: ShopCuaHang | null;
+  /** Khối Shop customize (giao_dien.shopSwitch). */
+  initialShopSwitch?: ShopSwitchDto | null;
 };
 
 export function JourneySidebarSwitchNav({
@@ -45,6 +55,7 @@ export function JourneySidebarSwitchNav({
   orgCount,
   showShop = false,
   initialShop = null,
+  initialShopSwitch = null,
 }: Props) {
   const { view: activeView, setView } = useJourneyView();
 
@@ -55,6 +66,7 @@ export function JourneySidebarSwitchNav({
           slug={slug}
           active={activeView === "shop"}
           initialShop={initialShop}
+          initialShopSwitch={initialShopSwitch}
           onSelect={() => {
             if (activeView !== "shop") setView("shop");
           }}
@@ -97,22 +109,24 @@ function ShopSwitchCard({
   active,
   onSelect,
   initialShop = null,
+  initialShopSwitch = null,
 }: {
   slug: string;
   active: boolean;
   onSelect: () => void;
   initialShop?: ShopCuaHang | null;
+  initialShopSwitch?: ShopSwitchDto | null;
 }) {
   const [shop, setShop] = useState<ShopCuaHang | null>(() => {
     if (initialShop) {
-      writeShopCuaHangCache(initialShop, {
-        slug,
-        shopVisible: true,
-      });
+      writeShopCuaHangCache(initialShop, { slug });
     }
     return initialShop;
   });
   const [now, setNow] = useState(() => Date.now());
+  const [shopSwitch, setShopSwitch] = useState<ShopSwitchDto>(
+    () => initialShopSwitch ?? resolveShopSwitchDto(DEFAULT_SHOP_SWITCH),
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -131,9 +145,13 @@ function ShopSwitchCard({
 
   useEffect(() => {
     if (!initialShop) return;
-    writeShopCuaHangCache(initialShop, { slug, shopVisible: true });
+    writeShopCuaHangCache(initialShop, { slug });
     setShop((prev) => prev ?? initialShop);
   }, [slug, initialShop]);
+
+  useEffect(() => {
+    if (initialShopSwitch) setShopSwitch(initialShopSwitch);
+  }, [initialShopSwitch]);
 
   useEffect(() => {
     const onShop = (event: Event) => {
@@ -148,6 +166,16 @@ function ShopSwitchCard({
   }, []);
 
   useEffect(() => {
+    const onPreview = (event: Event) => {
+      const detail = (event as CustomEvent<ShopSwitchPreviewDetail>).detail;
+      if (detail?.dto) setShopSwitch(detail.dto);
+    };
+    window.addEventListener(SHOP_SWITCH_PREVIEW_EVENT, onPreview);
+    return () =>
+      window.removeEventListener(SHOP_SWITCH_PREVIEW_EVENT, onPreview);
+  }, []);
+
+  useEffect(() => {
     if (!shop?.tamDong || !shop.tamDongDen) return;
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
@@ -156,10 +184,16 @@ function ShopSwitchCard({
   const shopName = shop?.ten?.trim() || null;
   const href = journeyHrefForView(slug, "shop");
   const tamDong = isShopTamDongActive(shop, now);
+  const hasCustomImage = Boolean(shopSwitch.imageUrl);
+  const showName = shopSwitch.showName;
+  const coverUrl = hasCustomImage ? shopSwitch.imageUrl : shop?.coverUrl;
+  const posterStyle = shopSwitchCardStyle(shopSwitch);
   const faceClass = [
     "j-profile-shop-switch-btn",
+    "is-poster",
     active ? "is-active" : "",
     tamDong ? "is-tam-dong" : "",
+    showName ? "show-name" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -174,6 +208,7 @@ function ShopSwitchCard({
       <a
         href={href}
         className={faceClass}
+        style={posterStyle}
         aria-current={active ? "page" : undefined}
         aria-label={
           shopName
@@ -201,41 +236,45 @@ function ShopSwitchCard({
         }}
       >
         <span
-          className={`j-profile-shop-switch-cover${shop?.coverUrl ? " has-img" : ""}`}
+          className={`j-profile-shop-switch-cover${coverUrl ? " has-img" : ""}`}
           style={
-            shop?.coverUrl
-              ? { backgroundImage: `url(${shop.coverUrl})` }
+            coverUrl
+              ? { backgroundImage: `url(${coverUrl})` }
               : undefined
           }
           aria-hidden
         />
-        <span className="j-profile-shop-switch-scrim" aria-hidden />
-        <span className="j-profile-shop-switch-row">
-          <span className="j-profile-shop-switch-avatar" aria-hidden>
-            {shop?.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={shop.avatarUrl}
-                alt=""
-                width={44}
-                height={44}
-                decoding="async"
-                fetchPriority="high"
-              />
-            ) : (
-              <Store size={16} strokeWidth={2} />
-            )}
-          </span>
-          <span className="j-profile-shop-switch-copy">
-            <span className="j-profile-shop-switch-label">
-              <Store size={12} strokeWidth={2.25} aria-hidden />
-              Shop
+        {showName ? (
+          <span className="j-profile-shop-switch-scrim" aria-hidden />
+        ) : null}
+        {showName ? (
+          <span className="j-profile-shop-switch-row">
+            <span className="j-profile-shop-switch-avatar" aria-hidden>
+              {shop?.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={shop.avatarUrl}
+                  alt=""
+                  width={44}
+                  height={44}
+                  decoding="async"
+                  fetchPriority="high"
+                />
+              ) : (
+                <Store size={16} strokeWidth={2} />
+              )}
             </span>
-            <span className="j-profile-shop-switch-name">
-              {shopName || "chưa đặt tên"}
+            <span className="j-profile-shop-switch-copy">
+              <span className="j-profile-shop-switch-label">
+                <Store size={12} strokeWidth={2.25} aria-hidden />
+                Shop
+              </span>
+              <span className="j-profile-shop-switch-name">
+                {shopName || "chưa đặt tên"}
+              </span>
             </span>
           </span>
-        </span>
+        ) : null}
         {tamDong ? (
           <ShopTamDongOverlay shop={shop} variant="badge" />
         ) : null}

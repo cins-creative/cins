@@ -144,8 +144,8 @@
 }
 
 /* ── Picker (trong modal chỉnh hồ sơ) ───────────────────────────────
- * Mobile: controls scroll · mockup dock đáy (~180px) để kéo neo.
- * ≥900px: 2 cột controls | demo.
+ * Mobile (<480px panel): controls scroll · mockup dock đáy.
+ * Desktop (≥480cqi): 2 cột controls | preview; ≥800cqi cột preview rộng hơn.
  */
 
 .j-theme-picker {
@@ -168,6 +168,58 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding: 0 2px 12px 0;
+}
+
+.j-theme-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: color-mix(
+    in srgb,
+    var(--bg-page, #f4f5f8) 38%,
+    var(--bg-surface, #fff)
+  );
+}
+
+.j-theme-section--home {
+  gap: 0;
+  padding: 12px 14px;
+  border-color: color-mix(
+    in srgb,
+    var(--j-accent, var(--cins-blue)) 18%,
+    var(--border)
+  );
+  background: color-mix(
+    in srgb,
+    var(--j-accent, var(--cins-blue)) 5%,
+    var(--bg-surface, #fff)
+  );
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.j-theme-section--home.is-active {
+  border-color: color-mix(
+    in srgb,
+    var(--j-accent, var(--cins-blue)) 42%,
+    var(--border)
+  );
+  background: color-mix(
+    in srgb,
+    var(--j-accent, var(--cins-blue)) 10%,
+    var(--bg-surface, #fff)
+  );
+}
+
+.j-theme-picker-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 2px;
 }
 
 /* Dock preview — luôn thấy trên mobile, không cuộn mất. */
@@ -196,6 +248,17 @@
   display: none;
 }
 
+/* Giữ switch Sáng/Tối trên mobile (dock preview). */
+.j-theme-picker-aside .j-theme-device-head {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 0 4px;
+}
+
+.j-theme-picker-aside .j-theme-device-head > span:first-child {
+  display: none;
+}
+
 .j-theme-picker-aside .j-theme-device-tab {
   flex-direction: row;
   gap: 4px;
@@ -211,18 +274,19 @@
   min-height: 160px;
 }
 
-@media (min-width: 900px) {
+/* 2 cột desktop. Panel hẹp (~480–799): preview 40%. Panel rộng (≥800, card 1080): cột preview lớn hơn. */
+@container j-edit-theme (min-width: 480px) {
   .j-theme-picker {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(300px, 0.92fr);
-    gap: 20px;
+    grid-template-columns: minmax(0, 1fr) minmax(210px, 40%);
+    gap: 14px;
     align-items: stretch;
   }
 
   .j-theme-picker-main {
-    padding-right: 4px;
+    padding-right: 2px;
     padding-bottom: 0;
-    gap: 14px;
+    gap: 12px;
   }
 
   .j-theme-picker-aside {
@@ -230,17 +294,51 @@
     border-top: none;
     border-left: 1px solid var(--border);
     padding-top: 0;
-    padding-left: 18px;
+    padding-left: 12px;
     overflow: hidden;
   }
 
   .j-theme-picker-aside .j-theme-device {
     height: 100%;
-    gap: 10px;
+    gap: 8px;
   }
 
   .j-theme-picker-aside .j-theme-picker-label {
     display: flex;
+  }
+
+  .j-theme-picker-aside .j-theme-device-head {
+    justify-content: space-between;
+    padding: 0;
+  }
+
+  .j-theme-picker-aside .j-theme-device-head > span:first-child {
+    display: inline;
+  }
+
+  .j-theme-picker-aside .j-theme-device-stage {
+    min-height: 0;
+    flex: 1 1 auto;
+  }
+}
+
+@container j-edit-theme (min-width: 800px) {
+  .j-theme-picker {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 0.92fr);
+    gap: 20px;
+  }
+
+  .j-theme-picker-main {
+    padding-right: 4px;
+    gap: 14px;
+  }
+
+  .j-theme-picker-aside {
+    padding-left: 18px;
+  }
+
+  .j-theme-picker-aside .j-theme-device {
+    gap: 10px;
   }
 
   .j-theme-picker-aside .j-theme-device-meta {
@@ -509,48 +607,86 @@
   background-repeat: repeat;
 }
 
-.j-theme-home-check {
+.j-theme-home-row {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin: 4px 0 0;
-  font-size: 13px;
-  color: var(--ink-body);
-  cursor: pointer;
+  align-items: center;
+  gap: 14px;
 }
 
-.j-theme-home-check input {
-  margin-top: 3px;
-  flex-shrink: 0;
-  accent-color: var(--j-accent, var(--cins-blue));
-}
-
-.j-theme-home-check span {
+.j-theme-home-text {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  min-width: 0;
+  gap: 4px;
 }
 
-.j-theme-home-check small {
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--ink-muted);
+.j-theme-home-check-title {
+  font-size: max(14px, 0.875rem);
+  font-weight: 600;
+  color: var(--ink-title);
   line-height: 1.35;
+}
+
+.j-theme-home-check-desc {
+  font-size: max(12px, 0.75rem);
+  font-weight: 400;
+  color: var(--ink-body);
+  line-height: 1.45;
+}
+
+.j-theme-home-switch {
+  flex-shrink: 0;
+  position: relative;
+  width: 46px;
+  height: 28px;
+  border-radius: 999px;
+  border: none;
+  background: #c5c9d2;
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 0.18s ease;
+}
+
+.j-theme-home-switch.is-on {
+  background: var(--j-accent, var(--cins-blue));
+}
+
+.j-theme-home-switch:focus-visible {
+  outline: 2px solid var(--j-accent, var(--cins-blue));
+  outline-offset: 2px;
+}
+
+.j-theme-home-switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.22);
+  transition: transform 0.18s ease;
+}
+
+.j-theme-home-switch.is-on .j-theme-home-switch-knob {
+  transform: translateX(18px);
 }
 
 .j-theme-device-screen.is-pannable {
   cursor: grab;
   touch-action: none;
 }
-
 .j-theme-device-screen.is-pannable:active {
   cursor: grabbing;
 }
-
 .j-theme-device-screen.is-pannable .j-theme-device-chrome,
 .j-theme-device-screen.is-pannable .j-theme-device-body {
   pointer-events: none;
+}
+/* Không transition background-position — pan phải bám tay. */
+.j-theme-device-screen.is-pannable::before {
+  transition: none;
 }
 
 .j-theme-picker-actions {
@@ -763,6 +899,67 @@
   overflow: hidden;
 }
 
+.j-theme-device-head {
+  gap: 10px;
+}
+
+.j-theme-scheme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-page, #f4f5f8) 55%, var(--bg-surface));
+}
+
+.j-theme-scheme-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.j-theme-scheme-btn.is-active {
+  background: var(--bg-surface);
+  color: var(--ink-display, #0f172a);
+  box-shadow: var(--shadow-xs, 0 1px 2px rgba(15, 23, 42, 0.08));
+}
+
+.j-theme-scheme-btn:focus-visible {
+  outline: 2px solid var(--cins-blue, #1f74c9);
+  outline-offset: 1px;
+}
+
+/* Dock hẹp: chỉ icon Sáng/Tối. Hiện chữ khi panel đủ rộng. */
+.j-theme-picker-aside .j-theme-scheme-btn span {
+  display: none;
+}
+
+.j-theme-picker-aside .j-theme-scheme-btn {
+  padding: 6px 8px;
+}
+
+@container j-edit-theme (min-width: 800px) {
+  .j-theme-picker-aside .j-theme-scheme-btn span {
+    display: inline;
+  }
+
+  .j-theme-picker-aside .j-theme-scheme-btn {
+    padding: 5px 10px;
+  }
+}
+
 .j-theme-device-tabs {
   display: flex;
   gap: 6px;
@@ -848,6 +1045,37 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  /* Khóa token light mặc định — không phụ thuộc theme trang ngoài modal. */
+  --bg-page: #f4f5f8;
+  --bg-surface: #ffffff;
+  --bg-muted: #f1f3f6;
+  --ink-display: rgba(0, 0, 0, 0.85);
+  --ink-title: rgba(0, 0, 0, 0.6);
+  --ink-body: rgba(0, 0, 0, 0.55);
+  --ink-muted: rgba(0, 0, 0, 0.4);
+  --border: #e4e6eb;
+  --border-strong: #c9ccd3;
+  --neutral-100: #f1f3f6;
+  --neutral-200: #e4e6eb;
+  color-scheme: light;
+}
+
+.j-theme-device-screen[data-preview-scheme="dark"] {
+  --bg-page: #030406;
+  --bg-surface: #0a0d12;
+  --bg-muted: #10141b;
+  --ink-display: rgba(255, 255, 255, 0.92);
+  --ink-title: rgba(255, 255, 255, 0.72);
+  --ink-body: rgba(255, 255, 255, 0.64);
+  --ink-muted: rgba(255, 255, 255, 0.46);
+  --border: #1d222d;
+  --border-strong: #2c3340;
+  --neutral-100: #10141b;
+  --neutral-200: #1d222d;
+  /* Accent sáng hơn trên OLED — khớp profile theme dark. */
+  --j-accent: color-mix(in srgb, var(--j-accent-base, #1f74c9) 72%, white);
+  color-scheme: dark;
+  background-color: var(--bg-page);
 }
 
 
@@ -889,7 +1117,9 @@
 
 /*
  * Skeleton mockup — px = Journey thật trên frame gốc, rồi scale cả frame.
- * Desktop: sidebar 248 · gutter 24 · gallery 340 (journey.css tokens).
+ * Desktop 1280: sidebar 248 · gutter 24 · gallery 340.
+ * Tablet 992: 2 cột (gallery ẩn ≤1199).
+ * Phone 375: 1 cột (≤991.98).
  */
 .j-theme-device-chrome {
   position: relative;
@@ -944,7 +1174,7 @@
   width: 22px;
   height: 22px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--j-accent, #1f74c9) 22%, #cbd5e1);
+  background: color-mix(in srgb, var(--j-accent, #1f74c9) 22%, var(--neutral-200, #cbd5e1));
 }
 
 .j-theme-device-body {
@@ -971,6 +1201,7 @@
   padding: 0;
   overflow-y: auto;
   align-content: start;
+  background: transparent;
 }
 
 .j-theme-device-aside,
@@ -989,24 +1220,65 @@
   min-width: 0;
 }
 
-.j-theme-device-frame[data-device="phone"] .j-theme-device-aside--profile {
-  border-radius: 0;
-  border-left: none;
-  border-right: none;
-  border-top: none;
-}
-
 .j-td-cover {
   height: 100px;
   width: 100%;
   border-radius: 12px 12px 0 0;
-  background: color-mix(in srgb, var(--j-accent, #1f74c9) 14%, #e2e8f0);
+  background: color-mix(
+    in srgb,
+    var(--j-accent, #1f74c9) 14%,
+    var(--neutral-200, #e2e8f0)
+  );
+}
+
+.j-theme-device-frame[data-device="phone"] .j-theme-device-aside--profile {
+  /* Theme mobile: shell trong suốt — wallpaper lộ qua khe. */
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  border-bottom: 1px solid color-mix(
+    in srgb,
+    var(--border, #e4e6eb) 70%,
+    transparent
+  );
+  background: transparent;
 }
 
 .j-theme-device-frame[data-device="phone"] .j-td-cover {
   border-radius: 0;
   aspect-ratio: 248 / 100;
   height: auto;
+  width: 100%;
+}
+
+.j-theme-device-frame[data-device="phone"] .j-td-avatar {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.j-theme-device-frame[data-device="phone"] .j-td-name,
+.j-theme-device-frame[data-device="phone"] .j-td-handle,
+.j-theme-device-frame[data-device="phone"] .j-td-btn {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.j-theme-device-frame[data-device="phone"] .j-td-bio,
+.j-theme-device-frame[data-device="phone"] .j-td-stats {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.j-theme-device-frame[data-device="phone"] .j-theme-device-feed {
+  padding: 8px 12px 16px;
+  gap: 10px;
+  background: transparent;
+}
+
+.j-theme-device-frame[data-device="phone"] .j-td-tlb,
+.j-theme-device-frame[data-device="phone"] .j-theme-device-card {
+  border-radius: 14px;
 }
 
 .j-td-avatar {
@@ -1015,7 +1287,11 @@
   margin: -48px auto 0;
   border-radius: 999px;
   border: 4px solid var(--bg-surface, #fff);
-  background: color-mix(in srgb, var(--ink-muted, #94a3b8) 28%, #e2e8f0);
+  background: color-mix(
+    in srgb,
+    var(--ink-muted, #94a3b8) 28%,
+    var(--neutral-200, #e2e8f0)
+  );
   box-sizing: border-box;
   display: block;
 }
@@ -1090,11 +1366,6 @@
   gap: 12px;
   min-width: 0;
   min-height: 0;
-}
-
-.j-theme-device-frame[data-device="phone"] .j-theme-device-feed {
-  padding: 8px 12px 16px;
-  gap: 10px;
 }
 
 .j-td-tlb {
@@ -1213,7 +1484,7 @@
   background: color-mix(in srgb, var(--ink-muted, #94a3b8) 12%, var(--bg-page, #f4f5f8));
 }
 .j-td-post-media--grid span:nth-child(4) {
-  background: color-mix(in srgb, var(--j-accent, #1f74c9) 8%, #e2e8f0);
+  background: color-mix(in srgb, var(--j-accent, #1f74c9) 8%, var(--neutral-200, #e2e8f0));
 }
 
 .j-theme-device-aside--gallery {
@@ -1241,7 +1512,11 @@
   width: 100%;
   aspect-ratio: 16 / 9;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--j-accent, #1f74c9) 10%, #e2e8f0);
+  background: color-mix(
+    in srgb,
+    var(--j-accent, #1f74c9) 10%,
+    var(--neutral-200, #e2e8f0)
+  );
   flex-shrink: 0;
 }
 

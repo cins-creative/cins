@@ -30,7 +30,7 @@ Intrinsic CSS (`clamp()`, `auto-fit`, `flex-wrap`) → container query → media
 - **Lớp phủ:** ảnh nền luôn có `--j-bg-dim` ≥ 0.2; `< 768px` và dark mode tự tăng thêm.
 - **Flex/grid con có nội dung động:** `min-width: 0`.
 - **Sticky trong flex/grid:** kèm `align-self: start`.
-- **Modal chỉnh hồ sơ:** `< 640px` = **full-screen** (`.j-edit-card` fill backdrop `inset: 0`), `padding-top/bottom: env(safe-area-inset-*)`. Customize: controls scroll phía trên · **mockup dock đáy** (~200px) để kéo neo. ≥640px: card giữa màn (thông tin 640px, customize 1080). Input `font-size: max(16px, 1rem)` dưới 640px.
+- **Modal chỉnh hồ sơ:** `< 640px` = **full-screen** (`.j-edit-card` fill backdrop `inset: 0`), `padding-top/bottom: env(safe-area-inset-*)`. Customize mobile: controls scroll · **mockup dock đáy**. ≥640px: Thông tin **640px**; Customize **cùng modal**, rộng `min(1080px, 100vw - 32px)`, **2 cột** controls | preview. Input `font-size: max(16px, 1rem)` dưới 640px.
 - **Z-index:** dùng thang có sẵn + `isolation: isolate`. Không viết `9999`.
 - **Lớp pattern:** `isolation: isolate` trên host nội dung (`.world-journey-home` / `.cins-journey-page`) + `::before { z-index: -1 }` — không `> * { position: relative; z-index: 1 }`, không `::before` trên `.cins-shell` (bị `.cins-main { z-index:0 }` che).
 - **`--j-accent` bắt buộc** khi áp pattern lên shell — `PROFILE_PATTERNS` nhúng `var(--j-accent)`; thiếu biến → gradient vô hiệu, không thấy họa tiết.

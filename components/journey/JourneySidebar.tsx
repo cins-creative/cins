@@ -18,6 +18,7 @@ import { JourneyProfileGuestSection } from "@/components/journey/JourneyProfileG
 import { JourneyProfileShareTrigger } from "@/components/journey/JourneyProfileShareTrigger";
 import { JourneySidebarOwnerActions } from "@/components/journey/JourneySidebarOwnerActions";
 import { VerifiedTick } from "@/components/journey/VerifiedTick";
+import type { AvatarFrameDto } from "@/lib/journey/avatar-frame";
 import type { JourneyShareProfile } from "@/lib/journey/profile-share";
 import type { GiaiDoan } from "@/lib/auth/session";
 import {
@@ -45,6 +46,8 @@ export type SidebarProfile = {
   mxhLinks: unknown;
   aiSummaryJourney: string | null;
   giaiDoan: GiaiDoan | null;
+  /** Khung avatar (giao_dien.avatarFrame) — null = mặc định. */
+  avatarFrame?: AvatarFrameDto | null;
 };
 
 export type SidebarStats = {
@@ -143,12 +146,14 @@ export function JourneySidebar({
           avatarUrl={avatarUrl}
           initials={initials}
           alt={profile.tenHienThi || profile.slug}
+          frame={profile.avatarFrame ?? null}
         />
       ) : (
         <JourneyVisitorAvatar
           avatarUrl={avatarUrl}
           initials={initials}
           alt={profile.tenHienThi || profile.slug}
+          frame={profile.avatarFrame ?? null}
         />
       )}
 

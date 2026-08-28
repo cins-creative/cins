@@ -13,8 +13,8 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 /* ╔══════════════════════════════════════════════════════════════════╗
    ║ GET    /api/user/giao-dien  → state đã normalize                 ║
-   ║ PATCH  /api/user/giao-dien  → merge theme (giữ key nhóm B–F)     ║
-   ║ DELETE /api/user/giao-dien  → reset về {}                        ║
+   ║ PATCH  /api/user/giao-dien  → merge theme/card (giữ key B–F)     ║
+   ║ DELETE /api/user/giao-dien  → reset theme+customs, giữ card…     ║
    ║ Cột: user_nguoi_dung.giao_dien (jsonb).                          ║
    ║ Không đụng user_nguoi_dung.theme (share OG).                     ║
    ╚══════════════════════════════════════════════════════════════════╝ */
@@ -48,6 +48,10 @@ export async function GET() {
   return NextResponse.json({
     theme: state.theme,
     customs: state.customs,
+    card: state.card,
+    avatarFrame: state.avatarFrame,
+    popover: state.popover,
+    shopSwitch: state.shopSwitch,
     isDefault: isDefaultProfileTheme(state),
   });
 }
@@ -107,6 +111,47 @@ export async function PATCH(request: Request) {
     }
   }
 
+  if (next.avatarFrame.overlayImageId) {
+    const allowed = new Set(next.customs.map((c) => c.imageId));
+    if (!allowed.has(next.avatarFrame.overlayImageId)) {
+      return NextResponse.json(
+        {
+          error:
+            "avatarFrame.overlayImageId phải nằm trong ảnh đã tải lên.",
+        },
+        { status: 400 },
+      );
+    }
+  }
+
+  if (
+    next.popover.surface.kind === "image" &&
+    next.popover.surface.imageId
+  ) {
+    const allowed = new Set(next.customs.map((c) => c.imageId));
+    if (!allowed.has(next.popover.surface.imageId)) {
+      return NextResponse.json(
+        {
+          error:
+            "popover.surface.imageId phải nằm trong ảnh đã tải lên.",
+        },
+        { status: 400 },
+      );
+    }
+  }
+
+  if (next.shopSwitch.imageId) {
+    const allowed = new Set(next.customs.map((c) => c.imageId));
+    if (!allowed.has(next.shopSwitch.imageId)) {
+      return NextResponse.json(
+        {
+          error: "shopSwitch.imageId phải nằm trong ảnh đã tải lên.",
+        },
+        { status: 400 },
+      );
+    }
+  }
+
   const payload = serializeGiaoDien(next);
 
   const { error: updErr } = await admin
@@ -123,6 +168,10 @@ export async function PATCH(request: Request) {
     ok: true,
     theme: next.theme,
     customs: next.customs,
+    card: next.card,
+    avatarFrame: next.avatarFrame,
+    popover: next.popover,
+    shopSwitch: next.shopSwitch,
     isDefault: isDefaultProfileTheme(next),
   });
 }
@@ -136,10 +185,28 @@ export async function DELETE() {
     );
   }
 
-  const admin = createServiceRoleClient();
+  const { data: currentRow, error: readErr, admin } = await loadOwnerGiaoDien(
+    session.profile.id,
+  );
+  if (readErr) {
+    console.error("[giao-dien] reset-read err:", readErr);
+    return NextResponse.json({ error: "Không đọc được hồ sơ." }, { status: 500 });
+  }
+
+  const prev = parseProfileGiaoDien(currentRow?.giao_dien);
+  const empty = emptyGiaoDien();
+  /* Reset theme + customs; giữ nhóm B–E + shopSwitch. */
+  const next = {
+    ...empty,
+    card: prev.card,
+    avatarFrame: prev.avatarFrame,
+    popover: prev.popover,
+    shopSwitch: prev.shopSwitch,
+  };
+
   const { error } = await admin
     .from("user_nguoi_dung")
-    .update({ giao_dien: {} })
+    .update({ giao_dien: serializeGiaoDien(next) })
     .eq("id", session.profile.id);
 
   if (error) {
@@ -150,12 +217,15 @@ export async function DELETE() {
     );
   }
 
-  const empty = emptyGiaoDien();
   return NextResponse.json({
     ok: true,
     reset: true,
-    theme: empty.theme,
-    customs: empty.customs,
-    isDefault: true,
+    theme: next.theme,
+    customs: next.customs,
+    card: next.card,
+    avatarFrame: next.avatarFrame,
+    popover: next.popover,
+    shopSwitch: next.shopSwitch,
+    isDefault: isDefaultProfileTheme(next),
   });
 }

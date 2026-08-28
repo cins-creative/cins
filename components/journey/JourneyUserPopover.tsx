@@ -6,8 +6,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import "./journey-user-popover.css";
+import "./journey-user-popover-theme.css";
 
 import { JourneyUserFeaturedExpand } from "@/components/journey/JourneyUserFeaturedExpand";
+import { JourneyFramedAvatar } from "@/components/journey/JourneyFramedAvatar";
 import {
   JourneyUserPopoverActions,
   JourneyUserPopoverActionsShell,
@@ -20,6 +22,13 @@ import {
   prefetchUserPreview,
   type UserPreviewProfile,
 } from "@/lib/journey/user-preview-cache";
+import {
+  POPOVER_STAT_LABELS,
+  popoverThemeStyle,
+  resolveStatValue,
+  type PopoverStatId,
+  type UserPopoverThemeDto,
+} from "@/lib/journey/popover-theme";
 import { useMutualFriends } from "@/lib/social/use-mutual-friends";
 import { trackSuKien } from "@/lib/social/track-su-kien";
 import type { NguonSuKien } from "@/lib/social/su-kien-constants";
@@ -37,6 +46,12 @@ type Props = {
   track?: { idBoiCanh: string; nguon?: NguonSuKien } | null;
   children: React.ReactNode;
 };
+
+const DEFAULT_STATS: [PopoverStatId, PopoverStatId, PopoverStatId] = [
+  "feature",
+  "gallery",
+  "banBe",
+];
 
 export function JourneyUserPopover({
   slug,
@@ -60,11 +75,15 @@ export function JourneyUserPopover({
   const wrapRef = useRef<HTMLSpanElement | null>(null);
   const mutual = useMutualFriends(profile?.idNguoiDung ?? "", viewerProfileId);
 
+  const popTheme: UserPopoverThemeDto | null =
+    profile?.popoverTheme ?? null;
+
   const onFeaturedAvailability = useCallback(
     (info: { ready: boolean; count: number }) => {
       setFeaturedReady(info.ready);
       setFeaturedCount(info.count);
       if (!info.ready) return;
+      /* Cấu trúc cố định: có Feature thì mở sẵn. */
       setFeaturedOpen(info.count > 0);
     },
     [],
@@ -128,7 +147,8 @@ export function JourneyUserPopover({
           ngu_canh: slug ? { target_slug: slug } : null,
         });
       }
-      setFeaturedOpen(next);
+      const wantOpen = true;
+      setFeaturedOpen(wantOpen);
       return next;
     });
   };
@@ -151,12 +171,72 @@ export function JourneyUserPopover({
         }
       : null);
 
+  const statsOrder = DEFAULT_STATS;
+  const featureStatValue = resolveStatValue(
+    "feature",
+    visibleProfile?.stats ?? {},
+  );
   const canExpandFeatured =
-    featuredCount > 0 || (!featuredReady && (visibleProfile?.stats.tacPham ?? 0) > 0);
-  /** Nổi bật = bài gắn feature; ưu tiên count từ gallery-aside khi đã sẵn. */
-  const noiBatCount = featuredReady
-    ? featuredCount
-    : (visibleProfile?.stats.tacPham ?? 0);
+    featuredCount > 0 ||
+    (!featuredReady && featureStatValue > 0);
+  const noiBatCount = featuredReady ? featuredCount : featureStatValue;
+
+  const coverKind = popTheme?.cover.kind ?? "profile";
+  const useProfileCover =
+    coverKind === "profile" && Boolean(visibleProfile?.coverUrl);
+  const themeStyle = popoverThemeStyle(popTheme);
+
+  const renderStatCell = (id: PopoverStatId) => {
+    const label = POPOVER_STAT_LABELS[id];
+    const value =
+      id === "feature"
+        ? noiBatCount
+        : resolveStatValue(id, visibleProfile?.stats ?? {});
+
+    if (id === "feature") {
+      if (canExpandFeatured) {
+        return (
+          <button
+            key={id}
+            type="button"
+            className={`j-friend-stat-btn${featuredOpen ? " is-open" : ""}`}
+            aria-expanded={featuredOpen}
+            aria-controls={`j-user-featured-panel-${visibleProfile!.slug}`}
+            title={featuredOpen ? "Thu gọn Feature" : "Xem Feature"}
+            onClick={(event) => {
+              event.stopPropagation();
+              event.preventDefault();
+              setFeaturedOpen((v) => !v);
+            }}
+          >
+            <strong>{value}</strong>
+            {label}
+          </button>
+        );
+      }
+      if (value > 0) {
+        return (
+          <Link
+            key={id}
+            href={`/${visibleProfile!.slug}`}
+            className="j-friend-stat-btn"
+            title="Xem Journey — Feature"
+            onClick={() => setOpen(false)}
+          >
+            <strong>{value}</strong>
+            {label}
+          </Link>
+        );
+      }
+    }
+
+    return (
+      <span key={id}>
+        <strong>{value}</strong>
+        {label}
+      </span>
+    );
+  };
 
   return (
     <span className="j-user-pop-wrap" ref={wrapRef}>
@@ -178,164 +258,160 @@ export function JourneyUserPopover({
       >
         {children}
       </button>
-      {mounted && open ? createPortal(
-        <div
-          className="j-user-popover-backdrop"
-          role="presentation"
-          style={{ zIndex: backdropZIndex }}
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="j-user-popover"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Thông tin người dùng"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <button
-              type="button"
-              className="j-user-pop-close"
-              aria-label="Đóng"
+      {mounted && open
+        ? createPortal(
+            <div
+              className="j-user-popover-backdrop"
+              role="presentation"
+              style={{ zIndex: backdropZIndex }}
               onClick={() => setOpen(false)}
             >
-              <X size={12} strokeWidth={3} absoluteStrokeWidth aria-hidden />
-            </button>
-          {visibleProfile ? (
-            <article className="j-friend-card j-user-pop-card">
               <div
-                className={`j-friend-cover${visibleProfile.coverUrl ? " has-img" : ""}`}
-                aria-hidden
+                className="j-user-popover"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Thông tin người dùng"
+                data-pop-theme={popTheme ? "" : undefined}
+                data-pop-surface={popTheme?.surface.kind}
+                data-pop-layout="masonry"
+                style={themeStyle}
+                onClick={(event) => event.stopPropagation()}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {visibleProfile.coverUrl ? <img src={visibleProfile.coverUrl} alt="" /> : null}
-              </div>
-              <div className="j-friend-body">
-                <div className="j-friend-avatar">
-                  {visibleProfile.avatarUrl ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={visibleProfile.avatarUrl} alt="" />
-                  ) : (
-                    <span>{(visibleProfile.tenHienThi || visibleProfile.slug).slice(0, 1)}</span>
-                  )}
-                </div>
-                <h3>
-                  {visibleProfile.tenHienThi}
-                  <VerifiedTick
-                    slug={visibleProfile.slug}
-                    verified={visibleProfile.daXacMinh}
-                    size={16}
-                  />
-                </h3>
-                {visibleProfile.giaiDoan || visibleProfile.tinhThanh ? (
-                  <p className="j-friend-meta">
-                    {[visibleProfile.giaiDoan, visibleProfile.tinhThanh]
-                      .filter(Boolean)
-                      .join(", ")}
-                  </p>
-                ) : null}
-                {mutual.visible ? (
-                  <div className="j-friend-mutual" title={`${mutual.count} bạn chung`}>
-                    {mutual.users.length > 0 ? (
-                      <span className="j-friend-mutual-faces" aria-hidden>
-                        {mutual.users.slice(0, 3).map((u) => (
-                          <span key={u.idNguoiDung} className="j-friend-mutual-face">
-                            {u.avatarUrl ? (
-                              /* eslint-disable-next-line @next/next/no-img-element */
-                              <img src={u.avatarUrl} alt="" />
-                            ) : (
-                              <span className="j-friend-mutual-ini">
-                                {(u.tenHienThi || u.slug).slice(0, 1)}
-                              </span>
-                            )}
-                          </span>
-                        ))}
-                      </span>
-                    ) : null}
-                    <span className="j-friend-mutual-text">
-                      <strong>{mutual.count}</strong> bạn chung
-                    </span>
-                  </div>
-                ) : null}
-                {visibleProfile.bio ? <p className="j-friend-bio">{visibleProfile.bio}</p> : null}
-                <div className="j-friend-stats" aria-label="Thống kê hồ sơ">
-                  {canExpandFeatured ? (
-                    <button
-                      type="button"
-                      className={`j-friend-stat-btn${featuredOpen ? " is-open" : ""}`}
-                      aria-expanded={featuredOpen}
-                      aria-controls={`j-user-featured-panel-${visibleProfile.slug}`}
-                      title={
-                        featuredOpen
-                          ? "Thu gọn Feature"
-                          : "Xem Feature"
+                <button
+                  type="button"
+                  className="j-user-pop-close"
+                  aria-label="Đóng"
+                  onClick={() => setOpen(false)}
+                >
+                  <X size={12} strokeWidth={3} absoluteStrokeWidth aria-hidden />
+                </button>
+                {visibleProfile ? (
+                  <article className="j-friend-card j-user-pop-card">
+                    <div
+                      className={`j-friend-cover${useProfileCover ? " has-img" : ""}`}
+                      data-pop-cover={
+                        popTheme && coverKind !== "profile"
+                          ? coverKind
+                          : undefined
                       }
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        event.preventDefault();
-                        setFeaturedOpen((value) => !value);
-                      }}
+                      aria-hidden
                     >
-                      <strong>{noiBatCount}</strong>
-                      Feature
-                    </button>
-                  ) : noiBatCount > 0 ? (
-                    <Link
-                      href={`/${visibleProfile.slug}`}
-                      className="j-friend-stat-btn"
-                      title="Xem Journey — Feature"
-                      onClick={() => setOpen(false)}
-                    >
-                      <strong>{noiBatCount}</strong>
-                      Feature
-                    </Link>
-                  ) : (
-                    <span>
-                      <strong>{noiBatCount}</strong>
-                      Feature
-                    </span>
-                  )}
-                  <span>
-                    <strong>{visibleProfile.stats.cotMoc}</strong>
-                    Gallery
-                  </span>
-                  <span>
-                    <strong>{visibleProfile.stats.banBe}</strong>
-                    Bạn bè
-                  </span>
-                </div>
-                {visibleProfile.idNguoiDung ? (
-                  <JourneyUserPopoverActions
-                    user={{
-                      idNguoiDung: visibleProfile.idNguoiDung,
-                      slug: visibleProfile.slug,
-                      tenHienThi: visibleProfile.tenHienThi,
-                      avatarUrl: visibleProfile.avatarUrl,
-                      giaiDoan: visibleProfile.giaiDoan,
-                    }}
-                    viewerProfileId={viewerProfileId}
-                    onClose={() => setOpen(false)}
-                  />
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {useProfileCover ? (
+                        <img src={visibleProfile.coverUrl!} alt="" />
+                      ) : null}
+                    </div>
+                    <div className="j-friend-body">
+                      <JourneyFramedAvatar
+                        className="j-friend-avatar"
+                        sizePx={78}
+                        frame={visibleProfile.avatarFrame ?? null}
+                      >
+                        {visibleProfile.avatarUrl ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={visibleProfile.avatarUrl} alt="" />
+                        ) : (
+                          <span>
+                            {(
+                              visibleProfile.tenHienThi || visibleProfile.slug
+                            ).slice(0, 1)}
+                          </span>
+                        )}
+                      </JourneyFramedAvatar>
+                      <h3>
+                        {visibleProfile.tenHienThi}
+                        <VerifiedTick
+                          slug={visibleProfile.slug}
+                          verified={visibleProfile.daXacMinh}
+                          size={16}
+                        />
+                      </h3>
+                      {visibleProfile.giaiDoan || visibleProfile.tinhThanh ? (
+                        <p className="j-friend-meta">
+                          {[visibleProfile.giaiDoan, visibleProfile.tinhThanh]
+                            .filter(Boolean)
+                            .join(", ")}
+                        </p>
+                      ) : null}
+                      {mutual.visible ? (
+                        <div
+                          className="j-friend-mutual"
+                          title={`${mutual.count} bạn chung`}
+                        >
+                          {mutual.users.length > 0 ? (
+                            <span className="j-friend-mutual-faces" aria-hidden>
+                              {mutual.users.slice(0, 3).map((u) => (
+                                <span
+                                  key={u.idNguoiDung}
+                                  className="j-friend-mutual-face"
+                                >
+                                  {u.avatarUrl ? (
+                                    /* eslint-disable-next-line @next/next/no-img-element */
+                                    <img src={u.avatarUrl} alt="" />
+                                  ) : (
+                                    <span className="j-friend-mutual-ini">
+                                      {(u.tenHienThi || u.slug).slice(0, 1)}
+                                    </span>
+                                  )}
+                                </span>
+                              ))}
+                            </span>
+                          ) : null}
+                          <span className="j-friend-mutual-text">
+                            <strong>{mutual.count}</strong> bạn chung
+                          </span>
+                        </div>
+                      ) : null}
+                      {visibleProfile.bio ? (
+                        <p className="j-friend-bio" data-pop-bio="clamp2">
+                          {visibleProfile.bio}
+                        </p>
+                      ) : null}
+                      <div
+                        className="j-friend-stats"
+                        aria-label="Thống kê hồ sơ"
+                      >
+                        {statsOrder.map((id) => renderStatCell(id))}
+                      </div>
+                      {visibleProfile.idNguoiDung ? (
+                        <JourneyUserPopoverActions
+                          user={{
+                            idNguoiDung: visibleProfile.idNguoiDung,
+                            slug: visibleProfile.slug,
+                            tenHienThi: visibleProfile.tenHienThi,
+                            avatarUrl: visibleProfile.avatarUrl,
+                            giaiDoan: visibleProfile.giaiDoan,
+                          }}
+                          viewerProfileId={viewerProfileId}
+                          onClose={() => setOpen(false)}
+                        />
+                      ) : (
+                        <JourneyUserPopoverActionsShell />
+                      )}
+                    </div>
+                    <JourneyUserFeaturedExpand
+                      slug={visibleProfile.slug}
+                      eager
+                      open={featuredOpen}
+                      onOpenChange={setFeaturedOpen}
+                      onAvailabilityChange={onFeaturedAvailability}
+                      layout="masonry"
+                      cols={3}
+                      limit={9}
+                    />
+                  </article>
+                ) : loading ? (
+                  <span className="j-user-pop-loading">Đang tải...</span>
                 ) : (
-                  <JourneyUserPopoverActionsShell />
+                  <span className="j-user-pop-loading">
+                    Không tải được hồ sơ.
+                  </span>
                 )}
               </div>
-              <JourneyUserFeaturedExpand
-                slug={visibleProfile.slug}
-                eager
-                open={featuredOpen}
-                onOpenChange={setFeaturedOpen}
-                onAvailabilityChange={onFeaturedAvailability}
-              />
-            </article>
-          ) : loading ? (
-            <span className="j-user-pop-loading">Đang tải...</span>
-          ) : (
-            <span className="j-user-pop-loading">Không tải được hồ sơ.</span>
-          )}
-          </div>
-        </div>,
-        document.body,
-      ) : null}
+            </div>,
+            document.body,
+          )
+        : null}
     </span>
   );
 }

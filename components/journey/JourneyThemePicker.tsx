@@ -38,7 +38,16 @@ import {
   type ProfileThemeDeviceId,
   type ProfileThemeSlice,
 } from "@/lib/journey/profile-theme";
+import { DEFAULT_AVATAR_FRAME } from "@/lib/journey/avatar-frame";
+import { DEFAULT_CARD_THEME } from "@/lib/journey/card-theme";
+import { DEFAULT_POPOVER_THEME } from "@/lib/journey/popover-theme";
+import { DEFAULT_SHOP_SWITCH } from "@/lib/journey/shop-switch";
 import { dispatchUserThemeChange } from "@/lib/journey/user-shell-theme";
+import {
+  patchGiaoDien,
+  resetGiaoDienTheme,
+  themeSliceToPatch,
+} from "@/lib/journey/giao-dien-patch-client";
 import {
   JourneyThemeDevicePreview,
   type ThemePreviewDevice,
@@ -59,6 +68,9 @@ export type JourneyThemePickerHandle = {
   save: () => Promise<boolean>;
   /** Bỏ draft, trả preview về baseline. */
   discard: () => void;
+  getPatch: () => Record<string, unknown> | null;
+  isDefaultDraft: () => boolean;
+  markSaved: (customs?: ProfileCustomEntry[]) => void;
 };
 
 function clearPageThemeVars(page: HTMLElement) {
@@ -98,6 +110,10 @@ function applyLivePreview(theme: ProfileThemeSlice) {
         imageId,
         createdAt: "",
       })),
+      card: DEFAULT_CARD_THEME,
+      avatarFrame: DEFAULT_AVATAR_FRAME,
+      popover: DEFAULT_POPOVER_THEME,
+      shopSwitch: DEFAULT_SHOP_SWITCH,
     };
     if (isDefaultProfileTheme(state) && theme.background.kind !== "image") {
       clearPageThemeVars(page);
@@ -284,39 +300,21 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
           v: 1,
           theme: next,
           customs: customsRef.current,
+          card: DEFAULT_CARD_THEME,
+      avatarFrame: DEFAULT_AVATAR_FRAME,
+      popover: DEFAULT_POPOVER_THEME,
+      shopSwitch: DEFAULT_SHOP_SWITCH,
         };
         if (isDefaultProfileTheme(state)) {
-          const res = await fetch("/api/user/giao-dien", { method: "DELETE" });
-          if (!res.ok) throw new Error("Không khôi phục được.");
+          const data = await resetGiaoDienTheme();
+          if (!data.ok) throw new Error(data.error ?? "Không khôi phục được.");
           setCustoms([]);
           customsRef.current = [];
           lastImageBgRef.current = null;
         } else {
-          const res = await fetch("/api/user/giao-dien", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              accent: next.accent,
-              accentHex: next.accentHex,
-              applyToHome: next.applyToHome,
-              background: {
-                kind: next.background.kind,
-                patternId: next.background.patternId,
-                imageId: next.background.imageId,
-                dim: next.background.dim,
-                position: next.background.position,
-                devices: next.background.devices,
-              },
-            }),
-          });
-          const data = (await res.json().catch(() => null)) as {
-            error?: string;
-            customs?: ProfileCustomEntry[];
-          } | null;
-          if (!res.ok) {
-            throw new Error(data?.error ?? "Không lưu được.");
-          }
-          if (Array.isArray(data?.customs)) {
+          const data = await patchGiaoDien(themeSliceToPatch(next));
+          if (!data.ok) throw new Error(data.error ?? "Không lưu được.");
+          if (Array.isArray(data.customs)) {
             setCustoms(data.customs);
             customsRef.current = data.customs;
           }
@@ -348,6 +346,34 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
         isDirty: () =>
           !themesEqual(themeRef.current, baselineRef.current),
         save: async () => persist(themeRef.current),
+        getPatch: () => {
+          if (themesEqual(themeRef.current, baselineRef.current)) return null;
+          return themeSliceToPatch(themeRef.current);
+        },
+        isDefaultDraft: () =>
+          isDefaultProfileTheme({
+            v: 1,
+            theme: themeRef.current,
+            customs: customsRef.current,
+            card: DEFAULT_CARD_THEME,
+            avatarFrame: DEFAULT_AVATAR_FRAME,
+            popover: DEFAULT_POPOVER_THEME,
+            shopSwitch: DEFAULT_SHOP_SWITCH,
+          }),
+        markSaved: (customs) => {
+          const next = sliceFromInitial(themeRef.current);
+          setBaseline(next);
+          baselineRef.current = next;
+          if (Array.isArray(customs)) {
+            setCustoms(customs);
+            customsRef.current = customs;
+          }
+          setStatus("ok");
+          window.setTimeout(
+            () => setStatus((s) => (s === "ok" ? "idle" : s)),
+            1600,
+          );
+        },
         discard: () => {
           const base = sliceFromInitial(baselineRef.current);
           themeRef.current = base;
@@ -662,11 +688,27 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
 
         /* Scrub local draft/baseline — giữ chỉnh sửa chưa lưu (accent, dim…). */
         const nextTheme = removeProfileCustomImage(
-          { v: 1, theme: themeRef.current, customs: nextCustoms },
+          {
+            v: 1,
+            theme: themeRef.current,
+            customs: nextCustoms,
+            card: DEFAULT_CARD_THEME,
+      avatarFrame: DEFAULT_AVATAR_FRAME,
+      popover: DEFAULT_POPOVER_THEME,
+      shopSwitch: DEFAULT_SHOP_SWITCH,
+          },
           id,
         ).theme;
         const nextBaseline = removeProfileCustomImage(
-          { v: 1, theme: baselineRef.current, customs: nextCustoms },
+          {
+            v: 1,
+            theme: baselineRef.current,
+            customs: nextCustoms,
+            card: DEFAULT_CARD_THEME,
+      avatarFrame: DEFAULT_AVATAR_FRAME,
+      popover: DEFAULT_POPOVER_THEME,
+      shopSwitch: DEFAULT_SHOP_SWITCH,
+          },
           id,
         ).theme;
 
@@ -748,9 +790,17 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
     const switchImageIsPlaceholder = !switchImageUserUrl;
 
     return (
-      <div className="j-theme-picker" aria-label="Giao diện trang hồ sơ">
+      <div
+        className="j-theme-picker"
+        style={{ ["--j-accent" as string]: liveAccent }}
+        aria-label="Giao diện trang hồ sơ"
+      >
         <div className="j-theme-picker-main">
-        <div className="j-theme-picker-label">
+        <section
+          className="j-theme-section"
+          aria-labelledby="j-theme-accent-heading"
+        >
+        <div className="j-theme-picker-label" id="j-theme-accent-heading">
           <span>Màu nhấn</span>
           {status === "saving" ? (
             <span className="j-theme-picker-status">Đang lưu…</span>
@@ -808,8 +858,13 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
             />
           </label>
         </div>
+        </section>
 
-        <div className="j-theme-picker-label">
+        <section
+          className="j-theme-section"
+          aria-labelledby="j-theme-bg-heading"
+        >
+        <div className="j-theme-picker-label" id="j-theme-bg-heading">
           <span>Nền trang</span>
         </div>
         <div
@@ -1008,35 +1063,55 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
             />
           </div>
         ) : null}
+        </section>
 
-        <label className="j-theme-home-check">
-          <input
-            type="checkbox"
-            checked={theme.applyToHome}
-            onChange={(e) => onApplyToHome(e.currentTarget.checked)}
-          />
-          <span>
-            Áp dụng giao diện này lên trang chủ của tôi
-            <small>
-              Người khác không thấy theme của bạn trên trang chủ họ.
-            </small>
-          </span>
-        </label>
+        <section
+          className={
+            "j-theme-section j-theme-section--home" +
+            (theme.applyToHome ? " is-active" : "")
+          }
+          aria-labelledby="j-theme-home-heading"
+        >
+          <div className="j-theme-home-row">
+            <span className="j-theme-home-text">
+              <span className="j-theme-home-check-title" id="j-theme-home-heading">
+                Áp dụng giao diện này lên trang chủ của tôi
+              </span>
+              <span className="j-theme-home-check-desc">
+                Người khác không thấy theme của bạn trên trang chủ họ.
+              </span>
+            </span>
+            <button
+              type="button"
+              className={
+                "j-theme-home-switch" + (theme.applyToHome ? " is-on" : "")
+              }
+              role="switch"
+              aria-checked={theme.applyToHome}
+              aria-labelledby="j-theme-home-heading"
+              onClick={() => onApplyToHome(!theme.applyToHome)}
+            >
+              <span className="j-theme-home-switch-knob" aria-hidden />
+            </button>
+          </div>
+        </section>
 
-        <div className="j-theme-picker-actions">
-          <button
-            type="button"
-            className="j-theme-picker-reset"
-            onClick={onResetDraft}
-            disabled={status === "saving" || uploading}
-          >
-            Khôi phục mặc định
-          </button>
-        </div>
-        <p className="j-theme-picker-hint">
-          Chọn xong bấm <strong>Lưu giao diện</strong>. Đổi tab thiết bị để
-          neo / ảnh riêng; rê vào demo rồi kéo để chỉnh vùng ảnh.
-        </p>
+        <footer className="j-theme-picker-footer">
+          <div className="j-theme-picker-actions">
+            <button
+              type="button"
+              className="j-theme-picker-reset"
+              onClick={onResetDraft}
+              disabled={status === "saving" || uploading}
+            >
+              Khôi phục mặc định
+            </button>
+          </div>
+          <p className="j-theme-picker-hint">
+            Chọn xong bấm <strong>Lưu giao diện</strong>. Đổi tab thiết bị để
+            neo / ảnh riêng; rê vào demo rồi kéo để chỉnh vùng ảnh.
+          </p>
+        </footer>
         </div>
 
         <aside className="j-theme-picker-aside" aria-label="Xem trước thiết bị">

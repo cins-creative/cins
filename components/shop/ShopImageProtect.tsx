@@ -102,7 +102,9 @@ export function ShopImageProtect({
   imgClassName,
   ...imgRest
 }: ProtectProps) {
-  if (!protect) {
+  const wm = watermarkText?.trim() || null;
+  /* Owner: ảnh sạch + decoy tắt; lightbox vẫn phủ chữ khi có watermarkText. */
+  if (!protect && !wm) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img src={src} alt={alt} className={imgClassName} {...imgRest} />
@@ -119,7 +121,6 @@ export function ShopImageProtect({
   const srcClass = ["shop-img-protect-src", imgClassName]
     .filter(Boolean)
     .join(" ");
-  const wm = watermarkText?.trim() || null;
 
   return (
     <span className={wrapClass}>
@@ -132,7 +133,7 @@ export function ShopImageProtect({
         {...imgRest}
       />
       {wm ? <ShopImageWatermark text={wm} /> : null}
-      <ShopImageDecoy />
+      {protect ? <ShopImageDecoy /> : null}
     </span>
   );
 }

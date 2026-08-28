@@ -9,6 +9,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { signOutAction } from "@/app/auth/sign-out-action";
@@ -16,6 +17,12 @@ import { HelpCenterModal } from "@/components/cins/HelpCenterModal";
 import { SidebarNavIcon } from "@/components/cins/SidebarNavIcon";
 import { UserAccountSettingsModal } from "@/components/cins/UserAccountSettingsModal";
 import { OPEN_ACCOUNT_SETTINGS_EVENT } from "@/lib/cins/open-account-settings";
+import {
+  EDIT_PROFILE_QUERY,
+  EDIT_PROFILE_TAB_CUSTOMIZE,
+  isOwnProfilePath,
+  openEditProfile,
+} from "@/lib/cins/open-edit-profile";
 import { webHref } from "@/lib/cins/manage-site";
 import { GopYModal } from "@/components/feedback/GopYModal";
 import { clearAllClientCaches } from "@/lib/client-cache";
@@ -63,6 +70,8 @@ export function UserAccountMenu({
   placement = "sidebar",
 }: Props) {
   const t = useT();
+  const router = useRouter();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsSection, setSettingsSection] = useState<
@@ -150,6 +159,31 @@ export function UserAccountMenu({
             </span>
             <span>{t("account.profile")}</span>
           </Link>
+
+          <button
+            type="button"
+            className="app-user-menu-item"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              if (isOwnProfilePath(pathname, profile.slug)) {
+                openEditProfile("customize");
+                return;
+              }
+              router.push(
+                webHref(
+                  `/${profile.slug}?${EDIT_PROFILE_QUERY}=${EDIT_PROFILE_TAB_CUSTOMIZE}`,
+                ),
+              );
+            }}
+          >
+            <span className="app-user-menu-ico" aria-hidden>
+              <span className="app-user-menu-colorwheel">
+                <span className="app-user-menu-colorwheel-ring" />
+              </span>
+            </span>
+            <span>{t("account.customize")}</span>
+          </button>
 
           <Link
             href={webHref("/create-organization")}

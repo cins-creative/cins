@@ -329,26 +329,16 @@ function ListingFilterSection({
 
 function ListingFiltersPopover({
   taxonomy,
-  visibleDanhMuc,
-  danhMucCounts,
   facetCounts,
-  selectedDanhMuc,
   selectedFacets,
   hasTaxonomyFilter,
-  onToggleDanhMuc,
-  onSelectAllDanhMuc,
   onToggleFacetValue,
   onClearTaxonomy,
 }: {
   taxonomy: CuaHangHubTaxonomy;
-  visibleDanhMuc: CuaHangHubTaxonomy["danhMuc"];
-  danhMucCounts: Map<string, number>;
   facetCounts: Record<string, Map<string, number>>;
-  selectedDanhMuc: string[];
   selectedFacets: Record<string, string[]>;
   hasTaxonomyFilter: boolean;
-  onToggleDanhMuc: (slug: string) => void;
-  onSelectAllDanhMuc: () => void;
   onToggleFacetValue: (
     facetSlug: string,
     valueSlug: string,
@@ -386,42 +376,16 @@ function ListingFiltersPopover({
     [taxonomy.facets, facetCounts],
   );
 
-  const hasOptions = visibleDanhMuc.length > 0 || visibleFacets.length > 0;
+  const hasOptions = visibleFacets.length > 0;
 
   const activeCount = useMemo(() => {
-    let n = selectedDanhMuc.length;
+    let n = 0;
     for (const vals of Object.values(selectedFacets)) n += vals.length;
     return n;
-  }, [selectedDanhMuc, selectedFacets]);
+  }, [selectedFacets]);
 
   const filterSections = useMemo((): FilterSectionDef[] => {
     const cols: FilterSectionDef[] = [];
-
-    if (visibleDanhMuc.length > 0) {
-      cols.push({
-        key: "danh-muc",
-        label: t("shop.category"),
-        emptyMeansAll: true,
-        allLabel: t("shop.all"),
-        options: [...visibleDanhMuc]
-          .sort(
-            (a, b) =>
-              (a.chaThuTu ?? 999) - (b.chaThuTu ?? 999) ||
-              a.thuTu - b.thuTu ||
-              a.ten.localeCompare(b.ten, "vi"),
-          )
-          .map((d) => ({
-            slug: d.slug,
-            ten: d.ten,
-            count: danhMucCounts.get(d.slug) ?? 0,
-            group: d.chaTen ?? t("shop.noGroup"),
-            groupOrder: d.chaThuTu ?? 999,
-          })),
-        selected: selectedDanhMuc,
-        onToggle: onToggleDanhMuc,
-        onSelectAll: onSelectAllDanhMuc,
-      });
-    }
 
     const fandomFacet = visibleFacets.find(({ facet }) => facet.slug === "fandom");
     const otherFacets = visibleFacets.filter(
@@ -451,13 +415,8 @@ function ListingFiltersPopover({
 
     return cols;
   }, [
-    visibleDanhMuc,
     visibleFacets,
-    danhMucCounts,
-    selectedDanhMuc,
     selectedFacets,
-    onToggleDanhMuc,
-    onSelectAllDanhMuc,
     onToggleFacetValue,
     t,
   ]);
@@ -465,17 +424,7 @@ function ListingFiltersPopover({
   const activeChips = useMemo(() => {
     const chips: Array<{ key: string; label: string; onRemove: () => void }> =
       [];
-    for (const slug of selectedDanhMuc) {
-      const dm = visibleDanhMuc.find((d) => d.slug === slug);
-      if (!dm) continue;
-      chips.push({
-        key: `dm:${slug}`,
-        label: dm.ten,
-        onRemove: () => onToggleDanhMuc(slug),
-      });
-    }
     for (const section of filterSections) {
-      if (section.key === "danh-muc") continue;
       for (const slug of section.selected) {
         const opt = section.options.find((o) => o.slug === slug);
         if (!opt) continue;
@@ -487,7 +436,7 @@ function ListingFiltersPopover({
       }
     }
     return chips;
-  }, [selectedDanhMuc, visibleDanhMuc, filterSections, onToggleDanhMuc]);
+  }, [filterSections]);
 
   const activeSection =
     filterSections.find((s) => s.key === activeTab) ?? filterSections[0] ?? null;
@@ -1343,19 +1292,6 @@ export function CuaHangListingClient({
     setSelectedFacets(next);
   }, [searchParams, taxonomy.facets]);
 
-  const toggleDanhMuc = useCallback(
-    (slug: string) => {
-      setSelectedDanhMuc((prev) => {
-        const next = prev.includes(slug)
-          ? prev.filter((s) => s !== slug)
-          : [...prev, slug];
-        syncUrl(next, selectedFacets);
-        return next;
-      });
-    },
-    [selectedFacets, syncUrl],
-  );
-
   const toggleFacetValue = useCallback(
     (facetSlug: string, valueSlug: string, single: boolean) => {
       setSelectedFacets((prev) => {
@@ -1383,11 +1319,6 @@ export function CuaHangListingClient({
     setSelectedFacets({});
     syncUrl([], {});
   }, [syncUrl]);
-
-  const selectAllDanhMuc = useCallback(() => {
-    setSelectedDanhMuc([]);
-    syncUrl([], selectedFacets);
-  }, [selectedFacets, syncUrl]);
 
   const hasTaxonomyFilter =
     selectedDanhMuc.length > 0 ||
@@ -1479,16 +1410,6 @@ export function CuaHangListingClient({
     );
   }, [hangHitsScoped, hasTaxonomyFilter, selectedDanhMuc, selectedFacets]);
 
-  const danhMucCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const h of hangHitsScoped) {
-      if (!h.danhMucSlug) continue;
-      const slug = canonicalizeDanhMucSlug(h.danhMucSlug);
-      counts.set(slug, (counts.get(slug) ?? 0) + 1);
-    }
-    return counts;
-  }, [hangHitsScoped]);
-
   const facetCounts = useMemo(() => {
     const out: Record<string, Map<string, number>> = {};
     for (const f of taxonomy.facets) out[f.slug] = new Map();
@@ -1518,10 +1439,6 @@ export function CuaHangListingClient({
       ? t("shop.searchItemsAria")
       : t("shop.searchProductsAria")
     : t("shop.searchShopsAria");
-
-  const visibleDanhMuc = taxonomy.danhMuc.filter(
-    (d) => (danhMucCounts.get(d.slug) ?? 0) > 0,
-  );
 
   const facetSig = useMemo(
     () =>
@@ -1697,14 +1614,9 @@ export function CuaHangListingClient({
               >
                 <ListingFiltersPopover
                   taxonomy={taxonomy}
-                  visibleDanhMuc={visibleDanhMuc}
-                  danhMucCounts={danhMucCounts}
                   facetCounts={facetCounts}
-                  selectedDanhMuc={selectedDanhMuc}
                   selectedFacets={selectedFacets}
                   hasTaxonomyFilter={hasTaxonomyFilter}
-                  onToggleDanhMuc={toggleDanhMuc}
-                  onSelectAllDanhMuc={selectAllDanhMuc}
                   onToggleFacetValue={toggleFacetValue}
                   onClearTaxonomy={clearTaxonomy}
                 />

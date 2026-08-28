@@ -23,10 +23,8 @@ import { createPortal } from "react-dom";
 
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { ShopCatalogThumbPlaceholder } from "@/components/shop/ShopCatalogThumbPlaceholder";
-import {
-  ShopImageDecoy,
-  ShopImageWatermark,
-} from "@/components/shop/ShopImageProtect";
+import { ShopImageLightbox } from "@/components/shop/ShopImageLightbox";
+import { ShopImageDecoy } from "@/components/shop/ShopImageProtect";
 import { shopProtectWatermarkText } from "@/lib/shop/image-protect";
 import {
   GIO_CHUNG_CHANGED_EVENT,
@@ -64,11 +62,6 @@ type Props = {
   hangItems?: ShopPostHangItem[];
   /** Compose preview — chỉ xem ticker, không giỏ / không gọi API. */
   previewOnly?: boolean;
-};
-
-type PreviewState = {
-  src: string;
-  name: string;
 };
 
 /** Debounce sync giỏ — gộp nhiều lần bấm ± thành 1 PATCH. */
@@ -147,7 +140,8 @@ export function ShopKioskBlock({
   const [items, setItems] = useState<ShopPostHangItem[]>(hangItems ?? []);
   const [loading, setLoading] = useState(!hangItems);
   const [catalogOpen, setCatalogOpen] = useState(false);
-  const [preview, setPreview] = useState<PreviewState | null>(null);
+  /** Index trong `catalogGallery` — lightbox xem liên tục theo lưới danh mục. */
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [portalReady, setPortalReady] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   /** idBienThe → số lượng trong giỏ chung (chỉ hàng của seller này). */
@@ -548,18 +542,6 @@ export function ShopKioskBlock({
   }, [catalogOpen, isOwner, previewOnly]);
 
   useEffect(() => {
-    if (!preview || isOwner || previewOnly) return;
-    const it = itemsRef.current.find((x) => x.anhUrl === preview.src);
-    if (!it?.idSanPham) return;
-    trackTuongTac({
-      loaiDoiTuong: "shop_san_pham",
-      idDoiTuong: it.idSanPham,
-      hanhVi: "phong_to_anh",
-      nguon: "shop",
-    });
-  }, [preview, isOwner, previewOnly]);
-
-  useEffect(() => {
     if (isOwner || previewOnly) return;
     const root = tickerTrackRef.current;
     const ioRoot = tickerScrollRef.current;
@@ -603,15 +585,15 @@ export function ShopKioskBlock({
   }, []);
 
   useEffect(() => {
-    if (!preview && !catalogOpen) return;
+    if (previewIndex == null && !catalogOpen) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       e.preventDefault();
       e.stopPropagation();
-      if (preview) {
-        setPreview(null);
+      if (previewIndex != null) {
+        setPreviewIndex(null);
         return;
       }
       setCatalogOpen(false);
@@ -621,7 +603,7 @@ export function ShopKioskBlock({
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", onKey, true);
     };
-  }, [preview, catalogOpen]);
+  }, [previewIndex, catalogOpen]);
 
   const loadHang = useCallback(async () => {
     if (hangItems) {
@@ -787,12 +769,12 @@ export function ShopKioskBlock({
 
   /* Modal mở → tạm giữ ticker; đóng → gỡ. */
   useEffect(() => {
-    if (preview !== null || catalogOpen) {
+    if (previewIndex !== null || catalogOpen) {
       tickerHoldReasonsRef.current.add("modal");
     } else {
       tickerHoldReasonsRef.current.delete("modal");
     }
-  }, [preview, catalogOpen]);
+  }, [previewIndex, catalogOpen]);
 
   /*
    * Tự trôi bằng rAF + translate3d (cùng hệ với drag) — chỉ khi loop.
@@ -1123,6 +1105,56 @@ export function ShopKioskBlock({
       .filter((g) => g.items.length > 0);
   }, [items, categoryOptions, hasUncategorized]);
 
+  /** Ảnh catalog theo thứ tự lưới (nhóm → card) — ticker/catalog cùng một dải. */
+  const catalogGallery = useMemo(() => {
+    const out: Array<{
+      id: string;
+      src: string;
+      name: string;
+      idSanPham: string;
+    }> = [];
+    for (const group of itemsByGroup) {
+      for (const it of group.items) {
+        const src = it.anhUrl?.trim();
+        if (!src) continue;
+        out.push({
+          id: it.id,
+          src,
+          name: it.tenSanPham,
+          idSanPham: it.idSanPham,
+        });
+      }
+    }
+    return out;
+  }, [itemsByGroup]);
+
+  const catalogGalleryUrls = useMemo(
+    () => catalogGallery.map((g) => g.src),
+    [catalogGallery],
+  );
+  const catalogGalleryCaptions = useMemo(
+    () => catalogGallery.map((g) => g.name),
+    [catalogGallery],
+  );
+
+  const openCatalogGallery = useCallback((itemId: string) => {
+    const i = catalogGallery.findIndex((g) => g.id === itemId);
+    if (i < 0) return;
+    setPreviewIndex(i);
+  }, [catalogGallery]);
+
+  useEffect(() => {
+    if (previewIndex == null || isOwner || previewOnly) return;
+    const it = catalogGallery[previewIndex];
+    if (!it?.idSanPham) return;
+    trackTuongTac({
+      loaiDoiTuong: "shop_san_pham",
+      idDoiTuong: it.idSanPham,
+      hanhVi: "phong_to_anh",
+      nguon: "shop",
+    });
+  }, [previewIndex, catalogGallery, isOwner, previewOnly]);
+
   const cartCount = useMemo(() => {
     let n = 0;
     for (const it of items) {
@@ -1134,54 +1166,18 @@ export function ShopKioskBlock({
   if (loading) return null;
   if (items.length === 0) return null;
 
-  const previewPortal =
-    portalReady && preview
-      ? createPortal(
-          <div
-            className="shop-kiosk-preview"
-            role="dialog"
-            aria-modal="true"
-            aria-label={preview.name || "Ảnh sản phẩm"}
-            onClick={(e) => {
-              e.stopPropagation();
-              setPreview(null);
-            }}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              className="shop-kiosk-preview-close"
-              aria-label="Đóng"
-              onClick={(e) => {
-                e.stopPropagation();
-                setPreview(null);
-              }}
-            >
-              <X size={20} strokeWidth={2} aria-hidden />
-            </button>
-            <div
-              className="shop-kiosk-preview-stage"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={preview.src}
-                alt={preview.name}
-                className="shop-kiosk-preview-img"
-                draggable={false}
-              />
-              {protectProductImg ? (
-                <ShopImageWatermark text={productWmText} />
-              ) : null}
-              {protectProductImg ? <ShopImageDecoy /> : null}
-            </div>
-            {preview.name ? (
-              <p className="shop-kiosk-preview-caption">{preview.name}</p>
-            ) : null}
-          </div>,
-          document.body,
-        )
-      : null;
+  const previewLightbox =
+    previewIndex != null && catalogGalleryUrls[previewIndex] ? (
+      <ShopImageLightbox
+        images={catalogGalleryUrls}
+        index={previewIndex}
+        captions={catalogGalleryCaptions}
+        watermarkText={productWmText}
+        protect={protectProductImg}
+        onClose={() => setPreviewIndex(null)}
+        onIndexChange={setPreviewIndex}
+      />
+    ) : null;
 
   const catalogPortal =
     portalReady && catalogOpen
@@ -1298,12 +1294,7 @@ export function ShopKioskBlock({
                                   type="button"
                                   className="shop-kiosk-catalog-thumb-btn"
                                   data-shop-thumb-fit={fit}
-                                  onClick={() =>
-                                    setPreview({
-                                      src: it.anhUrl!,
-                                      name: it.tenSanPham,
-                                    })
-                                  }
+                                  onClick={() => openCatalogGallery(it.id)}
                                   aria-label={`Xem ảnh ${it.tenSanPham}`}
                                 >
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1474,7 +1465,7 @@ export function ShopKioskBlock({
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        setPreview({ src: it.anhUrl!, name: it.tenSanPham });
+                        openCatalogGallery(it.id);
                       }}
                       aria-label={`Xem ảnh ${it.tenSanPham}`}
                     >
@@ -1510,7 +1501,7 @@ export function ShopKioskBlock({
           </button>
         </div>
       </div>
-      {previewPortal}
+      {previewLightbox}
       {catalogPortal}
     </>
   );

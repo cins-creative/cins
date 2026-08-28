@@ -55,6 +55,14 @@ import { SOCIAL_LOAI_ORG_BAI_DANG } from "@/lib/truong/social-constants";
 import { SOCIAL_LOAI_ORG_KHOA_HOC } from "@/lib/to-chuc/khoa-hoc-bookmark";
 import { SOCIAL_LOAI_ORG_TUYEN_DUNG } from "@/lib/to-chuc/tuyen-dung-bookmark";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import {
+  attachAuthorCardThemeToSelfMilestones,
+  authorCardThemeFromGiaoDien,
+} from "@/lib/journey/card-theme";
+import {
+  attachAuthorAvatarFrameToSelfMilestones,
+  avatarFrameFromGiaoDien,
+} from "@/lib/journey/avatar-frame";
 
 /** Số cột mốc hydrate mỗi lần user cuộn tới cuối timeline. */
 export const MILESTONE_SCROLL_PAGE_SIZE = 20;
@@ -820,9 +828,25 @@ export async function fetchMilestoneTimelinePage(params: {
     isOwner ? userId : null,
   );
 
-  const nextOffset = offset + milestones.length;
+  const { data: ownerGiaoDienRow } = await admin
+    .from("user_nguoi_dung")
+    .select("giao_dien")
+    .eq("id", userId)
+    .maybeSingle<{ giao_dien: unknown }>();
+  const ownerCardTheme = authorCardThemeFromGiaoDien(
+    ownerGiaoDienRow?.giao_dien,
+  );
+  const ownerAvatarFrame = avatarFrameFromGiaoDien(
+    ownerGiaoDienRow?.giao_dien,
+  );
+  const themedMilestones = attachAuthorAvatarFrameToSelfMilestones(
+    attachAuthorCardThemeToSelfMilestones(milestones, ownerCardTheme),
+    ownerAvatarFrame,
+  );
+
+  const nextOffset = offset + themedMilestones.length;
   return {
-    milestones,
+    milestones: themedMilestones,
     offset,
     nextOffset,
     hasMore: nextOffset < stubs.length,

@@ -6127,7 +6127,8 @@ button.cins-canvas-table-cell-text {
   flex: 1;
   min-width: 0;
   min-height: 0;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding: 20px 18px;
   display: flex;
   flex-direction: column;
@@ -6328,6 +6329,7 @@ button.cins-canvas-table-cell-text {
   gap: 2px;
   width: max-content;
   max-width: 100%;
+  min-width: 0;
 }
 
 /* Cột bubble + thời gian dưới (không nhét time vào trong bubble). */
@@ -6679,11 +6681,10 @@ button.cins-canvas-table-cell-text {
     min-width: 0;
   }
 
-  .cins-chat-bubble-wrap:has(.cins-chat-og-card.is-group-invite)
+  .cins-chat-bubble-wrap:has(.cins-chat-og-card)
     > .cins-chat-bubble-main {
-    max-width: 100%;
-    width: 100%;
     flex: 1 1 auto;
+    min-width: 0;
   }
 
   .cins-chat-msg-actions {
@@ -8432,7 +8433,8 @@ a.cins-chat-ctx-card:hover {
   flex-direction: column;
   gap: 0;
   width: 100%;
-  max-width: 320px;
+  max-width: none;
+  min-width: 0;
   margin-top: 6px;
   overflow: hidden;
   border: 1px solid rgba(15, 23, 42, 0.1);
@@ -8467,6 +8469,8 @@ button.cins-chat-og-card.is-me:hover {
 .cins-chat-og-card-img {
   display: block;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   aspect-ratio: 1.91 / 1;
   object-fit: cover;
   background: rgba(15, 23, 42, 0.04);
@@ -8523,20 +8527,25 @@ button.cins-chat-og-card.is-me:hover {
   -webkit-line-clamp: 3;
 }
 
-/* Card mời nhóm chat — mini bản trang /chat/groups/invite
-   Cha bubble/wrap/main đều `width: max-content` nên % (86%) bị co theo chữ.
-   Gán chiều rộng chắc từ hàng tin, rồi kéo các lớp con 100%. */
-.cins-chat-bubble-row:has(.cins-chat-og-card.is-group-invite) {
-  width: min(320px, 100%);
-  max-width: 82%;
+/* OG / URL preview — cha bubble/wrap/main đều `width: max-content` nên
+   `width: 100%` trên card bị co theo chữ. Khóa từ hàng tin; không dùng
+   min(400px, 100%) — khi % không resolve thì hàng thành 400px, tràn cột
+   canvas ~380px và `.cins-chat-messages { overflow: auto }` hiện scrollbar ngang. */
+.cins-chat-bubble-row:has(.cins-chat-og-card) {
+  width: 100%;
+  max-width: min(400px, 82%);
 }
-.cins-chat-bubble-row:has(.cins-chat-og-card.is-group-invite) .cins-chat-msg-stack,
-.cins-chat-bubble-row:has(.cins-chat-og-card.is-group-invite) .cins-chat-msg-inline,
-.cins-chat-bubble-row:has(.cins-chat-og-card.is-group-invite) .cins-chat-bubble-wrap,
-.cins-chat-bubble-row:has(.cins-chat-og-card.is-group-invite) .cins-chat-bubble-main,
-.cins-chat-bubble-row:has(.cins-chat-og-card.is-group-invite) .cins-chat-bubble {
+.cins-chat-bubble-row:has(.cins-chat-og-card) .cins-chat-msg-stack,
+.cins-chat-bubble-row:has(.cins-chat-og-card) .cins-chat-msg-inline,
+.cins-chat-bubble-row:has(.cins-chat-og-card) .cins-chat-bubble-wrap {
   width: 100%;
   max-width: 100%;
+  min-width: 0;
+}
+.cins-chat-bubble-row:has(.cins-chat-og-card) .cins-chat-bubble-main,
+.cins-chat-bubble-row:has(.cins-chat-og-card) .cins-chat-bubble {
+  width: 100%;
+  min-width: 0;
 }
 .cins-chat-og-card.is-group-invite {
   align-items: center;
@@ -8794,7 +8803,7 @@ button.cins-chat-og-card.is-me:hover {
  * → :only-child fail → mất max-width → bubble "phình" khi có reaction.
  */
 .cins-chat-bubble:has(> .cins-chat-og-card) {
-  max-width: min(360px, 86%);
+  max-width: 100%;
 }
 
 :root[data-theme="dark"] .cins-chat-og-card {
@@ -11712,21 +11721,6 @@ button.cins-chat-don-card-cta.is-action:disabled {
 
   .cins-app-topbar .j-chat-fab.is-botbar.has-unread::before {
     content: none;
-  }
-
-  /* Botbar ẩn khi scroll — bubble/mini vẫn hiện, hạ sát đáy. */
-  body:has(#app-topbar.is-hidden) .j-chat-dock.is-botbar-anchored {
-    bottom: max(16px, env(safe-area-inset-bottom, 0px));
-    opacity: 1;
-    visibility: visible;
-    pointer-events: none;
-  }
-
-  body:has(#app-topbar.is-hidden) .j-chat-dock.is-botbar-anchored .j-chat-bubbles,
-  body:has(#app-topbar.is-hidden) .j-chat-dock.is-botbar-anchored .j-chat-mini {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
   }
 }
 

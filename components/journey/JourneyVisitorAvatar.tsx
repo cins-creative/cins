@@ -5,16 +5,24 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { usePinchZoomPan } from "@/lib/ui/use-pinch-zoom-pan";
+import {
+  avatarFrameClass,
+  avatarFrameStyle,
+  type AvatarFrameDto,
+} from "@/lib/journey/avatar-frame";
 
 import {
   AVATAR_DISPLAY_PX,
   AVATAR_VARIANT_PX,
 } from "@/lib/cloudflare/cf-image-variants";
 
+import "./journey-avatar-frame.css";
+
 type Props = {
   avatarUrl: string | null;
   initials: string;
   alt: string;
+  frame?: AvatarFrameDto | null;
 };
 
 /** CF variant còn sống — `medium` không có trên Dashboard (403). */
@@ -35,14 +43,29 @@ function imagedeliveryPublicUrl(url: string): string {
 /**
  * Avatar sidebar khi xem Journey người khác — click mở lightbox phóng to.
  * Không có ảnh → khối tĩnh (initials), không hover.
+ * Lightbox không áp khung (xem ảnh gốc).
  */
-export function JourneyVisitorAvatar({ avatarUrl, initials, alt }: Props) {
+export function JourneyVisitorAvatar({
+  avatarUrl,
+  initials,
+  alt,
+  frame = null,
+}: Props) {
   const [open, setOpen] = useState(false);
+  const frameCls = avatarFrameClass(frame);
+  const frameVars = avatarFrameStyle(frame);
+  const overlay = frame?.overlayImageUrl ? (
+    <span className="j-avf-overlay" aria-hidden />
+  ) : null;
 
   if (!avatarUrl) {
     return (
-      <div className="j-avatar">
+      <div
+        className={"j-avatar" + (frameCls ? ` ${frameCls}` : "")}
+        style={frameVars}
+      >
         <span aria-hidden>{initials}</span>
+        {overlay}
       </div>
     );
   }
@@ -51,7 +74,10 @@ export function JourneyVisitorAvatar({ avatarUrl, initials, alt }: Props) {
     <>
       <button
         type="button"
-        className="j-avatar j-avatar-viewable"
+        className={
+          "j-avatar j-avatar-viewable" + (frameCls ? ` ${frameCls}` : "")
+        }
+        style={frameVars}
         onClick={() => setOpen(true)}
         aria-label={`Xem ảnh đại diện của ${alt}`}
       >
@@ -63,6 +89,7 @@ export function JourneyVisitorAvatar({ avatarUrl, initials, alt }: Props) {
           height={AVATAR_DISPLAY_PX}
           decoding="async"
         />
+        {overlay}
       </button>
 
       {open ? (

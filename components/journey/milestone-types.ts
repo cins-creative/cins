@@ -3,6 +3,8 @@ import type { Block as ServerBlock } from "@/lib/editor/types";
 import type { FeedSourceKind } from "@/lib/cins/worldJourneyFeedSource";
 import type { PersonalFilterRef } from "@/lib/filter/types";
 import type { BookmarkFrameKind } from "@/lib/journey/bookmark-source-theme";
+import type { AuthorCardThemeDto } from "@/lib/journey/card-theme";
+import type { AvatarFrameDto } from "@/lib/journey/avatar-frame";
 
 /**
  * Type chuẩn cho 1 cột mốc (milestone) trên Journey.
@@ -294,6 +296,13 @@ export type MilestoneItem = {
   postOwnerSlug?: string | null;
   /** UUID chủ bài viết — dùng loại trừ khi đề xuất cộng sự trên card tagged. */
   postOwnerId?: string | null;
+  /**
+   * Style thanh datebar công khai của tác giả (`giao_dien.card`).
+   * World feed / Journey self — mọi viewer thấy cùng DTO.
+   */
+  authorCardTheme?: AuthorCardThemeDto | null;
+  /** Khung avatar công khai (`giao_dien.avatarFrame`) — chip + badge tác giả. */
+  authorAvatarFrame?: AvatarFrameDto | null;
   /** UUID tác phẩm chính, dùng cho các action cộng sự. */
   tacPhamId?: string | null;
   /** Slug nhãn cá nhân (`filter_nhan`) gắn trên cột mốc — lọc cục bộ Journey. */

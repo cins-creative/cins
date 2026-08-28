@@ -13,10 +13,10 @@
 | # | Nhóm | Vùng DOM / component | Phase |
 |---|---|---|---|
 | **A** | **Theme trang hồ sơ** — màu + pattern (+ ảnh nền sau) | `.cins-journey-page` · `.j-shell` · `.j-tlb` | **NOW** |
-| B | Khung & viền avatar | `.j-avatar.j-avatar-editable` (`JourneyAvatarTrigger`), `JourneyVisitorAvatar` | Sau |
+| B | Khung & viền avatar | `.j-avatar.j-avatar-editable` (`JourneyAvatarTrigger`), `JourneyVisitorAvatar` | **B1 ✅** → `docs/PLAN_customize_avatar.md` |
 | C | Theme shop | `ShopSwitchCard`, `JourneyShopSectionHead`, `.j-shop-sf-*` | Sau |
 | D | Card user (popover) | `.j-user-popover-backdrop` (`JourneyUserPopover`) | Sau |
-| E | Thanh bài post | `.jcard`, `.jcard-datebar` (`JourneyMilestoneCard`) | Sau |
+| E | Thanh bài post | `.jcard`, `.jcard-datebar` (`JourneyMilestoneCard`) | **BUILD ✅** → `docs/PLAN_customize_post_card.md` |
 
 **Topbar (`#app-topbar` / `.topbar-inner`):** **không custom** — luôn theo chrome hệ thống CINS (light/dark toàn site). Không ghi đè token lên topbar.
 

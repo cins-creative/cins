@@ -45,6 +45,12 @@ type Props = {
     ready: boolean;
     count: number;
   }) => void;
+  /** Nhóm D — layout panel (mặc định masonry). */
+  layout?: "masonry" | "grid";
+  /** Số cột (2|3|4) — mặc định 3. */
+  cols?: 2 | 3 | 4;
+  /** Giới hạn thumb (6|9|12|0=tất cả). */
+  limit?: 6 | 9 | 12 | 0;
 };
 
 type AsidePayload = {
@@ -54,7 +60,6 @@ type AsidePayload = {
 };
 
 const FALLBACK_ASPECT = 16 / 9;
-const MASONRY_COLS = 3;
 
 /** Preset CF gallery-pinned / gallery-grid — không phải tỉ lệ gốc. */
 function isGenericPreset(width: number, height: number): boolean {
@@ -117,8 +122,12 @@ export function JourneyUserFeaturedExpand({
   hideToggle = false,
   hasFeaturedHint,
   onAvailabilityChange,
+  layout = "masonry",
+  cols: colsProp = 3,
+  limit = 0,
 }: Props) {
   const trimmed = slug.trim();
+  const colCount = colsProp === 2 || colsProp === 4 ? colsProp : 3;
   const [openUncontrolled, setOpenUncontrolled] = useState(false);
   const controlled = openControlled !== undefined;
   const open = controlled ? openControlled : openUncontrolled;
@@ -241,16 +250,18 @@ export function JourneyUserFeaturedExpand({
 
   const columns = useMemo(() => {
     if (!items || items.length === 0) return null;
-    const cells = items.map((item) => ({
+    const capped =
+      limit > 0 && items.length > limit ? items.slice(0, limit) : items;
+    const cells = capped.map((item) => ({
       id: item.id,
       aspect: aspectById.get(item.id) ?? seedAspect(item),
       data: item,
     }));
-    const packed = packMasonryByAspect(cells, MASONRY_COLS);
+    const packed = packMasonryByAspect(cells, colCount);
     const cols = [...packed];
-    while (cols.length < MASONRY_COLS) cols.push([]);
-    return cols.slice(0, MASONRY_COLS);
-  }, [items, aspectById]);
+    while (cols.length < colCount) cols.push([]);
+    return cols.slice(0, colCount);
+  }, [items, aspectById, colCount, limit]);
 
   /* Chỉ busy khi đang mở + chưa có data (idle chờ effect / loading). */
   const pending = open && (loadState === "idle" || loadState === "loading");
@@ -302,8 +313,8 @@ export function JourneyUserFeaturedExpand({
         aria-label="Feature"
       >
         <div
-          className="j-user-featured-masonry"
-          style={{ "--j-featured-cols": MASONRY_COLS } as CSSProperties}
+          className={`j-user-featured-masonry${layout === "grid" ? " is-grid" : ""}`}
+          style={{ "--j-featured-cols": colCount } as CSSProperties}
         >
           {(columns ?? [[]]).map((col, colIndex) => (
             <div

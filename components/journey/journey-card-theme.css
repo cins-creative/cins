@@ -1,0 +1,281 @@
+/**
+ * Thanh bài / datebar theo author (`giao_dien.card`).
+ * Nền đặc + `--j-card-dim` · ảnh tùy chọn `--j-card-image` + overlay.
+ * Scope: `.j-milestone[data-card-theme]` — không đụng cong-dong / bookmark frame.
+ * Dark: `:root[data-theme=dark]` (site) + `[data-preview-scheme=dark]` (demo picker).
+ */
+
+.j-milestone[data-card-theme][data-card-accent]
+  .jcard-datebar:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  ),
+.j-milestone[data-card-theme][data-card-accent]
+  .jcard-datebar--author-theme:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  ) {
+  --_card-accent: var(--j-card-accent, var(--cins-blue, #1f74c9));
+  --_card-dim: var(--j-card-dim, 0.35);
+  border-bottom-color: color-mix(
+    in srgb,
+    var(--_card-accent) 18%,
+    var(--jcard-border2, var(--border, #e4e6eb))
+  );
+  /* Nền đặc — độ đậm theo slider */
+  background: color-mix(
+    in srgb,
+    var(--_card-accent) calc(var(--_card-dim) * 100%),
+    var(--bg-surface, #fff)
+  );
+}
+
+/* Có ảnh — lớp ảnh (::before) mask L→R; scrim (::after) theo --bg-surface sáng/tối */
+.j-milestone[data-card-theme][data-card-image]
+  .jcard-datebar:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  ),
+.j-milestone[data-card-theme][data-card-image]
+  .jcard-datebar--author-theme:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  ) {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-color: var(--bg-surface, #fff);
+  background-image: none;
+  --_card-read: var(--bg-surface, #fff);
+  transition: none;
+}
+
+.j-milestone[data-card-theme][data-card-image]
+  .jcard-datebar:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  )::before,
+.j-milestone[data-card-theme][data-card-image]
+  .jcard-datebar--author-theme:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  )::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: var(--j-card-image, none);
+  background-size: cover;
+  background-position: var(--j-card-image-pos, center);
+  background-repeat: no-repeat;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    rgb(0 0 0 / 0.12) 14%,
+    rgb(0 0 0 / 0.5) 38%,
+    #000 68%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    rgb(0 0 0 / 0.12) 14%,
+    rgb(0 0 0 / 0.5) 38%,
+    #000 68%
+  );
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.j-milestone[data-card-theme][data-card-image]
+  .jcard-datebar:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  )::after,
+.j-milestone[data-card-theme][data-card-image]
+  .jcard-datebar--author-theme:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  )::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to right,
+    var(--_card-read, var(--bg-surface, #fff)) 0%,
+    color-mix(
+      in srgb,
+      var(--_card-read, var(--bg-surface, #fff)) 88%,
+      transparent
+    )
+      26%,
+    color-mix(
+      in srgb,
+      var(--_card-read, var(--bg-surface, #fff))
+        calc(var(--j-card-overlay, 0.55) * 100%),
+      transparent
+    )
+      56%,
+    color-mix(
+      in srgb,
+      var(--_card-read, var(--bg-surface, #fff))
+        calc(var(--j-card-overlay, 0.55) * 22%),
+      transparent
+    )
+      100%
+  );
+}
+
+.j-milestone[data-card-theme][data-card-image]
+  .jcard-datebar:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  )
+  > *,
+.j-milestone[data-card-theme][data-card-image]
+  .jcard-datebar--author-theme:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  )
+  > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Accent name + thời gian — nền sáng: chữ đặc 100%, không phai theo accent */
+.j-milestone[data-card-theme]
+  .jcard-datebar:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  )
+  .org-chip
+  strong,
+.j-milestone[data-card-theme]
+  .jcard-datebar:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  )
+  .j-user-pop-trigger
+  strong {
+  color: var(--neutral-800, #1b1f2a);
+}
+
+.j-milestone[data-card-theme]
+  .jcard-datebar:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  )
+  .org-copy
+  small,
+.j-milestone[data-card-theme]
+  .jcard-datebar:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  )
+  .org-chip
+  small {
+  color: var(--neutral-500, #6b7280);
+}
+
+/* Dark — site theme hoặc demo picker (trừ preview sáng trên site tối) */
+:root[data-theme="dark"]
+  .j-milestone[data-card-theme][data-card-accent]:not(
+    [data-preview-scheme="light"]
+  )
+  .jcard-datebar:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  ),
+.j-milestone[data-card-theme][data-card-accent][data-preview-scheme="dark"]
+  .jcard-datebar:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  ) {
+  background: color-mix(
+    in srgb,
+    var(--_card-accent) calc(var(--_card-dim, 0.35) * 100%),
+    var(--bg-surface, #12141a)
+  );
+}
+
+:root[data-theme="dark"]
+  .j-milestone[data-card-theme]:not([data-preview-scheme="light"])[data-card-image]
+  .jcard-datebar:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  ),
+.j-milestone[data-card-theme][data-preview-scheme="dark"][data-card-image]
+  .jcard-datebar:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  ) {
+  background-color: var(--bg-surface, #12141a);
+  background-image: none;
+  --_card-read: var(--bg-surface, #12141a);
+}
+
+:root[data-theme="dark"]
+  .j-milestone[data-card-theme][data-card-accent]:not(
+    [data-preview-scheme="light"]
+  )
+  .jcard-datebar:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  )
+  .org-chip
+  strong,
+:root[data-theme="dark"]
+  .j-milestone[data-card-theme][data-card-accent]:not(
+    [data-preview-scheme="light"]
+  )
+  .jcard-datebar:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  )
+  .j-user-pop-trigger
+  strong,
+.j-milestone[data-card-theme][data-card-accent][data-preview-scheme="dark"]
+  .jcard-datebar:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  )
+  .org-chip
+  strong,
+.j-milestone[data-card-theme][data-card-accent][data-preview-scheme="dark"]
+  .jcard-datebar:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  )
+  .j-user-pop-trigger
+  strong {
+  color: color-mix(
+    in srgb,
+    var(--_card-accent) 45%,
+    var(--neutral-800, #f8fafc)
+  );
+}
+
+:root[data-theme="dark"]
+  .j-milestone[data-card-theme][data-card-accent]:not(
+    [data-preview-scheme="light"]
+  )
+  .jcard-datebar:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  )
+  .org-copy
+  small,
+:root[data-theme="dark"]
+  .j-milestone[data-card-theme][data-card-accent]:not(
+    [data-preview-scheme="light"]
+  )
+  .jcard-datebar:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  )
+  .org-chip
+  small,
+.j-milestone[data-card-theme][data-card-accent][data-preview-scheme="dark"]
+  .jcard-datebar:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  )
+  .org-copy
+  small,
+.j-milestone[data-card-theme][data-card-accent][data-preview-scheme="dark"]
+  .jcard-datebar:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  )
+  .org-chip
+  small {
+  color: color-mix(
+    in srgb,
+    var(--_card-accent) 32%,
+    var(--neutral-400, #94a3b8)
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .j-milestone[data-card-theme] .jcard-datebar {
+    transition: none;
+  }
+}

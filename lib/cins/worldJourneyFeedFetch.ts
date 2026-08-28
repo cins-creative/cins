@@ -17,6 +17,14 @@ import {
 } from "@/lib/journey/milestones-fetch";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import {
+  authorCardThemeFromGiaoDien,
+  milestoneTakesAuthorCardTheme,
+} from "@/lib/journey/card-theme";
+import {
+  avatarFrameFromGiaoDien,
+  milestoneTakesAuthorAvatarFrame,
+} from "@/lib/journey/avatar-frame";
+import {
   attachFeedScoresAndFilter,
   feedScoreTargetFromMilestone,
   loadActiveFeedScoreMap,
@@ -99,6 +107,7 @@ type AuthorRow = {
   slug: string;
   ten_hien_thi: string | null;
   avatar_id: string | null;
+  giao_dien: unknown;
 };
 
 async function listFollowingUserIds(viewerId: string): Promise<string[]> {
@@ -304,7 +313,7 @@ async function loadAuthors(authorIds: string[]): Promise<Map<string, AuthorRow>>
   const admin = createServiceRoleClient();
   const { data } = await admin
     .from("user_nguoi_dung")
-    .select("id, slug, ten_hien_thi, avatar_id")
+    .select("id, slug, ten_hien_thi, avatar_id, giao_dien")
     .in("id", authorIds)
     .returns<AuthorRow[]>();
 
@@ -334,6 +343,77 @@ function applyLensOwners(
       postOwnerId: ownerId ?? m.postOwnerId,
     };
   });
+}
+
+function stripAuthorCardTheme(m: MilestoneItem): MilestoneItem {
+  if (m.authorCardTheme == null) return m;
+  const { authorCardTheme: _drop, ...rest } = m;
+  return rest;
+}
+
+function stripAuthorAvatarFrame(m: MilestoneItem): MilestoneItem {
+  if (m.authorAvatarFrame == null) return m;
+  const { authorAvatarFrame: _drop, ...rest } = m;
+  return rest;
+}
+
+/**
+ * Theme datebar + khung avatar đọc tươi từ `giao_dien` — không nhét vào
+ * `unstable_cache` ranked (TTL 20s).
+ */
+async function hydrateAuthorCardThemes(
+  items: MilestoneItem[],
+): Promise<MilestoneItem[]> {
+  if (items.length === 0) return items;
+  const authorIds = [
+    ...new Set(
+      items
+        .map((m) => m.postOwnerId ?? m.lensOwnerId ?? null)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const authors = await loadAuthors(authorIds);
+  return items.map((m) => {
+    let next = m;
+    const ownerId = m.postOwnerId ?? m.lensOwnerId;
+    const author = ownerId ? authors.get(ownerId) : null;
+
+    if (!milestoneTakesAuthorCardTheme(m)) {
+      next = stripAuthorCardTheme(next);
+    } else {
+      const cardDto = author
+        ? authorCardThemeFromGiaoDien(author.giao_dien)
+        : null;
+      next = cardDto
+        ? { ...next, authorCardTheme: cardDto }
+        : stripAuthorCardTheme(next);
+    }
+
+    if (!milestoneTakesAuthorAvatarFrame(m)) {
+      next = stripAuthorAvatarFrame(next);
+    } else {
+      const frameDto = author
+        ? avatarFrameFromGiaoDien(author.giao_dien)
+        : null;
+      next = frameDto
+        ? { ...next, authorAvatarFrame: frameDto }
+        : stripAuthorAvatarFrame(next);
+    }
+
+    return next;
+  });
+}
+
+async function finalizeFeedPage(
+  ranked: MilestoneItem[],
+  offset: number,
+  limit: number,
+): Promise<WorldJourneyFeedPage> {
+  const page = sliceWorldJourneyFeedPage(ranked, offset, limit);
+  return {
+    ...page,
+    milestones: await hydrateAuthorCardThemes(page.milestones),
+  };
 }
 
 /**
@@ -779,7 +859,7 @@ async function fetchWorldJourneyShopOnlyPage(
     );
   }
 
-  return sliceWorldJourneyFeedPage(filtered, offset, limit);
+  return finalizeFeedPage(filtered, offset, limit);
 }
 
 export async function fetchWorldJourneyFeedPage(
@@ -796,7 +876,7 @@ export async function fetchWorldJourneyFeedPage(
     : await fetchWorldJourneyFeedRankedForApi(viewerId);
   const boosted = await withWorldBoostMilestones(ranked, { viewerId });
   const filtered = applyWorldJourneyFeedPageFilters(boosted, options);
-  return sliceWorldJourneyFeedPage(filtered, offset, limit);
+  return finalizeFeedPage(filtered, offset, limit);
 }
 
 function sliceWorldJourneyFeedPage(
@@ -831,7 +911,7 @@ export async function fetchWorldJourneyFeedPageCached(
     : await fetchWorldJourneyFeedRankedCached(viewerId);
   const boosted = await withWorldBoostMilestones(ranked, { viewerId });
   const filtered = applyWorldJourneyFeedPageFilters(boosted, options);
-  return sliceWorldJourneyFeedPage(filtered, offset, limit);
+  return finalizeFeedPage(filtered, offset, limit);
 }
 
 /** Tab Khám phá — bài discovery toàn cục (`feature` + cold-start `public`) từ người chưa follow/bạn bè. */
@@ -846,9 +926,11 @@ export async function fetchWorldJourneyExploreMilestones(
   const followingSet = new Set(followingIds);
   const knownAuthorIds = new Set<string>([viewerId, ...friendIds, ...followingIds]);
 
-  return filterFeedMilestonesForViewer(
-    await buildExplorePool(viewerId, friendSet, followingSet, knownAuthorIds),
-    viewerId,
+  return hydrateAuthorCardThemes(
+    filterFeedMilestonesForViewer(
+      await buildExplorePool(viewerId, friendSet, followingSet, knownAuthorIds),
+      viewerId,
+    ),
   );
 }
 

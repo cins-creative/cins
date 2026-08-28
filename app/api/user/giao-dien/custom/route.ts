@@ -84,6 +84,10 @@ export async function DELETE(request: Request) {
     ok: true,
     theme: next.theme,
     customs: next.customs,
+    card: next.card,
+    popover: next.popover,
+    avatarFrame: next.avatarFrame,
+    shopSwitch: next.shopSwitch,
     cfDeleted: cf.ok,
   });
 }

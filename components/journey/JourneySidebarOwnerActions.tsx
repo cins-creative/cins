@@ -1,7 +1,8 @@
 "use client";
 
 import { Pencil } from "lucide-react";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import {
   JourneyEditProfileModal,
@@ -9,6 +10,12 @@ import {
 } from "@/components/journey/JourneyEditProfileModal";
 import { JourneyProfileShareTrigger } from "@/components/journey/JourneyProfileShareTrigger";
 import type { JourneyShareProfile } from "@/lib/journey/profile-share";
+import {
+  EDIT_PROFILE_QUERY,
+  EDIT_PROFILE_TAB_CUSTOMIZE,
+  OPEN_EDIT_PROFILE_EVENT,
+  type EditProfileOpenTab,
+} from "@/lib/cins/open-edit-profile";
 
 type Props = {
   ownerSlug: string;
@@ -29,7 +36,32 @@ export function JourneySidebarOwnerActions({
   shareProfile,
   viewerProfileId = null,
 }: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [initialTab, setInitialTab] =
+    useState<EditProfileOpenTab>("thong-tin");
+
+  useEffect(() => {
+    function onOpen(ev: Event) {
+      const tab = (ev as CustomEvent<{ tab?: EditProfileOpenTab }>).detail
+        ?.tab;
+      setInitialTab(tab === "customize" ? "customize" : "thong-tin");
+      setOpen(true);
+    }
+    window.addEventListener(OPEN_EDIT_PROFILE_EVENT, onOpen);
+    return () => {
+      window.removeEventListener(OPEN_EDIT_PROFILE_EVENT, onOpen);
+    };
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get(EDIT_PROFILE_QUERY) !== EDIT_PROFILE_TAB_CUSTOMIZE) return;
+    setInitialTab("customize");
+    setOpen(true);
+    router.replace(pathname, { scroll: false });
+  }, [pathname, router]);
 
   return (
     <>
@@ -37,7 +69,10 @@ export function JourneySidebarOwnerActions({
         <button
           type="button"
           className="j-btn-msg"
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            setInitialTab("thong-tin");
+            setOpen(true);
+          }}
         >
           <Pencil size={14} strokeWidth={1.8} aria-hidden /> Chỉnh sửa hồ sơ
         </button>
@@ -52,6 +87,7 @@ export function JourneySidebarOwnerActions({
         onClose={() => setOpen(false)}
         initial={initial}
         ownerSlug={ownerSlug}
+        initialTab={initialTab}
       />
     </>
   );

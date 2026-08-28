@@ -206,18 +206,24 @@ function BaoThieuDanhMucForm({
   onCancel: () => void;
 }) {
   const [chaId, setChaId] = useState("");
+  const [tenLa, setTenLa] = useState(tuKhoa.trim());
   const [tenNhomMoi, setTenNhomMoi] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    setTenLa(tuKhoa.trim());
+  }, [tuKhoa]);
 
   const deXuatNhomMoi = chaId === ID_NHOM_MOI;
   const chaTen = deXuatNhomMoi
     ? null
     : (parents.find((p) => p.id === chaId)?.ten ?? null);
   const locked = disabled || busy;
+  const tenLaTrim = tenLa.trim();
   const tenNhomMoiTrim = tenNhomMoi.trim();
   const canSubmit =
-    Boolean(tuKhoa.trim()) &&
+    tenLaTrim.length >= 2 &&
     (!deXuatNhomMoi || tenNhomMoiTrim.length >= 2);
 
   async function submit() {
@@ -237,12 +243,12 @@ function BaoThieuDanhMucForm({
         body: JSON.stringify({
           idNhom: nhomId,
           moTa: moTaDeXuatDanhMuc({
-            tuKhoa,
+            tuKhoa: tenLaTrim,
             chaTen: matched?.ten ?? chaTen,
             laTen: null,
             tenNhomMoi: tenMoi,
           }),
-          tuKhoa,
+          tuKhoa: tenLaTrim,
           idDanhMucGanNhat: idChaGui,
         }),
       });
@@ -276,13 +282,26 @@ function BaoThieuDanhMucForm({
       <header className="shop-kho-loai-dd-missing-head">
         <p className="shop-kho-loai-dd-missing-kicker">Đề xuất danh mục</p>
         <h4 className="shop-kho-loai-dd-missing-name">
-          <span>{tuKhoa.trim() || "danh mục mới"}</span>
+          <span>{tenLaTrim || "danh mục mới"}</span>
         </h4>
         <p className="shop-kho-loai-dd-missing-lead">
           Danh mục mới này sẽ chờ admin duyệt, Hàng của bạn vẫn sẽ bán được bình
           thường nhé!
         </p>
       </header>
+
+      <label className="shop-kho-loai-dd-missing-field">
+        Tên danh mục
+        <input
+          type="text"
+          value={tenLa}
+          maxLength={80}
+          disabled={locked}
+          placeholder="vd. Pad chuột"
+          aria-label="Tên danh mục muốn thêm"
+          onChange={(e) => setTenLa(e.target.value)}
+        />
+      </label>
 
       <label className="shop-kho-loai-dd-missing-field">
         Thuộc nhóm
@@ -445,7 +464,7 @@ function TaxSelectDropdown({
     return options.some((o) => o.ten.toLocaleLowerCase("vi") === needle);
   }, [options, q]);
 
-  const canDeXuat = Boolean(missingCategory && q.trim() && !exactMatch);
+  const canDeXuat = Boolean(missingCategory) && !exactMatch;
 
   const summary =
     selected.length === 0
@@ -489,7 +508,7 @@ function TaxSelectDropdown({
                           : "Chọn một hoặc nhiều"
                         : hasPending
                           ? "Đã gửi đề xuất — chọn mục có sẵn nếu thấy đúng"
-                          : "Chọn một mục, hoặc đề xuất nếu chưa có"}
+                          : "Chọn một mục, hoặc thêm nếu chưa có"}
                   </p>
                 </div>
                 <button
@@ -511,7 +530,7 @@ function TaxSelectDropdown({
                     value={q}
                     placeholder={
                       missingCategory
-                        ? "Tìm hoặc gõ tên danh mục…"
+                        ? "Tìm hoặc gõ tên rồi bấm +"
                         : searchPlaceholder
                     }
                     disabled={disabled}
@@ -541,6 +560,28 @@ function TaxSelectDropdown({
                       <X size={14} strokeWidth={2.4} aria-hidden />
                     </button>
                   ) : null}
+                  {missingCategory ? (
+                    <button
+                      type="button"
+                      className="shop-kho-loai-dd-search-add"
+                      aria-label={
+                        exactMatch
+                          ? "Danh mục này đã có — chọn trong danh sách"
+                          : q.trim()
+                            ? `Thêm danh mục «${q.trim()}»`
+                            : "Thêm danh mục mới"
+                      }
+                      title={
+                        exactMatch
+                          ? "Danh mục này đã có — chọn trong danh sách"
+                          : "Thêm danh mục mới"
+                      }
+                      disabled={disabled || !canDeXuat}
+                      onClick={() => setDeXuatOpen(true)}
+                    >
+                      <Plus size={16} strokeWidth={2.4} aria-hidden />
+                    </button>
+                  ) : null}
                 </label>
               ) : null}
 
@@ -555,7 +596,7 @@ function TaxSelectDropdown({
                 }
                 aria-label={label}
               >
-                {deXuatOpen && missingCategory && q.trim() ? (
+                {deXuatOpen && missingCategory ? (
                   <BaoThieuDanhMucForm
                     nhomId={missingCategory.nhomId}
                     tuKhoa={q}
@@ -634,8 +675,12 @@ function TaxSelectDropdown({
                       <Plus size={12} strokeWidth={3} />
                     </span>
                     <span className="shop-kho-loai-dd-option-copy">
-                      <strong>Đề xuất «{q.trim()}»</strong>
-                      <em>Danh mục này chưa có trên CINs</em>
+                      <strong>
+                        {q.trim()
+                          ? `Thêm «${q.trim()}»`
+                          : "Thêm danh mục mới"}
+                      </strong>
+                      <em>Gửi đề xuất — hàng vẫn bán bình thường</em>
                     </span>
                   </button>
                 ) : null}

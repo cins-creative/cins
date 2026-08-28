@@ -18,6 +18,10 @@ import {
   type ProfileGiaoDienState,
   type ProfileThemeSlice,
 } from "@/lib/journey/profile-theme";
+import { DEFAULT_CARD_THEME } from "@/lib/journey/card-theme";
+import { DEFAULT_AVATAR_FRAME } from "@/lib/journey/avatar-frame";
+import { DEFAULT_POPOVER_THEME } from "@/lib/journey/popover-theme";
+import { DEFAULT_SHOP_SWITCH } from "@/lib/journey/shop-switch";
 
 export const USER_THEME_CHANGE_EVENT = "cins-user-theme-change";
 
@@ -69,6 +73,10 @@ export function computeUserShellTheme(
     v: 1,
     theme,
     customs: [],
+    card: DEFAULT_CARD_THEME,
+    avatarFrame: DEFAULT_AVATAR_FRAME,
+    popover: DEFAULT_POPOVER_THEME,
+    shopSwitch: DEFAULT_SHOP_SWITCH,
   };
   const hasAccent = theme.accent !== "cins" || Boolean(theme.accentHex);
   const hasPattern =

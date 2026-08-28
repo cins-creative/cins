@@ -1023,6 +1023,33 @@
   stroke-linejoin: round;
 }
 
+.app-user-menu-colorwheel {
+  position: relative;
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.app-user-menu-colorwheel-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    #ff3b30,
+    #ff9500,
+    #ffcc00,
+    #34c759,
+    #5ac8fa,
+    #007aff,
+    #af52de,
+    #ff2d55,
+    #ff3b30
+  );
+  box-shadow: inset 0 0 0 3.5px var(--bg-surface, #fff);
+}
+
 /* Chế độ giao diện — 3 icon một hàng trong menu tài khoản */
 .app-user-theme {
   display: grid;
@@ -1197,87 +1224,14 @@
   will-change: transform;
 }
 
-/* Mobile: ẩn bằng transform xuống dưới — chrome dính đáy.
- * FAB chat nhô ~28px trên bar: dịch sâu hơn, không dùng overflow mask. */
+/* Mobile: botbar cố định đáy — không auto-hide khi scroll. */
 @media (max-width: 960px) {
-  .cins-app-topbar.topbar.is-hidden {
-    transform: translate3d(0, calc(100% + 58px), 0);
-    pointer-events: none;
-    overflow: visible;
-  }
-
-  /* Botbar không còn kéo sticky-top của trang. */
   .cins-shell {
     --cins-sticky-follow: 0px;
   }
 
-  .cins-shell:has(#app-topbar.is-hidden) {
-    --cins-sticky-follow: 0px;
-  }
-
-  /* Feed World Journey: header ẩn lên trên cùng nhịp nav đáy. */
-  .cins-shell:has(#app-topbar.is-hidden) .wj-feed-header {
-    transform: translate3d(0, -100%, 0);
-    pointer-events: none;
-  }
-
   .cins-app-topbar.topbar {
-    transition:
-      transform var(--cins-chrome-hide-dur) var(--cins-chrome-hide-ease),
-      margin-bottom var(--cins-chrome-hide-dur) var(--cins-chrome-hide-ease),
-      box-shadow var(--cins-chrome-hide-dur) var(--cins-chrome-hide-ease);
-  }
-
-  /* Sticky chrome follow topbar ẩn — chỉ khi đã dính top.
-   * `.j-tlb` giữa trang (timeline / gallery dưới profile) chưa stuck:
-   * transform sẽ kéo thanh lên sớm. Listing toolbar thường đã sát top. */
-  .cins-shell :is(
-    .j-tlb:not(.j-timeline > .j-tlb):not(.j-gallery-main > .j-tlb),
-    .j-timeline > .j-tlb.is-chrome-stuck:not(.org-baidang-tlb),
-    .j-gallery-main > .j-tlb.is-chrome-stuck,
-    .j-shop-sf-section-head.is-chrome-stuck,
-    .shop-quay-tlb,
-    .ch-list-toolbar,
-    .cd-list-toolbar,
-    .tdh-list-toolbar,
-    .tkh-hub-header,
-    .td-hub-header,
-    .tdh-v6-tabs-bar.is-chrome-stuck,
-    .hn-dept-tabs,
-    .hn-page-head,
-    .hn-rail-bar,
-    .sk-detail-topbar,
-    .shop-dash-head,
-    .shop-dash-subtabs,
-    .tdh-admin-toolbar-host,
-    .nct-admin-toolbar-host,
-    .hn-hub-admin-toolbar-host,
-    .sw-admin-toolbar-host,
-    .tdh-page .filter-bar,
-    .cd-v4-id,
-    .cd-v4-event-rail,
-    .wj-feed-header
-  ) {
-    transition: transform var(--cins-chrome-hide-dur) var(--cins-chrome-hide-ease);
-    transform: translate3d(0, var(--cins-sticky-follow, 0px), 0);
-    will-change: transform;
-  }
-
-  /* Org bài đăng: khi topbar ẩn chỉ giữ hàng tab; filter tlb ẩn hết (kể cả kính). */
-  .cins-shell .org-baidang-tlb {
-    transition:
-      transform var(--app-nav-dur) var(--app-nav-ease),
-      opacity var(--app-nav-dur) var(--app-nav-ease);
-  }
-
-  .cins-shell:has(#app-topbar.is-hidden) .org-baidang-tlb.is-chrome-stuck {
-    pointer-events: none;
-    opacity: 0;
-    transform: translate3d(
-      0,
-      calc(var(--cins-sticky-follow, 0px) - 100%),
-      0
-    );
+    transition: box-shadow var(--app-nav-dur) var(--app-nav-ease);
   }
 }
 

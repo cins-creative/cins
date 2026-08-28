@@ -50,8 +50,8 @@ export function HardNavGuard() {
 
       if (url.origin !== window.location.origin) return;
 
-      const from = window.location.pathname;
-      const to = url.pathname;
+      const from = `${window.location.pathname}${window.location.search}`;
+      const to = `${url.pathname}${url.search}`;
       if (!shouldHardNavigate(from, to)) return;
 
       event.preventDefault();

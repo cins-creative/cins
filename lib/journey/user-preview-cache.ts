@@ -1,5 +1,8 @@
 /** Client cache + in-flight dedupe cho `/api/users/preview`. */
 
+import type { UserPopoverThemeDto } from "@/lib/journey/popover-theme";
+import type { AvatarFrameDto } from "@/lib/journey/avatar-frame";
+
 export type UserPreviewProfile = {
   idNguoiDung: string;
   slug: string;
@@ -14,7 +17,13 @@ export type UserPreviewProfile = {
     cotMoc: number;
     tacPham: number;
     banBe: number;
+    theoDoi?: number;
+    toChucXacThuc?: number;
   };
+  /** Nhóm D — null/thiếu = card mặc định CINS. */
+  popoverTheme?: UserPopoverThemeDto | null;
+  /** Nhóm B — khung avatar. */
+  avatarFrame?: AvatarFrameDto | null;
 };
 
 const TTL_MS = 60_000;

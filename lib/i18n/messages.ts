@@ -46,6 +46,7 @@ const vi = {
 
   "account.menuAria": "Tài khoản",
   "account.profile": "Trang cá nhân",
+  "account.customize": "Customize",
   "account.createOrg": "Tạo tổ chức",
   "account.createCommunity": "Tạo cộng đồng",
   "account.settings": "Cài đặt",
@@ -1314,6 +1315,7 @@ const en: { [K in keyof typeof vi]: string } = {
 
   "account.menuAria": "Account",
   "account.profile": "Profile",
+  "account.customize": "Customize",
   "account.createOrg": "Create organization",
   "account.createCommunity": "Create community",
   "account.settings": "Settings",

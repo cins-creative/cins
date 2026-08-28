@@ -32,6 +32,7 @@ import { LayoutThumbIcon } from "@/components/editor/LayoutThumbIcon";
 import { ShopDonDetailModal } from "@/components/shop/ShopDonDetailModal";
 import { formatCurrency, formatDate, formatMoney } from "@/lib/format";
 import { useLocale } from "@/lib/locale/context";
+import { invalidateShopClientCaches } from "@/lib/shop/client-fetch-cache";
 import { shopTermsForLocale } from "@/lib/shop/terms";
 import {
   shopTrangThaiDonLabel,
@@ -1174,6 +1175,7 @@ function BanHangSettingsSection({ titleId }: { titleId: string }) {
       }
       applyBanHangJson(json);
       const next = json?.enabled === true;
+      invalidateShopClientCaches();
       window.dispatchEvent(
         new CustomEvent("cins:ban-hang-changed", {
           detail: {

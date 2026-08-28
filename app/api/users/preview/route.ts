@@ -6,6 +6,8 @@ import {
   getGiaiDoanLabel,
   getProfileCoverUrl,
 } from "@/lib/journey/profile";
+import { popoverThemeDtoFromGiaoDien } from "@/lib/journey/popover-theme";
+import { avatarFrameFromGiaoDien } from "@/lib/journey/avatar-frame";
 import { loadUserSocialStatsByIds } from "@/lib/social/follow";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -19,6 +21,7 @@ type ProfileRow = {
   giai_doan: Parameters<typeof getGiaiDoanLabel>[0] | null;
   tinh_thanh: string | null;
   da_xac_minh: boolean | null;
+  giao_dien: unknown;
 };
 
 export async function GET(req: Request) {
@@ -32,7 +35,7 @@ export async function GET(req: Request) {
   const { data: profile, error } = await admin
     .from("user_nguoi_dung")
     .select(
-      "id, slug, ten_hien_thi, avatar_id, cover_id, bio, giai_doan, tinh_thanh, da_xac_minh",
+      "id, slug, ten_hien_thi, avatar_id, cover_id, bio, giai_doan, tinh_thanh, da_xac_minh, giao_dien",
     )
     .eq("slug", slug)
     .maybeSingle<ProfileRow>();
@@ -50,6 +53,19 @@ export async function GET(req: Request) {
     toChucXacThuc: 0,
   };
 
+  /* Follower count — chỉ cho preview card (không phình batch stats toàn sàn). */
+  const { count: theoDoiCount } = await admin
+    .from("user_theo_doi")
+    .select("id_nguoi_theo_doi", { count: "exact", head: true })
+    .eq("loai_doi_tuong", "nguoi_dung")
+    .eq("id_doi_tuong", profile.id);
+
+  const popoverTheme = popoverThemeDtoFromGiaoDien(
+    profile.giao_dien,
+    profile.slug,
+  );
+  const avatarFrame = avatarFrameFromGiaoDien(profile.giao_dien);
+
   return NextResponse.json({
     profile: {
       idNguoiDung: profile.id,
@@ -65,7 +81,11 @@ export async function GET(req: Request) {
         cotMoc: stats.cotMoc,
         tacPham: stats.tacPham,
         banBe: stats.banBe,
+        theoDoi: theoDoiCount ?? 0,
+        toChucXacThuc: stats.toChucXacThuc,
       },
+      ...(popoverTheme ? { popoverTheme } : {}),
+      ...(avatarFrame ? { avatarFrame } : {}),
     },
   });
 }

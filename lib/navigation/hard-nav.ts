@@ -1,3 +1,5 @@
+import { isPersonalPostViewPath } from "@/lib/journey/post-view-path";
+
 /**
  * Soft-nav (Next `<Link>` / RSC) hay 404 lần đầu khi đổi “shell”
  * (cơ sở / studio / trường / profile `@modal` / entity…).
@@ -5,6 +7,9 @@
  *
  * HardNavGuard dùng các hàm này để chỉ hard-nav khi **đổi shell**,
  * giữ soft/pushState khi vẫn trong cùng org/profile.
+ *
+ * Ngoại lệ: vào `/{slug}/p/{post}` từ profile có `?view=` (gallery / journey / …).
+ * Intercept `@modal/(.)p` RSC 404 khi `Next-Url` mang search — F5 permalink thì 200.
  */
 
 /**
@@ -144,6 +149,12 @@ export function isFragileShell(shellId: ShellId): boolean {
   return FRAGILE_SHELL_PREFIXES.some((prefix) => shellId.startsWith(prefix));
 }
 
+function pathSearch(raw: string): string {
+  const noHash = raw.split("#")[0] ?? raw;
+  const q = noHash.indexOf("?");
+  return q >= 0 ? noHash.slice(q + 1) : "";
+}
+
 /** Hard-nav khi đổi shell và ít nhất một phía thuộc cây dễ gãy. */
 export function shouldHardNavigate(
   fromPathname: string,
@@ -152,6 +163,15 @@ export function shouldHardNavigate(
   const from = normalizePathname(fromPathname);
   const to = normalizePathname(toPathname);
   if (from === to) return false;
+
+  /* Intercept `(.)p` 404 khi đang đứng trên `?view=gallery` (và view khác). */
+  if (
+    isPersonalPostViewPath(to) &&
+    !isPersonalPostViewPath(from) &&
+    pathSearch(fromPathname).length > 0
+  ) {
+    return true;
+  }
 
   const fromShell = pathnameShellId(from);
   const toShell = pathnameShellId(to);

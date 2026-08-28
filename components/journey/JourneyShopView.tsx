@@ -145,6 +145,28 @@ export function JourneyShopView({
       window.removeEventListener("cins:shop-profile-changed", onChanged);
   }, [ownerId, ownerSlug]);
 
+  useEffect(() => {
+    const onBanHang = (ev: Event) => {
+      const detail = (
+        ev as CustomEvent<{ enabled?: boolean; shopVisible?: boolean }>
+      ).detail;
+      if (typeof detail?.enabled === "boolean") setBanHangBat(detail.enabled);
+      if (typeof detail?.shopVisible === "boolean") {
+        setShopVisible(detail.shopVisible);
+      }
+      void fetchShopCuaHangClient({ slug: ownerSlug, force: true })
+        .then((data) => {
+          setBanHangBat(data.banHangBat);
+          setShopVisible(data.shopVisible);
+          setShop(data.shop);
+        })
+        .catch(() => undefined);
+    };
+    window.addEventListener("cins:ban-hang-changed", onBanHang);
+    return () =>
+      window.removeEventListener("cins:ban-hang-changed", onBanHang);
+  }, [ownerSlug]);
+
   const shopLabel = shop?.ten?.trim() || `${ownerName} — cửa hàng`;
   const initials = getNameInitials(shop?.ten, ownerSlug);
   const ready = shop?.sanSangNhanDon === true;

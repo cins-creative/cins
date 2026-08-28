@@ -74,6 +74,20 @@
   text-align: center;
 }
 
+.j-user-featured-masonry.is-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--j-featured-cols, 3), minmax(0, 1fr));
+  gap: 6px;
+}
+
+.j-user-featured-masonry.is-grid .j-user-featured-mcol {
+  display: contents;
+}
+
+.j-user-featured-masonry.is-grid .j-user-featured-tile {
+  aspect-ratio: 1 / 1 !important;
+}
+
 /* Masonry 3 cột thật: flex cột dọc + aspect từng ảnh (không CSS column-count). */
 .j-user-featured-masonry {
   --j-featured-cols: 3;

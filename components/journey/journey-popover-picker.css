@@ -1,0 +1,273 @@
+/* Picker customize card user — tái dùng lưới 2 cột `.j-theme-picker`. */
+
+.j-pop-theme-picker {
+  min-height: 0;
+}
+
+.j-pop-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-body);
+  cursor: pointer;
+}
+
+.j-pop-theme-hint {
+  margin: -4px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-muted);
+}
+
+.j-pop-theme-hint--inline {
+  margin: 0;
+  flex: 1 1 100%;
+}
+
+.j-pop-theme-hint strong {
+  color: var(--ink-body);
+  font-weight: 700;
+}
+
+.j-pop-theme-picker-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.j-pop-theme-preview {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: clip;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 10px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--neutral-100, #eef1f6) 80%, transparent);
+}
+
+.j-pop-theme-preview-frame {
+  width: min(360px, 100%);
+  margin: 0 auto;
+  position: relative;
+}
+
+.j-pop-theme-preview-frame .j-friend-card {
+  position: relative;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 20px;
+  background:
+    linear-gradient(var(--bg-surface), var(--bg-surface)) padding-box,
+    linear-gradient(135deg, rgba(37, 99, 235, 0.42), rgba(253, 232, 89, 0.46))
+      border-box;
+  overflow: hidden;
+}
+
+.j-pop-theme-preview-frame .j-friend-cover {
+  height: 72px;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--neutral-100, #eef1f6);
+}
+
+.j-pop-theme-preview-frame .j-friend-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.j-pop-theme-preview-frame .j-friend-body {
+  margin-top: -32px;
+  padding: 0 14px 12px;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.j-pop-theme-preview-frame .j-friend-avatar {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 6px;
+  border-radius: 999px;
+  border: 3px solid var(--bg-surface);
+  overflow: hidden;
+  background: linear-gradient(135deg, #dbeafe, #fef3c7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+}
+
+.j-pop-theme-preview-frame .j-friend-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.j-pop-theme-preview-frame .j-friend-body h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.j-pop-theme-preview-frame .j-friend-bio {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--ink-body);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.j-pop-theme-preview-frame .j-friend-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: 10px;
+}
+
+.j-pop-theme-preview-frame .j-friend-stats span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+.j-pop-theme-preview-frame .j-friend-stats strong {
+  font-size: 14px;
+  color: var(--ink-display);
+}
+
+.j-pop-theme-skel {
+  background: linear-gradient(
+    90deg,
+    var(--neutral-100, #f1f2f5) 0%,
+    color-mix(in srgb, var(--neutral-200, #e4e6eb) 70%, transparent) 45%,
+    var(--neutral-100, #f1f2f5) 100%
+  );
+  background-size: 200% 100%;
+  border-radius: 8px;
+}
+
+.j-pop-theme-fieldset {
+  margin: 0;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.j-pop-theme-fieldset legend {
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.j-pop-theme-fieldset:disabled {
+  opacity: 0.55;
+}
+
+.j-pop-theme-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.j-pop-theme-chip {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-surface);
+  color: var(--ink-body);
+  font-size: 12px;
+  font-weight: 650;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.j-pop-theme-chip.is-on {
+  border-color: color-mix(in srgb, var(--cins-blue) 45%, var(--border));
+  background: color-mix(in srgb, var(--cins-blue) 12%, var(--bg-surface));
+  color: var(--cins-blue);
+}
+
+.j-pop-theme-accents {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.j-pop-theme-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.j-pop-theme-swatch.is-on {
+  border-color: var(--ink-display);
+  box-shadow: 0 0 0 2px var(--bg-surface);
+}
+
+.j-pop-theme-select-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.j-pop-theme-select-row select {
+  flex: 1;
+  max-width: 180px;
+  min-height: 34px;
+  font-size: max(16px, 0.875rem);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--ink-body);
+  padding: 4px 8px;
+}
+
+.j-pop-theme-error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 12px;
+}
+
+/* Mobile: preview dock dưới (giống Theme). Desktop: grid từ journey-theme.css. */
+@container j-edit-theme (max-width: 479.98px) {
+  .j-pop-theme-picker-aside {
+    max-height: 280px;
+  }
+
+  .j-pop-theme-preview {
+    max-height: 240px;
+  }
+}
+
+@container j-edit-theme (min-width: 480px) {
+  .j-pop-theme-picker-aside {
+    overflow: hidden;
+  }
+
+  .j-pop-theme-preview {
+    flex: 1 1 auto;
+    max-height: none;
+  }
+}

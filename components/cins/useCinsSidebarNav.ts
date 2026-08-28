@@ -3,8 +3,6 @@
 import { useEffect } from "react";
 
 const MOBILE_MQ = "(max-width: 960px)";
-const SHOW_AT_TOP_PX = 8;
-const HIDE_DELTA_PX = 14;
 
 function isDesktopSidebarRail(): boolean {
   return window.matchMedia("(min-width: 961px)").matches;
@@ -28,7 +26,6 @@ export function useCinsSidebarNav(
   useEffect(() => {
     if (pathname == null) return;
     document.getElementById(sidebarId)?.classList.remove("open");
-    document.getElementById("app-topbar")?.classList.remove("is-hidden");
   }, [sidebarId, pathname]);
 
   useEffect(() => {
@@ -37,7 +34,6 @@ export function useCinsSidebarNav(
     const burger = document.getElementById("app-tb-burger");
     const desktopMq = window.matchMedia("(min-width: 961px)");
     const mobileMq = window.matchMedia(MOBILE_MQ);
-    let lastY = Math.max(0, window.scrollY);
     let raf = 0;
 
     const syncTopbar = () => {
@@ -45,21 +41,6 @@ export function useCinsSidebarNav(
       if (!topbar) return;
       const y = Math.max(0, window.scrollY);
       topbar.classList.toggle("scrolled", y > 4);
-
-      if (!mobileMq.matches || sidebar?.classList.contains("open")) {
-        topbar.classList.remove("is-hidden");
-        lastY = y;
-        return;
-      }
-
-      if (y <= SHOW_AT_TOP_PX) {
-        topbar.classList.remove("is-hidden");
-      } else if (y > lastY + HIDE_DELTA_PX) {
-        topbar.classList.add("is-hidden");
-      } else if (y < lastY - HIDE_DELTA_PX) {
-        topbar.classList.remove("is-hidden");
-      }
-      lastY = y;
     };
 
     const onScroll = () => {
@@ -67,7 +48,6 @@ export function useCinsSidebarNav(
       raf = window.requestAnimationFrame(syncTopbar);
     };
 
-    topbar?.classList.remove("is-hidden");
     syncTopbar();
     window.addEventListener("scroll", onScroll, { passive: true });
     mobileMq.addEventListener("change", syncTopbar);
@@ -87,7 +67,6 @@ export function useCinsSidebarNav(
       e.stopPropagation();
       sidebar?.classList.toggle("open");
       if (sidebar?.classList.contains("open")) {
-        topbar?.classList.remove("is-hidden");
         /* Ghost click sau touchend đập vào scrim (::after) → đóng ngay. */
         ignoreOutsideCloseUntil = Date.now() + 450;
       }
@@ -189,7 +168,6 @@ export function useCinsSidebarNav(
       window.removeEventListener("scroll", onScroll);
       mobileMq.removeEventListener("change", syncTopbar);
       if (raf) window.cancelAnimationFrame(raf);
-      topbar?.classList.remove("is-hidden");
       burger?.removeEventListener("click", onBurger);
       if (toggleEl && toggleEl !== burger) {
         toggleEl.removeEventListener("click", onBurger);

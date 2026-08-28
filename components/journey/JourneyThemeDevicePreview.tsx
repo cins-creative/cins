@@ -1,5 +1,6 @@
 "use client";
 
+import { Moon, Sun } from "lucide-react";
 import {
   useEffect,
   useMemo,
@@ -22,6 +23,7 @@ import {
 } from "@/lib/journey/profile-theme";
 
 export type ThemePreviewDevice = "phone" | "tablet" | "desktop";
+export type ThemePreviewScheme = "light" | "dark";
 
 /** Thứ tự ưu tiên UI: máy tính → máy tính bảng → điện thoại. */
 const DEVICE_ORDER: readonly ThemePreviewDevice[] = [
@@ -35,9 +37,17 @@ const DEVICES: Record<
   { label: string; w: number; h: number }
 > = {
   desktop: { label: "Máy tính", w: 1280, h: 800 },
+  /* 992 — 2 cột (sidebar + feed); gallery ẩn ≤1199. Phone 375 = 1 cột ≤991. */
   tablet: { label: "Máy tính bảng", w: 992, h: 800 },
   phone: { label: "Điện thoại", w: 375, h: 720 },
 };
+
+function readDocumentScheme(): ThemePreviewScheme {
+  if (typeof document === "undefined") return "light";
+  return document.documentElement.getAttribute("data-theme") === "dark"
+    ? "dark"
+    : "light";
+}
 
 type Props = {
   theme: ProfileThemeSlice;
@@ -214,6 +224,7 @@ export function JourneyThemeDevicePreview({
   );
   const stageRef = useRef<HTMLDivElement>(null);
   const screenRef = useRef<HTMLDivElement>(null);
+  const [scheme, setScheme] = useState<ThemePreviewScheme>("light");
   const [stageSize, setStageSize] = useState({ w: 360, h: 420 });
   const dragRef = useRef<{
     pointerId: number;
@@ -221,6 +232,10 @@ export function JourneyThemeDevicePreview({
     lastY: number;
     pos: ProfileBgPosition;
   } | null>(null);
+
+  useEffect(() => {
+    setScheme(readDocumentScheme());
+  }, []);
 
   useEffect(() => {
     const el = stageRef.current;
@@ -244,6 +259,11 @@ export function JourneyThemeDevicePreview({
   const visualH = Math.max(1, Math.round(spec.h * scale));
 
   const canPan = Boolean(bg.focal && onPositionChange);
+  /* Phone ≤767: overlay đậm thêm như site thật. */
+  const previewOverlayDim = Math.min(
+    1,
+    bg.dim + (device === "phone" ? 0.1 : 0),
+  );
 
   function onScreenPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
     if (!canPan || !bg.focal) return;
@@ -261,12 +281,12 @@ export function JourneyThemeDevicePreview({
 
   function onScreenPointerMove(e: ReactPointerEvent<HTMLDivElement>) {
     const drag = dragRef.current;
-    if (!drag || drag.pointerId !== e.pointerId || !onPositionChange) return;
+    if (!drag || drag.pointerId !== e.pointerId) return;
     const el = screenRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
-    /* Pan: kéo sang phải → ảnh đi theo tay (trừ delta — tránh ngược hướng). */
+    /* Pan: kéo sang phải → ảnh đi theo tay. */
     const dx = (e.clientX - drag.lastX) / rect.width;
     const dy = (e.clientY - drag.lastY) / rect.height;
     const next = {
@@ -276,23 +296,60 @@ export function JourneyThemeDevicePreview({
     drag.lastX = e.clientX;
     drag.lastY = e.clientY;
     drag.pos = next;
-    onPositionChange(device, next);
+    /* Realtime trên mock — không setState / applyLivePreview mỗi frame (lag). */
+    el.style.setProperty("--preview-position", positionToCss(next));
   }
 
   function onScreenPointerUp(e: ReactPointerEvent<HTMLDivElement>) {
-    if (dragRef.current?.pointerId !== e.pointerId) return;
+    const drag = dragRef.current;
+    if (drag?.pointerId !== e.pointerId) return;
+    const finalPos = drag.pos;
     dragRef.current = null;
     try {
       screenRef.current?.releasePointerCapture(e.pointerId);
     } catch {
       /* already released */
     }
+    /* Commit React + live page chỉ lúc thả. */
+    if (finalPos && onPositionChange) {
+      onPositionChange(device, finalPos);
+    }
   }
 
   return (
     <div className="j-theme-device">
-      <div className="j-theme-picker-label">
+      <div className="j-theme-picker-label j-theme-device-head">
         <span>Demo thiết bị</span>
+        <div
+          className="j-theme-scheme-toggle"
+          role="group"
+          aria-label="Nền demo"
+        >
+          <button
+            type="button"
+            className={
+              "j-theme-scheme-btn" + (scheme === "light" ? " is-active" : "")
+            }
+            aria-pressed={scheme === "light"}
+            title="Nền sáng"
+            onClick={() => setScheme("light")}
+          >
+            <Sun size={14} strokeWidth={2.1} aria-hidden />
+            <span>Sáng</span>
+          </button>
+          <button
+            type="button"
+            className={
+              "j-theme-scheme-btn" + (scheme === "dark" ? " is-active" : "")
+            }
+            aria-pressed={scheme === "dark"}
+            title="Nền tối"
+            onClick={() => setScheme("dark")}
+          >
+            <Moon size={14} strokeWidth={2.1} aria-hidden />
+            <span>Tối</span>
+          </button>
+        </div>
       </div>
       <div
         className="j-theme-device-tabs"
@@ -339,18 +396,23 @@ export function JourneyThemeDevicePreview({
               "j-theme-device-screen" + (canPan ? " is-pannable" : "")
             }
             data-preview-bg={bg.kind}
+            data-preview-scheme={scheme}
             onPointerDown={onScreenPointerDown}
             onPointerMove={onScreenPointerMove}
             onPointerUp={onScreenPointerUp}
             onPointerCancel={onScreenPointerUp}
             style={
               {
+                ["--j-accent-base" as string]: accent,
                 ["--j-accent" as string]: accent,
                 ["--preview-image" as string]: bg.image,
                 ["--preview-size" as string]: bg.size,
-                ["--preview-position" as string]: bg.position,
+                /* Giữ vị trí đang kéo nếu ResizeObserver re-render giữa chừng. */
+                ["--preview-position" as string]: dragRef.current
+                  ? positionToCss(dragRef.current.pos)
+                  : bg.position,
                 ["--preview-repeat" as string]: bg.repeat,
-                ["--preview-dim-pct" as string]: `${Math.round(bg.dim * 100)}%`,
+                ["--preview-dim-pct" as string]: `${Math.round(previewOverlayDim * 100)}%`,
               } as CSSProperties
             }
           >
@@ -392,8 +454,8 @@ export function JourneyThemeDevicePreview({
       </div>
       <p className="j-theme-device-meta">
         {canPan
-          ? `${spec.label} · rê chuột vào khung rồi kéo để chỉnh vùng ảnh`
-          : `${spec.label} · ${spec.w}px — nền lộ ở khoảng trống`}
+          ? `${spec.label} · ${scheme === "dark" ? "nền tối" : "nền sáng"} · rê chuột vào khung rồi kéo để chỉnh vùng ảnh`
+          : `${spec.label} · ${scheme === "dark" ? "nền tối" : "nền sáng"} · ${spec.w}px — nền lộ ở khoảng trống`}
       </p>
     </div>
   );

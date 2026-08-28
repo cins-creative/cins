@@ -1,0 +1,225 @@
+/* Customize card user popover — nhóm D.
+ * Scope: chỉ `.j-user-popover[data-pop-theme]` — không rò sang org / friend card. */
+
+.j-user-popover[data-pop-theme] {
+  --j-pop-accent: var(--cins-blue, #1f74c9);
+  --j-pop-surface-dim: 0.35;
+  --j-pop-cover-dim: 0.35;
+  --j-pop-featured-cols: 3;
+}
+
+/* Nền gradient (mặc định) — tint accent + viền */
+.j-user-popover[data-pop-theme] .j-friend-card,
+.j-user-popover[data-pop-theme][data-pop-surface="gradient"] .j-friend-card {
+  border-color: color-mix(in srgb, var(--j-pop-accent) 28%, rgba(148, 163, 184, 0.22));
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(
+        in srgb,
+        var(--j-pop-accent) calc(var(--j-pop-surface-dim) * 22%),
+        var(--bg-surface)
+      ),
+      color-mix(
+        in srgb,
+        var(--j-pop-accent) calc(var(--j-pop-surface-dim) * 8%),
+        var(--bg-surface)
+      ) 55%,
+      var(--bg-surface)
+    )
+      padding-box,
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--j-pop-accent) 55%, transparent),
+      color-mix(in srgb, var(--j-pop-accent) 18%, rgba(253, 232, 89, 0.35))
+    )
+      border-box;
+}
+
+/* Nền ảnh — cover ảnh + dim overlay */
+.j-user-popover[data-pop-theme][data-pop-surface="image"] .j-friend-card {
+  background-color: var(--bg-surface);
+  background-image:
+    linear-gradient(
+      color-mix(
+        in srgb,
+        var(--bg-surface) calc((1 - var(--j-pop-surface-dim)) * 72% + 28%),
+        transparent
+      ),
+      color-mix(
+        in srgb,
+        var(--bg-surface) calc((1 - var(--j-pop-surface-dim)) * 55% + 40%),
+        transparent
+      )
+    ),
+    var(--j-pop-surface-image);
+  background-size: cover, cover;
+  background-position: center, center;
+  background-repeat: no-repeat;
+  border-color: color-mix(in srgb, var(--j-pop-accent) 28%, rgba(148, 163, 184, 0.22));
+}
+
+.j-user-popover[data-pop-theme] .j-friend-message,
+.j-user-popover[data-pop-theme] .j-friend-link,
+.j-user-popover[data-pop-theme] .j-friend-btn.is-idle {
+  background: color-mix(in srgb, var(--j-pop-accent) 12%, var(--bg-surface));
+  color: var(--j-pop-accent);
+}
+
+.j-user-popover[data-pop-theme] .j-friend-link:hover:not(:disabled),
+.j-user-popover[data-pop-theme] .j-friend-btn.is-idle:hover:not(:disabled) {
+  background: var(--j-pop-accent);
+  color: #fff;
+}
+
+.j-user-popover[data-pop-theme] .j-friend-message:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--j-pop-accent) 22%, var(--bg-surface));
+  color: var(--j-pop-accent);
+}
+
+/* Cover — pattern / solid */
+.j-user-popover[data-pop-theme] .j-friend-cover[data-pop-cover="pattern"] {
+  background-color: color-mix(
+    in srgb,
+    var(--j-pop-accent) calc(var(--j-pop-cover-dim) * 22%),
+    var(--neutral-100, #eef1f6)
+  );
+  background-image: var(--j-pop-cover-image);
+  background-size: var(--j-pop-cover-size, auto);
+  background-position: var(--j-pop-cover-pos, 0 0);
+}
+
+.j-user-popover[data-pop-theme] .j-friend-cover[data-pop-cover="solid"] {
+  background-color: color-mix(
+    in srgb,
+    var(--j-pop-accent) calc(var(--j-pop-cover-dim) * 70%),
+    var(--neutral-100, #eef1f6)
+  );
+  background-image: none;
+}
+
+.j-user-popover[data-pop-theme] .j-friend-cover[data-pop-cover="pattern"],
+.j-user-popover[data-pop-theme] .j-friend-cover[data-pop-cover="solid"] {
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    #000 0%,
+    #000 42%,
+    rgb(0 0 0 / 0.5) 72%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    #000 0%,
+    #000 42%,
+    rgb(0 0 0 / 0.5) 72%,
+    transparent 100%
+  );
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.j-user-popover[data-pop-theme] .j-friend-cover[data-pop-cover="pattern"]::after,
+.j-user-popover[data-pop-theme] .j-friend-cover[data-pop-cover="solid"]::after {
+  content: none;
+}
+
+/* Bio clamp */
+.j-user-popover[data-pop-theme] .j-friend-bio[data-pop-bio="clamp4"] {
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+}
+
+.j-user-popover[data-pop-theme] .j-friend-bio[data-pop-bio="hidden"] {
+  display: none;
+}
+
+/* CTA nội bộ */
+.j-user-popover[data-pop-theme] .j-friend-pop-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 34px;
+  margin-top: 8px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 12px;
+  background: var(--j-pop-accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--j-pop-accent) 28%, transparent);
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.j-user-popover[data-pop-theme] .j-friend-pop-cta:hover {
+  color: #fff;
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+}
+
+/* Featured panel layout */
+.j-user-popover[data-pop-theme] .j-user-featured {
+  --j-featured-cols: var(--j-pop-featured-cols, 3);
+}
+
+.j-user-popover[data-pop-theme][data-pop-layout="grid"] .j-user-featured-masonry {
+  display: grid;
+  grid-template-columns: repeat(var(--j-featured-cols, 3), minmax(0, 1fr));
+  gap: 6px;
+}
+
+.j-user-popover[data-pop-theme][data-pop-layout="grid"] .j-user-featured-mcol {
+  display: contents;
+}
+
+.j-user-popover[data-pop-theme][data-pop-layout="grid"] .j-user-featured-tile {
+  aspect-ratio: 1 / 1 !important;
+}
+
+@media (max-width: 379.98px) {
+  .j-user-popover[data-pop-theme] {
+    --j-pop-featured-cols: 2;
+  }
+}
+
+:root[data-theme="dark"] .j-user-popover[data-pop-theme] {
+  --j-pop-accent: color-mix(in srgb, var(--j-pop-accent, #4f9be8) 75%, white);
+}
+
+:root[data-theme="dark"] .j-user-popover[data-pop-theme] .j-friend-cover[data-pop-cover="pattern"],
+:root[data-theme="dark"] .j-user-popover[data-pop-theme] .j-friend-cover[data-pop-cover="solid"] {
+  background-color: color-mix(
+    in srgb,
+    var(--j-pop-accent) calc(var(--j-pop-cover-dim) * 28%),
+    var(--surface, #171b24)
+  );
+}
+
+@media (prefers-contrast: more) {
+  .j-user-popover[data-pop-theme] .j-friend-cover[data-pop-cover="pattern"] {
+    background-image: none;
+  }
+  .j-user-popover[data-pop-theme][data-pop-surface="image"] .j-friend-card {
+    background-image: none;
+    background: linear-gradient(var(--bg-surface), var(--bg-surface)) padding-box,
+      linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--j-pop-accent) 40%, transparent),
+        color-mix(in srgb, var(--j-pop-accent) 18%, transparent)
+      )
+        border-box;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .j-user-popover[data-pop-theme] .j-friend-pop-cta {
+    transition: none;
+  }
+  .j-user-popover[data-pop-theme] .j-friend-pop-cta:hover {
+    transform: none;
+  }
+}

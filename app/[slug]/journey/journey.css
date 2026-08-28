@@ -221,7 +221,7 @@ button.j-profile-cover.j-profile-cover-viewable:focus-visible {
   position: relative;
   width: 96px;
   height: 96px;
-  border-radius: 50%;
+  border-radius: var(--j-av-radius, 50%);
   overflow: visible;
   border: 4px solid var(--bg-surface);
   background: var(--cins-blue-soft);
@@ -239,7 +239,7 @@ button.j-profile-cover.j-profile-cover-viewable:focus-visible {
 .j-avatar img {
   width: 100%;
   height: 100%;
-  border-radius: 50%;
+  border-radius: var(--j-av-radius, 50%);
   object-fit: cover;
   display: block;
 }
@@ -265,7 +265,7 @@ button.j-avatar.j-avatar-editable:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: var(--j-av-radius, 50%);
   background: rgba(15, 23, 42, 0.55);
   color: #fff;
   opacity: 0;
@@ -727,6 +727,33 @@ button.j-avatar.j-avatar-viewable:focus-visible {
 }
 .j-profile-shop-switch-btn.is-active {
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--cins-orange, #fdad4c) 75%, white);
+}
+.j-profile-shop-switch-btn.is-poster {
+  min-height: 0;
+  aspect-ratio: var(--j-shop-switch-aspect, 1.777);
+}
+.j-profile-shop-switch-btn.is-poster .j-profile-shop-switch-cover {
+  background-position: var(--j-shop-switch-pos, center);
+}
+.j-profile-shop-switch-btn.is-poster.show-name .j-profile-shop-switch-row {
+  position: absolute;
+  inset: 0;
+  min-height: 0;
+  align-items: flex-end;
+}
+.j-profile-shop-switch-btn:not(.show-name) .j-profile-shop-switch-row {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.j-profile-shop-switch-btn:not(.show-name) .j-profile-shop-switch-scrim {
+  display: none;
 }
 .j-profile-shop-switch-btn.is-tam-dong .j-profile-shop-switch-cover,
 .j-profile-shop-switch-btn.is-tam-dong .j-profile-shop-switch-row {
@@ -6444,8 +6471,8 @@ button.j-m-card-hit {
   --j-bf-bg: var(--neutral-50, #f8f9fb);
   --j-bf-border: var(--neutral-200, #e5e7eb);
   --j-bf-accent: var(--neutral-500, #8b93a7);
-  --j-bf-ink: var(--ink-title, #1a1d26);
-  --j-bf-sub: var(--ink-muted, #6b7280);
+  --j-bf-ink: var(--neutral-800, #1b1f2a);
+  --j-bf-sub: var(--neutral-500, #6b7280);
   border: 1px solid var(--j-bf-border);
   border-radius: 16px;
   background: var(--j-bf-bg);
@@ -6477,15 +6504,15 @@ button.j-m-card-hit {
   --j-bf-bg: #fff;
   --j-bf-border: var(--neutral-200, #e5e7eb);
   --j-bf-accent: var(--neutral-500, #8b93a7);
-  --j-bf-ink: var(--ink-display, #111827);
-  --j-bf-sub: var(--ink-muted, #6b7280);
+  --j-bf-ink: var(--neutral-800, #1b1f2a);
+  --j-bf-sub: var(--neutral-500, #6b7280);
 }
 .j-bookmark-frame--user {
   --j-bf-bg: color-mix(in srgb, var(--neutral-100, #f1f2f5) 28%, #fff);
   --j-bf-border: var(--neutral-200, #e5e7eb);
   --j-bf-accent: var(--neutral-500, #8b93a7);
-  --j-bf-ink: var(--ink-display, #111827);
-  --j-bf-sub: var(--ink-muted, #6b7280);
+  --j-bf-ink: var(--neutral-800, #1b1f2a);
+  --j-bf-sub: var(--neutral-500, #6b7280);
 }
 
 /* =========================================================
@@ -6546,26 +6573,28 @@ button.j-m-card-hit {
 }
 .j-bookmark-frame-head .org-chip {
   min-width: 0;
+  color: var(--neutral-800, #1b1f2a);
+}
+.j-bookmark-frame-head .org-copy strong {
+  color: var(--neutral-800, #1b1f2a);
 }
 .j-bookmark-frame-head .j-bf-date {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   line-height: 1;
+  color: var(--neutral-500, #6b7280);
 }
 .j-bookmark-frame-head .j-bf-date-tag {
   color: #f59e0b;
   flex-shrink: 0;
 }
 .j-bookmark-frame-head .j-bf-date-cong-dong {
-  color: var(--ink-muted, #6b7280);
+  color: var(--neutral-500, #6b7280);
   flex-shrink: 0;
 }
 .j-bookmark-frame-head .j-bf-date-prefix {
   font-weight: 600;
-}
-.j-bookmark-frame-head .j-bf-date-sep {
-  opacity: 0.72;
 }
 .j-bf-toolbar {
   margin-left: auto;
@@ -9414,7 +9443,7 @@ button.j-g-item:disabled {
   .cins-journey-page .j-profile-shop-switch {
     border-radius: 14px;
   }
-  .cins-journey-page .j-profile-shop-switch-btn,
+  .cins-journey-page .j-profile-shop-switch-btn:not(.is-poster),
   .cins-journey-page .j-profile-shop-switch-row {
     min-height: 80px;
   }
@@ -9532,7 +9561,7 @@ button.j-g-item:disabled {
 }
 
 /*
- * Customize — cùng full-screen trên mobile; desktop rộng tới 1080.
+ * Customize — cùng khung với tab Thông tin (không nhảy size thành popup khác).
  * overflow hidden trên body để panel theme cuộn nội bộ, mockup dock đáy.
  */
 .j-edit-card--theme .j-edit-body {
@@ -9560,10 +9589,12 @@ button.j-g-item:disabled {
 .j-edit-theme-panel {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
   min-height: 0;
   flex: 1;
   overflow: hidden;
+  container-type: inline-size;
+  container-name: j-edit-theme;
 }
 
 @media (min-width: 640px) {
@@ -9586,22 +9617,23 @@ button.j-g-item:disabled {
     animation: j-edit-fade 160ms ease;
   }
 
-  .j-edit-backdrop:has(.j-edit-card--theme) {
-    padding: 40px 24px 24px;
-  }
-
+  /* Customize: cùng modal, rộng hơn để 2 cột controls | preview. */
   .j-edit-card--theme {
     width: min(1080px, calc(100vw - 32px));
-    max-height: calc(100vh - 64px);
-    max-height: calc(100dvh - 64px);
+    height: calc(100vh - 80px);
+    height: calc(100dvh - 80px);
   }
 
   .j-edit-head {
     padding: 22px 28px 16px;
   }
 
-  .j-edit-tabs {
+  .j-edit-tabs-row {
     padding: 0 28px;
+  }
+
+  .j-edit-tabs {
+    padding: 0;
   }
 
   .j-edit-body {
@@ -9615,33 +9647,41 @@ button.j-g-item:disabled {
   .j-edit-card--theme .j-edit-body {
     padding: 16px 28px 12px;
   }
-
-  .j-edit-card--theme .j-edit-subtabs {
-    flex-wrap: wrap;
-    overflow: visible;
-  }
 }
 
-/* Sub-tabs trong Customize (Theme / Avatar / Shop / …) */
+/* Sub-tabs Customize — cùng hàng tabs chính, canh phải */
 .j-edit-subtabs {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
-  flex-shrink: 0;
-  padding: 0 2px 2px;
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-left: auto;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.j-edit-subtabs::-webkit-scrollbar {
+  display: none;
 }
 .j-edit-subtab {
   appearance: none;
   border: 1px solid var(--border);
   background: var(--bg-surface, #fff);
   margin: 0;
-  padding: 7px 12px;
+  padding: 5px 10px;
   border-radius: 999px;
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--ink-muted);
   cursor: pointer;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  line-height: 1.25;
   transition:
     color 120ms var(--j-ease, ease),
     border-color 120ms,
@@ -9750,13 +9790,29 @@ button.j-g-item:disabled {
   cursor: not-allowed;
 }
 
-.j-edit-tabs {
+.j-edit-tabs-row {
   display: flex;
-  gap: 0;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px 16px;
   flex-shrink: 0;
+  min-width: 0;
   padding: 0 16px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-surface);
+}
+
+.j-edit-tabs {
+  display: flex;
+  gap: 0;
+  flex: 0 0 auto;
+  width: max-content;
+  max-width: 100%;
+  padding: 0;
+  border-bottom: none;
+  background: transparent;
 }
 .j-edit-tab {
   appearance: none;
@@ -14723,7 +14779,9 @@ select.j-edit-input {
   --jcard-coral: #c2410c;
   --jcard-coral-bg: var(--cins-orange-soft);
   padding: 0;
-  overflow: hidden;
+  overflow: clip;
+  overflow-clip-margin: 0;
+  isolation: isolate;
   border: none;
   border-radius: 20px;
   background: var(--jcard-bg);
@@ -14731,20 +14789,25 @@ select.j-edit-input {
   color: var(--jcard-ink);
   font-family: var(--font-sans);
 }
-/* Menu / bảng emoji / chia sẻ / danh tính bình luận mở → không clip; nâng card. */
+/* Nâng card khi popover mở. Menu 3-chấm / badge / picker đã portal ra body.
+   Giữ clip bo góc — `overflow: visible` làm datebar + actions nền vuông tràn
+   khi hover chức năng con. */
 .j-m-card.jcard:has(.j-m-menu-btn[aria-expanded="true"]),
 .j-m-card.jcard:has(.j-inline-control-trigger[aria-expanded="true"]),
 .j-m-card.jcard:has(.is-picker-open),
 .j-m-card.jcard:has(.post-comments-identity.is-open) {
-  overflow: visible;
   z-index: 20;
+}
+.j-m-card.jcard > .j-m-card-main:first-child {
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+}
+.j-m-card.jcard > .jcard-actions {
+  border-bottom-left-radius: inherit;
+  border-bottom-right-radius: inherit;
 }
 .j-m-card.jcard.is-expanded {
   z-index: 20;
-}
-.j-m-card.jcard.is-expanded:has(.j-m-menu-btn[aria-expanded="true"]),
-.j-m-card.jcard.is-expanded:has(.j-inline-control-trigger[aria-expanded="true"]) {
-  overflow: visible;
 }
 /* Bo góc dưới khi xổ — phần tử cuối (actions / tags) khớp radius card. */
 .j-m-card.jcard.is-expanded > .jcard-actions:last-child,
@@ -14803,6 +14866,7 @@ select.j-edit-input {
   align-items: center;
   gap: 12px;
   border-bottom: 1px solid var(--jcard-border2);
+  background: var(--jcard-bg, var(--bg-surface));
 }
 
 .jcard-datebar--tagged {
@@ -16114,7 +16178,7 @@ select.j-edit-input {
   align-items: center;
   gap: 10px;
   min-width: 0;
-  color: var(--ink-display);
+  color: var(--neutral-800, #1b1f2a);
   font-size: 14px;
   font-weight: 800;
 }
@@ -16144,17 +16208,24 @@ select.j-edit-input {
 .org-copy strong {
   font-size: 14px;
   font-weight: 800;
-  color: var(--ink-display);
+  color: var(--neutral-800, #1b1f2a);
 }
 .org-copy small {
   font-size: 12px;
   font-weight: 600;
-  color: var(--ink-muted);
+  color: var(--neutral-500, #6b7280);
 }
 .org-logo img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* Datebar bài — avatar tác giả to hơn (khung overlay đọc rõ hơn). */
+.jcard-datebar .org-logo {
+  width: 44px;
+  height: 44px;
+  font-size: 11px;
 }
 .via-bar {
   margin: 12px 14px 0;
@@ -19232,7 +19303,7 @@ button.j-user-pop-close svg {
   align-items: center;
   gap: 8px;
   background: var(--bg-surface);
-  overflow: visible;
+  overflow: hidden;
 }
 .jcard-actions--clusters {
   justify-content: space-between;

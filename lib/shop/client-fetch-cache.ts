@@ -196,9 +196,15 @@ export function writeShopCuaHangCache(
   },
 ) {
   const key = cuaHangKey(opts?.slug);
-  const prev = cuaHangByKey.get(key)?.data;
+  const prevEntry = cuaHangByKey.get(key);
+  const prev = prevEntry?.data;
+  /* Không tạo cache mới khi chưa biết `banHangBat` — default `false` sẽ
+   * làm JourneyShopView tưởng bán hàng tắt dù Cài đặt đã bật. */
+  if (!prev && opts?.banHangBat === undefined) return;
+  const flagsTouched =
+    opts?.banHangBat !== undefined || opts?.shopVisible !== undefined;
   cuaHangByKey.set(key, {
-    at: Date.now(),
+    at: flagsTouched || !prevEntry ? Date.now() : prevEntry.at,
     data: {
       shop,
       banHangBat: opts?.banHangBat ?? prev?.banHangBat ?? false,

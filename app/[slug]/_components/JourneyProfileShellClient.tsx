@@ -18,6 +18,7 @@ import { JourneySidebarSwitchNav } from "@/components/journey/JourneySidebarSwit
 import { JourneyViewProvider } from "@/components/journey/JourneyViewContext";
 import type { JourneyComposeState } from "@/lib/journey/compose-types";
 import type { ShopCuaHang } from "@/lib/shop/types";
+import type { ShopSwitchDto } from "@/lib/journey/shop-switch";
 
 type SwitchNavCounts = {
   friendCount: number;
@@ -41,16 +42,19 @@ type Props = {
   featuredAside: ReactNode;
   /** Hiện tab Shop trên cụm chuyển hồ sơ. */
   showShop?: boolean;
+  ownerShopSwitch?: ShopSwitchDto | null;
 };
 
 function JourneySidebarSwitchNavWithCounts({
   slug,
   countsPromise,
   showShop,
+  initialShopSwitch,
 }: {
   slug: string;
   countsPromise: Promise<SwitchNavCounts>;
   showShop: boolean;
+  initialShopSwitch?: ShopSwitchDto | null;
 }) {
   const { friendCount, orgCount, shop } = use(countsPromise);
 
@@ -61,6 +65,7 @@ function JourneySidebarSwitchNavWithCounts({
       orgCount={orgCount}
       showShop={showShop}
       initialShop={shop}
+      initialShopSwitch={initialShopSwitch}
     />
   );
 }
@@ -80,6 +85,7 @@ export function JourneyProfileShellClient({
   mainPanel,
   featuredAside,
   showShop = false,
+  ownerShopSwitch = null,
 }: Props) {
   const ownerName = profile.tenHienThi ?? profile.slug;
   const canComposePosts = isOwner || adminSeedingEdit;
@@ -97,6 +103,7 @@ export function JourneyProfileShellClient({
               slug={profile.slug}
               countsPromise={countsPromise}
               showShop={showShop}
+              initialShopSwitch={ownerShopSwitch}
             />
           </Suspense>
         }

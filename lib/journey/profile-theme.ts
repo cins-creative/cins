@@ -9,6 +9,46 @@
 import type { CSSProperties } from "react";
 
 import { getCfAccountHash } from "@/lib/cloudflare/account-hash";
+import {
+  applyAvatarFramePatch,
+  DEFAULT_AVATAR_FRAME,
+  framesEqual,
+  parseAvatarFrame,
+  serializeAvatarFrame,
+  validateAvatarFramePatchBody,
+  type AvatarFramePatchInput,
+  type ProfileAvatarFrameSlice,
+} from "@/lib/journey/avatar-frame";
+import {
+  applyCardPatch,
+  cardsEqual,
+  DEFAULT_CARD_THEME,
+  parseCardTheme,
+  serializeCardTheme,
+  validateCardPatchBody,
+  type CardThemePatchInput,
+  type ProfileCardThemeSlice,
+} from "@/lib/journey/card-theme";
+import {
+  applyPopoverPatch,
+  DEFAULT_POPOVER_THEME,
+  parsePopoverTheme,
+  popoversEqual,
+  serializePopoverTheme,
+  validatePopoverPatchBody,
+  type PopoverThemePatchInput,
+  type ProfilePopoverThemeSlice,
+} from "@/lib/journey/popover-theme";
+import {
+  applyShopSwitchPatch,
+  DEFAULT_SHOP_SWITCH,
+  parseShopSwitch,
+  serializeShopSwitch,
+  shopSwitchesEqual,
+  validateShopSwitchPatchBody,
+  type ProfileShopSwitchSlice,
+  type ShopSwitchPatchInput,
+} from "@/lib/journey/shop-switch";
 
 /* ── Accent presets (10 hiển thị + custom hex) ───────────────────── */
 
@@ -286,10 +326,14 @@ export type ProfileGiaoDienState = {
   v: 1;
   theme: ProfileThemeSlice;
   customs: ProfileCustomEntry[];
-  /** Key nhóm sau (B–F) — giữ nguyên khi PATCH theme. */
-  avatarFrame?: unknown;
-  card?: unknown;
-  popover?: unknown;
+  /** Nhóm B — khung & viền avatar. */
+  avatarFrame: ProfileAvatarFrameSlice;
+  /** Nhóm E — thanh bài / datebar (public theo author). */
+  card: ProfileCardThemeSlice;
+  /** Nhóm D — card user popover. */
+  popover: ProfilePopoverThemeSlice;
+  /** Khối ShopSwitchCard trên sidebar Journey. */
+  shopSwitch: ProfileShopSwitchSlice;
 };
 
 export const DEFAULT_PROFILE_THEME: ProfileThemeSlice = {
@@ -318,10 +362,31 @@ export function emptyGiaoDien(): ProfileGiaoDienState {
       },
     },
     customs: [],
+    avatarFrame: { ...DEFAULT_AVATAR_FRAME },
+    card: {
+      ...DEFAULT_CARD_THEME,
+      position: { ...DEFAULT_CARD_THEME.position },
+    },
+    popover: {
+      ...DEFAULT_POPOVER_THEME,
+      surface: { ...DEFAULT_POPOVER_THEME.surface },
+      cover: {
+        ...DEFAULT_POPOVER_THEME.cover,
+        position: { ...DEFAULT_POPOVER_THEME.cover.position },
+      },
+      info: { ...DEFAULT_POPOVER_THEME.info },
+      stats: [...DEFAULT_POPOVER_THEME.stats],
+      actions: { ...DEFAULT_POPOVER_THEME.actions },
+      featured: { ...DEFAULT_POPOVER_THEME.featured },
+    },
+    shopSwitch: {
+      ...DEFAULT_SHOP_SWITCH,
+      position: { ...DEFAULT_SHOP_SWITCH.position },
+    },
   };
 }
 
-function clampDim(raw: unknown): number {
+export function clampDim(raw: unknown): number {
   if (typeof raw !== "number" || !Number.isFinite(raw)) {
     return PROFILE_BG_DIM_DEFAULT;
   }
@@ -554,11 +619,11 @@ export function parseProfileGiaoDien(raw: unknown): ProfileGiaoDienState {
       background: parseBackground(themeRaw.background, customs),
     },
     customs,
+    avatarFrame: parseAvatarFrame(obj.avatarFrame, customs),
+    card: parseCardTheme(obj.card, customs),
+    popover: parsePopoverTheme(obj.popover, customs),
+    shopSwitch: parseShopSwitch(obj.shopSwitch, customs),
   };
-
-  if ("avatarFrame" in obj) state.avatarFrame = obj.avatarFrame;
-  if ("card" in obj) state.card = obj.card;
-  if ("popover" in obj) state.popover = obj.popover;
 
   return state;
 }
@@ -593,6 +658,14 @@ export type ProfileThemePatchInput = {
       >
     >;
   };
+  /** Nhóm E — merge `giao_dien.card`. */
+  card?: CardThemePatchInput;
+  /** Nhóm B — merge `giao_dien.avatarFrame`. */
+  avatarFrame?: AvatarFramePatchInput;
+  /** Nhóm D — merge `giao_dien.popover`. */
+  popover?: PopoverThemePatchInput;
+  /** Khối Shop trên sidebar. */
+  shopSwitch?: ShopSwitchPatchInput;
 };
 
 export type ValidateThemePatchResult =
@@ -764,13 +837,45 @@ export function validateThemePatchBody(
     patch.background = next;
   }
 
+  if ("card" in obj) {
+    const cardResult = validateCardPatchBody(obj.card);
+    if (!cardResult.ok) return cardResult;
+    patch.card = cardResult.patch;
+  }
+
+  if ("avatarFrame" in obj) {
+    const frameResult = validateAvatarFramePatchBody(obj.avatarFrame);
+    if (!frameResult.ok) return frameResult;
+    patch.avatarFrame = frameResult.patch;
+  }
+
+  if ("popover" in obj) {
+    const popResult = validatePopoverPatchBody(obj.popover);
+    if (!popResult.ok) return popResult;
+    patch.popover = popResult.patch;
+  }
+
+  if ("shopSwitch" in obj) {
+    const shopResult = validateShopSwitchPatchBody(obj.shopSwitch);
+    if (!shopResult.ok) return shopResult;
+    patch.shopSwitch = shopResult.patch;
+  }
+
   if (
     !patch.accent &&
     !patch.background &&
     patch.accentHex === undefined &&
-    patch.applyToHome === undefined
+    patch.applyToHome === undefined &&
+    !patch.card &&
+    !patch.avatarFrame &&
+    !patch.popover &&
+    !patch.shopSwitch
   ) {
-    return { ok: false, error: "Thiếu accent, background hoặc applyToHome." };
+    return {
+      ok: false,
+      error:
+        "Thiếu accent, background, applyToHome, card, avatarFrame, popover hoặc shopSwitch.",
+    };
   }
 
   return { ok: true, patch };
@@ -864,10 +969,19 @@ export function applyThemePatch(
       background,
     },
     customs: prev.customs,
+    avatarFrame: patch.avatarFrame
+      ? applyAvatarFramePatch(prev.avatarFrame, patch.avatarFrame, prev.customs)
+      : prev.avatarFrame,
+    card: patch.card
+      ? applyCardPatch(prev.card, patch.card, prev.customs)
+      : prev.card,
+    popover: patch.popover
+      ? applyPopoverPatch(prev.popover, patch.popover, prev.customs)
+      : prev.popover,
+    shopSwitch: patch.shopSwitch
+      ? applyShopSwitchPatch(prev.shopSwitch, patch.shopSwitch, prev.customs)
+      : prev.shopSwitch,
   };
-  if (prev.avatarFrame !== undefined) next.avatarFrame = prev.avatarFrame;
-  if (prev.card !== undefined) next.card = prev.card;
-  if (prev.popover !== undefined) next.popover = prev.popover;
   return next;
 }
 
@@ -915,9 +1029,26 @@ export function serializeGiaoDien(
     },
     customs: state.customs.slice(0, PROFILE_THEME_CUSTOMS_MAX),
   };
-  if (state.avatarFrame !== undefined) out.avatarFrame = state.avatarFrame;
-  if (state.card !== undefined) out.card = state.card;
-  if (state.popover !== undefined) out.popover = state.popover;
+  const framePayload = serializeAvatarFrame(state.avatarFrame);
+  if (
+    framePayload &&
+    (state.avatarFrame.enabled ||
+      !framesEqual(state.avatarFrame, DEFAULT_AVATAR_FRAME))
+  ) {
+    out.avatarFrame = framePayload;
+  }
+  if (state.card.enabled || !cardsEqual(state.card, DEFAULT_CARD_THEME)) {
+    out.card = serializeCardTheme(state.card);
+  }
+  if (
+    state.popover.enabled ||
+    !popoversEqual(state.popover, DEFAULT_POPOVER_THEME)
+  ) {
+    out.popover = serializePopoverTheme(state.popover);
+  }
+  if (!shopSwitchesEqual(state.shopSwitch, DEFAULT_SHOP_SWITCH)) {
+    out.shopSwitch = serializeShopSwitch(state.shopSwitch);
+  }
   return out;
 }
 
@@ -963,7 +1094,7 @@ export function prependProfileCustom(
 }
 
 /**
- * Gỡ một ảnh khỏi `customs` + scrub khỏi background/devices.
+ * Gỡ một ảnh khỏi `customs` + scrub khỏi background/devices + card/popover imageId.
  * Nếu đang dùng ảnh đó và không còn ảnh thay thế → chuyển kind về pattern `dots`.
  */
 export function removeProfileCustomImage(
@@ -974,10 +1105,37 @@ export function removeProfileCustomImage(
   if (!id) return state;
 
   const customs = state.customs.filter((c) => c.imageId !== id);
+  const card =
+    state.card.imageId === id
+      ? { ...state.card, imageId: null }
+      : state.card;
+  const avatarFrame =
+    state.avatarFrame.overlayImageId === id
+      ? { ...state.avatarFrame, overlayImageId: null }
+      : state.avatarFrame;
+  const popover =
+    state.popover.surface.imageId === id
+      ? {
+          ...state.popover,
+          surface: {
+            ...state.popover.surface,
+            imageId: null,
+            kind: "gradient" as const,
+          },
+        }
+      : state.popover;
+  const shopSwitch =
+    state.shopSwitch.imageId === id
+      ? {
+          ...state.shopSwitch,
+          imageId: null,
+          kind: "classic" as const,
+        }
+      : state.shopSwitch;
   const prevBg = state.theme.background;
 
   if (prevBg.kind !== "image") {
-    return { ...state, customs };
+    return { ...state, customs, card, avatarFrame, popover, shopSwitch };
   }
 
   const devices: ProfileBackground["devices"] = {};
@@ -1032,6 +1190,10 @@ export function removeProfileCustomImage(
       background,
     },
     customs,
+    card,
+    avatarFrame,
+    popover,
+    shopSwitch,
   };
 }
 

@@ -146,7 +146,38 @@ import {
   FILTER_LOAI_ORG_BAI_DANG,
 } from "@/lib/filter/types";
 import { getNameInitials } from "@/lib/journey/profile";
+import { authorCardThemeStyle } from "@/lib/journey/card-theme";
+import { JourneyFramedAvatar } from "@/components/journey/JourneyFramedAvatar";
+import type { AvatarFrameDto } from "@/lib/journey/avatar-frame";
+
+import "./journey-card-theme.css";
 import { truongRootPath } from "@/lib/truong/truong-routes";
+
+function AuthorChipLogo({
+  avatarUrl,
+  initials,
+  frame,
+}: {
+  avatarUrl?: string | null;
+  initials: string;
+  frame?: AvatarFrameDto | null;
+}) {
+  return (
+    <JourneyFramedAvatar
+      className="org-logo"
+      sizePx={44}
+      frame={frame ?? null}
+      aria-hidden
+    >
+      {avatarUrl ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={avatarUrl} alt="" />
+      ) : (
+        initials
+      )}
+    </JourneyFramedAvatar>
+  );
+}
 
 type Props = {
   milestone: MilestoneItem;
@@ -1357,6 +1388,7 @@ export function JourneyMilestoneCard({
     (variant === "self" || variant === "verified") &&
     Boolean(authorName || authorAvatarUrl || ownerSlug) &&
     !isCongDongPost;
+  const authorAvatarFrame = milestone.authorAvatarFrame ?? null;
   /** Badge loại «Cá nhân» — phân loại nội bộ; bạn bè / người lạ không cần thấy. */
   const showPersonalTypeBadge = canActAsPostOwner || type !== "ca-nhan";
   /** Visibility (Công khai / Bạn bè / …) — metadata chỉ chủ Journey / admin seeding. */
@@ -1389,6 +1421,14 @@ export function JourneyMilestoneCard({
     !(canManage && ownerSlug) &&
     (Boolean(entityPosterLabel || authorAvatarUrl || milestone.lensOwnerAvatarUrl) ||
       (isCongDongPost && Boolean(congDongOrg)));
+  /** Dấu ấn datebar công khai — Journey guest + trang chủ entity-lens. */
+  const authorThemeDatebarCls =
+    milestone.authorCardTheme &&
+    !isCongDongPost &&
+    !isBookmarkMilestone &&
+    !useForeignFrame
+      ? " jcard-datebar--author-theme"
+      : "";
 
   /* Người xem nội dung của người khác → menu "..." (mở / chia sẻ / copy / báo cáo).
    * Chỉ hiện khi viewer KHÔNG quản lý được nội dung và đây không phải bài của
@@ -1845,7 +1885,19 @@ export function JourneyMilestoneCard({
       data-month={month}
       data-group={type}
       data-post-slug={postSlug ?? undefined}
-      data-post-owner-slug={postOwnerSlug ?? undefined}
+      data-post-owner-slug={postOwnerSlug ?? ownerSlug ?? undefined}
+      {...(milestone.authorCardTheme
+        ? {
+            "data-card-theme": "1" as const,
+            ...(milestone.authorCardTheme.accentHex
+              ? { "data-card-accent": "1" as const }
+              : {}),
+            ...(milestone.authorCardTheme.imageUrl
+              ? { "data-card-image": "1" as const }
+              : {}),
+            style: authorCardThemeStyle(milestone.authorCardTheme),
+          }
+        : {})}
     >
       <div className="j-m-body-wrap">
         {useForeignFrame ? (
@@ -2090,7 +2142,8 @@ export function JourneyMilestoneCard({
             <div
               className={
                 "jcard-datebar jcard-datebar--entity-lens" +
-                (isCongDongPost && congDongOrg ? " jcard-datebar--cong-dong" : "")
+                (isCongDongPost && congDongOrg ? " jcard-datebar--cong-dong" : "") +
+                authorThemeDatebarCls
               }
             >
               {isCongDongPost && congDongOrg ? (
@@ -2156,17 +2209,14 @@ export function JourneyMilestoneCard({
                   }
                 >
                   <span className="org-chip">
-                    <span className="org-logo" aria-hidden>
-                      {entityPosterAvatar ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={entityPosterAvatar} alt="" />
-                      ) : (
-                        getNameInitials(
-                          entityPosterLabel ?? null,
-                          entityPosterSlug ?? "C",
-                        )
+                    <AuthorChipLogo
+                      avatarUrl={entityPosterAvatar}
+                      initials={getNameInitials(
+                        entityPosterLabel ?? null,
+                        entityPosterSlug ?? "C",
                       )}
-                    </span>
+                      frame={authorAvatarFrame}
+                    />
                     <span className="org-copy">
                       <strong>
                         {entityPosterLabel ||
@@ -2227,7 +2277,8 @@ export function JourneyMilestoneCard({
                 "jcard-datebar" +
                 (canManageTagged ? " jcard-datebar--tagged" : "") +
                 (congDongOrg ? " jcard-datebar--cong-dong" : "") +
-                (useForeignFrame ? " jcard-datebar--bookmark-source" : "")
+                (useForeignFrame ? " jcard-datebar--bookmark-source" : "") +
+                authorThemeDatebarCls
               }
             >
               {canManageTagged &&
@@ -2296,14 +2347,14 @@ export function JourneyMilestoneCard({
                     }
                   >
                     <span className="org-chip">
-                      <span className="org-logo" aria-hidden>
-                        {authorAvatarUrl ? (
-                          /* eslint-disable-next-line @next/next/no-img-element */
-                          <img src={authorAvatarUrl} alt="" />
-                        ) : (
-                          getNameInitials(authorName ?? null, ownerSlug ?? "C")
+                      <AuthorChipLogo
+                        avatarUrl={authorAvatarUrl}
+                        initials={getNameInitials(
+                          authorName ?? null,
+                          ownerSlug ?? "C",
                         )}
-                      </span>
+                        frame={authorAvatarFrame}
+                      />
                       <span className="org-copy">
                         <strong>
                           {authorName || `@${ownerSlug ?? ""}`}
@@ -2315,14 +2366,11 @@ export function JourneyMilestoneCard({
                   </JourneyUserPopover>
                 ) : (
                   <span className="org-chip">
-                    <span className="org-logo" aria-hidden>
-                      {authorAvatarUrl ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={authorAvatarUrl} alt="" />
-                      ) : (
-                        getNameInitials(authorName ?? null, "C")
-                      )}
-                    </span>
+                    <AuthorChipLogo
+                      avatarUrl={authorAvatarUrl}
+                      initials={getNameInitials(authorName ?? null, "C")}
+                      frame={authorAvatarFrame}
+                    />
                     <span className="org-copy">
                       <strong>{authorName || t("people.user")}</strong>
                       <small title={t("date.posted")}>{authorChipDateLabel}</small>
@@ -2419,7 +2467,7 @@ export function JourneyMilestoneCard({
             </div>
           ) : variant === "self" ? (
             <div
-              className="jcard-datebar jcard-datebar--guest"
+              className={"jcard-datebar jcard-datebar--guest" + authorThemeDatebarCls}
             >
               {Boolean(authorName || authorAvatarUrl || ownerSlug) ? (
                 <JourneyUserPopover
@@ -2438,14 +2486,14 @@ export function JourneyMilestoneCard({
                   }
                 >
                   <span className="org-chip">
-                    <span className="org-logo" aria-hidden>
-                      {authorAvatarUrl ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={authorAvatarUrl} alt="" />
-                      ) : (
-                        getNameInitials(authorName ?? null, ownerSlug ?? "C")
+                    <AuthorChipLogo
+                      avatarUrl={authorAvatarUrl}
+                      initials={getNameInitials(
+                        authorName ?? null,
+                        ownerSlug ?? "C",
                       )}
-                    </span>
+                      frame={authorAvatarFrame}
+                    />
                     <span className="org-copy">
                       <strong>
                         {authorName || `@${ownerSlug ?? ""}`}
@@ -2519,7 +2567,7 @@ export function JourneyMilestoneCard({
             Boolean(authorName || authorAvatarUrl || ownerSlug) &&
             !isCongDongPost ? (
             <div
-              className="jcard-datebar jcard-datebar--guest"
+              className={"jcard-datebar jcard-datebar--guest" + authorThemeDatebarCls}
             >
               <JourneyUserPopover
                 slug={ownerSlug ?? ""}
@@ -2535,14 +2583,14 @@ export function JourneyMilestoneCard({
                 }
               >
                 <span className="org-chip">
-                  <span className="org-logo" aria-hidden>
-                    {authorAvatarUrl ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img src={authorAvatarUrl} alt="" />
-                    ) : (
-                      getNameInitials(authorName ?? null, ownerSlug ?? "C")
+                  <AuthorChipLogo
+                    avatarUrl={authorAvatarUrl}
+                    initials={getNameInitials(
+                      authorName ?? null,
+                      ownerSlug ?? "C",
                     )}
-                  </span>
+                    frame={authorAvatarFrame}
+                  />
                   <span className="org-copy">
                     <strong>
                       {authorName || `@${ownerSlug ?? ""}`}
