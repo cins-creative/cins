@@ -28,6 +28,7 @@ import type {
   AdminToChucListRow,
   AdminToChucLoaiFilter,
 } from "@/lib/admin/to-chuc-types";
+import { webHref } from "@/lib/cins/manage-site";
 import { orgPublicHref } from "@/lib/search/helpers";
 
 const LOAI_FILTERS: { id: AdminToChucLoaiFilter; label: string }[] = [
@@ -49,14 +50,9 @@ const EMPTY_STATS: AdminToChucListResponse["stats"] = {
 };
 
 function orgViewHref(row: AdminToChucListRow): string | null {
-  switch (row.loai) {
-    case "truong_dai_hoc":
-    case "co_so_dao_tao":
-    case "cong_dong":
-      return orgPublicHref(row.loai, row.slug);
-    default:
-      return null;
-  }
+  const slug = row.slug?.trim();
+  if (!slug) return null;
+  return webHref(orgPublicHref(row.loai, slug));
 }
 
 function LoaiIcon({ loai }: { loai: AdminToChucListRow["loai"] }) {
@@ -460,7 +456,7 @@ export function AdminToChucScreen({
                           ) : row.chuTrang ? (
                             row.chuTrang.slug ? (
                               <Link
-                                href={`/${row.chuTrang.slug}`}
+                                href={webHref(`/${row.chuTrang.slug}`)}
                                 className="admin-to-chuc-creator-link"
                                 target="_blank"
                                 rel="noopener noreferrer"
@@ -479,7 +475,7 @@ export function AdminToChucScreen({
                           {row.nguoiTao ? (
                             row.nguoiTao.slug ? (
                               <Link
-                                href={`/${row.nguoiTao.slug}`}
+                                href={webHref(`/${row.nguoiTao.slug}`)}
                                 className="admin-to-chuc-creator-link"
                                 target="_blank"
                                 rel="noopener noreferrer"

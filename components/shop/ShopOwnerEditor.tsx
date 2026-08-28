@@ -9,7 +9,6 @@ import {
   Trash2,
   Wallet,
 } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -25,6 +24,7 @@ import {
   shopPublicHref,
   shopSlugFromTen,
 } from "@/lib/shop/cua-hang-href";
+import { webHref } from "@/lib/cins/manage-site";
 import type { ShopCuaHang, ShopPhuongThucTt } from "@/lib/shop/types";
 
 import "@/components/journey/journey-shop-view.css";
@@ -288,23 +288,39 @@ export function ShopOwnerEditor({ ownerSlug, ownerName }: Props) {
 
       {slug ? (
         <p className="j-shop-owner-editor-view">
-          <Link href={shopPublicHref(slug, shopSlugFromTen(ten || shop?.ten, slug))}>
+          <a
+            href={shopPublicHref(slug, shopSlugFromTen(ten || shop?.ten, slug))}
+            target="_blank"
+            rel="noreferrer"
+          >
             Xem mặt tiền cửa hàng
-          </Link>
+          </a>
           {" · "}
-          <Link href={
-            shop?.idNguoiDung
-              ? `/account/billing?dv=${encodeURIComponent(shop.idNguoiDung)}`
-              : "/account/billing"
-          }>Phí nền tảng CINs</Link>
+          <a
+            href={webHref(
+              shop?.idNguoiDung
+                ? `/account/billing?dv=${encodeURIComponent(shop.idNguoiDung)}`
+                : "/account/billing",
+            )}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Phí nền tảng CINs
+          </a>
         </p>
       ) : (
         <p className="j-shop-owner-editor-view">
-          <Link href={
-            shop?.idNguoiDung
-              ? `/account/billing?dv=${encodeURIComponent(shop.idNguoiDung)}`
-              : "/account/billing"
-          }>Phí nền tảng CINs</Link>
+          <a
+            href={webHref(
+              shop?.idNguoiDung
+                ? `/account/billing?dv=${encodeURIComponent(shop.idNguoiDung)}`
+                : "/account/billing",
+            )}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Phí nền tảng CINs
+          </a>
         </p>
       )}
 

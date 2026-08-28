@@ -67,6 +67,7 @@ import {
   shopKhoHubHref,
   shopKhoLoaiHref,
   shopLoaiHref,
+  shopLoaiPath,
   shopPublicHref,
   shopSlugFromTen,
 } from "@/lib/shop/cua-hang-href";
@@ -358,7 +359,7 @@ export function JourneyShopLoaiClient({
 
   const shopSlug = shopSlugFromTen(shop?.ten, ownerSlug);
   const shopHref = shopPublicHref(ownerSlug, shopSlug);
-  const loaiSharePath = shopLoaiHref(ownerSlug, shopSlug, nhomId);
+  const loaiSharePath = shopLoaiPath(ownerSlug, shopSlug, nhomId);
   const loaiShareTitle = detail?.nhan?.trim() || shop?.ten?.trim() || "Loại hàng";
 
   useEffect(() => {

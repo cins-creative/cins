@@ -1,8 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { createPortal } from "react-dom";
+import { UserRound } from "lucide-react";
 
 import {
   checkSlugAvailable,
@@ -13,6 +21,44 @@ import {
 import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
 import type { GiaiDoan } from "@/lib/auth/session";
 import { TINH_THANH_OPTIONS } from "@/lib/truong/contact";
+import type { ProfileThemeSlice } from "@/lib/journey/profile-theme";
+import {
+  JourneyThemePicker,
+  type JourneyThemePickerHandle,
+} from "@/components/journey/JourneyThemePicker";
+
+/** Sub-tab Customize — PLAN_customize_theme §0 nhóm A–E. */
+const CUSTOMIZE_SUB_TABS = [
+  { id: "theme", label: "Theme" },
+  { id: "avatar", label: "Avatar" },
+  { id: "shop", label: "Shop" },
+  { id: "card", label: "Card" },
+  { id: "post", label: "Bài viết" },
+] as const;
+
+type CustomizeSubTab = (typeof CUSTOMIZE_SUB_TABS)[number]["id"];
+
+const CUSTOMIZE_SOON: Record<
+  Exclude<CustomizeSubTab, "theme">,
+  { title: string; blurb: string }
+> = {
+  avatar: {
+    title: "Khung & viền avatar",
+    blurb: "Tùy chỉnh khung avatar trên hồ sơ — sắp có.",
+  },
+  shop: {
+    title: "Theme shop",
+    blurb: "Màu và nhấn cho quầy hàng / shop trên Journey — sắp có.",
+  },
+  card: {
+    title: "Card user",
+    blurb: "Giao diện thẻ popover khi xem hồ sơ người khác — sắp có.",
+  },
+  post: {
+    title: "Thanh bài viết",
+    blurb: "Màu thanh ngày / card mốc trên timeline — sắp có.",
+  },
+};
 
 type AccentTone = "yellow" | "mint" | "orange" | "violet" | "blue";
 
@@ -82,6 +128,8 @@ export type EditProfileInitial = {
   visibilityDiaChi: EmailVisibility;
   mxhLinks: ProfileLinkInput[];
   giaiDoan: GiaiDoan;
+  /** Theme trang hồ sơ (accent + pattern) — lưu riêng qua /api/user/giao-dien. */
+  profileTheme?: ProfileThemeSlice | null;
 };
 
 type Props = {
@@ -136,6 +184,16 @@ export function JourneyEditProfileModal({
       : [{ label: "", url: "" }],
   );
   const [giaiDoan, setGiaiDoan] = useState<GiaiDoan>(initial.giaiDoan);
+  const [tab, setTab] = useState<"thong-tin" | "customize">("thong-tin");
+  const [customizeSub, setCustomizeSub] =
+    useState<CustomizeSubTab>("theme");
+  const [themeDirty, setThemeDirty] = useState(false);
+  const [themeSaving, setThemeSaving] = useState(false);
+  const themePickerRef = useRef<JourneyThemePickerHandle>(null);
+  const onCustomize = tab === "customize";
+  const themeFooter =
+    onCustomize && (customizeSub === "theme" || themeDirty);
+  const customizeStubFooter = onCustomize && !themeFooter;
 
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [savedFlash, setSavedFlash] = useState(false);
@@ -145,6 +203,10 @@ export function JourneyEditProfileModal({
   /* Ref banner thông báo (err / ok) — scroll vào view sau khi submit để
    * user không miss kết quả (modal có thể dài, banner nằm cuối body). */
   const noticeRef = useRef<HTMLDivElement>(null);
+
+  const onThemeDirtyChange = useCallback((dirty: boolean) => {
+    setThemeDirty(dirty);
+  }, []);
 
   /* Mount flag — portal chỉ chạy sau khi client hydrate xong (tránh SSR mismatch). */
   const [mounted, setMounted] = useState(false);
@@ -177,6 +239,10 @@ export function JourneyEditProfileModal({
         : [{ label: "", url: "" }],
     );
     setGiaiDoan(initial.giaiDoan);
+    setTab("thong-tin");
+    setCustomizeSub("theme");
+    setThemeDirty(false);
+    setThemeSaving(false);
     setSubmitError(null);
     setSavedFlash(false);
   }, [open, initial, ownerSlug]);
@@ -222,22 +288,6 @@ export function JourneyEditProfileModal({
     void runSlugCheck(slug);
   }
 
-  /* Khóa scroll body khi modal mở + close on Esc. */
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape" && !isPending) handleClose();
-    }
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = prev;
-      document.removeEventListener("keydown", onKey);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, isPending]);
-
   /* Đóng "an toàn" — clear timer auto-close (nếu user bấm x giữa lúc flash). */
   function handleClose() {
     if (closeTimerRef.current) {
@@ -246,6 +296,58 @@ export function JourneyEditProfileModal({
     }
     onClose();
   }
+
+  /** Đóng có xác nhận nếu theme chưa lưu. Không đóng khi bấm ngoài backdrop. */
+  async function requestClose() {
+    if (isPending || themeSaving) return;
+    const picker = themePickerRef.current;
+    if (picker?.isDirty()) {
+      const wantSave = window.confirm(
+        "Bạn có thay đổi giao diện chưa lưu.\n\nOK = Lưu rồi đóng\nCancel = Đóng mà không lưu",
+      );
+      if (wantSave) {
+        setThemeSaving(true);
+        const ok = await picker.save();
+        setThemeSaving(false);
+        if (!ok) return;
+        router.refresh();
+      } else {
+        picker.discard();
+        setThemeDirty(false);
+      }
+    }
+    handleClose();
+  }
+
+  async function saveThemeFromFooter() {
+    const picker = themePickerRef.current;
+    if (!picker) return;
+    setThemeSaving(true);
+    const ok = await picker.save();
+    setThemeSaving(false);
+    if (ok) {
+      setThemeDirty(false);
+      router.refresh();
+    }
+  }
+
+  /* Khóa scroll body khi modal mở + Esc → requestClose (có confirm nếu dirty). */
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && !isPending && !themeSaving) {
+        void requestClose();
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      document.removeEventListener("keydown", onKey);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isPending, themeSaving]);
 
   if (!open || !mounted) return null;
 
@@ -374,11 +476,14 @@ export function JourneyEditProfileModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !isPending) handleClose();
-      }}
     >
-      <section className="j-edit-card" aria-busy={isPending}>
+      <section
+        className={
+          "j-edit-card" +
+          (tab === "customize" ? " j-edit-card--theme" : "")
+        }
+        aria-busy={isPending || themeSaving}
+      >
         <header className="j-edit-head">
           <div>
             <h2 id={titleId} className="j-edit-title">
@@ -392,14 +497,55 @@ export function JourneyEditProfileModal({
             type="button"
             className="j-edit-close"
             aria-label="Đóng"
-            onClick={handleClose}
-            disabled={isPending}
+            onClick={() => void requestClose()}
+            disabled={isPending || themeSaving}
           >
             ×
           </button>
         </header>
 
+        <div className="j-edit-tabs" role="tablist" aria-label="Mục chỉnh sửa">
+          <button
+            type="button"
+            role="tab"
+            id="j-edit-tab-thong-tin"
+            aria-selected={tab === "thong-tin"}
+            aria-controls="j-edit-panel-thong-tin"
+            tabIndex={tab === "thong-tin" ? 0 : -1}
+            className={
+              "j-edit-tab" + (tab === "thong-tin" ? " is-active" : "")
+            }
+            onClick={() => setTab("thong-tin")}
+          >
+            <UserRound size={16} strokeWidth={2.25} aria-hidden />
+            Thông tin
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="j-edit-tab-customize"
+            aria-selected={tab === "customize"}
+            aria-controls="j-edit-panel-customize"
+            tabIndex={tab === "customize" ? 0 : -1}
+            className={
+              "j-edit-tab" + (tab === "customize" ? " is-active" : "")
+            }
+            onClick={() => setTab("customize")}
+          >
+            <span className="j-edit-tab-colorwheel" aria-hidden>
+              <span className="j-edit-tab-colorwheel-ring" />
+            </span>
+            Customize
+          </button>
+        </div>
+
         <div className="j-edit-body">
+          <div
+            id="j-edit-panel-thong-tin"
+            role="tabpanel"
+            aria-labelledby="j-edit-tab-thong-tin"
+            hidden={tab !== "thong-tin"}
+          >
           <div className="j-edit-field">
             <label htmlFor="ep-name" className="j-edit-label">
               Tên hiển thị <span aria-hidden>*</span>
@@ -704,29 +850,134 @@ export function JourneyEditProfileModal({
               </p>
             ) : null}
           </div>
+          </div>
+          <div
+            id="j-edit-panel-customize"
+            role="tabpanel"
+            aria-labelledby="j-edit-tab-customize"
+            className="j-edit-theme-panel"
+            hidden={tab !== "customize"}
+          >
+            <div
+              className="j-edit-subtabs"
+              role="tablist"
+              aria-label="Mục customize"
+            >
+              {CUSTOMIZE_SUB_TABS.map((sub) => (
+                <button
+                  key={sub.id}
+                  type="button"
+                  role="tab"
+                  id={`j-edit-subtab-${sub.id}`}
+                  aria-selected={customizeSub === sub.id}
+                  aria-controls={`j-edit-subpanel-${sub.id}`}
+                  tabIndex={customizeSub === sub.id ? 0 : -1}
+                  className={
+                    "j-edit-subtab" +
+                    (customizeSub === sub.id ? " is-active" : "")
+                  }
+                  onClick={() => setCustomizeSub(sub.id)}
+                >
+                  {sub.label}
+                </button>
+              ))}
+            </div>
+
+            <div
+              id="j-edit-subpanel-theme"
+              role="tabpanel"
+              aria-labelledby="j-edit-subtab-theme"
+              className="j-edit-subpanel"
+              hidden={customizeSub !== "theme"}
+            >
+              <JourneyThemePicker
+                ref={themePickerRef}
+                initialTheme={initial.profileTheme ?? null}
+                onDirtyChange={onThemeDirtyChange}
+              />
+            </div>
+
+            {(
+              Object.keys(CUSTOMIZE_SOON) as Array<
+                Exclude<CustomizeSubTab, "theme">
+              >
+            ).map((id) => {
+              const soon = CUSTOMIZE_SOON[id];
+              return (
+                <div
+                  key={id}
+                  id={`j-edit-subpanel-${id}`}
+                  role="tabpanel"
+                  aria-labelledby={`j-edit-subtab-${id}`}
+                  className="j-edit-subpanel j-edit-subpanel--soon"
+                  hidden={customizeSub !== id}
+                >
+                  <p className="j-edit-soon-kicker">Sắp có</p>
+                  <h3 className="j-edit-soon-title">{soon.title}</h3>
+                  <p className="j-edit-soon-blurb">{soon.blurb}</p>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <footer className="j-edit-foot">
-          <button
-            type="button"
-            className="j-edit-btn j-edit-btn--ghost"
-            onClick={handleClose}
-            disabled={isPending}
-          >
-            {savedFlash ? "Đóng" : "Hủy"}
-          </button>
-          <button
-            type="button"
-            className="j-edit-btn j-edit-btn--primary"
-            onClick={() => void onSubmit()}
-            disabled={isPending || savedFlash}
-          >
-            {savedFlash
-              ? "✓ Đã lưu"
-              : isPending
-                ? "Đang lưu…"
-                : "Lưu thay đổi"}
-          </button>
+          {themeFooter ? (
+            <>
+              <button
+                type="button"
+                className="j-edit-btn j-edit-btn--ghost"
+                onClick={() => void requestClose()}
+                disabled={themeSaving}
+              >
+                Đóng
+              </button>
+              <button
+                type="button"
+                className="j-edit-btn j-edit-btn--primary"
+                onClick={() => void saveThemeFromFooter()}
+                disabled={!themeDirty || themeSaving}
+              >
+                {themeSaving
+                  ? "Đang lưu…"
+                  : themeDirty
+                    ? "Lưu giao diện"
+                    : "Đã lưu"}
+              </button>
+            </>
+          ) : customizeStubFooter ? (
+            <button
+              type="button"
+              className="j-edit-btn j-edit-btn--ghost"
+              onClick={() => void requestClose()}
+              disabled={themeSaving}
+            >
+              Đóng
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="j-edit-btn j-edit-btn--ghost"
+                onClick={() => void requestClose()}
+                disabled={isPending || themeSaving}
+              >
+                {savedFlash ? "Đóng" : "Hủy"}
+              </button>
+              <button
+                type="button"
+                className="j-edit-btn j-edit-btn--primary"
+                onClick={() => void onSubmit()}
+                disabled={isPending || savedFlash}
+              >
+                {savedFlash
+                  ? "✓ Đã lưu"
+                  : isPending
+                    ? "Đang lưu…"
+                    : "Lưu thay đổi"}
+              </button>
+            </>
+          )}
         </footer>
       </section>
     </div>,

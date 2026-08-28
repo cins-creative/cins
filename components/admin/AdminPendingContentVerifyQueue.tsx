@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import type { PendingContentVerifyItem } from "@/lib/admin/pending-content-verify-types";
+import { webHref } from "@/lib/cins/manage-site";
 
 type Props = {
   items: PendingContentVerifyItem[];
@@ -288,7 +289,9 @@ export function AdminPendingContentVerifyQueue({
                         <small>Người gửi</small>
                         {item.studentSlug ? (
                           <Link
-                            href={`/${encodeURIComponent(item.studentSlug)}`}
+                            href={webHref(
+                              `/${encodeURIComponent(item.studentSlug)}`,
+                            )}
                             target="_blank"
                           >
                             {item.studentName || item.studentSlug}

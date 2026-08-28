@@ -7,6 +7,7 @@ import { useCallback, useState } from "react";
 
 import { CoSoPageSettingsModal } from "@/components/co-so/CoSoPageSettingsModal";
 import { stripHtmlToPlainText } from "@/lib/truong/bai-dang-content";
+import { webHref } from "@/lib/cins/manage-site";
 import { coSoRootPath } from "@/lib/to-chuc/co-so-routes";
 import { schoolInitials } from "@/lib/truong/school-avatar";
 
@@ -81,7 +82,7 @@ export function CoSoThongTinQuanLyClient({
         </div>
         <div className="cso-tq-hero-actions">
           <Link
-            href={coSoRootPath(orgSlug)}
+            href={webHref(coSoRootPath(orgSlug))}
             className="cso-ql-btn cso-ql-btn--ghost cso-tq-hero-btn"
           >
             Xem trang cơ sở

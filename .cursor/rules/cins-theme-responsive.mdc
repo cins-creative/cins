@@ -1,0 +1,41 @@
+---
+description: Responsive rules khi làm theme / nền tùy chỉnh (customize giao diện user & shop)
+globs: ["**/journey-theme.css", "**/user-shell-theme.css", "**/profile-theme.ts", "**/user-shell-theme.ts", "**/JourneyThemePicker.tsx", "app/[slug]/journey/journey.css", "components/journey/journey-shop-view.css"]
+---
+
+# Responsive cho theme tùy chỉnh (CINs)
+
+Áp dụng khi chạm theme trang hồ sơ / shop / shell: màu accent, pattern nền, ảnh nền user upload, khung avatar, card bài post. Plan: `docs/PLAN_customize_theme.md`. Skill nền: `.agents/skills/responsive-craft/SKILL.md`.
+
+## 1. Escalation — đơn giản trước
+
+Intrinsic CSS (`clamp()`, `auto-fit`, `flex-wrap`) → container query → media query. Theme **không được** thêm media query layout mới vào `journey.css`; chỉ đổi giá trị biến.
+
+## 2. Cấm tuyệt đối
+
+| Cấm | Lý do |
+|---|---|
+| `background-attachment: fixed` | iOS Safari repaint giật + phá `position: sticky` của `.j-sidebar` |
+| `.cins-shell[…] > * { position: relative }` (hoặc z-index trên mọi con) | Ghi đè `.cins-app-sidebar { position: fixed }` → sidebar vào flow, “đẩy lên” |
+| `100vh` | Tràn sau thanh trình duyệt mobile — dùng `100dvh`/`svh` có fallback `vh` |
+| `overflow: hidden` / `transform` lên tổ tiên của `.j-sidebar`, `.j-shop-sf-section-head` | Giết sticky đang chạy. Dùng `overflow: clip` |
+| Media query `max-width` | Mobile-first: luôn `min-width` |
+| Ghi đè `--ink-*`, `--neutral-*`, `--bg-surface` từ theme user | Sinh giao diện không đọc được |
+| Serve ảnh gốc user upload làm nền | Phải qua variant Cloudflare Images |
+
+## 3. Bắt buộc
+
+- **Ảnh nền:** full-bleed dùng variant CF **`public` (1920×1080)** — không `gridsm` (400px, vỡ nét). Thumb picker vẫn `gridsm`.
+- **Fallback:** luôn set `background-color` trước `background-image` (CF 404 → không trắng trơn).
+- **Lớp phủ:** ảnh nền luôn có `--j-bg-dim` ≥ 0.2; `< 768px` và dark mode tự tăng thêm.
+- **Flex/grid con có nội dung động:** `min-width: 0`.
+- **Sticky trong flex/grid:** kèm `align-self: start`.
+- **Modal chỉnh hồ sơ:** `< 640px` = **full-screen** (`.j-edit-card` fill backdrop `inset: 0`), `padding-top/bottom: env(safe-area-inset-*)`. Customize: controls scroll phía trên · **mockup dock đáy** (~200px) để kéo neo. ≥640px: card giữa màn (thông tin 640px, customize 1080). Input `font-size: max(16px, 1rem)` dưới 640px.
+- **Z-index:** dùng thang có sẵn + `isolation: isolate`. Không viết `9999`.
+- **Lớp pattern:** `isolation: isolate` trên host nội dung (`.world-journey-home` / `.cins-journey-page`) + `::before { z-index: -1 }` — không `> * { position: relative; z-index: 1 }`, không `::before` trên `.cins-shell` (bị `.cins-main { z-index:0 }` che).
+- **`--j-accent` bắt buộc** khi áp pattern lên shell — `PROFILE_PATTERNS` nhúng `var(--j-accent)`; thiếu biến → gradient vô hiệu, không thấy họa tiết.
+- `@media (prefers-contrast: more)` và `@media print` → bỏ nền tùy chỉnh, về token gốc.
+
+## 4. Verify trước khi báo xong
+
+Kéo mượt **320 → 2560px** (không chỉ nhảy mốc), chốt tại **375 / 768 / 1024 / 1440 / 1920**, ở **cả light và dark**, với **cả 3 kiểu nền** (none / pattern / ảnh). Kiểm `.j-sidebar` còn sticky và không có scroll ngang.

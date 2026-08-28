@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 
 import { resolveShopSlugForOwnerSlug } from "@/lib/shop/cua-hang";
-import { shopLoaiHref } from "@/lib/shop/cua-hang-href";
+import { shopLoaiPath } from "@/lib/shop/cua-hang-href";
 
 type Params = Promise<{ slug: string; nhomId: string }>;
 
@@ -17,5 +17,5 @@ export default async function LegacyShopLoaiRedirect({
   const { slug, nhomId } = await params;
   const resolved = await resolveShopSlugForOwnerSlug(slug);
   if (!resolved) notFound();
-  redirect(shopLoaiHref(slug, resolved.shopSlug, nhomId));
+  redirect(shopLoaiPath(slug, resolved.shopSlug, nhomId));
 }

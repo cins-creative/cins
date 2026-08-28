@@ -7,6 +7,7 @@ import { useCallback, useState } from "react";
 
 import { StudioPageSettingsModal } from "@/components/to-chuc/StudioPageSettingsModal";
 import { stripHtmlToPlainText } from "@/lib/truong/bai-dang-content";
+import { webHref } from "@/lib/cins/manage-site";
 import { studioRootPath } from "@/lib/to-chuc/studio-routes";
 import { schoolInitials } from "@/lib/truong/school-avatar";
 
@@ -80,7 +81,7 @@ export function StudioThongTinQuanLyClient({
         </div>
         <div className="cso-tq-hero-actions">
           <Link
-            href={studioRootPath(orgSlug)}
+            href={webHref(studioRootPath(orgSlug))}
             className="cso-ql-btn cso-ql-btn--ghost cso-tq-hero-btn"
           >
             Xem trang studio

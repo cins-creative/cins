@@ -1,7 +1,7 @@
 import "server-only";
 
 import {
-  shopPublicHref as buildShopPublicHref,
+  shopPublicPath as buildShopPublicPath,
   shopSlugFromTen as buildShopSlugFromTen,
 } from "@/lib/shop/cua-hang-href";
 import {
@@ -652,7 +652,7 @@ export async function resolveShopSlugForOwnerSlug(
   const shopSlug = buildShopSlugFromTen(shop?.ten, owner.slug);
   return {
     shopSlug,
-    href: buildShopPublicHref(owner.slug, shopSlug),
+    href: buildShopPublicPath(owner.slug, shopSlug),
     ten: shop?.ten ?? null,
   };
 }

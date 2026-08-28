@@ -213,6 +213,40 @@ export async function updateBangGia(
   }
 }
 
+/**
+ * Ghi 1–n dòng giá theo UNIQUE (id_bang_gia, id_bien_the) — không xóa cả bảng.
+ * Dùng khi tạo/sửa một biến thể; tránh PATCH `dong` (delete-all + insert).
+ */
+export async function upsertBangGiaDongs(
+  ownerId: string,
+  bangGiaId: string,
+  dongs: ShopBangGiaDongInput[],
+): Promise<void> {
+  if (dongs.length === 0) return;
+  await assertShopReady(ownerId);
+  const admin = createServiceRoleClient();
+  const { data: bg } = await admin
+    .from("shop_bang_gia")
+    .select("id")
+    .eq("id", bangGiaId)
+    .eq("id_nguoi_dung", ownerId)
+    .eq("da_xoa", false)
+    .maybeSingle();
+  if (!bg) throw new Error("NOT_FOUND");
+
+  const { error } = await admin.from("shop_bang_gia_dong").upsert(
+    dongs.map(normalizeDongInput).map((row) => ({
+      id_bang_gia: bangGiaId,
+      ...row,
+    })),
+    { onConflict: "id_bang_gia,id_bien_the" },
+  );
+  if (error) {
+    console.error("[shop] upsertBangGiaDongs", error);
+    throw new Error("UPSERT_DONG_FAILED");
+  }
+}
+
 export async function softDeleteBangGia(
   ownerId: string,
   bangGiaId: string,

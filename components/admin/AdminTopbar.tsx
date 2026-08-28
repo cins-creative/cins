@@ -16,6 +16,7 @@ import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { clearAllClientCaches } from "@/lib/client-cache";
 import { clearAllWorldJourneyFirstImpressionSeen } from "@/lib/cins/worldJourneyFirstImpression";
 import { getNameInitials } from "@/lib/journey/profile";
+import { webHref } from "@/lib/cins/manage-site";
 import { clearRecentSearches } from "@/lib/search/recent-searches-storage";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
@@ -143,7 +144,7 @@ export function AdminTopbar({ profile, roleLabel }: Props) {
                   aria-label="Tài khoản admin"
                 >
                   <Link
-                    href={`/${profile.slug}`}
+                    href={webHref(`/${profile.slug}`)}
                     className="app-user-menu-item"
                     role="menuitem"
                     onClick={() => setOpen(false)}

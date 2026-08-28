@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
-import { softDeleteBangGia, updateBangGia } from "@/lib/shop/bang-gia";
+import {
+  softDeleteBangGia,
+  updateBangGia,
+  upsertBangGiaDongs,
+} from "@/lib/shop/bang-gia";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -17,7 +21,43 @@ export async function PATCH(request: Request, ctx: Ctx) {
   } catch {
     return NextResponse.json({ error: "JSON không hợp lệ." }, { status: 400 });
   }
+  const parseDong = (raw: unknown) => {
+    if (!Array.isArray(raw)) return undefined;
+    return raw
+      .map((d) => {
+        const o = d as Record<string, unknown>;
+        if (typeof o.idBienThe !== "string" || typeof o.gia !== "number") {
+          return null;
+        }
+        const giaGiam =
+          o.giaGiam === null
+            ? null
+            : typeof o.giaGiam === "number"
+              ? o.giaGiam
+              : undefined;
+        return {
+          idBienThe: o.idBienThe,
+          gia: o.gia,
+          ...(giaGiam !== undefined ? { giaGiam } : {}),
+        };
+      })
+      .filter(
+        (
+          x,
+        ): x is {
+          idBienThe: string;
+          gia: number;
+          giaGiam?: number | null;
+        } => !!x,
+      );
+  };
+
   try {
+    const dongUpsert = parseDong(body.dongUpsert);
+    if (dongUpsert && dongUpsert.length > 0) {
+      await upsertBangGiaDongs(session.profile.id, id, dongUpsert);
+      return NextResponse.json({ ok: true });
+    }
     await updateBangGia(session.profile.id, id, {
       ten: typeof body.ten === "string" ? body.ten : undefined,
       // Mô hình 1 bảng giá VND duy nhất — không cho đổi tiền tệ.
@@ -25,35 +65,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
         body.ghiChu === null || typeof body.ghiChu === "string"
           ? (body.ghiChu as string | null)
           : undefined,
-      dong: Array.isArray(body.dong)
-        ? body.dong
-            .map((d) => {
-              const o = d as Record<string, unknown>;
-              if (typeof o.idBienThe !== "string" || typeof o.gia !== "number") {
-                return null;
-              }
-              const giaGiam =
-                o.giaGiam === null
-                  ? null
-                  : typeof o.giaGiam === "number"
-                    ? o.giaGiam
-                    : undefined;
-              return {
-                idBienThe: o.idBienThe,
-                gia: o.gia,
-                ...(giaGiam !== undefined ? { giaGiam } : {}),
-              };
-            })
-            .filter(
-              (
-                x,
-              ): x is {
-                idBienThe: string;
-                gia: number;
-                giaGiam?: number | null;
-              } => !!x,
-            )
-        : undefined,
+      dong: parseDong(body.dong),
     });
     return NextResponse.json({ ok: true });
   } catch (e) {
@@ -72,6 +84,9 @@ export async function PATCH(request: Request, ctx: Ctx) {
     }
     if (msg === "NOT_FOUND") {
       return NextResponse.json({ error: "Không tìm thấy." }, { status: 404 });
+    }
+    if (msg === "UPSERT_DONG_FAILED") {
+      return NextResponse.json({ error: "Không lưu được giá." }, { status: 500 });
     }
     return NextResponse.json({ error: "Không cập nhật được." }, { status: 500 });
   }

@@ -23,6 +23,7 @@ import {
   tomTatHangChoDeXuat,
   type HangChoDeXuatTomTat,
 } from "@/lib/shop/danh-muc-yeu-cau-text";
+import { webHref } from "@/lib/cins/manage-site";
 
 type HangChoAlias = {
   tuKhoa: string;
@@ -932,7 +933,7 @@ export function AdminShopDanhMucScreen({ initialRows }: Props) {
                                 </span>
                               )}
                               {nguoi.slug ? (
-                                <Link href={`/${nguoi.slug}`}>{nguoi.ten}</Link>
+                                <Link href={webHref(`/${nguoi.slug}`)}>{nguoi.ten}</Link>
                               ) : (
                                 <span>{nguoi.ten}</span>
                               )}
@@ -1932,7 +1933,7 @@ function HangChoReviewBody({
             )}
             <div>
               {nguoi.slug ? (
-                <Link href={`/${nguoi.slug}`}>{nguoi.ten}</Link>
+                <Link href={webHref(`/${nguoi.slug}`)}>{nguoi.ten}</Link>
               ) : (
                 <strong>{nguoi.ten}</strong>
               )}

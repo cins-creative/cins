@@ -26,6 +26,7 @@ import type {
   AdminUserListRow,
 } from "@/lib/admin/nguoi-dung-roles";
 import type { SystemRole } from "@/lib/auth/system-role";
+import { webHref } from "@/lib/cins/manage-site";
 import {
   shopEntryHref,
   shopPublicHref,
@@ -507,7 +508,7 @@ export function AdminNguoiDungScreen() {
                               {row.tenHienThi}
                             </span>
                             <Link
-                              href={`/${encodeURIComponent(row.slug)}`}
+                              href={webHref(`/${encodeURIComponent(row.slug)}`)}
                               className="admin-nguoi-dung-user-slug"
                               target="_blank"
                               rel="noopener noreferrer"
@@ -522,7 +523,9 @@ export function AdminNguoiDungScreen() {
                       </td>
                       <td>
                         <Link
-                          href={`/${encodeURIComponent(row.slug)}/journey`}
+                          href={webHref(
+                            `/${encodeURIComponent(row.slug)}/journey`,
+                          )}
                           className="admin-nguoi-dung-noi-dung"
                           target="_blank"
                           rel="noopener noreferrer"

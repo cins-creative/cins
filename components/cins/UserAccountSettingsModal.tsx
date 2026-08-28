@@ -60,7 +60,7 @@ import {
 } from "@/lib/journey/journey-default-view";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { useT } from "@/lib/i18n/use-t";
-import { manageSellerHref } from "@/lib/cins/manage-site";
+import { manageSellerHref, webHref } from "@/lib/cins/manage-site";
 
 import "./user-account-settings-modal.css";
 
@@ -1070,7 +1070,7 @@ function PhiSanPanel({ dangApDung, thongBao, chinhSachHref }: PhiSanPanelProps) 
       </dl>
 
       <Link
-        href={chinhSachHref || "/policies/marketplace-fee"}
+        href={webHref(chinhSachHref || "/policies/marketplace-fee")}
         className="uas-phi-panel-link"
       >
         {t("account.settings.fee.policyLink")}

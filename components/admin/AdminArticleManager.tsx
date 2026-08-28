@@ -12,6 +12,7 @@ import {
 import { adminFetchArticleBody, adminSaveArticle } from "@/app/admin/actions";
 import { ArticleDraftContentEditor } from "@/components/article/draft/ArticleDraftContentEditor";
 import type { AdminArticleDetailRow, AdminArticleListRow } from "@/lib/admin/articles-server";
+import { webHref } from "@/lib/cins/manage-site";
 
 const STATUS_OPTIONS = [
   { value: "published", label: "Đã xuất bản" },
@@ -210,7 +211,7 @@ export function AdminArticleManager({ initialRows }: Props) {
                 <div className="flex flex-wrap items-center gap-3">
                   {trang_thai === "published" ? (
                     <Link
-                      href={`/articles/${slug}`}
+                      href={webHref(`/articles/${slug}`)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm font-medium text-blue-600 hover:underline"

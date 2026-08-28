@@ -22,7 +22,7 @@ import { JourneyShopStorefront } from "@/components/journey/JourneyShopStorefron
 import { useJourneyViewOptional } from "@/components/journey/JourneyViewContext";
 import { warmOgImageCache } from "@/lib/journey/og-image-url";
 import {
-  shopPublicHref,
+  shopPublicPath,
   shopSetupHref,
   shopKhoHubHref,
   shopSlugFromTen,
@@ -69,7 +69,7 @@ export function JourneyShopView({
     if (loading) return;
     setShopSlugCtx?.(shopSlug);
     if (typeof window === "undefined") return;
-    const canon = shopPublicHref(ownerSlug, shopSlug);
+    const canon = shopPublicPath(ownerSlug, shopSlug);
     const path = window.location.pathname.replace(/\/+$/, "");
     const entry = `/${encodeURIComponent(ownerSlug)}/shop`;
     if (path.includes("/collections/") || path.includes("/loai/")) return;
@@ -94,7 +94,7 @@ export function JourneyShopView({
     if (loading || !shop) return;
     if (typeof window === "undefined") return;
     warmOgImageCache(
-      `${window.location.origin}${shopPublicHref(ownerSlug, shopSlug)}/opengraph-image`,
+      `${window.location.origin}${shopPublicPath(ownerSlug, shopSlug)}/opengraph-image`,
     );
   }, [loading, shop, ownerSlug, shopSlug]);
 

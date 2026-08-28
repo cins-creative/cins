@@ -28,6 +28,7 @@ import {
   type TrangThaiDongGop,
 } from "@/lib/article/dong-gop/types";
 import { getNameInitials } from "@/lib/journey/profile";
+import { webHref } from "@/lib/cins/manage-site";
 
 type Props = {
   items: AdminDongGopRow[];
@@ -314,7 +315,7 @@ export function AdminDongGopScreen({
                             )}
                             {row.contributor?.slug ? (
                               <Link
-                                href={`/${row.contributor.slug}`}
+                                href={webHref(`/${row.contributor.slug}`)}
                                 className="dgop-admin-who-link"
                               >
                                 {name}
@@ -511,7 +512,7 @@ export function AdminDongGopScreen({
                   <h3 className="dgop-admin-group-title">{group.tieuDe}</h3>
                   <p className="dgop-admin-group-meta">
                     <span className="dgop-loai-chip">{loaiLabel(group.loai)}</span>
-                    <Link href={group.href} className="dgop-entity-link">
+                    <Link href={webHref(group.href)} className="dgop-entity-link">
                       Xem trang
                       <ExternalLink size={12} aria-hidden />
                     </Link>

@@ -24,6 +24,7 @@ import type { ShopCuaHang } from "@/lib/shop/types";
 import {
   fetchShopCuaHangClient,
   prefetchShopCuaHangClient,
+  writeShopCuaHangCache,
 } from "@/lib/shop/client-fetch-cache";
 import { isShopTamDongActive } from "@/lib/shop/tam-dong";
 import { ShopTamDongOverlay } from "@/components/shop/ShopTamDongOverlay";
@@ -34,6 +35,8 @@ type Props = {
   orgCount?: number;
   /** Hiện nút Shop khi chủ đã bật bán hàng (hoặc chính chủ đang xem). */
   showShop?: boolean;
+  /** Hydrate từ SSR — tránh chờ client fetch mới hiện avatar. */
+  initialShop?: ShopCuaHang | null;
 };
 
 export function JourneySidebarSwitchNav({
@@ -41,6 +44,7 @@ export function JourneySidebarSwitchNav({
   friendCount,
   orgCount,
   showShop = false,
+  initialShop = null,
 }: Props) {
   const { view: activeView, setView } = useJourneyView();
 
@@ -50,6 +54,7 @@ export function JourneySidebarSwitchNav({
         <ShopSwitchCard
           slug={slug}
           active={activeView === "shop"}
+          initialShop={initialShop}
           onSelect={() => {
             if (activeView !== "shop") setView("shop");
           }}
@@ -91,12 +96,22 @@ function ShopSwitchCard({
   slug,
   active,
   onSelect,
+  initialShop = null,
 }: {
   slug: string;
   active: boolean;
   onSelect: () => void;
+  initialShop?: ShopCuaHang | null;
 }) {
-  const [shop, setShop] = useState<ShopCuaHang | null>(null);
+  const [shop, setShop] = useState<ShopCuaHang | null>(() => {
+    if (initialShop) {
+      writeShopCuaHangCache(initialShop, {
+        slug,
+        shopVisible: true,
+      });
+    }
+    return initialShop;
+  });
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -113,6 +128,12 @@ function ShopSwitchCard({
       cancelled = true;
     };
   }, [slug]);
+
+  useEffect(() => {
+    if (!initialShop) return;
+    writeShopCuaHangCache(initialShop, { slug, shopVisible: true });
+    setShop((prev) => prev ?? initialShop);
+  }, [slug, initialShop]);
 
   useEffect(() => {
     const onShop = (event: Event) => {
@@ -193,7 +214,14 @@ function ShopSwitchCard({
           <span className="j-profile-shop-switch-avatar" aria-hidden>
             {shop?.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={shop.avatarUrl} alt="" />
+              <img
+                src={shop.avatarUrl}
+                alt=""
+                width={44}
+                height={44}
+                decoding="async"
+                fetchPriority="high"
+              />
             ) : (
               <Store size={16} strokeWidth={2} />
             )}

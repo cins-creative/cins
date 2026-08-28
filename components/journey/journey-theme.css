@@ -1,0 +1,1273 @@
+/* Theme trang hồ sơ — scope .cins-journey-page[data-profile-theme]
+ * Plan: docs/PLAN_customize_theme.md · rule: cins-theme-responsive.mdc
+ * Pattern/ảnh đứng yên qua ::before position:fixed — KHÔNG dùng
+ * background-attachment:fixed (phá sticky .j-sidebar / giật iOS). */
+
+.cins-journey-page[data-profile-theme] {
+  --cins-blue: var(--j-accent);
+  --cins-blue-dark: color-mix(in srgb, var(--j-accent) 82%, black);
+  --cins-blue-soft: color-mix(in srgb, var(--j-accent) 14%, white);
+  --border: color-mix(in srgb, var(--j-accent) 10%, var(--neutral-200));
+  --j-tagged: var(--j-accent);
+  --j-tagged-soft: color-mix(in srgb, var(--j-accent) 14%, white);
+  --j-bg-dim-effective: var(--j-bg-dim, 0);
+  position: relative;
+  isolation: isolate;
+  /* Trong suốt — nền nằm trên ::before. Opaque ở đây che wallpaper
+     khi cột con (timeline) cũng trong suốt. */
+  background-color: transparent;
+  background-image: none;
+}
+
+/* Pattern / ảnh dưới content — isolation + z-index:-1. */
+.cins-journey-page[data-profile-theme]::before {
+  content: "";
+  position: fixed;
+  top: var(--site-nav-sticky-top, var(--j-topbar-h, 64px));
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  pointer-events: none;
+  /* Fallback màu khi CF 404 / contrast mode tắt ảnh. */
+  background-color: var(--bg-page);
+  background-image:
+    linear-gradient(
+      color-mix(in srgb, var(--bg-page) calc(var(--j-bg-dim-effective) * 100%), transparent),
+      color-mix(in srgb, var(--bg-page) calc(var(--j-bg-dim-effective) * 100%), transparent)
+    ),
+    var(--j-bg-image, none);
+  background-size: auto, var(--j-bg-size, auto);
+  background-position: 0 0, var(--j-bg-position, 0 0);
+  background-repeat: repeat, var(--j-bg-repeat, repeat);
+}
+
+/* Ảnh nền: phone / tablet / desktop — ảnh + neo riêng. */
+.cins-journey-page[data-profile-theme][data-profile-bg="image"]::before {
+  background-image:
+    linear-gradient(
+      color-mix(in srgb, var(--bg-page) calc(var(--j-bg-dim-effective) * 100%), transparent),
+      color-mix(in srgb, var(--bg-page) calc(var(--j-bg-dim-effective) * 100%), transparent)
+    ),
+    var(--j-bg-image-sm, var(--j-bg-image, none));
+  background-size: auto, var(--j-bg-size, cover);
+  background-position: 0 0, var(--j-bg-position-sm, var(--j-bg-position, center));
+  background-repeat: no-repeat, var(--j-bg-repeat, no-repeat);
+}
+
+@media (min-width: 768px) {
+  .cins-journey-page[data-profile-theme][data-profile-bg="image"]::before {
+    background-image:
+      linear-gradient(
+        color-mix(in srgb, var(--bg-page) calc(var(--j-bg-dim-effective) * 100%), transparent),
+        color-mix(in srgb, var(--bg-page) calc(var(--j-bg-dim-effective) * 100%), transparent)
+      ),
+      var(--j-bg-image-md, var(--j-bg-image, none));
+    background-position: 0 0, var(--j-bg-position-md, var(--j-bg-position, center));
+  }
+}
+
+@media (min-width: 1200px) {
+  .cins-journey-page[data-profile-theme][data-profile-bg="image"]::before {
+    background-image:
+      linear-gradient(
+        color-mix(in srgb, var(--bg-page) calc(var(--j-bg-dim-effective) * 100%), transparent),
+        color-mix(in srgb, var(--bg-page) calc(var(--j-bg-dim-effective) * 100%), transparent)
+      ),
+      var(--j-bg-image, none);
+    background-position: 0 0, var(--j-bg-position, center);
+  }
+}
+
+:root[data-theme="dark"] .cins-journey-page[data-profile-theme] {
+  --cins-blue: color-mix(in srgb, var(--j-accent) 72%, white);
+  --cins-blue-dark: color-mix(in srgb, var(--j-accent) 55%, white);
+  --cins-blue-soft: color-mix(in srgb, var(--j-accent) 22%, transparent);
+  --border: color-mix(in srgb, var(--j-accent) 18%, var(--neutral-200));
+  --j-tagged: color-mix(in srgb, var(--j-accent) 72%, white);
+  --j-tagged-soft: color-mix(in srgb, var(--j-accent) 22%, transparent);
+}
+
+@media (max-width: 767px) {
+  .cins-journey-page[data-profile-theme] {
+    --j-bg-dim-effective: calc(var(--j-bg-dim, 0) + 0.1);
+  }
+}
+
+/*
+ * Mobile / tablet 1-col (journey.css): sidebar = bg-surface, timeline = bg-page
+ * — tấm đặc che ::before. !important vì journey.css có thể load lại sau theme.
+ * Card bài (.j-m-card) vẫn nền riêng — chỉ lộ wallpaper ở khe / vùng trống.
+ */
+@media (max-width: 991.98px) {
+  .cins-journey-page[data-profile-theme],
+  .cins-journey-page[data-profile-theme] .j-shell,
+  .cins-journey-page[data-profile-theme] .j-sidebar,
+  .cins-journey-page[data-profile-theme] .j-timeline,
+  .cins-journey-page[data-profile-theme] .j-gallery-main,
+  .cins-journey-page[data-profile-theme] .j-main-panel,
+  .cins-journey-page[data-profile-theme] .j-shop {
+    background: transparent !important;
+    background-image: none !important;
+  }
+
+  .cins-journey-page[data-profile-theme] .j-sidebar {
+    border-bottom-color: color-mix(
+      in srgb,
+      var(--border) 70%,
+      transparent
+    );
+  }
+
+  /* Main flex host — tránh nền lavender đè khi page trong suốt. */
+  .cins-main:has(> .cins-journey-page[data-profile-theme]) {
+    background: transparent !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .cins-journey-page[data-profile-theme] {
+    background-color: var(--bg-page);
+  }
+  .cins-journey-page[data-profile-theme]::before {
+    background-image: none;
+  }
+}
+
+@media print {
+  .cins-journey-page[data-profile-theme] {
+    background-color: #fff;
+  }
+  .cins-journey-page[data-profile-theme]::before {
+    display: none;
+  }
+}
+
+/* ── Picker (trong modal chỉnh hồ sơ) ───────────────────────────────
+ * Mobile: controls scroll · mockup dock đáy (~180px) để kéo neo.
+ * ≥900px: 2 cột controls | demo.
+ */
+
+.j-theme-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.j-theme-picker-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-x: clip;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 2px 12px 0;
+}
+
+/* Dock preview — luôn thấy trên mobile, không cuộn mất. */
+.j-theme-picker-aside {
+  flex: 0 0 auto;
+  min-width: 0;
+  max-height: 240px;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+
+.j-theme-picker-aside .j-theme-device {
+  height: 100%;
+  min-height: 0;
+  border-top: none;
+  padding-top: 0;
+  gap: 6px;
+}
+
+.j-theme-picker-aside .j-theme-picker-label,
+.j-theme-picker-aside .j-theme-device-meta {
+  display: none;
+}
+
+.j-theme-picker-aside .j-theme-device-tab {
+  flex-direction: row;
+  gap: 4px;
+  padding: 6px 8px;
+  font-size: max(12px, 0.75rem);
+}
+
+.j-theme-picker-aside .j-theme-device-tab-size {
+  display: none;
+}
+
+.j-theme-picker-aside .j-theme-device-stage {
+  min-height: 160px;
+}
+
+@media (min-width: 900px) {
+  .j-theme-picker {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 0.92fr);
+    gap: 20px;
+    align-items: stretch;
+  }
+
+  .j-theme-picker-main {
+    padding-right: 4px;
+    padding-bottom: 0;
+    gap: 14px;
+  }
+
+  .j-theme-picker-aside {
+    max-height: none;
+    border-top: none;
+    border-left: 1px solid var(--border);
+    padding-top: 0;
+    padding-left: 18px;
+    overflow: hidden;
+  }
+
+  .j-theme-picker-aside .j-theme-device {
+    height: 100%;
+    gap: 10px;
+  }
+
+  .j-theme-picker-aside .j-theme-picker-label {
+    display: flex;
+  }
+
+  .j-theme-picker-aside .j-theme-device-meta {
+    display: block;
+  }
+
+  .j-theme-picker-aside .j-theme-device-tab {
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 6px;
+  }
+
+  .j-theme-picker-aside .j-theme-device-tab-size {
+    display: inline;
+  }
+}
+
+.j-theme-picker-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-title);
+}
+
+.j-theme-picker-status {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+.j-theme-picker-status.is-err {
+  color: var(--danger);
+}
+
+.j-theme-picker-status.is-ok {
+  color: var(--success);
+}
+
+.j-theme-swatch-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 8px;
+}
+
+.j-theme-swatch {
+  appearance: none;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  border: 2px solid transparent;
+  background: var(--swatch, var(--cins-blue));
+  cursor: pointer;
+  padding: 0;
+  transition: border-color 0.15s var(--j-ease, ease), transform 0.15s ease;
+}
+
+.j-theme-swatch:hover {
+  transform: translateY(-1px);
+}
+
+.j-theme-swatch:focus-visible {
+  outline: 2px solid var(--cins-blue);
+  outline-offset: 2px;
+}
+
+.j-theme-swatch.is-active {
+  border-color: var(--ink-display);
+  box-shadow: 0 0 0 2px var(--bg-surface);
+}
+
+/* Colorwheel — cùng visual với .cins-canvas-colorwheel */
+.j-theme-colorwheel {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.j-theme-colorwheel:hover {
+  transform: translateY(-1px);
+}
+
+.j-theme-colorwheel.is-active {
+  border-color: var(--ink-display);
+  box-shadow: 0 0 0 2px var(--bg-surface);
+}
+
+.j-theme-colorwheel:focus-within {
+  outline: 2px solid var(--cins-blue);
+  outline-offset: 2px;
+}
+
+.j-theme-colorwheel-ring {
+  position: absolute;
+  inset: 14%;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    #ff3b30,
+    #ff9500,
+    #ffcc00,
+    #34c759,
+    #5ac8fa,
+    #007aff,
+    #af52de,
+    #ff2d55,
+    #ff3b30
+  );
+  pointer-events: none;
+}
+
+.j-theme-colorwheel-current {
+  position: absolute;
+  inset: 32%;
+  border-radius: 50%;
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.2);
+  pointer-events: none;
+}
+
+.j-theme-colorwheel input[type="color"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  border-radius: inherit;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.j-theme-bg-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--bg-page, #f4f5f8) 70%, transparent);
+}
+
+.j-theme-bg-switch-btn {
+  appearance: none;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background-color: var(--bg-surface, #fff);
+  color: var(--ink-display, #0f172a);
+  font: inherit;
+  font-size: max(12px, 0.8rem);
+  font-weight: 600;
+  cursor: pointer;
+  text-shadow:
+    0 0 6px var(--bg-surface, #fff),
+    0 0 2px var(--bg-surface, #fff);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease;
+}
+
+.j-theme-bg-switch-btn--pattern {
+  background-image: var(--preview-image, none);
+  background-size: var(--preview-size, auto);
+  background-position: var(--preview-position, 0 0);
+  background-repeat: repeat;
+}
+
+.j-theme-bg-switch-btn--image {
+  background-repeat: no-repeat;
+  /* Scrim nhẹ để chữ đọc được trên ảnh (user hoặc mặc định). */
+  background-image:
+    linear-gradient(
+      color-mix(in srgb, var(--bg-surface, #fff) 58%, transparent),
+      color-mix(in srgb, var(--bg-surface, #fff) 58%, transparent)
+    ),
+    var(--switch-image, url("/journey/theme-bg-switch-default.jpg"));
+  background-size: cover, cover;
+  background-position: center, center;
+}
+
+.j-theme-bg-switch-btn--image.is-placeholder {
+  /* Cùng ảnh mặc định; scrim đậm hơn một chút để phân biệt chưa chọn ảnh user. */
+  background-image:
+    linear-gradient(
+      color-mix(in srgb, var(--bg-surface, #fff) 68%, transparent),
+      color-mix(in srgb, var(--bg-surface, #fff) 68%, transparent)
+    ),
+    var(--switch-image, url("/journey/theme-bg-switch-default.jpg"));
+}
+
+.j-theme-bg-switch-btn:hover {
+  color: var(--ink-title);
+}
+
+.j-theme-bg-switch-btn:focus-visible {
+  outline: 2px solid var(--cins-blue);
+  outline-offset: 2px;
+}
+
+.j-theme-bg-switch-btn.is-active {
+  border-color: color-mix(
+    in srgb,
+    var(--j-accent, var(--cins-blue)) 45%,
+    var(--border)
+  );
+  color: var(--j-accent, var(--cins-blue));
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.j-theme-pattern-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+  gap: 8px;
+}
+
+.j-theme-pattern {
+  appearance: none;
+  display: block;
+  padding: 0;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  cursor: pointer;
+  overflow: hidden;
+  aspect-ratio: 1.35;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.j-theme-pattern:hover {
+  border-color: color-mix(in srgb, var(--j-accent, var(--cins-blue)) 40%, var(--border));
+}
+
+.j-theme-pattern:focus-visible {
+  outline: 2px solid var(--cins-blue);
+  outline-offset: 2px;
+}
+
+.j-theme-pattern.is-active {
+  border-color: var(--j-accent, var(--cins-blue));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--j-accent, var(--cins-blue)) 35%, transparent);
+}
+
+.j-theme-pattern-preview {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-color: var(--bg-page);
+  background-image: var(--preview-image, none);
+  background-size: var(--preview-size, auto);
+  background-position: var(--preview-position, 0 0);
+  background-repeat: repeat;
+}
+
+.j-theme-home-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--ink-body);
+  cursor: pointer;
+}
+
+.j-theme-home-check input {
+  margin-top: 3px;
+  flex-shrink: 0;
+  accent-color: var(--j-accent, var(--cins-blue));
+}
+
+.j-theme-home-check span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.j-theme-home-check small {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ink-muted);
+  line-height: 1.35;
+}
+
+.j-theme-device-screen.is-pannable {
+  cursor: grab;
+  touch-action: none;
+}
+
+.j-theme-device-screen.is-pannable:active {
+  cursor: grabbing;
+}
+
+.j-theme-device-screen.is-pannable .j-theme-device-chrome,
+.j-theme-device-screen.is-pannable .j-theme-device-body {
+  pointer-events: none;
+}
+
+.j-theme-picker-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.j-theme-picker-reset {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--ink-body);
+  font-size: max(13px, 0.8125rem);
+  font-weight: 500;
+  font-family: inherit;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.j-theme-picker-reset:hover:not(:disabled) {
+  border-color: var(--border-strong);
+}
+
+.j-theme-picker-reset:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.j-theme-picker-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-muted);
+  line-height: 1.4;
+}
+
+/* ── Ảnh nền customs ─────────────────────────────────────────────── */
+
+.j-theme-image-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.j-theme-image-file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.j-theme-image-upload {
+  appearance: none;
+  min-width: 72px;
+  min-height: 56px;
+  padding: 8px 10px;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-page);
+  color: var(--ink-body);
+  font-size: max(12px, 0.75rem);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.j-theme-image-upload:hover:not(:disabled) {
+  border-color: var(--j-accent, var(--cins-blue));
+  color: var(--j-accent, var(--cins-blue));
+}
+
+.j-theme-image-upload:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.j-theme-image-custom {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.j-theme-image-custom.is-removing {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.j-theme-image-thumb {
+  appearance: none;
+  width: 72px;
+  height: 56px;
+  padding: 0;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-page);
+  background-size: cover;
+  background-position: center;
+  cursor: pointer;
+}
+
+.j-theme-image-thumb:disabled {
+  cursor: default;
+}
+
+.j-theme-image-thumb.is-active,
+.j-theme-image-custom.is-active .j-theme-image-thumb {
+  border-color: var(--j-accent, var(--cins-blue));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--j-accent, var(--cins-blue)) 35%, transparent);
+}
+
+.j-theme-image-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: #0f172a;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  z-index: 1;
+}
+
+.j-theme-image-remove:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.j-theme-image-remove:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.j-theme-dim {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.j-theme-dim-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.j-theme-dim input[type="range"] {
+  width: 100%;
+  accent-color: var(--j-accent, var(--cins-blue));
+}
+
+/* Tránh iOS zoom khi focus — rule theme-responsive. */
+.j-theme-picker input,
+.j-theme-picker select,
+.j-theme-picker textarea {
+  font-size: max(16px, 1rem);
+}
+
+@media (min-width: 640px) {
+  .j-theme-picker input,
+  .j-theme-picker select,
+  .j-theme-picker textarea {
+    font-size: inherit;
+  }
+}
+
+.j-theme-fit {
+  display: flex;
+  gap: 6px;
+}
+
+.j-theme-fit-btn {
+  appearance: none;
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--ink-body);
+  font-size: max(12px, 0.75rem);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.j-theme-fit-btn.is-active {
+  border-color: var(--j-accent, var(--cins-blue));
+  color: var(--j-accent, var(--cins-blue));
+  background: color-mix(in srgb, var(--j-accent, var(--cins-blue)) 10%, var(--bg-surface));
+}
+
+/* ── Mockup thiết bị ─────────────────────────────────────────────── */
+
+.j-theme-device {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.j-theme-device-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+
+.j-theme-device-tab {
+  appearance: none;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--ink-body);
+  font-size: max(12px, 0.75rem);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.j-theme-device-tab-size {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+.j-theme-device-tab.is-active {
+  border-color: var(--j-accent, var(--cins-blue));
+  color: var(--j-accent, var(--cins-blue));
+}
+
+.j-theme-device-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
+
+/* Hộp đúng kích thước hiển thị — frame gốc bên trong scale xuống. */
+.j-theme-device-scale {
+  position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+  line-height: 0;
+}
+
+.j-theme-device-frame {
+  border: 2px solid #1e293b;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0f172a;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+  flex-shrink: 0;
+  transform-origin: top left;
+  box-sizing: border-box;
+}
+
+.j-theme-device-frame[data-device="phone"] {
+  border-radius: 18px;
+}
+
+.j-theme-device-screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  isolation: isolate;
+  background-color: var(--bg-page, #f4f5f8);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+
+
+/* Lớp 1: họa tiết / ảnh nền — kích thước gốc; cả frame scale bên ngoài. */
+.j-theme-device-screen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: var(--preview-image, none);
+  background-size: var(--preview-size, cover);
+  background-position: var(--preview-position, center);
+  background-repeat: var(--preview-repeat, no-repeat);
+}
+
+.j-theme-device-screen[data-preview-bg="pattern"]::before {
+  background-repeat: repeat;
+}
+
+/* Lớp 2: lớp phủ đọc chữ — full khung mockup (không scale theo pattern). */
+.j-theme-device-screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: color-mix(
+    in srgb,
+    var(--bg-page, #f4f5f8) var(--preview-dim-pct, 0%),
+    transparent
+  );
+}
+
+.j-theme-device-screen[data-preview-bg="none"]::after {
+  background-color: transparent;
+}
+
+/*
+ * Skeleton mockup — px = Journey thật trên frame gốc, rồi scale cả frame.
+ * Desktop: sidebar 248 · gutter 24 · gallery 340 (journey.css tokens).
+ */
+.j-theme-device-chrome {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  padding: 0 18px;
+  background: color-mix(in srgb, var(--bg-surface, #fff) 88%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 90%, transparent);
+  box-sizing: border-box;
+}
+
+.j-td-chrome-brand {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.j-td-chrome-brand i {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  display: block;
+}
+
+.j-td-chrome-brand i:nth-child(1),
+.j-td-chrome-brand i:nth-child(2),
+.j-td-chrome-brand i:nth-child(3) {
+  background: color-mix(in srgb, var(--ink-muted, #94a3b8) 38%, transparent);
+}
+.j-td-chrome-brand i:nth-child(4) {
+  background: color-mix(in srgb, var(--j-accent, #1f74c9) 32%, #94a3b8);
+}
+
+.j-td-chrome-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.j-td-chrome-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink-muted, #94a3b8) 16%, transparent);
+}
+
+.j-td-chrome-user {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--j-accent, #1f74c9) 22%, #cbd5e1);
+}
+
+.j-theme-device-body {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr) 340px;
+  gap: 24px;
+  padding: 12px 20px 16px;
+  min-height: 0;
+  box-sizing: border-box;
+  align-items: start;
+}
+
+.j-theme-device-frame[data-device="tablet"] .j-theme-device-body {
+  grid-template-columns: 248px minmax(0, 1fr);
+  padding: 12px 16px 16px;
+}
+
+.j-theme-device-frame[data-device="phone"] .j-theme-device-body {
+  grid-template-columns: 1fr;
+  gap: 0;
+  padding: 0;
+  overflow-y: auto;
+  align-content: start;
+}
+
+.j-theme-device-aside,
+.j-theme-device-card,
+.j-td-tlb {
+  background: var(--bg-surface, #fff);
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 70%, transparent);
+  box-sizing: border-box;
+}
+
+.j-theme-device-aside--profile {
+  position: relative;
+  padding: 0 0 16px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.j-theme-device-frame[data-device="phone"] .j-theme-device-aside--profile {
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+}
+
+.j-td-cover {
+  height: 100px;
+  width: 100%;
+  border-radius: 12px 12px 0 0;
+  background: color-mix(in srgb, var(--j-accent, #1f74c9) 14%, #e2e8f0);
+}
+
+.j-theme-device-frame[data-device="phone"] .j-td-cover {
+  border-radius: 0;
+  aspect-ratio: 248 / 100;
+  height: auto;
+}
+
+.j-td-avatar {
+  width: 96px;
+  height: 96px;
+  margin: -48px auto 0;
+  border-radius: 999px;
+  border: 4px solid var(--bg-surface, #fff);
+  background: color-mix(in srgb, var(--ink-muted, #94a3b8) 28%, #e2e8f0);
+  box-sizing: border-box;
+  display: block;
+}
+
+.j-td-name {
+  height: 14px;
+  width: 58%;
+  margin: 14px auto 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink-display, #0f172a) 18%, transparent);
+}
+
+.j-td-handle {
+  height: 8px;
+  width: 36%;
+  margin: 0 auto 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink-muted, #94a3b8) 18%, transparent);
+}
+
+.j-td-btn {
+  height: 32px;
+  width: calc(100% - 32px);
+  max-width: 200px;
+  margin: 0 auto 14px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--j-accent, #1f74c9) 48%, #94a3b8);
+}
+
+.j-td-bio {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 16px 12px;
+}
+
+.j-td-bio span,
+.j-td-post-text span {
+  display: block;
+  height: 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink-muted, #94a3b8) 14%, transparent);
+}
+
+.j-td-bio span:nth-child(1) {
+  width: 92%;
+}
+.j-td-bio span:nth-child(2) {
+  width: 78%;
+}
+.j-td-line--short {
+  width: 48% !important;
+}
+
+.j-td-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 0 12px;
+}
+
+.j-td-stats span {
+  height: 36px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ink-muted, #94a3b8) 7%, var(--bg-page, #f4f5f8));
+  border: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 50%, transparent);
+}
+
+.j-theme-device-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.j-theme-device-frame[data-device="phone"] .j-theme-device-feed {
+  padding: 8px 12px 16px;
+  gap: 10px;
+}
+
+.j-td-tlb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 12px;
+  flex-shrink: 0;
+  border-radius: 10px;
+}
+
+.j-td-tlb-year {
+  width: 48px;
+  height: 18px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--j-accent, #1f74c9) 35%, #94a3b8);
+  flex-shrink: 0;
+}
+
+.j-td-tlb-chip {
+  width: 56px;
+  height: 22px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink-muted, #94a3b8) 10%, var(--bg-page, #f4f5f8));
+  border: 1px solid color-mix(in srgb, var(--border, #e4e6eb) 55%, transparent);
+}
+
+.j-td-tlb-chip--icon {
+  width: 28px;
+  margin-left: auto;
+}
+
+.j-td-post {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  min-height: 0;
+}
+
+.j-td-post-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.j-td-post-av {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink-muted, #94a3b8) 26%, transparent);
+  flex-shrink: 0;
+}
+
+.j-td-post-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.j-td-post-name {
+  height: 9px;
+  width: 38%;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink-display, #0f172a) 16%, transparent);
+}
+
+.j-td-post-time {
+  height: 7px;
+  width: 22%;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink-muted, #94a3b8) 14%, transparent);
+}
+
+.j-td-post-text {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.j-td-post-media--hero {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.j-td-post-media--hero span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: color-mix(in srgb, var(--ink-muted, #94a3b8) 10%, var(--bg-page, #f4f5f8));
+}
+
+.j-td-post-media--grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  border-radius: 10px;
+  overflow: hidden;
+  aspect-ratio: 1.15;
+}
+
+.j-td-post-media--grid span {
+  display: block;
+  min-height: 0;
+  background: color-mix(in srgb, var(--ink-muted, #94a3b8) 10%, var(--bg-page, #f4f5f8));
+}
+.j-td-post-media--grid span:nth-child(2) {
+  background: color-mix(in srgb, var(--ink-muted, #94a3b8) 8%, var(--bg-page, #f4f5f8));
+}
+.j-td-post-media--grid span:nth-child(3) {
+  background: color-mix(in srgb, var(--ink-muted, #94a3b8) 12%, var(--bg-page, #f4f5f8));
+}
+.j-td-post-media--grid span:nth-child(4) {
+  background: color-mix(in srgb, var(--j-accent, #1f74c9) 8%, #e2e8f0);
+}
+
+.j-theme-device-aside--gallery {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.j-td-gal-head {
+  display: flex;
+  align-items: center;
+}
+
+.j-td-gal-title {
+  height: 10px;
+  width: 42%;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink-display, #0f172a) 14%, transparent);
+}
+
+.j-td-gal-pin {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--j-accent, #1f74c9) 10%, #e2e8f0);
+  flex-shrink: 0;
+}
+
+.j-td-gal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  min-height: 0;
+}
+
+.j-td-gal-grid span {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ink-muted, #94a3b8) 9%, var(--bg-page, #f4f5f8));
+  display: block;
+}
+.j-td-gal-grid span:nth-child(odd) {
+  background: color-mix(in srgb, var(--ink-muted, #94a3b8) 11%, var(--bg-page, #f4f5f8));
+}
+
+.j-theme-device-meta {
+  margin: 0;
+  font-size: 11px;
+  color: var(--ink-muted);
+  text-align: center;
+  line-height: 1.35;
+  max-width: 36rem;
+  flex-shrink: 0;
+}

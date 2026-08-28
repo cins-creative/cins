@@ -8,8 +8,11 @@
   width: 100%;
 }
 
+/* Desktop: 8px = cùng grain với `.j-year-block:first-of-type` margin-top.
+ * Mobile (≤991): `.j-timeline` dùng `gap: var(--j-timeline-stack-gap)` → margin-top 0
+ * (xem journey.css) để không cộng đôi với gap. */
 .cins-feed-composer-row--journey {
-  margin: 24px 0 0 var(--j-content-pad-l, 0);
+  margin: 8px 0 0 var(--j-content-pad-l, 0);
 }
 
 .j-empty-card .cins-feed-composer-row--journey {

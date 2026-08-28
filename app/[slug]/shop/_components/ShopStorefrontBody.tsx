@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { JourneyProfilePageLoader } from "@/app/[slug]/_components/JourneyProfilePageLoader";
 import { resolveShopSlugForOwnerSlug } from "@/lib/shop/cua-hang";
-import { shopLoaiHref, SHOP_SLUG_RESERVED } from "@/lib/shop/cua-hang-href";
+import { shopLoaiPath, SHOP_SLUG_RESERVED } from "@/lib/shop/cua-hang-href";
 
 function decodeShopSlug(raw: string): string {
   try {
@@ -56,7 +56,7 @@ export async function ShopLoaiBody({
   if (!resolved) notFound();
 
   if (shopSlug !== resolved.shopSlug) {
-    redirect(shopLoaiHref(slug, resolved.shopSlug, nhomId));
+    redirect(shopLoaiPath(slug, resolved.shopSlug, nhomId));
   }
 
   return (

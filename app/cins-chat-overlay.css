@@ -6125,6 +6125,7 @@ button.cins-canvas-table-cell-text {
   --cins-chat-cluster-gap: 2px;
   --cins-chat-sender-gap: 16px;
   flex: 1;
+  min-width: 0;
   min-height: 0;
   overflow: auto;
   padding: 20px 18px;
@@ -6187,6 +6188,7 @@ button.cins-canvas-table-cell-text {
   gap: 8px;
   width: fit-content;
   max-width: 82%;
+  min-width: 0;
 }
 
 .cins-chat-bubble-row.is-me {
@@ -6467,8 +6469,9 @@ button.cins-canvas-table-cell-text {
   right: auto;
 }
 
-.cins-chat-bubble-row.is-media-row {
-  max-width: min(calc(var(--cins-chat-media-max-w) + 24px), 88%);
+.cins-chat-bubble-row.is-media-row,
+.cins-chat-bubble-row.is-bare-media-row:not(.is-sticker-row) {
+  max-width: min(calc(var(--cins-chat-media-max-w) + 24px), 82%);
 }
 
 /* Sticker/meme: bám đúng nội dung, không inherit width 100% của cluster. */
@@ -6538,8 +6541,8 @@ button.cins-canvas-table-cell-text {
   flex-direction: column;
   gap: 4px;
   min-width: 0;
-  width: fit-content;
-  max-width: min(var(--cins-chat-media-max-w), 100%);
+  width: max-content;
+  max-width: 100%;
 }
 
 .cins-chat-bubble-row.is-me .cins-chat-media-block {
@@ -6662,11 +6665,18 @@ button.cins-canvas-table-cell-text {
 
   .cins-chat-bubble-wrap > .cins-chat-bubble,
   .cins-chat-bubble-wrap > .cins-chat-bubble-main,
-  .cins-chat-bubble-wrap > .cins-chat-don-hang-body,
-  .cins-chat-bubble-wrap > .cins-chat-bare-media-body {
+  .cins-chat-bubble-wrap > .cins-chat-don-hang-body {
     min-width: 0;
     flex: 0 1 auto;
     max-width: calc(100% - 78px);
+  }
+
+  /* Meme/ảnh: ôm đúng bitmap — không giãn theo calc(100% - 78px). */
+  .cins-chat-bare-media-wrap > .cins-chat-bare-media-body {
+    flex: 0 0 auto;
+    width: max-content;
+    max-width: 100%;
+    min-width: 0;
   }
 
   .cins-chat-bubble-wrap:has(.cins-chat-og-card.is-group-invite)
@@ -8151,8 +8161,11 @@ button.cins-canvas-table-cell-text {
 
 .cins-chat-msg-image-frame {
   display: block;
-  width: fit-content;
-  max-width: 100%;
+  width: max-content;
+  max-width: min(var(--cins-chat-media-max-w), 100%);
+  min-width: 0;
+  padding: 0;
+  border: 0;
   border-radius: 14px;
   overflow: hidden;
   line-height: 0;
@@ -8167,32 +8180,34 @@ button.cins-canvas-table-cell-text {
   display: block;
   width: auto;
   height: auto;
-  max-width: min(var(--cins-chat-media-max-w), 100%);
+  max-width: var(--cins-chat-media-max-w);
+  min-width: 0;
+  border-radius: inherit;
   object-fit: contain;
   vertical-align: top;
 }
 
 .cins-chat-msg-image.is-loading {
-  max-width: min(var(--cins-chat-media-max-w), 100%);
+  max-width: var(--cins-chat-media-max-w);
   max-height: min(var(--cins-chat-media-max-h-portrait), 55vh);
 }
 
 .cins-chat-msg-image.is-landscape {
-  width: 100%;
-  max-width: min(var(--cins-chat-media-max-w), 100%);
+  width: auto;
+  max-width: var(--cins-chat-media-max-w);
   max-height: none;
 }
 
 .cins-chat-msg-image.is-portrait {
   width: auto;
-  max-width: min(var(--cins-chat-media-max-w-portrait), 100%);
+  max-width: var(--cins-chat-media-max-w-portrait);
   max-height: min(var(--cins-chat-media-max-h-portrait), 55vh);
 }
 
 .cins-chat-msg-image.is-square {
   width: auto;
-  max-width: min(var(--cins-chat-media-max-square), 100%);
-  max-height: min(var(--cins-chat-media-max-square), 100%);
+  max-width: var(--cins-chat-media-max-square);
+  max-height: var(--cins-chat-media-max-square);
 }
 
 /* Card ngữ cảnh — rộng hơn bubble chữ, nhưng vẫn giữ lệch trái/phải theo người gửi */
@@ -8251,8 +8266,10 @@ button.cins-canvas-table-cell-text {
 
 /* Ảnh / sticker — không bubble; actions cạnh ảnh */
 .cins-chat-bubble-row.is-bare-media-row .cins-chat-bare-media-wrap {
-  width: fit-content;
+  width: max-content;
   max-width: 100%;
+  min-width: 0;
+  flex: 0 0 auto;
   align-items: center;
 }
 
@@ -8289,13 +8306,13 @@ button.cins-canvas-table-cell-text {
   flex-direction: column;
   gap: 4px;
   position: relative;
-  width: fit-content;
+  width: max-content;
   max-width: 100%;
 }
 
 .cins-chat-bare-media-frame {
   position: relative;
-  width: fit-content;
+  width: max-content;
   max-width: 100%;
   overflow: visible;
 }
@@ -11964,6 +11981,9 @@ button.cins-chat-don-card-cta.is-action:disabled {
   background: transparent;
   cursor: zoom-in;
   max-width: var(--cins-chat-sticker-max);
+  min-width: 0;
+  border-radius: 14px;
+  overflow: hidden;
   line-height: 0;
 }
 
@@ -11977,8 +11997,10 @@ button.cins-chat-don-card-cta.is-action:disabled {
   display: block;
   max-width: var(--cins-chat-sticker-max);
   max-height: var(--cins-chat-sticker-max);
+  min-width: 0;
   width: auto;
   height: auto;
+  border-radius: 14px;
   object-fit: contain;
 }
 

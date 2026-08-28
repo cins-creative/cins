@@ -13,6 +13,7 @@ import {
   type ShopDangKyMoTrangThai,
 } from "@/lib/shop/dang-ky-mo-constants";
 import type { ShopDangKyMoAdminItem } from "@/lib/shop/dang-ky-mo-types";
+import { webHref } from "@/lib/cins/manage-site";
 
 type Props = { items: ShopDangKyMoAdminItem[] };
 type Filter = ShopDangKyMoTrangThai | "tat_ca";
@@ -102,7 +103,7 @@ export function AdminMoShopScreen({ items }: Props) {
             Form nhập
           </Link>
           <Link
-            href="/open-shop"
+            href={webHref("/open-shop")}
             target="_blank"
             rel="noopener noreferrer"
             className="mo-shop-admin-btn mo-shop-admin-btn--ghost"

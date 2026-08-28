@@ -17,10 +17,12 @@ import {
 import { JourneySidebarSwitchNav } from "@/components/journey/JourneySidebarSwitchNav";
 import { JourneyViewProvider } from "@/components/journey/JourneyViewContext";
 import type { JourneyComposeState } from "@/lib/journey/compose-types";
+import type { ShopCuaHang } from "@/lib/shop/types";
 
 type SwitchNavCounts = {
   friendCount: number;
   orgCount: number;
+  shop: ShopCuaHang | null;
 };
 
 type Props = {
@@ -50,7 +52,7 @@ function JourneySidebarSwitchNavWithCounts({
   countsPromise: Promise<SwitchNavCounts>;
   showShop: boolean;
 }) {
-  const { friendCount, orgCount } = use(countsPromise);
+  const { friendCount, orgCount, shop } = use(countsPromise);
 
   return (
     <JourneySidebarSwitchNav
@@ -58,6 +60,7 @@ function JourneySidebarSwitchNavWithCounts({
       friendCount={friendCount}
       orgCount={orgCount}
       showShop={showShop}
+      initialShop={shop}
     />
   );
 }

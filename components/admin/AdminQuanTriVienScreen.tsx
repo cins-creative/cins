@@ -13,6 +13,7 @@ import {
 
 import type { AdminNavTabDto, AdminStaffRow } from "@/lib/admin/quan-tri-vien-types";
 import type { SystemRole } from "@/lib/auth/system-role";
+import { webHref } from "@/lib/cins/manage-site";
 
 function nextTabSelection(
   prev: string[],
@@ -350,7 +351,7 @@ export function AdminQuanTriVienScreen() {
                           {row.tenHienThi}
                         </span>
                         <Link
-                          href={`/${row.slug}`}
+                          href={webHref(`/${row.slug}`)}
                           className="admin-nguoi-dung-user-slug"
                         >
                           @{row.slug}

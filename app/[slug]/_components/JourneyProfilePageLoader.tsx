@@ -21,6 +21,11 @@ import {
   normalizeSocialLinks,
 } from "@/lib/journey/profile";
 import { fetchOwnerBySlug } from "@/lib/journey/profile-page-fetch";
+import {
+  isDefaultProfileTheme,
+  parseProfileGiaoDien,
+  profileThemeCssVars,
+} from "@/lib/journey/profile-theme";
 import { getQuanHeDetail } from "@/lib/social/ket-ban";
 import type { KetBanStatusSummary } from "@/lib/social/types";
 
@@ -161,6 +166,7 @@ export async function JourneyProfilePageLoader({
           url: l.url,
         })),
         giaiDoan: owner.giai_doan ?? "dang_hoc",
+        profileTheme: parseProfileGiaoDien(owner.giao_dien).theme,
       }
     : undefined;
 
@@ -182,8 +188,23 @@ export async function JourneyProfilePageLoader({
 
   const initialKetBanStatus = await initialKetBanStatusPromise;
 
+  const giaoDien = parseProfileGiaoDien(owner.giao_dien);
+  const themeVars = isDefaultProfileTheme(giaoDien)
+    ? undefined
+    : profileThemeCssVars(giaoDien);
+  const bgKind = giaoDien.theme.background.kind;
+
   return (
-    <div className="cins-journey-page">
+    <div
+      className="cins-journey-page"
+      {...(themeVars
+        ? {
+            "data-profile-theme": "1" as const,
+            ...(bgKind === "image" ? { "data-profile-bg": "image" as const } : {}),
+            style: themeVars,
+          }
+        : {})}
+    >
       <JourneyProfileShell
         activeView={activeView}
         owner={owner}

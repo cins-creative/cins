@@ -7,9 +7,11 @@ import { CinsAppTopbarFallback } from "@/components/cins/CinsAppTopbarFallback";
 import { CinsChatShellBridge } from "@/components/cins/CinsChatShellBridge";
 import { CinsShellNav } from "@/components/cins/CinsShellNav";
 import { StaleTabReload } from "@/components/cins/StaleTabReload";
+import { UserThemeRoot } from "@/components/cins/UserThemeRoot";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 
 import "@/components/auth/auth-enter-overlay.css";
+import "@/components/cins/user-shell-theme.css";
 
 type ShellProps = ComponentPropsWithoutRef<"div"> & { children: React.ReactNode };
 
@@ -65,6 +67,7 @@ function CinsShellFrame({
   return (
     <div className={clsx("cins-shell", className)} {...shellProps}>
       <StaleTabReload />
+      <UserThemeRoot />
       <CinsShellNav />
       <CinsChatShellBridge viewerProfileId={viewerProfileId}>
         <div className="cins-shell-column">

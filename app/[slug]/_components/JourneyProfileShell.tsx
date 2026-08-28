@@ -27,6 +27,8 @@ import { JourneyFeaturedAsideSection } from "@/app/[slug]/_components/JourneyFea
 import { JourneyFeaturedAsideOnDemand } from "@/app/[slug]/_components/JourneyFeaturedAsideOnDemand";
 import { JourneyFeaturedAsideSectionSkeleton } from "@/app/[slug]/_components/JourneyFeaturedAsideSection.skeleton";
 import { SoftErrorBoundary } from "@/components/cins/SoftErrorBoundary";
+import { getShopCuaHangByUserId } from "@/lib/shop/cua-hang";
+import type { ShopCuaHang } from "@/lib/shop/types";
 
 type OwnerRow = {
   id: string;
@@ -196,12 +198,24 @@ export function JourneyProfileShell({
   showShop = false,
   shopNhomId = null,
 }: Props) {
-  const countsPromise = getCachedJourneySwitchNavCounts({ ownerId: owner.id })
-    .then(({ friendCount, orgCount }) => ({ friendCount, orgCount }))
-    .catch((err) => {
-      console.error("[journey-profile] switch-nav counts", err);
-      return { friendCount: 0, orgCount: 0 };
-    });
+  const countsPromise = Promise.all([
+    getCachedJourneySwitchNavCounts({ ownerId: owner.id })
+      .then(({ friendCount, orgCount }) => ({ friendCount, orgCount }))
+      .catch((err) => {
+        console.error("[journey-profile] switch-nav counts", err);
+        return { friendCount: 0, orgCount: 0 };
+      }),
+    showShop
+      ? getShopCuaHangByUserId(owner.id).catch((err) => {
+          console.error("[journey-profile] switch-nav shop", err);
+          return null;
+        })
+      : Promise.resolve(null as ShopCuaHang | null),
+  ]).then(([counts, shop]) => ({
+    friendCount: counts.friendCount,
+    orgCount: counts.orgCount,
+    shop,
+  }));
 
   return (
     <JourneyProfileShellClient

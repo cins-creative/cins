@@ -15,6 +15,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import type { AutopilotNickRow } from "@/lib/admin/autopilot-types";
+import { webHref } from "@/lib/cins/manage-site";
 
 type Props = {
   busy: boolean;
@@ -605,7 +606,7 @@ export function AdminTaiKhoanClonePanel({
                           (n.tenHienThi || n.slug || "?").charAt(0).toUpperCase()
                         )}
                       </span>
-                      <Link href={`/${n.slug}/journey`} target="_blank">
+                      <Link href={webHref(`/${n.slug}/journey`)} target="_blank">
                         @{n.slug}
                       </Link>
                     </div>
@@ -817,7 +818,7 @@ export function AdminTaiKhoanClonePanel({
                 </span>
                 <span className="tkai-detail__name">
                   <strong>{chiTiet.tenHienThi || chiTiet.slug}</strong>
-                  <Link href={`/${chiTiet.slug}/journey`} target="_blank">
+                  <Link href={webHref(`/${chiTiet.slug}/journey`)} target="_blank">
                     @{chiTiet.slug}
                   </Link>
                 </span>

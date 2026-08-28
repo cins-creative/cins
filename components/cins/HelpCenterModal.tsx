@@ -38,6 +38,7 @@ import {
 } from "@/lib/huong-dan/catalog-client";
 import { huongDanHref } from "@/lib/huong-dan/slug";
 import type { HuongDanCatalogPublic } from "@/lib/huong-dan/types";
+import { webHref } from "@/lib/cins/manage-site";
 
 const HelpCenterGuidePanel = lazy(() =>
   import("@/components/cins/HelpCenterGuidePanel").then((m) => ({
@@ -910,7 +911,7 @@ export function HelpCenterModal({
             {mode === "help" && section === "terms" ? (
               <Link
                 className="uas-btn primary"
-                href={TERMS_PATH}
+                href={webHref(TERMS_PATH)}
                 onClick={onClose}
               >
                 Xem trang

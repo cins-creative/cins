@@ -11,6 +11,26 @@ function aspectFromDimensions(width: number, height: number): MediaAspect {
   return "square";
 }
 
+/** Khớp token `--cins-chat-media-max-*` trên `.cins-chat-messages`. */
+function maxBox(aspect: MediaAspect): { maxW: number; maxH: number } {
+  if (aspect === "portrait") return { maxW: 240, maxH: 360 };
+  if (aspect === "square") return { maxW: 260, maxH: 260 };
+  return { maxW: 300, maxH: 360 };
+}
+
+function fitChatMedia(
+  nw: number,
+  nh: number,
+  maxW: number,
+  maxH: number,
+): { w: number; h: number } {
+  const s = Math.min(1, maxW / nw, maxH / nh);
+  return {
+    w: Math.max(1, Math.round(nw * s)),
+    h: Math.max(1, Math.round(nh * s)),
+  };
+}
+
 type Props = {
   src: string;
   alt: string;
@@ -21,12 +41,21 @@ type Props = {
 
 export function ChatMessageMediaImage({ src, alt, onClick, stacked }: Props) {
   const [aspect, setAspect] = useState<MediaAspect | null>(null);
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
 
-  const handleLoad = useCallback((event: SyntheticEvent<HTMLImageElement>) => {
-    const img = event.currentTarget;
-    if (!img.naturalWidth || !img.naturalHeight) return;
-    setAspect(aspectFromDimensions(img.naturalWidth, img.naturalHeight));
-  }, []);
+  const handleLoad = useCallback(
+    (event: SyntheticEvent<HTMLImageElement>) => {
+      const img = event.currentTarget;
+      const nw = img.naturalWidth;
+      const nh = img.naturalHeight;
+      if (!nw || !nh) return;
+      const nextAspect = aspectFromDimensions(nw, nh);
+      setAspect(nextAspect);
+      const { maxW, maxH } = maxBox(nextAspect);
+      setBox(fitChatMedia(nw, nh, maxW, maxH));
+    },
+    [],
+  );
 
   const frameClass = [
     "cins-chat-msg-image-frame",
@@ -40,6 +69,8 @@ export function ChatMessageMediaImage({ src, alt, onClick, stacked }: Props) {
     aspect ? `is-${aspect}` : "is-loading",
   ].join(" ");
 
+  const sized = box && !stacked ? box : null;
+
   const image = (
     // eslint-disable-next-line @next/next/no-img-element
     <img
@@ -48,6 +79,13 @@ export function ChatMessageMediaImage({ src, alt, onClick, stacked }: Props) {
       alt={alt}
       loading="lazy"
       decoding="async"
+      width={sized?.w}
+      height={sized?.h}
+      style={
+        sized
+          ? { width: sized.w, height: sized.h, maxWidth: "100%" }
+          : undefined
+      }
       onLoad={handleLoad}
     />
   );

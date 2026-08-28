@@ -25,7 +25,6 @@ import { createPortal } from "react-dom";
 
 import { useOptionalAuthGate } from "@/components/auth/AuthGateProvider";
 import { useCinsChat } from "@/components/cins/CinsChatProvider";
-import { CuaHangHubDeXuatDanhMuc } from "@/components/shop/CuaHangHubDeXuatDanhMuc";
 import { CuaHangListCard } from "@/components/shop/CuaHangListCard";
 import { ChListingImg } from "@/components/shop/ChListingImg";
 import { CuaHangSanVoucher } from "@/components/shop/CuaHangSanVoucher";
@@ -664,11 +663,6 @@ function ListingFiltersPopover({
                     emptyMeansAll={activeSection.emptyMeansAll}
                     searchQuery={filterSearch}
                     hideHead
-                    extra={
-                      activeSection.key === "danh-muc" ? (
-                        <CuaHangHubDeXuatDanhMuc searchQuery={filterSearch} />
-                      ) : null
-                    }
                     onToggle={activeSection.onToggle}
                     onSelectAll={activeSection.onSelectAll}
                   />

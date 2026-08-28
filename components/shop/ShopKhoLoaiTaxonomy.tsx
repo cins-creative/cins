@@ -24,6 +24,7 @@ import {
   type TagSuggestRow,
 } from "@/components/tag/useTagSuggestSearch";
 import { articlePublicHref } from "@/lib/articles/article-href";
+import { webHref } from "@/lib/cins/manage-site";
 import {
   loadTagSuggestIndexClient,
   titlesMatchQuery,
@@ -1044,7 +1045,7 @@ function FandomTaxSelect({
                   const nguoi = tag.so_nguoi_tagged ?? 0;
                   const slug = tag.slug?.trim() || "";
                   const href = slug
-                    ? articlePublicHref("fandom", slug)
+                    ? webHref(articlePublicHref("fandom", slug))
                     : null;
                   const nguoiLabel =
                     nguoi <= 0

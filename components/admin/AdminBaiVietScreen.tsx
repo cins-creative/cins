@@ -33,6 +33,7 @@ import type {
   AdminArticleListRow,
 } from "@/lib/admin/articles-server";
 import type { AdminDongGopRow } from "@/lib/article/dong-gop/types";
+import { webHref } from "@/lib/cins/manage-site";
 
 const AdminArticleCreatePanel = dynamic(
   () =>
@@ -635,11 +636,11 @@ export function AdminBaiVietScreen({
                         </button>
                         {r.trang_thai_noi_dung === "published" ? (
                           <Link
-                            href={
+                            href={webHref(
                               r.loai_bai_viet === "nganh_dao_tao"
                                 ? `/majors/${r.slug}`
-                                : `/articles/${r.slug}`
-                            }
+                                : `/articles/${r.slug}`,
+                            )}
                             className="action-btn view"
                             target="_blank"
                             rel="noopener noreferrer"

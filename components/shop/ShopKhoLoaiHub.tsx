@@ -213,14 +213,16 @@ export function ShopKhoLoaiHub({
     setBusy(true);
     onError(null);
     try {
+      const moTaGui = moTa.trim().slice(0, SHOP_NHOM_MO_TA_MAX);
       const res = await fetch("/api/shop/groups", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(20_000),
         body: JSON.stringify({
           truc: 1,
           nhan: name,
-          moTa: moTa.trim().slice(0, SHOP_NHOM_MO_TA_MAX) || null,
-          anhId,
+          ...(moTaGui ? { moTa: moTaGui } : {}),
+          ...(anhId ? { anhId } : {}),
         }),
       });
       const json = (await res.json().catch(() => null)) as {
@@ -239,8 +241,14 @@ export function ShopKhoLoaiHub({
       onNhomsChanged([...next, ...truc2]);
       resetDraft();
       onOpenNhom(item.id);
-    } catch {
-      onError("Không tạo được loại hàng.");
+    } catch (e) {
+      const timedOut =
+        e instanceof DOMException && e.name === "TimeoutError";
+      onError(
+        timedOut
+          ? "Hết thời gian chờ khi tạo loại hàng. Thử lại."
+          : "Không tạo được loại hàng.",
+      );
     } finally {
       setBusy(false);
     }

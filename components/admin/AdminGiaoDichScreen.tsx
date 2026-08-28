@@ -8,6 +8,7 @@ import type {
   AdminShopDonRow,
   AdminShopListingRow,
 } from "@/lib/admin/shop-giao-dich";
+import { webHref } from "@/lib/cins/manage-site";
 
 type Props = {
   tab: AdminGiaoDichTab;
@@ -54,7 +55,7 @@ function UserCell({
 }) {
   if (slug) {
     return (
-      <Link href={`/${slug}`} className="admin-gd-user-link">
+      <Link href={webHref(`/${slug}`)} className="admin-gd-user-link">
         {ten || `@${slug}`}
       </Link>
     );

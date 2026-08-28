@@ -1,0 +1,189 @@
+/* Accent + họa tiết giao_dien trên shell / main.
+ * Pattern gắn trên `.world-journey-home` (giống hồ sơ) — không ::before shell.
+ * Pattern image dùng var(--j-accent) — shell phải có --j-accent (xem user-shell-theme.ts).
+ * CẤM position/z-index trên con trực tiếp của shell — phá sidebar fixed. */
+
+.cins-shell[data-user-theme] {
+  /* Fallback nếu inline --j-accent chưa kịp hydrate */
+  --j-accent: var(--j-user-accent, var(--cins-blue));
+}
+
+.cins-shell[data-user-theme][data-user-accent] {
+  --cins-blue: var(--j-user-accent);
+  --cins-blue-dark: color-mix(in srgb, var(--j-user-accent) 82%, black);
+  --cins-blue-soft: color-mix(in srgb, var(--j-user-accent) 14%, white);
+  --fg-link: var(--j-user-accent);
+  --btn-grad-blue: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--j-user-accent) 72%, white) 0%,
+    var(--j-user-accent) 100%
+  );
+  --btn-grad-blue-hover: linear-gradient(
+    180deg,
+    var(--j-user-accent) 0%,
+    color-mix(in srgb, var(--j-user-accent) 82%, black) 100%
+  );
+}
+
+:root[data-theme="dark"] .cins-shell[data-user-theme][data-user-accent] {
+  --cins-blue: color-mix(in srgb, var(--j-user-accent) 72%, white);
+  --cins-blue-dark: color-mix(in srgb, var(--j-user-accent) 55%, white);
+  --cins-blue-soft: color-mix(in srgb, var(--j-user-accent) 22%, transparent);
+  --fg-link: color-mix(in srgb, var(--j-user-accent) 72%, white);
+  --btn-grad-blue: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--j-user-accent) 55%, white) 0%,
+    color-mix(in srgb, var(--j-user-accent) 72%, white) 100%
+  );
+  --btn-grad-blue-hover: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--j-user-accent) 72%, white) 0%,
+    color-mix(in srgb, var(--j-user-accent) 55%, white) 100%
+  );
+}
+
+/* Host họa tiết = vùng nội dung (inherit --j-user-* từ shell). */
+.cins-shell[data-user-theme][data-user-pattern] .cins-main {
+  --j-user-bg-dim-effective: var(--j-user-bg-dim, 0);
+  isolation: isolate;
+  background-color: transparent;
+}
+
+.cins-shell[data-user-theme][data-user-pattern] .world-journey-home,
+.cins-shell[data-user-theme][data-user-pattern] .cins-home-feed-root {
+  --j-user-bg-dim-effective: var(--j-user-bg-dim, 0);
+  isolation: isolate;
+  position: relative;
+  background-color: var(--bg-page) !important;
+  background-image: none !important;
+}
+
+/* ::before trên host nội dung — cùng trick hồ sơ (journey-theme.css). */
+.cins-shell[data-user-theme][data-user-pattern] .world-journey-home::before,
+.cins-shell[data-user-theme][data-user-pattern]
+  .cins-main:not(:has(.world-journey-home))::before {
+  content: "";
+  position: fixed;
+  top: var(--site-nav-sticky-top, 0px);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--bg-page);
+  background-image:
+    linear-gradient(
+      color-mix(
+        in srgb,
+        var(--bg-page) calc(var(--j-user-bg-dim-effective) * 100%),
+        transparent
+      ),
+      color-mix(
+        in srgb,
+        var(--bg-page) calc(var(--j-user-bg-dim-effective) * 100%),
+        transparent
+      )
+    ),
+    var(--j-user-bg-image, none);
+  background-size: auto, var(--j-user-bg-size, auto);
+  background-position: 0 0, var(--j-user-bg-position, 0 0);
+  background-repeat: repeat, var(--j-user-bg-repeat, repeat);
+}
+
+/* Ảnh nền — phone / tablet / desktop. */
+.cins-shell[data-user-theme][data-user-bg="image"] .world-journey-home::before,
+.cins-shell[data-user-theme][data-user-bg="image"]
+  .cins-main:not(:has(.world-journey-home))::before {
+  background-image:
+    linear-gradient(
+      color-mix(
+        in srgb,
+        var(--bg-page) calc(var(--j-user-bg-dim-effective) * 100%),
+        transparent
+      ),
+      color-mix(
+        in srgb,
+        var(--bg-page) calc(var(--j-user-bg-dim-effective) * 100%),
+        transparent
+      )
+    ),
+    var(--j-user-bg-image-sm, var(--j-user-bg-image, none));
+  background-size: auto, var(--j-user-bg-size, cover);
+  background-position: 0 0,
+    var(--j-user-bg-position-sm, var(--j-user-bg-position, center));
+  background-repeat: no-repeat, var(--j-user-bg-repeat, no-repeat);
+}
+
+@media (min-width: 768px) {
+  .cins-shell[data-user-theme][data-user-bg="image"] .world-journey-home::before,
+  .cins-shell[data-user-theme][data-user-bg="image"]
+    .cins-main:not(:has(.world-journey-home))::before {
+    background-image:
+      linear-gradient(
+        color-mix(
+          in srgb,
+          var(--bg-page) calc(var(--j-user-bg-dim-effective) * 100%),
+          transparent
+        ),
+        color-mix(
+          in srgb,
+          var(--bg-page) calc(var(--j-user-bg-dim-effective) * 100%),
+          transparent
+        )
+      ),
+      var(--j-user-bg-image-md, var(--j-user-bg-image, none));
+    background-position: 0 0,
+      var(--j-user-bg-position-md, var(--j-user-bg-position, center));
+  }
+}
+
+@media (min-width: 1200px) {
+  .cins-shell[data-user-theme][data-user-bg="image"] .world-journey-home::before,
+  .cins-shell[data-user-theme][data-user-bg="image"]
+    .cins-main:not(:has(.world-journey-home))::before {
+    background-image:
+      linear-gradient(
+        color-mix(
+          in srgb,
+          var(--bg-page) calc(var(--j-user-bg-dim-effective) * 100%),
+          transparent
+        ),
+        color-mix(
+          in srgb,
+          var(--bg-page) calc(var(--j-user-bg-dim-effective) * 100%),
+          transparent
+        )
+      ),
+      var(--j-user-bg-image, none);
+    background-position: 0 0, var(--j-user-bg-position, center);
+  }
+}
+
+/* Lưới feed / shell trong suốt để lộ pattern host. */
+.cins-shell[data-user-theme][data-user-pattern] .wj-shell {
+  background: transparent !important;
+  background-image: none !important;
+}
+
+@media (max-width: 767px) {
+  .cins-shell[data-user-theme][data-user-pattern] .world-journey-home,
+  .cins-shell[data-user-theme][data-user-pattern] .cins-main {
+    --j-user-bg-dim-effective: calc(var(--j-user-bg-dim, 0) + 0.1);
+  }
+}
+
+@media (prefers-contrast: more) {
+  .cins-shell[data-user-theme][data-user-pattern] .world-journey-home::before,
+  .cins-shell[data-user-theme][data-user-pattern]
+    .cins-main:not(:has(.world-journey-home))::before {
+    background-image: none;
+  }
+}
+
+@media print {
+  .cins-shell[data-user-theme][data-user-pattern] .world-journey-home::before,
+  .cins-shell[data-user-theme][data-user-pattern]
+    .cins-main:not(:has(.world-journey-home))::before {
+    display: none;
+  }
+}

@@ -9,6 +9,9 @@ import { HomeWorldJourneyMain } from "@/components/cins/home-v2/HomeWorldJourney
 import { HomeWorldJourneySkeleton } from "@/components/cins/home-v2/HomeWorldJourney.skeleton";
 import { AuthGateRoot } from "@/components/auth/AuthGateProvider";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
+import { parseProfileGiaoDien } from "@/lib/journey/profile-theme";
+import { computeUserShellTheme } from "@/lib/journey/user-shell-theme";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export const dynamic = "force-dynamic";
 
@@ -34,8 +37,32 @@ export default async function Home({
   const editingLayout = sp["tuy-chinh"] === "1";
 
   if (session?.profile?.slug) {
+    const admin = createServiceRoleClient();
+    const { data: gdRow } = await admin
+      .from("user_nguoi_dung")
+      .select("giao_dien")
+      .eq("id", session.profile.id)
+      .maybeSingle<{ giao_dien: unknown }>();
+    const shellTheme = computeUserShellTheme(
+      parseProfileGiaoDien(gdRow?.giao_dien).theme,
+    );
+
     return (
-      <CinsShell data-screen-label="Trang-chu" data-cins-authed-home="1">
+      <CinsShell
+        data-screen-label="Trang-chu"
+        data-cins-authed-home="1"
+        {...(shellTheme
+          ? {
+              "data-user-theme": "1",
+              ...(shellTheme.hasAccent ? { "data-user-accent": "1" } : {}),
+              ...(shellTheme.hasPattern || shellTheme.hasImage
+                ? { "data-user-pattern": "1" }
+                : {}),
+              ...(shellTheme.hasImage ? { "data-user-bg": "image" } : {}),
+              style: shellTheme.style,
+            }
+          : {})}
+      >
         <AuthGateRoot initialAuthenticated>
           <BeMatPageTracker
             nguon={includeGallery ? "gallery" : "journey_home"}

@@ -9099,6 +9099,12 @@ button.j-g-item:disabled {
     gap: var(--j-timeline-stack-gap);
   }
 
+  /* Gap tlb ↔ composer do `--j-timeline-stack-gap` — bỏ margin composer để khớp
+   * khoảng composer ↔ card đầu. */
+  .cins-journey-page .j-timeline > .cins-feed-composer-row--journey {
+    margin-top: 0;
+  }
+
   .cins-journey-page .j-shell {
     grid-template-columns: 1fr;
     gap: 0;
@@ -9485,10 +9491,10 @@ button.j-g-item:disabled {
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 56px 24px 24px;
-  overflow-y: auto;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0;
+  overflow: hidden;
   font-family: var(--font-sans);
   color: var(--ink-body);
   animation: j-edit-fade 160ms ease;
@@ -9499,15 +9505,200 @@ button.j-g-item:disabled {
 }
 
 .j-edit-card {
-  width: min(640px, 100%);
+  width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
+  height: 100%;
+  max-height: none;
   background: var(--bg-surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  border: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 80px);
   overflow: hidden;
+  animation: j-edit-sheet-up 200ms var(--j-ease, ease);
+}
+
+@keyframes j-edit-sheet-up {
+  from {
+    transform: translateY(8%);
+    opacity: 0.96;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/*
+ * Customize — cùng full-screen trên mobile; desktop rộng tới 1080.
+ * overflow hidden trên body để panel theme cuộn nội bộ, mockup dock đáy.
+ */
+.j-edit-card--theme .j-edit-body {
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 10px 16px 8px;
+}
+
+.j-edit-card--theme .j-edit-subtabs {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.j-edit-card--theme .j-edit-subtabs::-webkit-scrollbar {
+  display: none;
+}
+.j-edit-card--theme .j-edit-subtab {
+  flex: 0 0 auto;
+}
+
+.j-edit-theme-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .j-edit-backdrop {
+    align-items: flex-start;
+    justify-content: center;
+    padding: 56px 24px 24px;
+    overflow-y: auto;
+  }
+
+  .j-edit-card {
+    width: min(640px, 100%);
+    flex: 0 1 auto;
+    height: auto;
+    max-height: calc(100vh - 80px);
+    max-height: calc(100dvh - 80px);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border);
+    animation: j-edit-fade 160ms ease;
+  }
+
+  .j-edit-backdrop:has(.j-edit-card--theme) {
+    padding: 40px 24px 24px;
+  }
+
+  .j-edit-card--theme {
+    width: min(1080px, calc(100vw - 32px));
+    max-height: calc(100vh - 64px);
+    max-height: calc(100dvh - 64px);
+  }
+
+  .j-edit-head {
+    padding: 22px 28px 16px;
+  }
+
+  .j-edit-tabs {
+    padding: 0 28px;
+  }
+
+  .j-edit-body {
+    padding: 20px 28px 8px;
+  }
+
+  .j-edit-foot {
+    padding: 14px 28px 22px;
+  }
+
+  .j-edit-card--theme .j-edit-body {
+    padding: 16px 28px 12px;
+  }
+
+  .j-edit-card--theme .j-edit-subtabs {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+}
+
+/* Sub-tabs trong Customize (Theme / Avatar / Shop / …) */
+.j-edit-subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 0 2px 2px;
+}
+.j-edit-subtab {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--bg-surface, #fff);
+  margin: 0;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition:
+    color 120ms var(--j-ease, ease),
+    border-color 120ms,
+    background 120ms;
+}
+.j-edit-subtab:hover {
+  color: var(--ink-display);
+  border-color: color-mix(in srgb, var(--cins-blue) 35%, var(--border));
+}
+.j-edit-subtab.is-active {
+  color: var(--cins-blue);
+  border-color: color-mix(in srgb, var(--cins-blue) 45%, var(--border));
+  background: var(--cins-blue-soft, #e7f0fb);
+}
+.j-edit-subtab:focus-visible {
+  outline: 2px solid var(--cins-blue);
+  outline-offset: 2px;
+}
+
+.j-edit-subpanel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+.j-edit-subpanel[hidden] {
+  display: none !important;
+}
+.j-edit-subpanel--soon {
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 8px 40px;
+  overflow: auto;
+}
+.j-edit-soon-kicker {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cins-blue);
+}
+.j-edit-soon-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink-display);
+}
+.j-edit-soon-blurb {
+  margin: 0;
+  max-width: 36em;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-muted);
 }
 
 .j-edit-head {
@@ -9515,7 +9706,8 @@ button.j-g-item:disabled {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 22px 28px 16px;
+  flex-shrink: 0;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 10px;
   border-bottom: 1px solid var(--border);
 }
 .j-edit-title {
@@ -9558,12 +9750,79 @@ button.j-g-item:disabled {
   cursor: not-allowed;
 }
 
+.j-edit-tabs {
+  display: flex;
+  gap: 0;
+  flex-shrink: 0;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+.j-edit-tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  margin: 0;
+  padding: 12px 16px 11px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 120ms var(--j-ease, ease), border-color 120ms;
+}
+.j-edit-tab:hover {
+  color: var(--ink-title);
+}
+.j-edit-tab.is-active {
+  color: var(--cins-blue);
+  border-bottom-color: var(--cins-blue);
+}
+.j-edit-tab:focus-visible {
+  outline: 2px solid var(--cins-blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.j-edit-tab-colorwheel {
+  position: relative;
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.j-edit-tab-colorwheel-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    #ff3b30,
+    #ff9500,
+    #ffcc00,
+    #34c759,
+    #5ac8fa,
+    #007aff,
+    #af52de,
+    #ff2d55,
+    #ff3b30
+  );
+  box-shadow: inset 0 0 0 3.5px var(--bg-surface);
+}
+
 .j-edit-body {
-  padding: 20px 28px 8px;
+  padding: 16px 16px 8px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 18px;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
 }
 
 .j-edit-field {
@@ -9662,7 +9921,7 @@ button.j-g-item:disabled {
 .j-edit-textarea {
   width: 100%;
   font-family: inherit;
-  font-size: 14px;
+  font-size: max(16px, 1rem);
   line-height: 1.5;
   color: var(--ink-display);
   background: var(--bg-page);
@@ -9679,6 +9938,12 @@ button.j-g-item:disabled {
   border-color: var(--cins-blue);
   background: var(--bg-surface);
   box-shadow: 0 0 0 3px var(--cins-blue-soft);
+}
+@media (min-width: 640px) {
+  .j-edit-input,
+  .j-edit-textarea {
+    font-size: 14px;
+  }
 }
 .j-edit-textarea {
   resize: vertical;
@@ -9878,7 +10143,8 @@ select.j-edit-input {
   justify-content: flex-end;
   gap: 10px;
   margin: 0;
-  padding: 14px 28px 22px;
+  flex-shrink: 0;
+  padding: 10px 16px max(12px, env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--border);
   background: var(--bg-surface);
   color: inherit;

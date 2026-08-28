@@ -5,7 +5,7 @@ import { JourneyProfilePageSkeleton } from "@/app/[slug]/_components/JourneyProf
 import { ShopLoaiBody } from "@/app/[slug]/shop/_components/ShopStorefrontBody";
 import { CinsShell } from "@/components/cins/CinsShell";
 import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
-import { shopLoaiHref } from "@/lib/shop/cua-hang-href";
+import { shopLoaiPath } from "@/lib/shop/cua-hang-href";
 import { fetchShopLoaiDocumentMeta } from "@/lib/shop/shop-loai-og-fetch";
 
 type Params = Promise<{ slug: string; shopSlug: string; nhomId: string }>;
@@ -25,7 +25,7 @@ export async function generateMetadata({
   const og = await fetchShopLoaiDocumentMeta(slug, shopSlug, nhomId);
   const titleBase = og?.title ?? (nhomId === "khac" ? "Khác" : "Loại hàng");
   const shopLabel = og?.shopTen ?? "Cửa hàng";
-  const path = shopLoaiHref(slug, shopSlug, nhomId);
+  const path = shopLoaiPath(slug, shopSlug, nhomId);
   const title = `${titleBase} · ${shopLabel}`;
   const description =
     og?.summary ??

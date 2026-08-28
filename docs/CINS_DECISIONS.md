@@ -44,6 +44,23 @@
 
 ## LOG — quyết định đã chốt
 
+### Customize giao diện user — Phase 1 theme trang hồ sơ (2026-08-28)
+
+- **Chốt:** user tùy chỉnh giao diện trang hồ sơ Journey — **preset màu accent** (id + colorwheel custom hex) + **pattern nền** (gradient CSS). **Mọi user** dùng được, chưa gate billing (chỉ chừa hook `isPremiumPreset`).
+- **Lưu:** **draft trong modal** → bấm **Lưu giao diện** mới PATCH/DELETE `/api/user/giao-dien`. Live preview khi chọn; đóng (X/Esc) khi dirty → `confirm` lưu hoặc bỏ. **Không** đóng khi click ngoài backdrop. (Đổi 2026-08-28: trước đó auto-save debounce dễ mất khi đóng modal.)
+- **Ảnh nền do user upload:** **Phase 1.5 ✅** — `POST /api/user/giao-dien/upload` qua `prepareImageFileForCloudflareUpload` (cùng compose bài viết: ≤10MB giữ nguyên, >10MB–≤40MB sharp nén xuống ~9.5MB). Cap 9 trong `customs` (Phase 1.6). PATCH `kind=image` + `imageId` ∈ customs. Full-bleed mọi breakpoint dùng CF **`public` (1920×1080)** — không `gridsm`. Mockup thiết bị trong picker.
+- **Phase 1.6 ✅ (2026-08-28):** neo `position` {x,y} + `devices.phone|tablet|desktop`; cap `customs` = **9** (giữ lịch sử ảnh cũ; 3 device đang dùng + headroom); **bỏ tile**; `applyToHome` (mặc định false) — shell home chỉ của viewer; hồ sơ luôn theme chủ. Tab mockup ưu tiên **Máy tính → bảng → điện thoại**. Kéo pan trên mockup; upload/gán theo tab. Không ALTER.
+- **Cơ chế:** ghi đè whitelist token CSS trên `.cins-journey-page[data-profile-theme]` + `.cins-shell[data-user-theme]` — cascade tự nhuộm, **không sửa file CSS lớn**. Cấm user ghi đè `--ink-*` / `--neutral-*` / `--bg-surface`. Pattern defs dùng `var(--j-accent)` — shell phải set `--j-accent`.
+- **Topbar:** **không custom** — luôn chrome hệ thống CINS (light/dark toàn site).
+- **SoT:** SSOT scan không thấy nguồn nào giữ theme UI. `user_nguoi_dung.theme` là theme **thẻ chia sẻ OG** (khác grain) → **không** gộp. Theo tiền lệ `home_layout` = cột jsonb chuyên dụng cho một mặt UI.
+- **SQL:** `supabase/sql/migration_user_giao_dien.sql` — **đã chạy** CINs 2026-08-28 (`npm run migrate:giao-dien`).
+- **Inventory ALTER (đã duyệt 2026-08-28):**
+  - `ALTER TABLE user_nguoi_dung ADD COLUMN giao_dien jsonb NOT NULL DEFAULT '{}'::jsonb;` — SoT tùy chỉnh giao diện của user. Không index, không trigger.
+  - `shop_cua_hang.giao_dien` — **chưa duyệt**, để Phase C (theme shop).
+  - Nhóm B–E (khung avatar, theme shop, card user, thanh bài post) **thêm key vào cùng cột jsonb**, không tạo cột/bảng mới.
+- **Rule mới:** [`.cursor/rules/cins-theme-responsive.mdc`](../.cursor/rules/cins-theme-responsive.mdc) — cấm `background-attachment: fixed` (phá sticky `.j-sidebar`), cấm `> * { position:relative }` trên shell, cấm `100vh`, bắt buộc `--j-accent` khi áp pattern.
+- **Plan:** [`PLAN_customize_theme.md`](./PLAN_customize_theme.md).
+
 ### Chat canvas — copy/paste + Private/Public (2026-08-27)
 
 - **Chốt:** `chat_canvas.che_do_sao_chep` = `private` (mặc định **nhóm**) | `public`. Độc lập `trang_thai` (khoa = khóa sửa). Chỉ owner/admin **phòng nhóm** đổi Public. Chat **1-1**: không UI quyền, luôn Public (tạo board + soft-fix khi mở). Copy tái dùng `url`/`noi_dung` (không upload CF mới). Paste → board phòng khác (member ghi được); **không** gắn `id_tin_nhan`; gom vào 1 frame «Nội dung được sao chép». Xóa ảnh canvas-only: chỉ `deleteCloudflareImage` khi không còn node cùng `url`.

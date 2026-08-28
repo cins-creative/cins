@@ -9,6 +9,7 @@ import type {
   AdminUserGrowthDays,
 } from "@/lib/admin/nguoi-dung-growth-types";
 import type { WorldBoostGrowth } from "@/lib/cins/world-boost-types";
+import { webHref } from "@/lib/cins/manage-site";
 
 function fmtPct(curr: number, prev: number): { text: string; tone: string } {
   if (prev === 0 && curr === 0) return { text: "0%", tone: "is-flat" };
@@ -432,7 +433,7 @@ export function AdminNguoiDungGrowthDashboard() {
                     {growth.recent.map((u) => (
                       <tr key={u.id}>
                         <td>
-                          <Link href={`/${u.slug}/journey`} className="admin-nguoi-dung-user-slug">
+                          <Link href={webHref(`/${u.slug}/journey`)} className="admin-nguoi-dung-user-slug">
                             {u.tenHienThi}
                           </Link>
                           <div className="admin-nguoi-dung-muted">@{u.slug}</div>

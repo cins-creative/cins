@@ -1,4 +1,4 @@
-import { manageSellerHref } from "@/lib/cins/manage-site";
+import { manageSellerHref, webHref } from "@/lib/cins/manage-site";
 
 const MAX_SHOP_SLUG_LEN = 64;
 
@@ -45,23 +45,40 @@ export function shopSlugFromTen(
   return fromTen;
 }
 
-/** Canonical storefront — `/{ownerSlug}/shop/{shopSlug}`. */
-export function shopPublicHref(ownerSlug: string, shopSlug: string): string {
+/** Canonical storefront path — luôn relative (metadata, history, redirect nội bộ). */
+export function shopPublicPath(ownerSlug: string, shopSlug: string): string {
   return `/${encodeURIComponent(ownerSlug.trim())}/shop/${encodeURIComponent(shopSlug.trim())}`;
 }
 
+/** Canonical storefront — trên manage nhảy `cins.vn`, không same-origin. */
+export function shopPublicHref(ownerSlug: string, shopSlug: string): string {
+  return webHref(shopPublicPath(ownerSlug, shopSlug));
+}
+
 /** Entry cũ / tab Shop — `/{ownerSlug}/shop` (server redirect → canonical). */
-export function shopEntryHref(ownerSlug: string): string {
+export function shopEntryPath(ownerSlug: string): string {
   return `/${encodeURIComponent(ownerSlug.trim())}/shop`;
 }
 
+export function shopEntryHref(ownerSlug: string): string {
+  return webHref(shopEntryPath(ownerSlug));
+}
+
 /** Trang loại hàng — `/{slug}/shop/{shopSlug}/collections/{nhomId}`. */
+export function shopLoaiPath(
+  ownerSlug: string,
+  shopSlug: string,
+  nhomId: string,
+): string {
+  return `${shopPublicPath(ownerSlug, shopSlug)}/${SHOP_COLLECTION_SEGMENT}/${encodeURIComponent(nhomId.trim())}`;
+}
+
 export function shopLoaiHref(
   ownerSlug: string,
   shopSlug: string,
   nhomId: string,
 ): string {
-  return `${shopPublicHref(ownerSlug, shopSlug)}/${SHOP_COLLECTION_SEGMENT}/${encodeURIComponent(nhomId.trim())}`;
+  return webHref(shopLoaiPath(ownerSlug, shopSlug, nhomId));
 }
 
 /** Trang loại + chọn sẵn mẫu (`?variant=` = sanPhamId). */
@@ -71,10 +88,10 @@ export function shopLoaiMauHref(
   nhomId: string,
   sanPhamId: string,
 ): string {
-  const base = shopLoaiHref(ownerSlug, shopSlug, nhomId);
   const id = sanPhamId.trim();
-  if (!id) return base;
-  return `${base}?variant=${encodeURIComponent(id)}`;
+  const base = shopLoaiPath(ownerSlug, shopSlug, nhomId);
+  if (!id) return webHref(base);
+  return webHref(`${base}?variant=${encodeURIComponent(id)}`);
 }
 
 /** Owner setup / quản lý cửa hàng. */

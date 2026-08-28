@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { webHref } from "@/lib/cins/manage-site";
+
 type TbItem = {
   id: string;
   doiTuong: "shop" | "csdt";
@@ -146,12 +148,20 @@ export function AdminPhiThongBaoPanel({ canEdit }: Props) {
       </div>
       <div className="admin-tc-callout">
         Shop →{" "}
-        <a href="/policies/marketplace-fee" target="_blank" rel="noreferrer">
+        <a
+          href={webHref("/policies/marketplace-fee")}
+          target="_blank"
+          rel="noreferrer"
+        >
           /chinh-sach/phi-san
         </a>
         {" · "}
         CSĐT →{" "}
-        <a href="/policies/platform-fee" target="_blank" rel="noreferrer">
+        <a
+          href={webHref("/policies/platform-fee")}
+          target="_blank"
+          rel="noreferrer"
+        >
           /chinh-sach/phi-csdt
         </a>
       </div>

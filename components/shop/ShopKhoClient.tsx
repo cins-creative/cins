@@ -194,6 +194,9 @@ export function ShopKhoClient({
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [products, setProducts] = useState<ShopSanPham[]>([]);
   const [priceLists, setPriceLists] = useState<ShopBangGia[]>([]);
+  /** SoT đồng bộ cho PATCH bảng giá (API thay cả `dong`) — tránh lô lưu ghi đè giá dòng trước. */
+  const priceListsRef = useRef<ShopBangGia[]>([]);
+  priceListsRef.current = priceLists;
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   /** Preview blob + % progress theo từng dòng đang upload. */
@@ -483,15 +486,36 @@ export function ShopKhoClient({
 
   async function confirmExitSaveAll() {
     if (exitingSave) return;
+    const focused = document.activeElement;
+    if (focused instanceof HTMLElement) focused.blur();
     setExitingSave(true);
     setErr(null);
     try {
       const dirty = products.filter((p) => isRowDirty(p));
+      const failed: string[] = [];
+      let saved = 0;
       for (const p of dirty) {
+        if (isPendingKhoRow(p.id) || thumbUploads[p.id]) {
+          failed.push(
+            `${p.ten.trim() || "Sản phẩm mới"} (đợi tải ảnh xong)`,
+          );
+          continue;
+        }
         const ok = await saveRow(p);
-        if (!ok) return;
+        if (ok) saved += 1;
+        else failed.push(p.ten.trim() || "Sản phẩm");
       }
-      exitKhoEditing();
+      if (failed.length === 0) {
+        exitKhoEditing();
+        return;
+      }
+      const preview = failed.slice(0, 3).join("; ");
+      const more = failed.length > 3 ? `… (+${failed.length - 3})` : "";
+      setErr(
+        saved > 0
+          ? `Đã lưu ${saved}/${dirty.length}. Chưa lưu: ${preview}${more}`
+          : `Không lưu được: ${preview}${more}`,
+      );
     } finally {
       setExitingSave(false);
     }
@@ -977,6 +1001,7 @@ export function ShopKhoClient({
       return null;
     }
     setPriceLists((prev) => [json.item!, ...prev]);
+    priceListsRef.current = [json.item!, ...priceListsRef.current];
     setBangGiaId(json.item.id);
     return json.item.id;
   }
@@ -989,29 +1014,22 @@ export function ShopKhoClient({
   async function saveGiaForBienThe(
     idBienThe: string,
     next: { gia: number; giaGiam: number | null },
-    lists: ShopBangGia[] = priceLists,
   ): Promise<boolean> {
+    const lists = priceListsRef.current;
     const targetBang = await ensureBangGiaId(lists);
     if (!targetBang) return false;
-    const bg =
-      lists.find((b) => b.id === targetBang) ??
-      priceLists.find((b) => b.id === targetBang);
-    const dong = [
-      ...(bg?.dong.filter((d) => d.idBienThe !== idBienThe) ?? []).map((d) => ({
-        idBienThe: d.idBienThe,
-        gia: d.gia,
-        giaGiam: d.giaGiam ?? null,
-      })),
-      {
-        idBienThe,
-        gia: next.gia,
-        giaGiam: next.giaGiam,
-      },
-    ];
     const res = await fetch(`/api/shop/price-lists/${targetBang}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dong }),
+      body: JSON.stringify({
+        dongUpsert: [
+          {
+            idBienThe,
+            gia: next.gia,
+            giaGiam: next.giaGiam,
+          },
+        ],
+      }),
     });
     if (!res.ok) {
       const json = (await res.json().catch(() => null)) as {
@@ -1020,24 +1038,24 @@ export function ShopKhoClient({
       setErr(json?.error ?? "Không lưu được giá.");
       return false;
     }
-    setPriceLists((prev) =>
-      prev.map((b) => {
-        if (b.id !== targetBang) return b;
-        const existing = b.dong.find((d) => d.idBienThe === idBienThe);
-        return {
-          ...b,
-          dong: [
-            ...b.dong.filter((d) => d.idBienThe !== idBienThe),
-            {
-              id: existing?.id ?? `local-${idBienThe}`,
-              idBienThe,
-              gia: next.gia,
-              giaGiam: next.giaGiam,
-            },
-          ],
-        };
-      }),
-    );
+    const nextLists = priceListsRef.current.map((b) => {
+      if (b.id !== targetBang) return b;
+      const existing = b.dong.find((d) => d.idBienThe === idBienThe);
+      return {
+        ...b,
+        dong: [
+          ...b.dong.filter((d) => d.idBienThe !== idBienThe),
+          {
+            id: existing?.id ?? `local-${idBienThe}`,
+            idBienThe,
+            gia: next.gia,
+            giaGiam: next.giaGiam,
+          },
+        ],
+      };
+    });
+    priceListsRef.current = nextLists;
+    setPriceLists(nextLists);
     return true;
   }
 
@@ -1346,6 +1364,7 @@ export function ShopKhoClient({
       const res = await fetch("/api/shop/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(20_000),
         body: JSON.stringify({
           ten: "Mẫu mới",
           anhId: null,
@@ -1376,7 +1395,24 @@ export function ShopKhoClient({
       }
       setProducts((prev) => [item, ...prev.filter((x) => x.id !== item.id)]);
       setLastEditedId(item.id);
-      await refreshKho();
+      if (activeNhom) {
+        setNhoms((prev) =>
+          prev.map((n) =>
+            n.id === activeNhom.id ? { ...n, soMau: (n.soMau ?? 0) + 1 } : n,
+          ),
+        );
+      } else {
+        setOrphanCount((prev) => prev + 1);
+      }
+      void refreshKho();
+    } catch (e) {
+      const timedOut =
+        e instanceof DOMException && e.name === "TimeoutError";
+      setErr(
+        timedOut
+          ? "Hết thời gian chờ khi tạo mẫu. Thử lại."
+          : "Không tạo mẫu.",
+      );
     } finally {
       setSaving(false);
     }
@@ -1931,25 +1967,25 @@ export function ShopKhoClient({
           setErr(json?.error ?? "Không lưu được giá hàng loạt.");
           return;
         }
-        setPriceLists((prev) =>
-          prev.map((b) => {
-            if (b.id !== targetBang) return b;
-            const byBt = new Map(
-              dong.map((d) => [
-                d.idBienThe,
-                {
-                  id:
-                    b.dong.find((x) => x.idBienThe === d.idBienThe)?.id ??
-                    `local-${d.idBienThe}`,
-                  idBienThe: d.idBienThe,
-                  gia: d.gia,
-                  giaGiam: d.giaGiam,
-                },
-              ]),
-            );
-            return { ...b, dong: [...byBt.values()] };
-          }),
-        );
+        const nextLists = priceListsRef.current.map((b) => {
+          if (b.id !== targetBang) return b;
+          const byBt = new Map(
+            dong.map((d) => [
+              d.idBienThe,
+              {
+                id:
+                  b.dong.find((x) => x.idBienThe === d.idBienThe)?.id ??
+                  `local-${d.idBienThe}`,
+                idBienThe: d.idBienThe,
+                gia: d.gia,
+                giaGiam: d.giaGiam,
+              },
+            ]),
+          );
+          return { ...b, dong: [...byBt.values()] };
+        });
+        priceListsRef.current = nextLists;
+        setPriceLists(nextLists);
       }
 
       const tonApply = applyTon && tonNum != null ? tonNum : null;
