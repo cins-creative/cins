@@ -3,8 +3,17 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { LoggedInChromeSkeleton } from "@/components/auth/LoggedInChromeSkeleton";
+import dynamic from "next/dynamic";
+
 import { subscribeAuthEnterOverlay } from "@/lib/auth/enter-after-auth";
+
+const LoggedInChromeSkeleton = dynamic(
+  () =>
+    import("@/components/auth/LoggedInChromeSkeleton").then(
+      (m) => m.LoggedInChromeSkeleton,
+    ),
+  { ssr: false },
+);
 
 /**
  * Portal khung trang chủ ngay sau password/OTP — sống qua `router.replace`.

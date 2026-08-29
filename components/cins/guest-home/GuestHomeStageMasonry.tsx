@@ -156,8 +156,16 @@ function KeywordTile({ item }: { item: GuestHomeStageMasonryItem }) {
   );
 }
 
-function StageTile({ item }: { item: GuestHomeStageMasonryItem }) {
+function StageTile({
+  item,
+  clone,
+}: {
+  item: GuestHomeStageMasonryItem;
+  clone: boolean;
+}) {
   if (item.kind === "keyword") return <KeywordTile item={item} />;
+
+  const eager = !clone && Boolean(item.priority);
 
   return (
     <div
@@ -174,9 +182,12 @@ function StageTile({ item }: { item: GuestHomeStageMasonryItem }) {
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={item.imageSrc}
+            srcSet={item.imageSrcSet ?? undefined}
+            sizes={item.imageSizes ?? undefined}
             alt=""
             className="gh-stage-media-img"
-            loading="eager"
+            loading={eager ? "eager" : "lazy"}
+            fetchPriority={eager ? "high" : "low"}
             decoding="async"
             draggable={false}
           />
@@ -197,12 +208,14 @@ function StageTile({ item }: { item: GuestHomeStageMasonryItem }) {
 function ColumnSegment({
   items,
   copy,
+  clone,
 }: {
   items: GuestHomeStageMasonryItem[];
   copy: "a" | "b";
+  clone: boolean;
 }) {
   return items.map((item) => (
-    <StageTile key={`${copy}-${item.id}`} item={item} />
+    <StageTile key={`${copy}-${item.id}`} item={item} clone={clone} />
   ));
 }
 
@@ -216,7 +229,6 @@ function MasonryColumn({
   const firstRef = useRef<HTMLDivElement>(null);
   const secondRef = useRef<HTMLDivElement>(null);
   const [loopPx, setLoopPx] = useState(0);
-  const [ready, setReady] = useState(false);
 
   useLayoutEffect(() => {
     const first = firstRef.current;
@@ -231,29 +243,10 @@ function MasonryColumn({
       if (next > 0) setLoopPx(next);
     };
 
-    const waitForImages = () => {
-      const imgs = [...first.querySelectorAll("img")];
-      return Promise.all(
-        imgs.map((img) =>
-          img.complete
-            ? Promise.resolve()
-            : new Promise<void>((resolve) => {
-                img.addEventListener("load", () => resolve(), { once: true });
-                img.addEventListener("error", () => resolve(), { once: true });
-              }),
-        ),
-      );
-    };
-
+    measure();
     const ro = new ResizeObserver(measure);
     ro.observe(first);
     ro.observe(second);
-
-    void waitForImages().then(() => {
-      if (cancelled) return;
-      measure();
-      setReady(true);
-    });
 
     return () => {
       cancelled = true;
@@ -266,14 +259,14 @@ function MasonryColumn({
   return (
     <div className="gh-stage-masonry-col" data-col={columnIndex}>
       <div
-        className={`gh-stage-masonry-track${ready && loopPx > 0 ? " is-ready" : ""}`}
+        className={`gh-stage-masonry-track${loopPx > 0 ? " is-ready" : ""}`}
         style={{ "--gh-masonry-loop": `${loopPx}px` } as CSSProperties}
       >
         <div ref={firstRef} className="gh-stage-masonry-seg">
-          <ColumnSegment items={items} copy="a" />
+          <ColumnSegment items={items} copy="a" clone={false} />
         </div>
         <div ref={secondRef} className="gh-stage-masonry-seg" aria-hidden>
-          <ColumnSegment items={items} copy="b" />
+          <ColumnSegment items={items} copy="b" clone />
         </div>
       </div>
     </div>

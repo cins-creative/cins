@@ -177,7 +177,6 @@ export function ShopKioskBlock({
     samples: TickerDragSample[];
   } | null>(null);
   const tickerSuppressClickRef = useRef(false);
-  const [tickerDragging, setTickerDragging] = useState(false);
 
   /** Vòng lặp vô tận — bật khi có ≥1 hàng, kể cả ít mẫu vừa khung. */
   const [tickerLoop, setTickerLoop] = useState(false);
@@ -359,11 +358,12 @@ export function ShopKioskBlock({
         if (pointerType !== "mouse" && Math.abs(dy) >= Math.abs(dx)) {
           tickerDragRef.current = null;
           abortTickerDragHold();
+          tickerScrollRef.current?.classList.remove("is-dragging");
           return "vertical";
         }
         if (Math.abs(dx) < 3) return "ignore";
         drag.active = true;
-        setTickerDragging(true);
+        tickerScrollRef.current?.classList.add("is-dragging");
       }
 
       const now = performance.now();
@@ -391,7 +391,7 @@ export function ShopKioskBlock({
       }
     }
     if (drag.active) tickerSuppressClickRef.current = true;
-    setTickerDragging(false);
+    (el ?? tickerScrollRef.current)?.classList.remove("is-dragging");
     const resumeTimer = tickerResumeTimersRef.current.get("drag");
     if (resumeTimer) {
       clearTimeout(resumeTimer);
@@ -417,6 +417,8 @@ export function ShopKioskBlock({
 
   const onTickerPointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
+      /* Touch: native touchstart/move (passive:false). Pointer + touch cùng lúc → giật. */
+      if (e.pointerType === "touch") return;
       if (e.pointerType === "mouse" && e.button !== 0) return;
       /* Dừng ticker ngay từ lúc nhấn — không đợi ngưỡng 3px. */
       beginTickerDrag(e.clientX, e.clientY, e.pointerId);
@@ -434,6 +436,7 @@ export function ShopKioskBlock({
 
   const onTickerPointerMove = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (e.pointerType === "touch") return;
       const drag = tickerDragRef.current;
       if (!drag || drag.pointerId !== e.pointerId) return;
       if (applyTickerDragMove(e.clientX, e.clientY, e.pointerType) === "horizontal") {
@@ -445,6 +448,8 @@ export function ShopKioskBlock({
 
   const finishTickerDrag = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
+      /* pointercancel touch hay cắt native drag khi iOS nghĩ đang scroll. */
+      if (e.pointerType === "touch") return;
       const drag = tickerDragRef.current;
       if (!drag || drag.pointerId !== e.pointerId) return;
       endTickerDrag(e.currentTarget);
@@ -882,6 +887,49 @@ export function ShopKioskBlock({
       tickerRafRef.current = requestAnimationFrame(tick);
     };
 
+    const tickerRoughlyOnscreen = () => {
+      const rect = el.getBoundingClientRect();
+      const vh = window.innerHeight || document.documentElement.clientHeight;
+      const vw = window.innerWidth || document.documentElement.clientWidth;
+      /* Khớp rootMargin IO 80px — Safari hay kẹt "offscreen" sau đổi tab. */
+      return (
+        rect.bottom > -80 &&
+        rect.top < vh + 80 &&
+        rect.right > 0 &&
+        rect.left < vw
+      );
+    };
+
+    const dropStuckDrag = () => {
+      if (!tickerDragRef.current) return;
+      tickerDragRef.current = null;
+      const resumeTimer = resumeTimers.get("drag");
+      if (resumeTimer) {
+        clearTimeout(resumeTimer);
+        resumeTimers.delete("drag");
+      }
+      holdReasons.delete("drag");
+      tickerInertiaRef.current = null;
+      tickerEaseStartRef.current = 0;
+      el.classList.remove("is-dragging");
+    };
+
+    const resumeAfterForeground = () => {
+      holdReasons.delete("hidden");
+      dropStuckDrag();
+      if (!tickerRoughlyOnscreen()) return;
+      holdReasons.delete("offscreen");
+      /*
+       * Safari iOS hay nuốt rAF khi tab nền: id còn trong ref nhưng callback
+       * không chạy lại. Huỷ id cũ rồi start mới.
+       */
+      if (tickerRafRef.current != null) {
+        cancelAnimationFrame(tickerRafRef.current);
+        tickerRafRef.current = null;
+      }
+      startRaf();
+    };
+
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     const syncReducedMotion = () => {
       tickerReducedMotionRef.current = mq.matches;
@@ -897,12 +945,14 @@ export function ShopKioskBlock({
     const onVisibility = () => {
       if (document.visibilityState === "hidden") {
         holdReasons.add("hidden");
-      } else {
-        holdReasons.delete("hidden");
+        dropStuckDrag();
+        return;
       }
+      resumeAfterForeground();
     };
     onVisibility();
     document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pageshow", resumeAfterForeground);
 
     const onWheel = (e: WheelEvent) => {
       if (Math.abs(e.deltaX) < Math.abs(e.deltaY) || e.deltaX === 0) return;
@@ -931,6 +981,11 @@ export function ShopKioskBlock({
             holdReasons.delete("offscreen");
             startRaf();
           } else {
+            /*
+             * Safari/Chrome mobile: tab nền hay báo isIntersecting=false
+             * rồi không bắn lại khi quay về — đừng tin IO lúc hidden.
+             */
+            if (document.visibilityState === "hidden") return;
             /* Ra khỏi viewport → huỷ hẳn rAF (feed Journey có nhiều kiosk). */
             holdReasons.add("offscreen");
             stopRaf();
@@ -947,6 +1002,7 @@ export function ShopKioskBlock({
       stopRaf();
       mq.removeEventListener("change", syncReducedMotion);
       document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pageshow", resumeAfterForeground);
       el.removeEventListener("wheel", onWheel);
       io?.disconnect();
       for (const t of resumeTimers.values()) clearTimeout(t);
@@ -1432,7 +1488,7 @@ export function ShopKioskBlock({
         >
           <div
             ref={tickerScrollRef}
-            className={`shop-kiosk-ticker${tickerDragging ? " is-dragging" : ""}`}
+            className="shop-kiosk-ticker"
             data-cins-auto-scroll=""
             onPointerDown={onTickerPointerDown}
             onPointerMove={onTickerPointerMove}

@@ -172,7 +172,7 @@ export async function JourneyProfilePageLoader({
         giaiDoan: owner.giai_doan ?? "dang_hoc",
         profileTheme: giaoDien.theme,
         profileAvatarFrame: giaoDien.avatarFrame,
-        profilePopover: giaoDien.popover,
+        profileCard: giaoDien.card,
         profileShopSwitch: giaoDien.shopSwitch,
         authorAvatarUrl: getAvatarUrl(owner.avatar_id),
         authorCoverUrl: getProfileCoverUrl(owner.cover_id),

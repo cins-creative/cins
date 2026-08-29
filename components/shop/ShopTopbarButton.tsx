@@ -35,6 +35,7 @@ import {
   useShopPhiGate,
 } from "@/lib/shop/use-shop-phi-gate";
 import { useShopReadyGate } from "@/lib/shop/use-shop-ready-gate";
+import { toManageBounceHref } from "@/lib/cins/manage-handoff";
 import { manageSellerHref, navigateManageHref } from "@/lib/cins/manage-site";
 import { computeFixedMenuPosition } from "@/lib/ui/clamp-fixed-menu-position";
 
@@ -265,7 +266,7 @@ export function ShopTopbarButton() {
               </div>
               {shopReady ? (
                 <a
-                  href={manageSellerHref("/seller/orders")}
+                  href={toManageBounceHref(manageSellerHref("/seller/orders"))}
                   target="_blank"
                   rel="noreferrer"
                   className="shop-topbar-ext"
@@ -298,7 +299,9 @@ export function ShopTopbarButton() {
               <div className="shop-topbar-shortcuts">
                 <div className="shop-topbar-shortcut">
                   <Link
-                    href={shopSetupHref || manageSellerHref("/seller/store")}
+                    href={toManageBounceHref(
+                      shopSetupHref || manageSellerHref("/seller/store"),
+                    )}
                     className="shop-topbar-shortcut-main"
                     onClick={(e) => {
                       e.preventDefault();
@@ -314,7 +317,9 @@ export function ShopTopbarButton() {
               <div className="shop-topbar-shortcuts">
                 <div className="shop-topbar-shortcut">
                   <Link
-                    href={manageSellerHref("/seller/inventory")}
+                    href={toManageBounceHref(
+                      manageSellerHref("/seller/inventory"),
+                    )}
                     className="shop-topbar-shortcut-main"
                     onClick={(e) => {
                       e.preventDefault();
@@ -325,7 +330,7 @@ export function ShopTopbarButton() {
                     Kho hàng
                   </Link>
                   <a
-                    href={manageSellerHref("/seller/inventory")}
+                    href={toManageBounceHref(manageSellerHref("/seller/inventory"))}
                     target="_blank"
                     rel="noreferrer"
                     className="shop-topbar-shortcut-ext"
@@ -338,7 +343,7 @@ export function ShopTopbarButton() {
                 </div>
                 <div className="shop-topbar-shortcut">
                   <Link
-                    href={manageSellerHref("/seller/orders")}
+                    href={toManageBounceHref(manageSellerHref("/seller/orders"))}
                     className="shop-topbar-shortcut-main"
                     onClick={(e) => {
                       e.preventDefault();
@@ -349,7 +354,7 @@ export function ShopTopbarButton() {
                     Đơn hàng
                   </Link>
                   <a
-                    href={manageSellerHref("/seller/orders")}
+                    href={toManageBounceHref(manageSellerHref("/seller/orders"))}
                     target="_blank"
                     rel="noreferrer"
                     className="shop-topbar-shortcut-ext"
@@ -449,7 +454,7 @@ export function ShopTopbarButton() {
             )}
 
             <Link
-              href={manageSellerHref("/seller/orders")}
+              href={toManageBounceHref(manageSellerHref("/seller/orders"))}
               className="shop-topbar-footer"
               onClick={(e) => {
                 e.preventDefault();

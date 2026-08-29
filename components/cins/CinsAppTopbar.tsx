@@ -14,6 +14,8 @@ import { webHref } from "@/lib/cins/manage-site";
 import { getBanHangEnabled } from "@/lib/shop/settings";
 import { countUnreadNotifications } from "@/lib/social/notifications";
 
+import "@/app/cins-app-nav.css";
+
 /**
  * Topbar chính của site — render khác nhau theo trạng thái phiên:
  *

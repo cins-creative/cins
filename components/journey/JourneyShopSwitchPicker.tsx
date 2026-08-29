@@ -16,6 +16,7 @@ import {
   fetchShopCuaHangClient,
 } from "@/lib/shop/client-fetch-cache";
 import type { ShopCuaHang } from "@/lib/shop/types";
+import { uploadGiaoDienCustomWithProgress } from "@/lib/files/upload-giao-dien-custom";
 import {
   profileThemeImageUrl,
   type ProfileCustomEntry,
@@ -34,6 +35,7 @@ import {
   patchGiaoDien,
   shopSwitchSliceToPatch,
 } from "@/lib/journey/giao-dien-patch-client";
+import { JourneyThemeUploadProgress } from "@/components/journey/JourneyThemeUploadProgress";
 
 import "./journey-theme.css";
 import "./journey-shop-switch.css";
@@ -79,6 +81,7 @@ export const JourneyShopSwitchPicker = forwardRef<
   );
   const [errMsg, setErrMsg] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadPct, setUploadPct] = useState(0);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const panRef = useRef<{
     pointerId: number;
@@ -252,22 +255,10 @@ export const JourneyShopSwitchPicker = forwardRef<
 
   async function onUpload(file: File) {
     setUploading(true);
+    setUploadPct(1);
     setErrMsg(null);
     try {
-      const form = new FormData();
-      form.set("file", file);
-      const res = await fetch("/api/user/giao-dien/upload", {
-        method: "POST",
-        body: form,
-      });
-      const data = (await res.json().catch(() => null)) as {
-        error?: string;
-        imageId?: string;
-        customs?: ProfileCustomEntry[];
-      } | null;
-      if (!res.ok || !data?.imageId) {
-        throw new Error(data?.error ?? "Upload thất bại.");
-      }
+      const data = await uploadGiaoDienCustomWithProgress(file, setUploadPct);
       if (Array.isArray(data.customs)) {
         setCustoms(data.customs);
         customsRef.current = data.customs;
@@ -395,7 +386,9 @@ export const JourneyShopSwitchPicker = forwardRef<
         <section className="j-theme-section" aria-labelledby="j-ssw-image-heading">
           <div className="j-theme-picker-label" id="j-ssw-image-heading">
             <span>Ảnh khối</span>
-            {status === "saving" ? (
+            {uploading ? (
+              <JourneyThemeUploadProgress progress={uploadPct} />
+            ) : status === "saving" ? (
               <span className="j-theme-picker-status">Đang lưu…</span>
             ) : status === "ok" ? (
               <span className="j-theme-picker-status is-ok">Đã lưu</span>
@@ -405,8 +398,6 @@ export const JourneyShopSwitchPicker = forwardRef<
               </span>
             ) : dirty ? (
               <span className="j-theme-picker-status">Chưa lưu</span>
-            ) : uploading ? (
-              <span className="j-theme-picker-status">Đang tải…</span>
             ) : null}
           </div>
           <div className="j-theme-image-row">

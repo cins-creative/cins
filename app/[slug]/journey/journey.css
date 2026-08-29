@@ -8556,25 +8556,25 @@ button.j-m-card-hit {
 .j-gallery-all:hover {
   text-decoration: underline;
 }
-/* Pinned section — cao theo ảnh; mặc định masonry 2 cột xen kẽ (1 phải, 2 trái…) */
+/* Pinned section — gap/radius khớp `.j-main-gallery-grid` (8px / 10px) */
 .j-g-pinned {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 18px;
 }
 .j-g-pinned--masonry {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
-  gap: 10px;
+  gap: 8px;
 }
 .j-g-pinned--masonry .j-g-pinned-col {
   flex: 1 1 0;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 .j-g-pinned--masonry .j-g-banner-slot {
   margin-bottom: 0;
@@ -8776,9 +8776,9 @@ button.j-m-card-hit {
   z-index: 0;
   width: 100%;
   height: auto;
-  border-radius: var(--radius-md);
+  border-radius: 10px;
   overflow: hidden;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   cursor: pointer;
   background: var(--neutral-200);
 }
@@ -9867,7 +9867,6 @@ button.j-g-item:disabled {
     #ff2d55,
     #ff3b30
   );
-  box-shadow: inset 0 0 0 3.5px var(--bg-surface);
 }
 
 .j-edit-body {
@@ -14817,7 +14816,9 @@ select.j-edit-input {
   border-bottom-right-radius: 22px;
   overflow: hidden;
 }
-/* Share/reaction popover mở lên trên peek — không clip trong actions. */
+/* Share/reaction popover mở lên trên peek — không clip trong actions.
+   Desktop like picker portal ra body; vẫn nới overflow khi lớp inline còn sót. */
+.j-m-card.jcard:has(.is-picker-open) > .jcard-actions,
 .j-m-card.jcard.is-expanded:has(.is-picker-open) > .jcard-actions {
   overflow: visible;
 }
@@ -19386,6 +19387,7 @@ a.action-btn {
 .j-m-card.jcard:has(> .jcard-actions .is-picker-open) > .j-m-card-main,
 .j-m-card.jcard:has(.post-byline-share-wrap.is-open) > .j-m-card-main {
   z-index: 0;
+  isolation: isolate;
 }
 .j-m-card.jcard:has(.post-byline-share-wrap.is-open) > .jcard-body,
 .j-m-card.jcard:has(.post-byline-share-wrap.is-open) .jcard-body {

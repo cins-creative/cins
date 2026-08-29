@@ -71,13 +71,13 @@ const nextConfig: NextConfig = {
       redirects.push(
         {
           source: "/admin",
-          destination: "https://manage.cins.vn/admin",
-          permanent: true,
+          destination: "/auth/to-manage?next=/admin",
+          permanent: false,
         },
         {
           source: "/admin/:path*",
-          destination: "https://manage.cins.vn/admin/:path*",
-          permanent: true,
+          destination: "/auth/to-manage?next=/admin/:path*",
+          permanent: false,
         },
         {
           source: "/api/admin/:path*",
@@ -86,43 +86,43 @@ const nextConfig: NextConfig = {
         },
         {
           source: "/seller",
-          destination: "https://manage.cins.vn/seller",
-          permanent: true,
+          destination: "/auth/to-manage?next=/seller",
+          permanent: false,
         },
         {
           source: "/seller/:path*",
-          destination: "https://manage.cins.vn/seller/:path*",
-          permanent: true,
+          destination: "/auth/to-manage?next=/seller/:path*",
+          permanent: false,
         },
         {
           source: "/academy/:slug/manage",
-          destination: "https://manage.cins.vn/academy/:slug",
-          permanent: true,
+          destination: "/auth/to-manage?next=/academy/:slug",
+          permanent: false,
         },
         {
           source: "/academy/:slug/manage/:path*",
-          destination: "https://manage.cins.vn/academy/:slug/:path*",
-          permanent: true,
+          destination: "/auth/to-manage?next=/academy/:slug/:path*",
+          permanent: false,
         },
         {
           source: "/studio/:slug/manage",
-          destination: "https://manage.cins.vn/studio/:slug",
-          permanent: true,
+          destination: "/auth/to-manage?next=/studio/:slug",
+          permanent: false,
         },
         {
           source: "/studio/:slug/manage/:path*",
-          destination: "https://manage.cins.vn/studio/:slug/:path*",
-          permanent: true,
+          destination: "/auth/to-manage?next=/studio/:slug/:path*",
+          permanent: false,
         },
         {
           source: "/university/:slug/manage",
-          destination: "https://manage.cins.vn/university/:slug",
-          permanent: true,
+          destination: "/auth/to-manage?next=/university/:slug",
+          permanent: false,
         },
         {
           source: "/university/:slug/manage/:path*",
-          destination: "https://manage.cins.vn/university/:slug/:path*",
-          permanent: true,
+          destination: "/auth/to-manage?next=/university/:slug/:path*",
+          permanent: false,
         },
       );
     }

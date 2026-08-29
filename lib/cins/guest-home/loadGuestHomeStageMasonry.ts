@@ -2,34 +2,38 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 
+import { cfDeliveryUrl } from "@/lib/editor/resolve-image-seed-url";
 import { shopLoaiHref, shopSlugFromTen } from "@/lib/shop/cua-hang-href";
 import { shopImageUrl } from "@/lib/shop/settings";
-import { findCoverThumbMeta } from "@/lib/journey/cover-thumb";
 import {
   extractPhotoGridImagesFromBlocks,
-  gridThumbAsset,
   isPortraitGridImage,
 } from "@/lib/journey/image-grid";
-import {
-  journeyImageFields,
-  journeyImageFieldsWithCoverThumb,
-} from "@/lib/journey/images";
+import { journeyImageFields } from "@/lib/journey/images";
 import { parseServerBlocks } from "@/lib/journey/parse-server-blocks";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { studioBaiDangPostPath } from "@/lib/to-chuc/studio-routes";
+import {
+  isCfImageUuid,
+  isExternalHttpImageRef,
+  isTemporaryImageRef,
+} from "@/lib/truong/image-ref";
 
 /** Pool cố định — client infinite-loop các ô này, không kéo hết gallery/shop. */
 const STAGE_ART_USER_SLUGS = ["basakila"] as const;
-const STAGE_ART_CAP = 12;
-const STAGE_ART_USER_CAP = 8;
-const STAGE_ART_USER_SCAN = 16;
-const STAGE_ART_STUDIO_CAP = 4;
-const STAGE_ART_STUDIO_SCAN = 8;
-const STAGE_PRODUCT_CAP = 12;
-const STAGE_PRODUCT_SCAN = 16;
+const STAGE_ART_CAP = 4;
+const STAGE_ART_USER_CAP = 3;
+const STAGE_ART_USER_SCAN = 8;
+const STAGE_ART_STUDIO_CAP = 2;
+const STAGE_ART_STUDIO_SCAN = 4;
+const STAGE_PRODUCT_CAP = 4;
+const STAGE_PRODUCT_SCAN = 8;
+const STAGE_MIX_CAP = 8;
+const STAGE_PRIORITY_IMAGES = 2;
 const PORTRAIT_FALLBACK_RATIO = "3 / 4";
 const PRODUCT_FALLBACK_RATIO = "1 / 1";
+const STAGE_IMAGE_SIZES = "(max-width: 1099px) 32vw, 18vw";
 
 export type GuestHomeStageKeywordTone =
   | "blue"
@@ -43,11 +47,15 @@ export type GuestHomeStageMasonryItem = {
   kind: "art" | "product" | "keyword";
   title: string;
   imageSrc: string | null;
+  imageSrcSet?: string | null;
+  imageSizes?: string | null;
   href: string | null;
   aspectRatio: string;
   priceLabel?: string | null;
   tone?: GuestHomeStageKeywordTone;
   kicker?: string | null;
+  /** 1–2 ảnh above-the-fold — eager + fetchpriority high. */
+  priority?: boolean;
 };
 
 type ArtCandidate = {
@@ -58,6 +66,7 @@ type ArtCandidate = {
   width: number;
   height: number;
   portrait: boolean;
+  imageSrcSet?: string;
 };
 
 function aspectRatioCss(
@@ -85,6 +94,30 @@ function isPortraitThumb(width: number, height: number): boolean {
   return false;
 }
 
+/** Ô stage nhỏ — `gridsm`/`grid`, không `/public`. */
+function stageArtDelivery(seed: string): { src: string; srcSet?: string } | null {
+  const trimmed = seed.trim();
+  if (!trimmed) return null;
+  if (isTemporaryImageRef(trimmed) || isExternalHttpImageRef(trimmed)) {
+    return { src: trimmed };
+  }
+  if (!isCfImageUuid(trimmed)) return null;
+
+  const gridsm = cfDeliveryUrl(trimmed, "gridsm");
+  const grid = cfDeliveryUrl(trimmed, "grid");
+  const thumbnail = cfDeliveryUrl(trimmed, "thumbnail");
+  const src = gridsm ?? grid ?? thumbnail;
+  if (!src) return null;
+
+  const srcSetParts: string[] = [];
+  if (gridsm) srcSetParts.push(`${gridsm} 400w`);
+  if (grid) srcSetParts.push(`${grid} 640w`);
+  return {
+    src,
+    srcSet: srcSetParts.length > 1 ? srcSetParts.join(", ") : undefined,
+  };
+}
+
 function artFromPost(input: {
   id: string;
   title: string;
@@ -97,11 +130,8 @@ function artFromPost(input: {
   const portraitImg = images.find((img) => isPortraitGridImage(img));
   const firstImg = portraitImg ?? images[0];
   if (firstImg) {
-    const asset = gridThumbAsset(firstImg, {
-      singlePortrait: isPortraitGridImage(firstImg),
-      preferPublic: true,
-    });
-    const src = asset.src?.trim();
+    const asset = stageArtDelivery(firstImg.id);
+    const src = asset?.src?.trim();
     if (src) {
       return {
         id: input.id,
@@ -111,15 +141,16 @@ function artFromPost(input: {
         width: firstImg.width,
         height: firstImg.height,
         portrait: isPortraitGridImage(firstImg),
+        imageSrcSet: asset?.srcSet,
       };
     }
   }
 
   const coverId = input.coverId?.trim();
   if (!coverId) return null;
-  const coverThumb = findCoverThumbMeta(blocks);
-  const img = coverThumb
-    ? journeyImageFieldsWithCoverThumb(coverId, coverThumb)
+  const fromStage = stageArtDelivery(coverId);
+  const img = fromStage
+    ? { src: fromStage.src, srcSet: fromStage.srcSet, width: 0, height: 0 }
     : journeyImageFields(coverId, "gallery-grid");
   if (!img?.src) return null;
   return {
@@ -130,6 +161,7 @@ function artFromPost(input: {
     width: img.width ?? 0,
     height: img.height ?? 0,
     portrait: isPortraitThumb(img.width ?? 0, img.height ?? 0),
+    imageSrcSet: img.srcSet,
   };
 }
 
@@ -152,6 +184,8 @@ function candidatesToArtItems(
     kind: "art" as const,
     title: item.title,
     imageSrc: item.imageSrc,
+    imageSrcSet: item.imageSrcSet,
+    imageSizes: item.imageSrcSet ? STAGE_IMAGE_SIZES : null,
     href: item.href,
     aspectRatio: aspectRatioCss(
       item.width,
@@ -357,7 +391,7 @@ async function fetchStageProducts(): Promise<GuestHomeStageMasonryItem[]> {
     for (const row of nhoms) {
       const ownerSlug = ownerById.get(row.id_nguoi_dung);
       if (!ownerSlug) continue;
-      const imageSrc = shopImageUrl(row.anh_id, "public");
+      const imageSrc = shopImageUrl(row.anh_id, "thumbnail");
       if (!imageSrc) continue;
 
       const shopSlug = shopSlugFromTen(
@@ -398,7 +432,18 @@ function mixStageItems(
     if (pi < productPicked.length) out.push(productPicked[pi++]!);
   }
 
-  return out;
+  return markPriorityImages(out.slice(0, STAGE_MIX_CAP));
+}
+
+function markPriorityImages(
+  items: GuestHomeStageMasonryItem[],
+): GuestHomeStageMasonryItem[] {
+  let marked = 0;
+  return items.map((item) => {
+    if (!item.imageSrc || marked >= STAGE_PRIORITY_IMAGES) return item;
+    marked += 1;
+    return { ...item, priority: true };
+  });
 }
 
 async function loadGuestHomeStageMasonryUncached(): Promise<
@@ -412,7 +457,7 @@ async function loadGuestHomeStageMasonryUncached(): Promise<
   const mixed = mixStageItems(art, products);
   if (mixed.length > 0) return mixed;
 
-  return Array.from({ length: 9 }, (_, index) => ({
+  return Array.from({ length: 6 }, (_, index) => ({
     id: `placeholder-${index + 1}`,
     kind: "art" as const,
     title: "Tác phẩm",
@@ -424,6 +469,6 @@ async function loadGuestHomeStageMasonryUncached(): Promise<
 
 export const loadGuestHomeStageMasonry = unstable_cache(
   loadGuestHomeStageMasonryUncached,
-  ["guest-home-stage-masonry-v8"],
+  ["guest-home-stage-masonry-v9"],
   { revalidate: 300, tags: ["guest-home"] },
 );

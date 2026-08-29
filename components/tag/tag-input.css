@@ -84,7 +84,15 @@
 }
 
 .tag-input-menu.is-portal {
+  display: flex;
+  flex-direction: column;
   max-height: min(420px, calc(100vh - 24px));
+  overflow: hidden;
+}
+
+.tag-input-menu-body {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -315,6 +323,16 @@
   border-bottom: 1px solid var(--border, #e2e8f0);
   color: var(--cins-blue, #1f74c9);
   font-weight: 600;
+}
+
+.tag-input-create.is-sticky {
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  background: var(--bg-surface, #fff);
+  border-bottom: none;
+  border-top: 1px solid var(--border, #e2e8f0);
 }
 
 .tag-input-create .tag-input-item-label {

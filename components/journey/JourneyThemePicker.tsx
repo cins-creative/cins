@@ -11,11 +11,17 @@ import {
   type CSSProperties,
 } from "react";
 
+import { JourneyThemeUploadProgress } from "@/components/journey/JourneyThemeUploadProgress";
+import { uploadGiaoDienCustomWithProgress } from "@/lib/files/upload-giao-dien-custom";
+
 import {
+  accentFromRecentHex,
+  DEFAULT_PROFILE_ACCENT_RECENTS,
   DEFAULT_PROFILE_THEME,
   getPatternDef,
   isDefaultProfileTheme,
   normalizeAccentHex,
+  parseAccentRecent,
   parseProfileGiaoDien,
   PROFILE_ACCENTS,
   PROFILE_BG_DIM_DEFAULT,
@@ -26,6 +32,7 @@ import {
   PROFILE_THEME_CUSTOMS_MAX,
   profileThemeCssVars,
   profileThemeImageUrl,
+  rememberAccentRecent,
   removeProfileCustomImage,
   resolveAccentHex,
   resolveDeviceImageId,
@@ -34,7 +41,6 @@ import {
   type ProfileCustomEntry,
   type ProfileGiaoDienState,
   type ProfilePatternId,
-  type ProfilePresetAccentId,
   type ProfileThemeDeviceId,
   type ProfileThemeSlice,
 } from "@/lib/journey/profile-theme";
@@ -213,6 +219,32 @@ function devicesEqual(
   return true;
 }
 
+const ACCENT_RECENT_STORAGE_KEY = "cins.profile-theme.accentRecent.v2";
+
+function readStoredAccentRecent(): string[] {
+  if (typeof window === "undefined") {
+    return [...DEFAULT_PROFILE_ACCENT_RECENTS];
+  }
+  try {
+    const raw = window.localStorage.getItem(ACCENT_RECENT_STORAGE_KEY);
+    if (!raw) return [...DEFAULT_PROFILE_ACCENT_RECENTS];
+    return parseAccentRecent(JSON.parse(raw) as unknown);
+  } catch {
+    return [...DEFAULT_PROFILE_ACCENT_RECENTS];
+  }
+}
+
+function writeStoredAccentRecent(hexes: string[]) {
+  try {
+    window.localStorage.setItem(
+      ACCENT_RECENT_STORAGE_KEY,
+      JSON.stringify(hexes.slice(0, DEFAULT_PROFILE_ACCENT_RECENTS.length)),
+    );
+  } catch {
+    /* quota / private mode */
+  }
+}
+
 function themesEqual(a: ProfileThemeSlice, b: ProfileThemeSlice): boolean {
   return (
     a.accent === b.accent &&
@@ -240,6 +272,19 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
     themeRef.current = theme;
     baselineRef.current = baseline;
 
+    const [accentRecent, setAccentRecent] = useState<string[]>(() =>
+      readStoredAccentRecent(),
+    );
+    const accentRecentRef = useRef(accentRecent);
+    accentRecentRef.current = accentRecent;
+
+    const pushAccentRecent = useCallback((hex: string) => {
+      const next = rememberAccentRecent(hex, accentRecentRef.current);
+      accentRecentRef.current = next;
+      setAccentRecent(next);
+      writeStoredAccentRecent(next);
+    }, []);
+
     const [status, setStatus] = useState<"idle" | "saving" | "ok" | "err">(
       "idle",
     );
@@ -258,6 +303,7 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
     const customsRef = useRef(customs);
     customsRef.current = customs;
     const [uploading, setUploading] = useState(false);
+    const [uploadPct, setUploadPct] = useState(0);
     const [removingId, setRemovingId] = useState<string | null>(null);
     const [previewDevice, setPreviewDevice] =
       useState<ThemePreviewDevice>(() => {
@@ -319,8 +365,12 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
             customsRef.current = data.customs;
           }
         }
+        const savedHex = resolveAccentHex(next);
+        const accentChanged =
+          savedHex !== resolveAccentHex(baselineRef.current);
         setBaseline(sliceFromInitial(next));
         baselineRef.current = sliceFromInitial(next);
+        if (accentChanged) pushAccentRecent(savedHex);
         setStatus("ok");
         window.setTimeout(
           () => setStatus((s) => (s === "ok" ? "idle" : s)),
@@ -332,7 +382,7 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
         setErrMsg(err instanceof Error ? err.message : "Không lưu được.");
         return false;
       }
-    }, []);
+    }, [pushAccentRecent]);
 
     const commitDraft = useCallback((next: ProfileThemeSlice) => {
       themeRef.current = next;
@@ -362,8 +412,12 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
           }),
         markSaved: (customs) => {
           const next = sliceFromInitial(themeRef.current);
+          const savedHex = resolveAccentHex(next);
+          const accentChanged =
+            savedHex !== resolveAccentHex(baselineRef.current);
           setBaseline(next);
           baselineRef.current = next;
+          if (accentChanged) pushAccentRecent(savedHex);
           if (Array.isArray(customs)) {
             setCustoms(customs);
             customsRef.current = customs;
@@ -396,7 +450,7 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
           setErrMsg(null);
         },
       }),
-      [persist],
+      [persist, pushAccentRecent],
     );
 
     /* Đồng bộ từ server khi mount (tránh stale SSR).
@@ -474,12 +528,16 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
       };
     }, []);
 
-    function onAccent(id: ProfilePresetAccentId) {
+    function onRecentSwatch(hex: string) {
+      const choice = accentFromRecentHex(hex);
+      if (choice.accent === "custom" && choice.accentHex) {
+        customLiveRef.current = choice.accentHex;
+      }
       const prev = themeRef.current;
       commitDraft({
         ...prev,
-        accent: id,
-        accentHex: null,
+        accent: choice.accent,
+        accentHex: choice.accentHex,
         background: { ...prev.background },
       });
     }
@@ -502,11 +560,12 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
     function onCustomCommit(hex: string) {
       const normalized = normalizeAccentHex(hex) ?? "#1F74C9";
       customLiveRef.current = normalized;
+      const choice = accentFromRecentHex(normalized);
       const prev = themeRef.current;
       commitDraft({
         ...prev,
-        accent: "custom",
-        accentHex: normalized,
+        accent: choice.accent,
+        accentHex: choice.accentHex,
         background: { ...prev.background },
       });
     }
@@ -630,22 +689,10 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
     async function onUploadFile(file: File | null) {
       if (!file) return;
       setUploading(true);
+      setUploadPct(1);
       setErrMsg(null);
       try {
-        const fd = new FormData();
-        fd.append("file", file);
-        const res = await fetch("/api/user/giao-dien/upload", {
-          method: "POST",
-          body: fd,
-        });
-        const data = (await res.json().catch(() => null)) as {
-          error?: string;
-          imageId?: string;
-          customs?: ProfileCustomEntry[];
-        } | null;
-        if (!res.ok || !data?.imageId) {
-          throw new Error(data?.error ?? "Không tải được ảnh.");
-        }
+        const data = await uploadGiaoDienCustomWithProgress(file, setUploadPct);
         if (Array.isArray(data.customs)) {
           setCustoms(data.customs);
           customsRef.current = data.customs;
@@ -763,7 +810,8 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
       theme.accent === "custom" && theme.accentHex
         ? theme.accentHex
         : customLiveRef.current;
-    const customSelected = theme.accent === "custom";
+    const customSelected =
+      theme.accent === "custom" && !accentRecent.includes(liveAccent);
 
     const switchPatternId: ProfilePatternId =
       theme.background.kind === "pattern" &&
@@ -815,23 +863,27 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
           ) : null}
         </div>
         <div
-          className="j-theme-swatch-row"
+          className="j-theme-swatch-row j-theme-swatch-row--recent"
           role="listbox"
           aria-label="Chọn màu nhấn"
         >
-          {PROFILE_ACCENTS.map((a) => {
-            const selected = a.id === theme.accent;
+          {accentRecent.map((hex) => {
+            const preset = PROFILE_ACCENTS.find(
+              (a) => a.hex.toUpperCase() === hex,
+            );
+            const selected = liveAccent === hex;
+            const label = preset?.label ?? hex;
             return (
               <button
-                key={a.id}
+                key={hex}
                 type="button"
                 role="option"
                 aria-selected={selected}
-                aria-label={a.label}
-                title={a.label}
+                aria-label={label}
+                title={label}
                 className={"j-theme-swatch" + (selected ? " is-active" : "")}
-                style={{ ["--swatch" as string]: a.hex }}
-                onClick={() => onAccent(a.id)}
+                style={{ ["--swatch" as string]: hex }}
+                onClick={() => onRecentSwatch(hex)}
               />
             );
           })}
@@ -853,7 +905,7 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
               value={customValue}
               aria-label="Màu tự chọn"
               onInput={(e) => onCustomPreview(e.currentTarget.value)}
-              onChange={(e) => onCustomPreview(e.currentTarget.value)}
+              onChange={(e) => onCustomCommit(e.currentTarget.value)}
               onBlur={() => onCustomCommit(customLiveRef.current)}
             />
           </label>
@@ -972,11 +1024,9 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
           <>
             <div className="j-theme-picker-label">
               <span>Ảnh · {deviceLabel}</span>
-              <span className="j-theme-picker-status">
-                {uploading
-                  ? "Đang tải…"
-                  : `Lịch sử tối đa ${PROFILE_THEME_CUSTOMS_MAX} ảnh`}
-              </span>
+              {uploading ? (
+                <JourneyThemeUploadProgress progress={uploadPct} />
+              ) : null}
             </div>
             <div className="j-theme-image-row">
               <button

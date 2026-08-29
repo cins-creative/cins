@@ -130,7 +130,7 @@ export function firePushMocLop(input: {
     loai: "moc_lop",
     title: input.title,
     body: input.body,
-    deepLink: `/chat?phong=${encodeURIComponent(input.roomId)}`,
+    deepLink: `/chat?room=${encodeURIComponent(input.roomId)}`,
     data: { roomId: input.roomId, mocId: input.mocId },
   });
 }
@@ -157,7 +157,7 @@ export function firePushTinNhanMoi(input: {
       loai: "tin_nhan",
       title: "Tin nhắn mới",
       body: preview,
-      deepLink: `/chat?phong=${encodeURIComponent(input.roomId)}`,
+      deepLink: `/chat?room=${encodeURIComponent(input.roomId)}`,
       data: { roomId: input.roomId },
     });
   }

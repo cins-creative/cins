@@ -265,6 +265,7 @@ export function JourneyLikeButton({
     pickerErr,
     actorsCount: count,
     showArcActors: !disableActorsReveal,
+    portalDesktop: true,
     onPickEmoji,
     onOpenActors: () => setActorsOpen(true),
   });

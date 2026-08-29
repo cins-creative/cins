@@ -214,6 +214,13 @@ import {
   pendingDirectRoomId,
 } from "@/lib/chat/optimistic-thread";
 import {
+  encodeChatRoomQuery,
+  matchThreadByChatRoomQuery,
+  parseChatRoomQuery,
+  readChatChildFromLocation,
+} from "@/lib/chat/chat-history";
+import { isChatPagePath } from "@/lib/chat/chat-page-path";
+import {
   getAtHashTrigger,
   type AtHashTrigger,
 } from "@/lib/editor/use-at-hash-trigger";
@@ -1021,6 +1028,8 @@ export function CinsChatOverlay({
     shareDropMode,
     completeShareDrop,
     openChat,
+    enterChatChildView,
+    leaveChatChildView,
   } = useCinsChat();
   const t = useT();
   const [threads, setThreads] = useState<ChatThread[]>(() =>
@@ -1127,6 +1136,27 @@ export function CinsChatOverlay({
   );
   /** Lớp 1 của hộp thư người lạ: card từng org mình quản trị. */
   const [orgInboxOverviewOpen, setOrgInboxOverviewOpen] = useState(false);
+  const urlChildAppliedRef = useRef<string | null>(null);
+  const showChatListView = useCallback(() => {
+    setOrgInboxOverviewOpen(false);
+    setExpandedOrgInboxId(null);
+    setMobileShowThread(false);
+    setActiveId("");
+    urlChildAppliedRef.current = null;
+  }, []);
+  const goChatList = useCallback(() => {
+    showChatListView();
+    leaveChatChildView();
+  }, [leaveChatChildView, showChatListView]);
+  const enterRoomHistory = useCallback(
+    (thread: ChatThread) => {
+      const query = encodeChatRoomQuery(thread);
+      if (!query) return;
+      urlChildAppliedRef.current = thread.roomId;
+      enterChatChildView({ roomId: thread.roomId, query });
+    },
+    [enterChatChildView],
+  );
   const [khachHangTagFilter, setKhachHangTagFilter] = useState<string[]>([]);
   const [khachHangTags, setKhachHangTags] = useState<ShopKhachHangTag[]>([]);
   const [khachHangTagsLoaded, setKhachHangTagsLoaded] = useState(false);
@@ -1264,6 +1294,7 @@ export function CinsChatOverlay({
   const pendingAlbumByRoomRef = useRef(new Map<string, string>());
   const activeRoomIdRef = useRef<string | null>(null);
   const activeMessagesRef = useRef<ChatMessage[]>([]);
+  const threadsRef = useRef(threads);
   const shouldScrollToBottomRef = useRef(true);
 
   const persistViewedRoom = useCallback(
@@ -1409,6 +1440,7 @@ export function CinsChatOverlay({
 
   activeRoomIdRef.current = active?.roomId ?? null;
   activeMessagesRef.current = active?.messages ?? [];
+  threadsRef.current = threads;
 
   /* Flush tin đang xem → session cache khi unmount (mini/bubble đọc lại). */
   useEffect(() => {
@@ -2381,6 +2413,7 @@ export function CinsChatOverlay({
       setActiveTab(launch.tab ?? "ban_be");
       if (launch.toChucFilter) setToChucFilter(launch.toChucFilter);
       setMobileShowThread(false);
+      leaveChatChildView();
       return;
     }
 
@@ -2391,6 +2424,9 @@ export function CinsChatOverlay({
     setActiveTab(launch.tab ?? incoming.group);
     if (launch.toChucFilter) setToChucFilter(launch.toChucFilter);
     setMobileShowThread(true);
+    if (incoming.roomId) {
+      enterRoomHistory(incoming);
+    }
 
     if (incoming.peerUserId) {
       const pendingId = pendingDirectRoomId(incoming.peerUserId);
@@ -2401,7 +2437,13 @@ export function CinsChatOverlay({
         setRoomStatus(next);
       }
     }
-  }, [launch?.thread, launch?.tab, launch?.toChucFilter]);
+  }, [
+    enterRoomHistory,
+    launch?.thread,
+    launch?.tab,
+    launch?.toChucFilter,
+    leaveChatChildView,
+  ]);
 
   // Card ngữ cảnh chờ: gắn theo phòng THỰC của hội thoại vừa mở. Dùng
   // active.roomId (không phải launch.thread.roomId) vì org room có thể resolve
@@ -2591,11 +2633,15 @@ export function CinsChatOverlay({
         setSidePanel(null);
         return;
       }
+      if (orgInboxOverviewOpen || mobileShowThread) {
+        goChatList();
+        return;
+      }
       onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, sidePanel]);
+  }, [goChatList, mobileShowThread, onClose, orgInboxOverviewOpen, sidePanel]);
 
   const loadMessages = useCallback(
     async (roomId: string, options?: { force?: boolean }) => {
@@ -2986,9 +3032,11 @@ export function CinsChatOverlay({
       }
 
       persistViewedRoom(thread.roomId, thread.messages.at(-1)?.id);
+      enterRoomHistory(thread);
     },
     [
       draft,
+      enterRoomHistory,
       loadMessages,
       pendingImages,
       persistViewedRoom,
@@ -2996,6 +3044,54 @@ export function CinsChatOverlay({
       scrollMessagesToBottom,
     ],
   );
+
+  useEffect(() => {
+    const onPop = () => {
+      if (!isChatPagePath(window.location.pathname)) return;
+      const child = readChatChildFromLocation();
+      if (child.kind === "inbox") {
+        setOrgInboxOverviewOpen(true);
+        setMobileShowThread(true);
+        setActiveId("");
+        return;
+      }
+      if (child.kind === "room") {
+        setOrgInboxOverviewOpen(false);
+        setMobileShowThread(true);
+        const match = matchThreadByChatRoomQuery(
+          threadsRef.current,
+          parseChatRoomQuery(child.query),
+        );
+        setActiveId(match?.id ?? match?.roomId ?? "");
+        return;
+      }
+      showChatListView();
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [showChatListView]);
+
+  useEffect(() => {
+    const child = readChatChildFromLocation();
+    if (child.kind === "inbox") {
+      if (urlChildAppliedRef.current === "inbox") return;
+      urlChildAppliedRef.current = "inbox";
+      setOrgInboxOverviewOpen(true);
+      setMobileShowThread(true);
+      setActiveTab("to_chuc");
+      enterChatChildView("inbox");
+      return;
+    }
+    if (child.kind !== "room") return;
+    const match = matchThreadByChatRoomQuery(
+      threads,
+      parseChatRoomQuery(child.query),
+    );
+    if (!match) return;
+    if (urlChildAppliedRef.current === match.roomId) return;
+    urlChildAppliedRef.current = match.roomId;
+    selectThread(match);
+  }, [enterChatChildView, selectThread, threads]);
 
   const removeThreadFromSidebar = useCallback(
     (thread: ChatThread) => {
@@ -4734,7 +4830,9 @@ export function CinsChatOverlay({
     setActiveId("");
     setMobileShowThread(true);
     setActiveTab("to_chuc");
-  }, []);
+    urlChildAppliedRef.current = "inbox";
+    enterChatChildView("inbox");
+  }, [enterChatChildView]);
 
   /** Org mình quản trị có hội thoại người lạ — nguồn của lớp card. */
   const orgInboxNodes = useMemo(
@@ -5311,7 +5409,7 @@ export function CinsChatOverlay({
               type="button"
               className="cins-chat-back-mobile"
               aria-label={t("chat.backList")}
-              onClick={() => setMobileShowThread(false)}
+              onClick={() => goChatList()}
             >
               <ChevronLeft size={24} strokeWidth={2.25} aria-hidden />
             </button>
@@ -6145,9 +6243,7 @@ export function CinsChatOverlay({
                   className="cins-chat-back-mobile"
                   aria-label={t("chat.backList")}
                   onClick={() => {
-                    setOrgInboxOverviewOpen(false);
-                    setExpandedOrgInboxId(null);
-                    setMobileShowThread(false);
+                    goChatList();
                   }}
                 >
                   <ChevronLeft size={24} strokeWidth={2.25} aria-hidden />

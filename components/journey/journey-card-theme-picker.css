@@ -1,0 +1,178 @@
+/* Layout dùng chung `.j-theme-picker` / `-main` / `-aside` từ journey-theme.css.
+ * Demo bên phải = markup datebar guest thật (`.jcard-datebar--guest` + `.org-chip`). */
+
+.j-card-theme-picker {
+  min-height: 0;
+}
+
+.j-card-theme-picker-blurb {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-muted);
+}
+
+.j-card-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-display);
+  cursor: pointer;
+  user-select: none;
+}
+.j-card-theme-toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--cins-blue, #1f74c9);
+}
+
+.j-card-theme-fieldset {
+  margin: 0;
+  padding: 0;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.j-card-theme-fieldset:disabled {
+  opacity: 0.48;
+  pointer-events: none;
+}
+.j-card-theme-fieldset legend {
+  padding: 0;
+  margin-bottom: 2px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink-display);
+}
+
+.j-card-theme-mode-row,
+.j-card-theme-style-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.j-card-theme-mode,
+.j-card-theme-style {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--ink-display);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.j-card-theme-mode.is-active,
+.j-card-theme-style.is-active {
+  border-color: color-mix(in srgb, var(--cins-blue) 45%, var(--border));
+  background: var(--cins-blue-soft);
+  color: var(--cins-blue);
+}
+
+.j-card-theme-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-muted);
+}
+
+/* ── Aside demo ─────────────────────────────────────────────────── */
+
+.j-card-theme-picker-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.j-card-theme-aside-meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.j-card-theme-aside-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 4px 2px 8px;
+  overflow: auto;
+}
+
+@media (min-width: 900px) {
+  .j-card-theme-picker-aside .j-theme-picker-label {
+    display: flex;
+  }
+
+  .j-card-theme-aside-stage {
+    align-items: center;
+    padding-top: 12px;
+  }
+}
+
+@media (max-width: 899.98px) {
+  .j-card-theme-picker-aside .j-theme-picker-label,
+  .j-card-theme-aside-meta {
+    display: none;
+  }
+
+  .j-card-theme-aside-stage {
+    max-height: 220px;
+    padding: 4px 0 0;
+  }
+}
+
+/* Demo card — tái dùng token journey; khóa tương tác */
+.j-card-theme-demo {
+  width: 100%;
+  max-width: 420px;
+  margin: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+.j-card-theme-demo .j-m-body-wrap {
+  margin: 0;
+}
+
+.j-card-theme-demo .j-m-card {
+  margin: 0;
+}
+
+.j-card-theme-demo-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px 16px;
+}
+
+.j-card-theme-demo-body .jcard-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--ink-display);
+}
+
+.j-card-theme-demo-body .jcard-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-muted);
+}
+
+.j-card-theme-demo-media {
+  height: 110px;
+  margin-top: 4px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--ink-muted) 14%, transparent);
+}

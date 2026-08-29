@@ -50,7 +50,7 @@ import {
   type ShopSwitchPatchInput,
 } from "@/lib/journey/shop-switch";
 
-/* ── Accent presets (10 hiển thị + custom hex) ───────────────────── */
+/* ── Accent presets (catalog 10 id; picker hiện 9 recent + colorwheel) ─ */
 
 export const PROFILE_ACCENT_IDS = [
   "cins",
@@ -114,6 +114,73 @@ export function normalizeAccentHex(raw: unknown): string | null {
   const hex = raw.trim();
   if (!HEX_RE.test(hex)) return null;
   return hex.toUpperCase();
+}
+
+/** Số ô màu trên hàng swatch (MRU). */
+export const PROFILE_ACCENT_RECENT_MAX = 9;
+
+export const DEFAULT_PROFILE_ACCENT_RECENTS: readonly string[] =
+  PROFILE_ACCENTS.slice(0, PROFILE_ACCENT_RECENT_MAX).map((a) =>
+    a.hex.toUpperCase(),
+  );
+
+export function presetAccentIdFromHex(
+  hex: string,
+): ProfilePresetAccentId | null {
+  const n = normalizeAccentHex(hex);
+  if (!n) return null;
+  for (const a of PROFILE_ACCENTS) {
+    if (a.hex.toUpperCase() === n) return a.id;
+  }
+  return null;
+}
+
+/** Unique hex, mới nhất trước. Thiếu slot thì pad preset mặc định. */
+export function parseAccentRecent(raw: unknown): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  if (Array.isArray(raw)) {
+    for (const item of raw) {
+      const hex = normalizeAccentHex(item);
+      if (!hex || seen.has(hex)) continue;
+      seen.add(hex);
+      out.push(hex);
+      if (out.length >= PROFILE_ACCENT_RECENT_MAX) break;
+    }
+  }
+  if (out.length === 0) {
+    return [...DEFAULT_PROFILE_ACCENT_RECENTS];
+  }
+  for (const hex of DEFAULT_PROFILE_ACCENT_RECENTS) {
+    if (out.length >= PROFILE_ACCENT_RECENT_MAX) break;
+    if (seen.has(hex)) continue;
+    seen.add(hex);
+    out.push(hex);
+  }
+  return out;
+}
+
+/** Màu mới → ô 1; các ô cũ dịch +1; trùng thì gỡ chỗ cũ rồi lên đầu. */
+export function rememberAccentRecent(hex: string, prev: string[]): string[] {
+  const n = normalizeAccentHex(hex);
+  const list =
+    prev.length > 0 ? parseAccentRecent(prev) : [...DEFAULT_PROFILE_ACCENT_RECENTS];
+  if (!n || list[0] === n) return list;
+  return [n, ...list.filter((h) => h !== n)].slice(
+    0,
+    PROFILE_ACCENT_RECENT_MAX,
+  );
+}
+
+export function accentFromRecentHex(hex: string): {
+  accent: ProfileAccentId;
+  accentHex: string | null;
+} {
+  const n = normalizeAccentHex(hex);
+  if (!n) return { accent: "cins", accentHex: null };
+  const id = presetAccentIdFromHex(n);
+  if (id) return { accent: id, accentHex: null };
+  return { accent: "custom", accentHex: n };
 }
 
 /** Hook billing — Phase 1 luôn false. */

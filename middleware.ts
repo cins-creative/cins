@@ -13,6 +13,7 @@ import {
   getTrimmedSupabaseUrl,
 } from "@/lib/supabase/env";
 import { MANAGE_ORIGIN } from "@/lib/cins/manage-site";
+import { MANAGE_TO_MANAGE_PATH } from "@/lib/cins/manage-handoff";
 import {
   isAcademyManageApiPath,
   isOrgManagePath,
@@ -308,7 +309,7 @@ function expireHostOnlyAuthCookies(
 ) {
   if (process.env.NODE_ENV !== "production") return;
   const host = request.nextUrl.hostname.toLowerCase();
-  if (host !== "cins.vn" && host !== "www.cins.vn" && host !== "manage.cins.vn") {
+  if (host !== "cins.vn" && host !== "www.cins.vn") {
     return;
   }
   for (const cookie of request.cookies.getAll()) {
@@ -401,13 +402,15 @@ export async function middleware(request: NextRequest) {
 
   if (process.env.CINS_SURFACE === "web") {
     if (pathname === "/admin" || pathname.startsWith("/admin/")) {
-      const dest = new URL(pathname + request.nextUrl.search, MANAGE_ORIGIN);
-      return NextResponse.redirect(dest, 308);
+      const dest = new URL(MANAGE_TO_MANAGE_PATH, request.url);
+      dest.searchParams.set("next", pathname + request.nextUrl.search);
+      return NextResponse.redirect(dest, 307);
     }
     if (isSellerPath(pathname) || isOrgManagePath(pathname)) {
       const pretty = toManagePublicPath(pathname) ?? pathname;
-      const dest = new URL(pretty + request.nextUrl.search, MANAGE_ORIGIN);
-      return NextResponse.redirect(dest, 308);
+      const dest = new URL(MANAGE_TO_MANAGE_PATH, request.url);
+      dest.searchParams.set("next", pretty + request.nextUrl.search);
+      return NextResponse.redirect(dest, 307);
     }
     if (isAcademyManageApiPath(pathname) || isStudioManageApiPath(pathname)) {
       const dest = new URL(pathname + request.nextUrl.search, MANAGE_ORIGIN);

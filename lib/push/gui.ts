@@ -8,7 +8,7 @@ import { danhDauMatHieuLuc } from "@/lib/push/don-dep";
 export type PushPayload = {
   title: string;
   body: string;
-  /** Deep link path hoặc URL app mở khi tap (vd /chat?phong=...). */
+  /** Deep link path hoặc URL app mở khi tap (vd /chat?room=...). */
   deepLink?: string;
   data?: Record<string, string>;
 };

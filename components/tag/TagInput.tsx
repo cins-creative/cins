@@ -88,13 +88,17 @@ function TagInputMenuItem({
   onPick: () => void;
   compose?: boolean;
 }) {
-  return (
+    return (
     <button
       type="button"
       className={`tag-input-item${active ? " is-active" : ""}`}
       role="option"
       aria-selected={active}
-      onClick={onPick}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onPick();
+      }}
     >
       <TagSuggestionLabel tieu_de={tag.tieu_de} />
       <TagSuggestionMeta
@@ -407,11 +411,15 @@ export function TagInput({
                 <button
                   key="create"
                   type="button"
-                  className={`tag-input-item tag-input-create${idx === activeIdx ? " is-active" : ""}`}
+                  className={`tag-input-item tag-input-create is-sticky${idx === activeIdx ? " is-active" : ""}`}
                   role="option"
                   aria-selected={idx === activeIdx}
                   disabled={creating}
-                  onClick={() => void pickMenuItem(item)}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    void pickMenuItem(item);
+                  }}
                 >
                   <Plus size={16} strokeWidth={2} aria-hidden />
                   <span className="tag-input-item-label">

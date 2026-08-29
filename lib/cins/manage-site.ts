@@ -1,3 +1,5 @@
+import { toManageBounceHref } from "@/lib/cins/manage-handoff";
+
 /** Host app quản lý — tách Worker, giống business.facebook.com. */
 export const MANAGE_HOST = "manage.cins.vn";
 export const MANAGE_ORIGIN = `https://${MANAGE_HOST}`;
@@ -75,13 +77,14 @@ export function navigateManageHref(
   router: { push: (url: string) => void; replace?: (url: string) => void },
   mode: "push" | "replace" = "push",
 ): void {
-  if (/^https?:\/\//i.test(href)) {
-    window.location.assign(href);
+  const dest = toManageBounceHref(href);
+  if (/^https?:\/\//i.test(dest) || dest.startsWith("/auth/to-manage")) {
+    window.location.assign(dest);
     return;
   }
   if (mode === "replace" && router.replace) {
-    router.replace(href);
+    router.replace(dest);
     return;
   }
-  router.push(href);
+  router.push(dest);
 }

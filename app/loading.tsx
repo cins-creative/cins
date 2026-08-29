@@ -1,9 +1,15 @@
-import { LoggedInChromeSkeleton } from "@/components/auth/LoggedInChromeSkeleton";
-
 /**
- * Skeleton segment — cùng chrome logged-in (sidebar + topbar + feed)
- * để soft-nav sau sign-in không tụt về khung cụt.
+ * Không gắn sidebar/topbar/feed skeleton.
+ * `/` khách không được HTML loading mang chrome app (CSS/JS nav).
+ * Soft-nav sau đăng nhập: `AuthEnterOverlayHost` + `LoggedInChromeSkeleton`.
  */
 export default function HomeLoading() {
-  return <LoggedInChromeSkeleton />;
+  return (
+    <div
+      className="min-h-dvh w-full"
+      style={{ background: "var(--bg-page, #fff)" }}
+      aria-busy="true"
+      aria-label="Đang tải"
+    />
+  );
 }

@@ -159,7 +159,6 @@ export function EditorTagMenu({
     exactMatch,
     query,
     tagLoading,
-    refining,
   ]);
 
   /* ── @ mode: tìm cộng sự ─────────────────────────────────────────── */
@@ -237,6 +236,27 @@ export function EditorTagMenu({
     }
     return items;
   }, [mode, query, exactMatch, suggestions, browse, hasExactSuggestion]);
+
+  const suggestionItems = useMemo(
+    () => tagMenuItems.filter((item) => item.kind === "suggestion"),
+    [tagMenuItems],
+  );
+  const createItem = useMemo(
+    () => tagMenuItems.find((item) => item.kind === "create") ?? null,
+    [tagMenuItems],
+  );
+
+  const commitFromPointer = useCallback(
+    (
+      event: { preventDefault: () => void; stopPropagation: () => void },
+      fn: () => void,
+    ) => {
+      event.preventDefault();
+      event.stopPropagation();
+      fn();
+    },
+    [],
+  );
 
   /* ── Pick handlers ───────────────────────────────────────────────── */
   const pickUser = useCallback(
@@ -417,9 +437,8 @@ export function EditorTagMenu({
                   "ed-editor-tag-menu-item" +
                   (i === activeIndex ? " is-active" : "")
                 }
-                onMouseDown={(e) => e.preventDefault()}
+                onMouseDown={(e) => commitFromPointer(e, () => pickUser(u))}
                 onMouseEnter={() => setActiveIndex(i)}
-                onClick={() => pickUser(u)}
               >
                 <span className="ed-editor-tag-menu-avatar">
                   {avatarUrl ? (
@@ -459,9 +478,10 @@ export function EditorTagMenu({
         top: pos.top,
         left: pos.left,
         width: TAG_MENU_W,
-        zIndex: 10200,
+        zIndex: 13000,
       }}
       onMouseDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
     >
       {showTagLoading ? (
         <div className="tag-input-loading">
@@ -484,72 +504,94 @@ export function EditorTagMenu({
             </p>
           ) : null}
 
-          {exactVisible && exactMatch ? (
-            <button
-              type="button"
-              className={`tag-input-item${activeIndex === 0 ? " is-active" : ""}`}
-              role="option"
-              aria-selected={activeIndex === 0}
-              onMouseDown={(e) => e.preventDefault()}
-              onMouseEnter={() => setActiveIndex(0)}
-              onClick={() => pickExistingTag(exactMatch)}
-            >
-              <TagSuggestionLabel tieu_de={exactMatch.tieu_de} />
-              <TagSuggestionMeta
-                compose
-                loai={exactMatch.loai_bai_viet}
-                soNguoiTagged={exactMatch.so_nguoi_tagged}
-                soGan={exactMatch.so_gan}
-              />
-            </button>
-          ) : null}
-
-          {!showTagLoading && tagMenuItems.length === 0 && !exactVisible ? (
-            <div className="tag-input-empty">
-              {query ? "Không thấy kết quả." : "Chưa có thẻ."}
-            </div>
-          ) : null}
-
-          {tagMenuItems.map((item, idx) => {
-            const navIdx = exactVisible ? idx + 1 : idx;
-            return item.kind === "suggestion" ? (
+          <div className="tag-input-menu-body">
+            {exactVisible && exactMatch ? (
               <button
-                key={item.tag.id}
                 type="button"
-                className={`tag-input-item${navIdx === activeIndex ? " is-active" : ""}`}
+                className={`tag-input-item${activeIndex === 0 ? " is-active" : ""}`}
                 role="option"
-                aria-selected={navIdx === activeIndex}
-                onMouseDown={(e) => e.preventDefault()}
-                onMouseEnter={() => setActiveIndex(navIdx)}
-                onClick={() => pickTagMenuItem(item)}
+                aria-selected={activeIndex === 0}
+                onMouseDown={(e) =>
+                  commitFromPointer(e, () => pickExistingTag(exactMatch))
+                }
+                onMouseEnter={() => setActiveIndex(0)}
               >
-                <TagSuggestionLabel tieu_de={item.tag.tieu_de} />
+                <TagSuggestionLabel tieu_de={exactMatch.tieu_de} />
                 <TagSuggestionMeta
                   compose
-                  loai={item.tag.loai_bai_viet}
-                  soNguoiTagged={item.tag.so_nguoi_tagged}
-                  soGan={item.tag.so_gan}
+                  loai={exactMatch.loai_bai_viet}
+                  soNguoiTagged={exactMatch.so_nguoi_tagged}
+                  soGan={exactMatch.so_gan}
                 />
               </button>
-            ) : (
-              <button
-                key="create"
-                type="button"
-                className={`tag-input-item tag-input-create${navIdx === activeIndex ? " is-active" : ""}`}
-                role="option"
-                aria-selected={navIdx === activeIndex}
-                disabled={creating}
-                onMouseDown={(e) => e.preventDefault()}
-                onMouseEnter={() => setActiveIndex(navIdx)}
-                onClick={() => pickTagMenuItem(item)}
-              >
-                <Plus size={16} strokeWidth={2} aria-hidden />
-                <span className="tag-input-item-label">
-                  Tạo thẻ mới &ldquo;{item.label}&rdquo;
-                </span>
-              </button>
-            );
-          })}
+            ) : null}
+
+            {!showTagLoading && tagMenuItems.length === 0 && !exactVisible ? (
+              <div className="tag-input-empty">
+                {query ? "Không thấy kết quả." : "Chưa có thẻ."}
+              </div>
+            ) : null}
+
+            {suggestionItems.map((item, idx) => {
+              const navIdx = exactVisible ? idx + 1 : idx;
+              return (
+                <button
+                  key={item.tag.id}
+                  type="button"
+                  className={`tag-input-item${navIdx === activeIndex ? " is-active" : ""}`}
+                  role="option"
+                  aria-selected={navIdx === activeIndex}
+                  onMouseDown={(e) =>
+                    commitFromPointer(e, () => pickTagMenuItem(item))
+                  }
+                  onMouseEnter={() => setActiveIndex(navIdx)}
+                >
+                  <TagSuggestionLabel tieu_de={item.tag.tieu_de} />
+                  <TagSuggestionMeta
+                    compose
+                    loai={item.tag.loai_bai_viet}
+                    soNguoiTagged={item.tag.so_nguoi_tagged}
+                    soGan={item.tag.so_gan}
+                  />
+                </button>
+              );
+            })}
+          </div>
+
+          {createItem ? (
+            <button
+              type="button"
+              className={`tag-input-item tag-input-create is-sticky${
+                (exactVisible
+                  ? suggestionItems.length + 1
+                  : suggestionItems.length) === activeIndex
+                  ? " is-active"
+                  : ""
+              }`}
+              role="option"
+              aria-selected={
+                (exactVisible
+                  ? suggestionItems.length + 1
+                  : suggestionItems.length) === activeIndex
+              }
+              disabled={creating}
+              onMouseDown={(e) =>
+                commitFromPointer(e, () => pickTagMenuItem(createItem))
+              }
+              onMouseEnter={() =>
+                setActiveIndex(
+                  exactVisible
+                    ? suggestionItems.length + 1
+                    : suggestionItems.length,
+                )
+              }
+            >
+              <Plus size={16} strokeWidth={2} aria-hidden />
+              <span className="tag-input-item-label">
+                Tạo thẻ mới &ldquo;{createItem.label}&rdquo;
+              </span>
+            </button>
+          ) : null}
         </>
       )}
     </div>,

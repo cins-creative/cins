@@ -23,7 +23,7 @@ import type { GiaiDoan } from "@/lib/auth/session";
 import { TINH_THANH_OPTIONS } from "@/lib/truong/contact";
 import type { ProfileThemeSlice } from "@/lib/journey/profile-theme";
 import type { ProfileAvatarFrameSlice } from "@/lib/journey/avatar-frame";
-import type { ProfilePopoverThemeSlice } from "@/lib/journey/popover-theme";
+import type { ProfileCardThemeSlice } from "@/lib/journey/card-theme";
 import type { ProfileShopSwitchSlice } from "@/lib/journey/shop-switch";
 import {
   JourneyThemePicker,
@@ -34,9 +34,9 @@ import {
   type JourneyAvatarFramePickerHandle,
 } from "@/components/journey/JourneyAvatarFramePicker";
 import {
-  JourneyPopoverPicker,
-  type JourneyPopoverPickerHandle,
-} from "@/components/journey/JourneyPopoverPicker";
+  JourneyCardThemePicker,
+  type JourneyCardThemePickerHandle,
+} from "@/components/journey/JourneyCardThemePicker";
 import {
   patchGiaoDien,
   resetGiaoDienTheme,
@@ -46,12 +46,12 @@ import {
   type JourneyShopSwitchPickerHandle,
 } from "@/components/journey/JourneyShopSwitchPicker";
 
-/** Sub-tab Customize — PLAN_customize_theme §0 (Card/datebar đã gỡ khỏi UI). */
+/** Sub-tab Customize — Theme · Avatar · Shop · Bài viết (datebar). */
 const CUSTOMIZE_SUB_TABS = [
   { id: "theme", label: "Theme" },
   { id: "avatar", label: "Avatar" },
   { id: "shop", label: "Shop" },
-  { id: "popover", label: "Popover" },
+  { id: "post", label: "Bài viết" },
 ] as const;
 
 type CustomizeSubTab = (typeof CUSTOMIZE_SUB_TABS)[number]["id"];
@@ -128,8 +128,8 @@ export type EditProfileInitial = {
   profileTheme?: ProfileThemeSlice | null;
   /** Khung & viền avatar — nhóm B. */
   profileAvatarFrame?: ProfileAvatarFrameSlice | null;
-  /** Card user popover — nhóm D. */
-  profilePopover?: ProfilePopoverThemeSlice | null;
+  /** Thanh hiển thị bài viết (datebar) — nhóm E. */
+  profileCard?: ProfileCardThemeSlice | null;
   /** Khối Shop trên sidebar. */
   profileShopSwitch?: ProfileShopSwitchSlice | null;
   authorAvatarUrl?: string | null;
@@ -196,20 +196,20 @@ export function JourneyEditProfileModal({
     useState<CustomizeSubTab>("theme");
   const [themeDirty, setThemeDirty] = useState(false);
   const [avatarDirty, setAvatarDirty] = useState(false);
-  const [popoverDirty, setPopoverDirty] = useState(false);
+  const [cardDirty, setCardDirty] = useState(false);
   const [shopDirty, setShopDirty] = useState(false);
   const [themeSaving, setThemeSaving] = useState(false);
   const themePickerRef = useRef<JourneyThemePickerHandle>(null);
   const avatarPickerRef = useRef<JourneyAvatarFramePickerHandle>(null);
-  const popoverPickerRef = useRef<JourneyPopoverPickerHandle>(null);
+  const cardPickerRef = useRef<JourneyCardThemePickerHandle>(null);
   const shopPickerRef = useRef<JourneyShopSwitchPickerHandle>(null);
   const onCustomize = tab === "customize";
-  const customizeDirty = themeDirty || avatarDirty || popoverDirty || shopDirty;
+  const customizeDirty = themeDirty || avatarDirty || cardDirty || shopDirty;
   const themeFooter =
     onCustomize &&
     (customizeSub === "theme" ||
       customizeSub === "avatar" ||
-      customizeSub === "popover" ||
+      customizeSub === "post" ||
       customizeSub === "shop" ||
       customizeDirty);
   const customizeStubFooter = onCustomize && !themeFooter;
@@ -229,8 +229,8 @@ export function JourneyEditProfileModal({
   const onAvatarDirtyChange = useCallback((dirty: boolean) => {
     setAvatarDirty(dirty);
   }, []);
-  const onPopoverDirtyChange = useCallback((dirty: boolean) => {
-    setPopoverDirty(dirty);
+  const onCardDirtyChange = useCallback((dirty: boolean) => {
+    setCardDirty(dirty);
   }, []);
   const onShopDirtyChange = useCallback((dirty: boolean) => {
     setShopDirty(dirty);
@@ -271,7 +271,7 @@ export function JourneyEditProfileModal({
     setCustomizeSub("theme");
     setThemeDirty(false);
     setAvatarDirty(false);
-    setPopoverDirty(false);
+    setCardDirty(false);
     setShopDirty(false);
     setThemeSaving(false);
     setSubmitError(null);
@@ -332,20 +332,20 @@ export function JourneyEditProfileModal({
   async function persistCustomize(): Promise<boolean> {
     const themePicker = themePickerRef.current;
     const avatarPicker = avatarPickerRef.current;
-    const popoverPicker = popoverPickerRef.current;
+    const cardPicker = cardPickerRef.current;
     const shopPicker = shopPickerRef.current;
     const dirtyTheme = Boolean(themePicker?.isDirty());
     const dirtyAvatar = Boolean(avatarPicker?.isDirty());
-    const dirtyPopover = Boolean(popoverPicker?.isDirty());
+    const dirtyCard = Boolean(cardPicker?.isDirty());
     const dirtyShop = Boolean(shopPicker?.isDirty());
-    if (!dirtyTheme && !dirtyAvatar && !dirtyPopover && !dirtyShop) {
+    if (!dirtyTheme && !dirtyAvatar && !dirtyCard && !dirtyShop) {
       return true;
     }
 
     const onlyResetTheme =
       dirtyTheme &&
       !dirtyAvatar &&
-      !dirtyPopover &&
+      !dirtyCard &&
       !dirtyShop &&
       (themePicker?.isDefaultDraft() ?? false);
 
@@ -359,7 +359,7 @@ export function JourneyEditProfileModal({
       const body = {
         ...(dirtyTheme ? themePicker?.getPatch() ?? {} : {}),
         ...(dirtyAvatar ? avatarPicker?.getPatch() ?? {} : {}),
-        ...(dirtyPopover ? popoverPicker?.getPatch() ?? {} : {}),
+        ...(dirtyCard ? cardPicker?.getPatch() ?? {} : {}),
         ...(dirtyShop ? shopPicker?.getPatch() ?? {} : {}),
       };
       if (Object.keys(body).length === 0) return true;
@@ -369,8 +369,8 @@ export function JourneyEditProfileModal({
       if (dirtyAvatar) {
         avatarPicker?.markSaved(data.avatarFrame, data.customs);
       }
-      if (dirtyPopover) {
-        popoverPicker?.markSaved(data.popover, data.customs);
+      if (dirtyCard) {
+        cardPicker?.markSaved(data.card, data.customs);
       }
       if (dirtyShop) {
         shopPicker?.markSaved(data.shopSwitch, data.customs);
@@ -381,18 +381,18 @@ export function JourneyEditProfileModal({
     }
   }
 
-  /** Đóng có xác nhận nếu theme/avatar/popover/shop chưa lưu. Không đóng khi bấm ngoài backdrop. */
+  /** Đóng có xác nhận nếu theme/avatar/bài viết/shop chưa lưu. Không đóng khi bấm ngoài backdrop. */
   async function requestClose() {
     if (isPending || themeSaving) return;
     const themePicker = themePickerRef.current;
     const avatarPicker = avatarPickerRef.current;
-    const popoverPicker = popoverPickerRef.current;
+    const cardPicker = cardPickerRef.current;
     const shopPicker = shopPickerRef.current;
     const dirtyTheme = Boolean(themePicker?.isDirty());
     const dirtyAvatar = Boolean(avatarPicker?.isDirty());
-    const dirtyPopover = Boolean(popoverPicker?.isDirty());
+    const dirtyCard = Boolean(cardPicker?.isDirty());
     const dirtyShop = Boolean(shopPicker?.isDirty());
-    if (dirtyTheme || dirtyAvatar || dirtyPopover || dirtyShop) {
+    if (dirtyTheme || dirtyAvatar || dirtyCard || dirtyShop) {
       const wantSave = window.confirm(
         "Bạn có thay đổi giao diện chưa lưu.\n\nOK = Lưu rồi đóng\nCancel = Đóng mà không lưu",
       );
@@ -403,16 +403,16 @@ export function JourneyEditProfileModal({
         if (!ok) return;
         setThemeDirty(false);
         setAvatarDirty(false);
-        setPopoverDirty(false);
+        setCardDirty(false);
         setShopDirty(false);
       } else {
         themePicker?.discard();
         avatarPicker?.discard();
-        popoverPicker?.discard();
+        cardPicker?.discard();
         shopPicker?.discard();
         setThemeDirty(false);
         setAvatarDirty(false);
-        setPopoverDirty(false);
+        setCardDirty(false);
         setShopDirty(false);
       }
     }
@@ -426,7 +426,7 @@ export function JourneyEditProfileModal({
     if (ok) {
       setThemeDirty(false);
       setAvatarDirty(false);
-      setPopoverDirty(false);
+      setCardDirty(false);
       setShopDirty(false);
     }
   }
@@ -1026,25 +1026,21 @@ export function JourneyEditProfileModal({
             </div>
 
             <div
-              id="j-edit-subpanel-popover"
+              id="j-edit-subpanel-post"
               role="tabpanel"
-              aria-labelledby="j-edit-subtab-popover"
+              aria-labelledby="j-edit-subtab-post"
               className="j-edit-subpanel"
-              hidden={customizeSub !== "popover"}
+              hidden={customizeSub !== "post"}
             >
               {tab === "customize" &&
-              (customizeSub === "popover" || popoverDirty) ? (
-                <JourneyPopoverPicker
-                  ref={popoverPickerRef}
-                  initialPopover={initial.profilePopover ?? null}
+              (customizeSub === "post" || cardDirty) ? (
+                <JourneyCardThemePicker
+                  ref={cardPickerRef}
+                  initialCard={initial.profileCard ?? null}
                   profileTheme={initial.profileTheme ?? null}
-                  profileAvatarFrame={initial.profileAvatarFrame ?? null}
                   authorName={initial.tenHienThi}
                   authorAvatarUrl={initial.authorAvatarUrl ?? null}
-                  authorCoverUrl={initial.authorCoverUrl ?? null}
-                  authorBio={initial.bio}
-                  authorSlug={ownerSlug}
-                  onDirtyChange={onPopoverDirtyChange}
+                  onDirtyChange={onCardDirtyChange}
                 />
               ) : null}
             </div>

@@ -1,26 +1,23 @@
 /* ============================================================
-   Guest home — đồng bộ CINs design tokens + app shell
+   Guest home — landing full-page (không CinsShell)
    ============================================================ */
 
-.cins-shell--guest-home {
+.cins-guest-landing {
   --gh-aside-w: 392px;
   --site-nav-height: 0px;
   --site-nav-sticky-top: 0px;
   --cins-botbar-h: 0px;
   --cins-sidebar-collapsed: 0px;
-}
-
-.cins-shell--guest-home .cins-app-topbar,
-.cins-shell--guest-home .cins-app-sidebar {
-  display: none;
-}
-
-.cins-shell--guest-home .cins-main {
   --gh-grid-size: var(--space-8);
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
   background: var(--bg-page);
 }
 
-.cins-shell--guest-home .cins-main::before {
+.cins-guest-landing::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -1754,23 +1751,20 @@
 
 /* ── Mobile / tablet: 1 screen — chỉ panel đăng nhập ── */
 @media (max-width: 1099px) {
-  .cins-shell--guest-home,
-  .cins-shell--guest-home .cins-shell-column,
-  .cins-shell--guest-home .cins-main {
+  .cins-guest-landing {
     min-height: 0;
     height: 100vh;
     height: 100dvh;
     max-height: 100vh;
     max-height: 100dvh;
     overflow: hidden;
-  }
-
-  .cins-shell--guest-home .cins-main {
     display: flex;
     flex-direction: column;
   }
 
   .gh-page {
+    flex: 1 1 auto;
+    min-height: 0;
     height: 100%;
     overflow: hidden;
     display: flex;

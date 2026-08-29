@@ -29,6 +29,7 @@ import {
 } from "@/lib/journey/avatar-frame";
 import { downloadAvatarOverlayTemplate } from "@/lib/journey/avatar-overlay-template";
 import { getNameInitials } from "@/lib/journey/profile";
+import { uploadGiaoDienCustomWithProgress } from "@/lib/files/upload-giao-dien-custom";
 import {
   profileThemeImageUrl,
   type ProfileCustomEntry,
@@ -38,6 +39,7 @@ import {
   patchGiaoDien,
 } from "@/lib/journey/giao-dien-patch-client";
 import type { ThemePreviewScheme } from "@/components/journey/JourneyThemeDevicePreview";
+import { JourneyThemeUploadProgress } from "@/components/journey/JourneyThemeUploadProgress";
 
 import "./journey-theme.css";
 import "./journey-avatar-frame.css";
@@ -127,6 +129,7 @@ export const JourneyAvatarFramePicker = forwardRef<
   );
   const [errMsg, setErrMsg] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadPct, setUploadPct] = useState(0);
   const [templateBusy, setTemplateBusy] = useState(false);
   const [scheme, setScheme] = useState<ThemePreviewScheme>("light");
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -337,22 +340,10 @@ export const JourneyAvatarFramePicker = forwardRef<
 
   async function onUpload(file: File) {
     setUploading(true);
+    setUploadPct(1);
     setErrMsg(null);
     try {
-      const body = new FormData();
-      body.set("file", file);
-      const res = await fetch("/api/user/giao-dien/upload", {
-        method: "POST",
-        body,
-      });
-      const data = (await res.json().catch(() => null)) as {
-        error?: string;
-        imageId?: string;
-        customs?: ProfileCustomEntry[];
-      } | null;
-      if (!res.ok || !data?.imageId) {
-        throw new Error(data?.error ?? "Upload thất bại.");
-      }
+      const data = await uploadGiaoDienCustomWithProgress(file, setUploadPct);
       if (Array.isArray(data.customs)) {
         setCustoms(data.customs);
         customsRef.current = data.customs;
@@ -583,7 +574,9 @@ export const JourneyAvatarFramePicker = forwardRef<
         >
           <div className="j-theme-picker-label" id="j-avf-overlay-heading">
             <span>Overlay thiết kế</span>
-            {frame.overlayImageId ? (
+            {uploading ? (
+              <JourneyThemeUploadProgress progress={uploadPct} />
+            ) : frame.overlayImageId ? (
               <button
                 type="button"
                 className="j-theme-picker-reset j-avf-overlay-remove"
@@ -593,9 +586,7 @@ export const JourneyAvatarFramePicker = forwardRef<
               </button>
             ) : (
               <span className="j-theme-picker-status">
-                {uploading
-                  ? "Đang tải…"
-                  : "PNG/GIF · expand ~15px · không tile"}
+                PNG/GIF · expand ~15px · không tile
               </span>
             )}
           </div>

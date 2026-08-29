@@ -7,7 +7,11 @@ export const CINS_HISTORY_POST = "cinsPostOverlay";
 export const CINS_HISTORY_CMT = "cinsCmtSheet";
 /** Overlay tin nhắn full — URL `/chat` (pushState, không remount Next). */
 export const CINS_HISTORY_CHAT = "cinsChatOverlay";
+/** Hội thoại / inbox con trên `/chat` — Back về list trước khi đóng overlay. */
+export const CINS_HISTORY_CHAT_ROOM = "cinsChatRoom";
 export const CHAT_ROUTE_HREF = "/chat";
+export const CHAT_ROOM_QUERY = "room";
+export const CHAT_INBOX_QUERY = "inbox";
 
 export function withSearchParam(
   key: string,

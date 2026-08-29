@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 
+import { GuestHomeLanding } from "@/components/cins/guest-home/GuestHomeLanding";
 import { GuestHomePage } from "@/components/cins/guest-home/GuestHomePage";
 import { GuestHomeThemeLight } from "@/components/cins/guest-home/GuestHomeThemeLight";
-import { CinsShell } from "@/components/cins/CinsShell";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
@@ -47,7 +47,7 @@ export default async function LoginPage({
     !errorMsg && (auto === "register" || auto === "login") ? auto : null;
 
   return (
-    <CinsShell data-screen-label="Dang-nhap" className="cins-shell--guest-home">
+    <GuestHomeLanding screenLabel="Dang-nhap">
       <GuestHomeThemeLight />
       <GuestHomePage
         loginPanelProps={{
@@ -57,6 +57,6 @@ export default async function LoginPage({
           returnPath: safeNext,
         }}
       />
-    </CinsShell>
+    </GuestHomeLanding>
   );
 }

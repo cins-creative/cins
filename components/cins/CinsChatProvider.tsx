@@ -19,6 +19,12 @@ import { CinsChatDock } from "@/components/cins/CinsChatDock";
 import { ChatIncomingCallHost } from "@/components/cins/ChatIncomingCallHost";
 import { CinsChatOverlay } from "@/components/cins/CinsChatOverlay";
 import { scheduleWhenIdle } from "@/lib/client/schedule-when-idle";
+import {
+  chatInboxHref,
+  chatRoomHref,
+  chatRoomQueryMatchesRoom,
+  readChatChildFromLocation,
+} from "@/lib/chat/chat-history";
 import { isChatPagePath } from "@/lib/chat/chat-page-path";
 import {
   readChatThreadsCache,
@@ -62,6 +68,7 @@ import { useChatRealtime } from "@/lib/chat/use-chat-realtime";
 import {
   CHAT_ROUTE_HREF,
   CINS_HISTORY_CHAT,
+  CINS_HISTORY_CHAT_ROOM,
   pushOverlayHistory,
 } from "@/lib/navigation/overlay-history";
 import type {
@@ -73,6 +80,8 @@ import type {
   ChatThread,
   ChatThreadGroup,
 } from "@/lib/chat/types";
+
+import "@/app/cins-chat-overlay.css";
 
 type OpenChatOrgPreview = {
   name?: string;
@@ -118,6 +127,15 @@ type CinsChatContextValue = {
   openChat: (options?: OpenChatOptions) => Promise<void>;
   /** Đóng panel. Nếu `nextHref` — điều hướng tới đó (không `back`/`replace("/")` đua với nav). */
   closeChat: (nextHref?: string) => void;
+  /**
+   * Lớp history hội thoại con (mobile stack). Back → list `/chat`.
+   * `inbox` = hộp thư người lạ; `{ roomId, query }` = phòng (`?room=slug-xxxxxxxx`).
+   */
+  enterChatChildView: (
+    child: "inbox" | { roomId: string; query: string },
+  ) => void;
+  /** Back về list. `true` nếu đã `history.back()`. */
+  leaveChatChildView: () => boolean;
   refreshUnread: () => Promise<void>;
   /** Setter React thô — consumer được dùng dạng updater để tránh đọc state cũ. */
   setTotalUnread: Dispatch<SetStateAction<number>>;
@@ -214,6 +232,8 @@ export function CinsChatProvider({
   const openRef = useRef(false);
   /** Đã pushState `/chat` — Back / đóng UI gọi history.back(). */
   const chatHistoryPushedRef = useRef(false);
+  /** Đã pushState `?room=` / `?inbox=` — Back về list trước. */
+  const chatRoomPushedRef = useRef(false);
   /** Bỏ qua popstate ngay sau history.back() từ closeChat. */
   const ignoreChatPopRef = useRef(false);
 
@@ -348,6 +368,18 @@ export function CinsChatProvider({
     setPendingBubbleThread(null);
   }, []);
 
+  const popChatHistoryToUnderlying = useCallback(() => {
+    const steps =
+      (chatRoomPushedRef.current ? 1 : 0) +
+      (chatHistoryPushedRef.current ? 1 : 0);
+    chatRoomPushedRef.current = false;
+    chatHistoryPushedRef.current = false;
+    if (steps <= 0 || typeof window === "undefined") return;
+    ignoreChatPopRef.current = true;
+    if (steps === 1) window.history.back();
+    else window.history.go(-steps);
+  }, []);
+
   const popOutRoomToBubble = useCallback(
     (thread: ChatThread, relatedThreads?: ChatThread[]) => {
       if (!viewerProfileId || !thread.roomId) return;
@@ -374,14 +406,10 @@ export function CinsChatProvider({
       setOpen(false);
       setLaunch(null);
       setShellFill(false);
-      if (chatHistoryPushedRef.current) {
-        ignoreChatPopRef.current = true;
-        chatHistoryPushedRef.current = false;
-        window.history.back();
-      }
+      popChatHistoryToUnderlying();
       void refreshUnread();
     },
-    [refreshUnread, viewerProfileId],
+    [popChatHistoryToUnderlying, refreshUnread, viewerProfileId],
   );
 
   const openBubbleChatWithUser = useCallback(
@@ -638,17 +666,78 @@ export function CinsChatProvider({
     chatHistoryPushedRef.current = true;
   }, []);
 
+  const historyStateBag = (): Record<string, unknown> => {
+    if (typeof window === "undefined") return {};
+    return typeof window.history.state === "object" && window.history.state
+      ? (window.history.state as Record<string, unknown>)
+      : {};
+  };
+
+  const enterChatChildView = useCallback(
+    (child: "inbox" | { roomId: string; query: string }) => {
+      if (typeof window === "undefined") return;
+
+      const href =
+        child === "inbox" ? chatInboxHref() : chatRoomHref(child.query);
+      const id = child === "inbox" ? "inbox" : child.query;
+      const current = readChatChildFromLocation();
+      const alreadyOnChild =
+        child === "inbox"
+          ? current.kind === "inbox"
+          : current.kind === "room" &&
+            chatRoomQueryMatchesRoom(current.query, child.roomId);
+
+      if (alreadyOnChild && chatRoomPushedRef.current) {
+        if (current.kind === "room" && current.query !== id) {
+          window.history.replaceState(
+            { ...historyStateBag(), [CINS_HISTORY_CHAT_ROOM]: id },
+            "",
+            href,
+          );
+        }
+        return;
+      }
+
+      if (alreadyOnChild && !chatRoomPushedRef.current) {
+        window.history.replaceState(
+          { ...historyStateBag(), [CINS_HISTORY_CHAT]: "page" },
+          "",
+          CHAT_ROUTE_HREF,
+        );
+        pushOverlayHistory(CINS_HISTORY_CHAT_ROOM, id, href);
+        chatRoomPushedRef.current = true;
+        return;
+      }
+
+      if (chatRoomPushedRef.current) {
+        window.history.replaceState(
+          { ...historyStateBag(), [CINS_HISTORY_CHAT_ROOM]: id },
+          "",
+          href,
+        );
+        return;
+      }
+
+      pushOverlayHistory(CINS_HISTORY_CHAT_ROOM, id, href);
+      chatRoomPushedRef.current = true;
+    },
+    [],
+  );
+
+  const leaveChatChildView = useCallback((): boolean => {
+    if (!chatRoomPushedRef.current) return false;
+    chatRoomPushedRef.current = false;
+    window.history.back();
+    return true;
+  }, []);
+
   /** Đóng panel + gỡ entry `/chat` đã push (không navigate hard page). */
   const dismissOpenPanel = useCallback(() => {
     setOpen(false);
     setLaunch(null);
     setShellFill(false);
-    if (chatHistoryPushedRef.current) {
-      ignoreChatPopRef.current = true;
-      chatHistoryPushedRef.current = false;
-      window.history.back();
-    }
-  }, []);
+    popChatHistoryToUnderlying();
+  }, [popChatHistoryToUnderlying]);
 
   const closeChat = useCallback(
     (nextHref?: string) => {
@@ -659,6 +748,7 @@ export function CinsChatProvider({
         setOpen(false);
         setLaunch(null);
         setShellFill(false);
+        chatRoomPushedRef.current = false;
         /* Một lần nav — tránh history.back()/replace("/") đua với push profile. */
         if (chatHistoryPushedRef.current) {
           chatHistoryPushedRef.current = false;
@@ -677,13 +767,12 @@ export function CinsChatProvider({
         setOpen(false);
         setLaunch(null);
         setShellFill(false);
-        ignoreChatPopRef.current = true;
-        chatHistoryPushedRef.current = false;
-        window.history.back();
+        popChatHistoryToUnderlying();
         return;
       }
       /* Hard `/chat` (gõ URL / refresh / tab mới) — về trang chủ, overlay giữ đến khi unload. */
       if (isChatPagePath(window.location.pathname)) {
+        chatRoomPushedRef.current = false;
         window.location.assign("/");
         return;
       }
@@ -692,7 +781,7 @@ export function CinsChatProvider({
       setLaunch(null);
       setShellFill(false);
     },
-    [refreshUnread, router],
+    [popChatHistoryToUnderlying, refreshUnread, router],
   );
 
   /* Hard visit `/chat` — mở overlay trên shell trang đó. */
@@ -702,7 +791,7 @@ export function CinsChatProvider({
     setShellFill(true);
   }, [pathname, viewerProfileId]);
 
-  /* Back/Forward: đóng overlay khi pop entry `/chat` đã push. */
+  /* Back/Forward: còn `/chat` → list hoặc phòng; rời `/chat` → đóng overlay. */
   useEffect(() => {
     const onPop = () => {
       if (ignoreChatPopRef.current) {
@@ -710,11 +799,13 @@ export function CinsChatProvider({
         return;
       }
       if (!openRef.current) return;
-      if (!chatHistoryPushedRef.current) {
-        /* Đang ở hard `/chat` rồi back đi nơi khác — unmount page lo. */
+      if (isChatPagePath(window.location.pathname)) {
+        chatRoomPushedRef.current =
+          readChatChildFromLocation().kind !== "list";
         return;
       }
       chatHistoryPushedRef.current = false;
+      chatRoomPushedRef.current = false;
       setOpen(false);
       setLaunch(null);
       setShellFill(false);
@@ -991,6 +1082,8 @@ export function CinsChatProvider({
       totalUnread,
       openChat,
       closeChat,
+      enterChatChildView,
+      leaveChatChildView,
       refreshUnread,
       setTotalUnread,
       subscribeChatMessages,
@@ -1028,6 +1121,8 @@ export function CinsChatProvider({
       totalUnread,
       openChat,
       closeChat,
+      enterChatChildView,
+      leaveChatChildView,
       refreshUnread,
       subscribeChatMessages,
       setChatFocus,

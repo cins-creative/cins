@@ -1,4 +1,5 @@
 import type { ProfileAvatarFrameSlice } from "@/lib/journey/avatar-frame";
+import type { ProfileCardThemeSlice } from "@/lib/journey/card-theme";
 import type { ProfilePopoverThemeSlice } from "@/lib/journey/popover-theme";
 import type {
   ProfileCustomEntry,
@@ -13,6 +14,7 @@ export type GiaoDienPatchResult = {
   error?: string;
   customs?: ProfileCustomEntry[];
   avatarFrame?: unknown;
+  card?: unknown;
   popover?: unknown;
   shopSwitch?: unknown;
   theme?: unknown;
@@ -45,6 +47,26 @@ export function avatarFrameSliceToPatch(
       hex2: next.hex2,
       overlayImageId: next.overlayImageId,
       overlayBlend: next.overlayBlend,
+    },
+  };
+}
+
+export function cardSliceToPatch(
+  next: ProfileCardThemeSlice,
+): GiaoDienPatchBody {
+  return {
+    card: {
+      enabled: next.enabled,
+      mode: next.mode,
+      dim: next.dim,
+      imageId: next.imageId,
+      position: next.position,
+      ...(next.mode === "custom"
+        ? {
+            accent: next.accent,
+            accentHex: next.accent === "custom" ? next.accentHex : null,
+          }
+        : {}),
     },
   };
 }

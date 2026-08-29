@@ -6,7 +6,7 @@ import { useCallback } from "react";
 import { normalizeOAuthReturnPath } from "@/lib/auth/oauth-return-path";
 
 const AUTHED_HOME_SEL = "[data-cins-authed-home]";
-const GUEST_HOME_SEL = '.cins-shell--guest-home[data-screen-label="Trang-chu"]';
+const GUEST_HOME_SEL = "[data-cins-guest-home]";
 const POLL_MS = 50;
 const WATCH_MS = 8000;
 

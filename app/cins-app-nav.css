@@ -1026,8 +1026,8 @@
 .app-user-menu-colorwheel {
   position: relative;
   display: inline-flex;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
 }
 
@@ -1047,7 +1047,6 @@
     #ff2d55,
     #ff3b30
   );
-  box-shadow: inset 0 0 0 3.5px var(--bg-surface, #fff);
 }
 
 /* Chế độ giao diện — 3 icon một hàng trong menu tài khoản */
