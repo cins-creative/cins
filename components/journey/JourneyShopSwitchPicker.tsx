@@ -524,9 +524,6 @@ export const JourneyShopSwitchPicker = forwardRef<
               >
                 Hiện tên shop
               </span>
-              <span className="j-theme-home-check-desc">
-                Tắt để ẩn tên, logo và lớp phủ — chỉ còn ảnh khối.
-              </span>
             </span>
             <button
               type="button"
@@ -596,11 +593,7 @@ export const JourneyShopSwitchPicker = forwardRef<
           </div>
           {hasCustomImage ? (
             <p className="j-ssw-pan-hint">Kéo trên ảnh để chỉnh neo.</p>
-          ) : (
-            <p className="j-ssw-pan-hint">
-              Ô trống dùng ảnh bìa cửa hàng. Đổi bìa / tên ở trang Shop.
-            </p>
-          )}
+          ) : null}
         </div>
       </aside>
     </div>

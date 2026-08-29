@@ -1135,9 +1135,9 @@
   --bg-surface: #ffffff;
   --bg-muted: #f1f3f6;
   --ink-display: rgba(0, 0, 0, 0.85);
-  --ink-title: rgba(0, 0, 0, 0.6);
-  --ink-body: rgba(0, 0, 0, 0.55);
-  --ink-muted: rgba(0, 0, 0, 0.4);
+  --ink-title: rgba(0, 0, 0, 0.76);
+  --ink-body: rgba(0, 0, 0, 0.68);
+  --ink-muted: rgba(0, 0, 0, 0.55);
   --border: #e4e6eb;
   --border-strong: #c9ccd3;
   --neutral-100: #f1f3f6;
@@ -1150,9 +1150,9 @@
   --bg-surface: #0a0d12;
   --bg-muted: #10141b;
   --ink-display: rgba(255, 255, 255, 0.92);
-  --ink-title: rgba(255, 255, 255, 0.72);
-  --ink-body: rgba(255, 255, 255, 0.64);
-  --ink-muted: rgba(255, 255, 255, 0.46);
+  --ink-title: rgba(255, 255, 255, 0.82);
+  --ink-body: rgba(255, 255, 255, 0.74);
+  --ink-muted: rgba(255, 255, 255, 0.60);
   --border: #1d222d;
   --border-strong: #2c3340;
   --neutral-100: #10141b;

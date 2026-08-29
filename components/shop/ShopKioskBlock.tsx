@@ -624,7 +624,7 @@ export function ShopKioskBlock({
       }
       try {
         const res = await fetch(
-          `/api/shop/store/category?slug=${encodeURIComponent(sellerSlug.trim())}`,
+          `/api/shop/store/category?slug=${encodeURIComponent(sellerSlug.trim())}&items=1&kiosk=1`,
           { cache: "no-store" },
         );
         const json = (await res.json().catch(() => null)) as {

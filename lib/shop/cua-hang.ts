@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import {
   shopPublicPath as buildShopPublicPath,
   shopSlugFromTen as buildShopSlugFromTen,
@@ -152,14 +154,14 @@ async function fetchCuaHangRow(
   return data ?? null;
 }
 
-export async function getShopCuaHangByUserId(
+export const getShopCuaHangByUserId = cache(async (
   userId: string,
-): Promise<ShopCuaHang | null> {
+): Promise<ShopCuaHang | null> => {
   const row = await fetchCuaHangRow(userId);
   if (!row) return null;
   const pttt = await loadPttt(row.id);
   return mapCuaHang(row, pttt);
-}
+});
 
 /** Chủ shop: tạo hàng trống nếu chưa có; khôi phục soft-delete nếu còn row. */
 export async function getOrCreateShopCuaHang(

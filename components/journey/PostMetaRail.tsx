@@ -21,6 +21,7 @@ import { useCinsChat } from "@/components/cins/CinsChatProvider";
 import { JourneyArticleTagLink } from "@/components/journey/JourneyArticleTagLink";
 import { JourneyMilestoneOwnerMenu } from "@/components/journey/JourneyMilestoneOwnerMenu";
 import { JourneyOrgPopover } from "@/components/journey/JourneyOrgPopover";
+import { JourneyFramedAvatar } from "@/components/journey/JourneyFramedAvatar";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import { PostOverlayCloseContext } from "@/components/journey/post-overlay-close";
 import { ShopKioskBlock } from "@/components/shop/ShopKioskBlock";
@@ -152,14 +153,19 @@ export function PostMetaRail({
         fallbackAvatarUrl={ownerAvatarUrl}
         track={{ idBoiCanh: milestone.id }}
       >
-        <span className="post-rail-avatar" aria-hidden>
+        <JourneyFramedAvatar
+          className="post-rail-avatar"
+          sizePx={38}
+          frame={owner.avatarFrame ?? null}
+          aria-hidden
+        >
           {ownerAvatarUrl ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img src={ownerAvatarUrl} alt="" />
           ) : (
             ownerInitial
           )}
-        </span>
+        </JourneyFramedAvatar>
       </JourneyUserPopover>
       <span className="post-rail-author-copy">
         <JourneyUserPopover

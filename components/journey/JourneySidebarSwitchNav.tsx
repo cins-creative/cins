@@ -119,7 +119,7 @@ function ShopSwitchCard({
 }) {
   const [shop, setShop] = useState<ShopCuaHang | null>(() => {
     if (initialShop) {
-      writeShopCuaHangCache(initialShop, { slug });
+      writeShopCuaHangCache(initialShop, { slug, banHangBat: true, shopVisible: true });
     }
     return initialShop;
   });
@@ -129,6 +129,7 @@ function ShopSwitchCard({
   );
 
   useEffect(() => {
+    if (initialShop) return;
     let cancelled = false;
     void (async () => {
       try {
@@ -141,7 +142,7 @@ function ShopSwitchCard({
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [slug, initialShop]);
 
   useEffect(() => {
     if (!initialShop) return;

@@ -30,7 +30,7 @@ import { JourneyFeaturedAsideOnDemand } from "@/app/[slug]/_components/JourneyFe
 import { JourneyFeaturedAsideSectionSkeleton } from "@/app/[slug]/_components/JourneyFeaturedAsideSection.skeleton";
 import { SoftErrorBoundary } from "@/components/cins/SoftErrorBoundary";
 import { getShopCuaHangByUserId } from "@/lib/shop/cua-hang";
-import type { ShopCuaHang } from "@/lib/shop/types";
+import { toPublicShop, type ShopCuaHang } from "@/lib/shop/types";
 
 type OwnerRow = {
   id: string;
@@ -170,6 +170,16 @@ async function JourneyProfileInitialLoader({
     initialData = {};
   }
 
+  const initialShop =
+    activeView === "shop"
+      ? await getShopCuaHangByUserId(ownerId)
+          .then((s) => (s ? (isOwner ? s : toPublicShop(s)) : null))
+          .catch((err) => {
+            console.error("[journey-profile] shop", err);
+            return null;
+          })
+      : null;
+
   return (
     <JourneyProfileContent
       initialData={initialData}
@@ -182,6 +192,7 @@ async function JourneyProfileInitialLoader({
       viewerProfileId={viewerProfileId}
       filterVisibility={filterVisibility}
       shopNhomId={shopNhomId}
+      initialShop={initialShop}
     />
   );
 }
@@ -213,10 +224,15 @@ export function JourneyProfileShell({
         return { friendCount: 0, orgCount: 0 };
       }),
     showShop
-      ? getShopCuaHangByUserId(owner.id).catch((err) => {
-          console.error("[journey-profile] switch-nav shop", err);
-          return null;
-        })
+      ? getShopCuaHangByUserId(owner.id)
+          .then((shop) => {
+            if (!shop) return null;
+            return isOwner ? shop : toPublicShop(shop);
+          })
+          .catch((err) => {
+            console.error("[journey-profile] switch-nav shop", err);
+            return null;
+          })
       : Promise.resolve(null as ShopCuaHang | null),
   ]).then(([counts, shop]) => ({
     friendCount: counts.friendCount,

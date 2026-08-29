@@ -1,12 +1,11 @@
 import { AuthGateRoot } from "@/components/auth/AuthGateProvider";
 
-import "@/app/login/login.css";
 import "./journey/journey.css";
 import "./journey/image-grid.css";
 import "@/components/journey/journey-theme.css";
 import "@/styles/article-rich-content.css";
-import "./p/new/editor.css";
-import "./p/[postSlug]/post-page.css";
+/* editor.css + post-page.css: trang p/ và overlay bài/compose tự import.
+   Không gắn layout slug — tránh CSS editor chặn first paint hồ sơ/shop. */
 
 /**
  * Không await session ở đây — nếu layout chặn, `loading.tsx` cũng không hiện kịp.

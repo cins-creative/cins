@@ -25,6 +25,7 @@ import {
 } from "@/components/journey/JourneyViewContext";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import type { LoaiMocVisibilityMap } from "@/lib/journey/filter-visibility";
+import type { ShopCuaHang } from "@/lib/shop/types";
 import { galleryItemThumbSrc } from "@/lib/journey/gallery-filter-share";
 import {
   hydrateJourneyPanelsFromLocalStorage,
@@ -119,6 +120,7 @@ type Props = {
   filterVisibility: LoaiMocVisibilityMap;
   /** SSR từ `/{slug}/shop/{shopSlug}/collections/[nhomId]` — client sync lại theo URL. */
   shopNhomId?: string | null;
+  initialShop?: ShopCuaHang | null;
 };
 
 export function JourneyProfileContent({
@@ -132,6 +134,7 @@ export function JourneyProfileContent({
   viewerProfileId,
   filterVisibility,
   shopNhomId: initialShopNhomId = null,
+  initialShop = null,
 }: Props) {
   const { view } = useJourneyView();
   const [shopNhomId, setShopNhomId] = useState<string | null>(
@@ -785,6 +788,7 @@ export function JourneyProfileContent({
             isOwner={isOwner}
             viewerProfileId={viewerProfileId}
             ownerAvatarUrl={ownerAvatarUrl}
+            initialShop={initialShop}
           />
         ) : (
           <JourneyShopViewLazy
@@ -794,6 +798,7 @@ export function JourneyProfileContent({
             isOwner={isOwner}
             viewerProfileId={viewerProfileId}
             ownerAvatarUrl={ownerAvatarUrl}
+            initialShop={initialShop}
           />
         )
       ) : timelineCache === "loading" || timelineCache === null ? (

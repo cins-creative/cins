@@ -55,7 +55,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  /* Nền sáng = trắng; dark theme = surface tối. Cinema #000 chỉ cột media. */
+  /* Nền trang theo light/dark token. */
   background: var(--bg-surface, #ffffff);
 }
 
@@ -108,9 +108,11 @@
   overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
-  background: #000;
+  --post-media-stage: var(--bg-page, var(--bg-surface, #fff));
+  background: var(--post-media-stage);
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+  scrollbar-color: color-mix(in srgb, var(--ink-muted, #9aa0ab) 55%, transparent)
+    transparent;
 }
 .j-post-page:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media::-webkit-scrollbar {
@@ -123,12 +125,12 @@
 }
 .j-post-page:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.28);
+  background: color-mix(in srgb, var(--ink-muted, #9aa0ab) 55%, transparent);
   border-radius: 999px;
 }
 .j-post-page:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.45);
+  background: color-mix(in srgb, var(--ink-muted, #9aa0ab) 75%, transparent);
 }
 
 /*
@@ -150,7 +152,7 @@
   display: flex;
   flex-direction: column;
   overflow: visible;
-  background: #000;
+  background: var(--post-media-stage, var(--bg-page, var(--bg-surface, #fff)));
 }
 
 .j-post-page:has(.post-canvas--media.post-canvas--split)
@@ -175,7 +177,7 @@
   display: flex;
   flex-direction: column;
   overflow: visible;
-  background: #000;
+  background: var(--post-media-stage, var(--bg-page, var(--bg-surface, #fff)));
 }
 
 .j-post-page:has(.post-canvas--media.post-canvas--split)
@@ -198,7 +200,7 @@
 
 /*
  * 1 ảnh đơn — khối cha (inner / grid / cell) fill 100% cột media;
- * ảnh contain trong cell (đủ khung, không crop). Letterbox #000 trong cell.
+ * ảnh contain trong cell (đủ khung, không crop). Letterbox theo --bg-page.
  * Override album scroll (flex:0 / height:auto) + max-height 560px của .image-grid--single.
  */
 .j-post-page:has(.post-canvas--media.post-canvas--split)
@@ -232,7 +234,7 @@
   overflow: hidden;
   margin: 0;
   padding: 0;
-  background: #000;
+  background: var(--post-media-stage, var(--bg-page, var(--bg-surface, #fff)));
 }
 
 .j-post-page:has(.post-canvas--media.post-canvas--split)
@@ -253,7 +255,7 @@
   min-height: 0;
   margin: 0;
   aspect-ratio: auto;
-  background: #000;
+  background: var(--post-media-stage, var(--bg-page, var(--bg-surface, #fff)));
   border-radius: 0;
   overflow: hidden;
 }
@@ -333,7 +335,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #000;
+  background: var(--post-media-stage, var(--bg-page, var(--bg-surface, #fff)));
 }
 
 .j-post-page:has(.post-canvas--media.post-canvas--split)
@@ -396,7 +398,7 @@
   overflow: visible;
   align-items: stretch;
   justify-content: flex-start;
-  background: #000;
+  background: var(--post-media-stage, var(--bg-page, var(--bg-surface, #fff)));
 }
 
 /* block-inner fill 100% khung block — media căn giữa bên trong */
@@ -416,7 +418,7 @@
   .post-view-content--media
   .image-grid--stack {
   gap: 2px;
-  background: #000;
+  background: var(--post-media-stage, var(--bg-page, var(--bg-surface, #fff)));
 }
 
 .j-post-page:has(.post-canvas--media.post-canvas--split)
@@ -426,7 +428,7 @@
   width: 100%;
   height: auto;
   aspect-ratio: auto !important;
-  background: #000;
+  background: var(--post-media-stage, var(--bg-page, var(--bg-surface, #fff)));
   position: relative;
 }
 
@@ -603,7 +605,7 @@
   position: relative;
   align-self: stretch;
   margin-inline: 0;
-  background: #000;
+  background: var(--post-media-stage, var(--bg-page, var(--bg-surface, #fff)));
   border: none;
 }
 
@@ -623,7 +625,7 @@
   max-height: none;
   min-height: 0;
   aspect-ratio: unset;
-  background: #000;
+  background: var(--post-media-stage, var(--bg-page, var(--bg-surface, #fff)));
 }
 
 .j-post-page:has(.post-canvas--media.post-canvas--split)
@@ -634,7 +636,7 @@
   height: 100%;
   object-fit: contain;
   object-position: center;
-  background: #000;
+  background: var(--post-media-stage, var(--bg-page, var(--bg-surface, #fff)));
 }
 
 /*
@@ -712,7 +714,7 @@
   --post-rail-sticky-top: 0;
   --post-rail-min-h: 0;
   --post-rail-max-h: none;
-  /* Cinema #000 chỉ cột media — rail phải surface để nền sáng còn đọc được */
+  /* Rail surface — tách khỏi nền cột media (--bg-page). */
   background: var(--bg-surface, #ffffff);
   border-left: 1px solid var(--border);
 }
@@ -1442,11 +1444,21 @@
   flex-shrink: 0;
 }
 
+.cins-post-view .post-rail-avatar.j-avf {
+  overflow: visible;
+  position: relative;
+  z-index: 2;
+}
+
 .cins-post-view .post-rail-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.cins-post-view .post-rail-avatar.j-avf img {
+  border-radius: inherit;
 }
 
 .cins-post-view .post-rail-author-copy {
@@ -1864,27 +1876,26 @@
 .cins-post-view .post-rail-blk--actions {
   position: relative;
   overflow: visible;
-  padding: 8px 0;
   z-index: 1;
-}
-
-/*
- * Rail hẹp (~300px) — 1 hàng đều cột (Thích · Dislike · BL · Lưu · Share),
- * không wrap như timeline card rộng.
- */
-.cins-post-view .post-rail-blk--actions .jcard-actions {
   display: flex;
   flex-wrap: nowrap;
   align-items: stretch;
   justify-content: space-between;
   gap: 2px;
-  width: 100%;
+}
+
+/*
+ * Rail hẹp — 1 hàng đều cột. Wrapper jcard-actions contents để icon
+ * nằm trực tiếp trong `.post-rail-blk--actions` (không hộp nền).
+ */
+.cins-post-view .post-rail-blk--actions .jcard-actions {
+  display: contents;
+  background: none;
   margin: 0;
-  padding: 4px 12px;
+  padding: 0;
   border: none;
-  border-radius: 12px;
-  background: var(--neutral-50, #f5f6f8);
-  overflow: visible;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .cins-post-view .post-rail-blk--actions:has(.j-reaction-picker),
@@ -1982,7 +1993,7 @@
 .cins-post-view .post-rail-blk--actions .jcard-actions .action-btn:hover,
 .cins-post-view .post-rail-blk--actions .jcard-actions .share-btn:hover,
 .cins-post-view .post-rail-blk--actions .jcard-actions .action-btn--split:hover {
-  background: var(--bg-surface, #fff);
+  background: var(--neutral-50, #f5f6f8);
 }
 
 .cins-post-view .post-rail-blk--actions .jcard-actions .action-btn-count,
@@ -2409,12 +2420,13 @@
 .cins-post-view .post-canvas--split .post-view-content--media .image-album-carousel {
   flex: 0 0 auto;
   border-radius: 0;
-  background: #000;
+  background: var(--post-media-stage, var(--bg-page, var(--bg-surface, #fff)));
 }
 
 .cins-post-view.post-canvas--media.post-canvas--split .post-view-content--media,
 .cins-post-view .post-canvas--media.post-canvas--split .post-view-content--media {
-  background: #000;
+  --post-media-stage: var(--bg-page, var(--bg-surface, #fff));
+  background: var(--post-media-stage);
 }
 
 .cins-post-view.post-canvas--media.post-canvas--split
@@ -2429,7 +2441,7 @@
 .cins-post-view .post-canvas--media.post-canvas--split
   .post-view-content--media
   .image-album-carousel-figure {
-  background: #000;
+  background: var(--post-media-stage, var(--bg-page, var(--bg-surface, #fff)));
 }
 
 .cins-post-view.post-canvas--split
@@ -2495,7 +2507,7 @@
   background: var(--bg-surface, #ffffff);
 }
 
-/* Media split — rail surface (token theo theme; cột media vẫn #000) */
+/* Media split — rail surface; cột media dùng --bg-page */
 .cins-post-view.post-canvas--media.post-canvas--split .post-view-rail,
 .cins-post-view .post-canvas--media.post-canvas--split .post-view-rail {
   background: var(--bg-surface, #ffffff);
@@ -5758,9 +5770,7 @@
 
   /* Mobile — giữ 1 hàng đều cột */
   .cins-post-view .post-rail-blk--actions .jcard-actions {
-    flex-wrap: nowrap;
-    gap: 2px;
-    padding: 4px 12px;
+    display: contents;
   }
 
   .cins-post-view .post-rail-blk--actions .jcard-actions .action-btn,
@@ -6009,7 +6019,7 @@
     height: auto;
     min-height: calc(100dvh - var(--cins-topbar-h, 56px));
     overflow: visible;
-    /* Rail flatten (display:contents) — nền trang phải surface, không inherit #000 */
+    /* Rail flatten (display:contents) — nền trang surface, không inherit cột media. */
     background: var(--bg-surface, #ffffff);
   }
 

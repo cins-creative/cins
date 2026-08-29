@@ -9576,6 +9576,7 @@ button.j-g-item:disabled {
 .j-edit-card--theme .j-edit-subtabs {
   flex-wrap: nowrap;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
@@ -9649,7 +9650,8 @@ button.j-g-item:disabled {
   }
 }
 
-/* Sub-tabs Customize — cùng hàng tabs chính, canh phải */
+/* Sub-tabs Customize — desktop: cùng hàng, canh phải.
+ * Mobile / card hẹp: wrap xuống hàng 2 (xem .j-edit-tabs-row--customize). */
 .j-edit-subtabs {
   display: flex;
   flex-wrap: nowrap;
@@ -9661,6 +9663,7 @@ button.j-g-item:disabled {
   align-items: center;
   padding: 0;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
@@ -9802,6 +9805,34 @@ button.j-g-item:disabled {
   padding: 0 16px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-surface);
+}
+
+/*
+ * Customize: 2 tab chính + 4 subtab không vừa ~380px một hàng.
+ * Wrap nội tại khi chỗ trống < 14rem — không phụ thuộc viewport
+ * (card modal hẹp hơn viewport). Hàng 2 vẫn overflow-x nếu pill dài.
+ */
+.j-edit-tabs-row--customize {
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 0;
+}
+.j-edit-tabs-row--customize .j-edit-tabs {
+  flex: 0 0 auto;
+  width: auto;
+  max-width: 100%;
+}
+.j-edit-tabs-row--customize .j-edit-subtabs {
+  flex: 1 1 14rem;
+  min-width: min(100%, 14rem);
+  margin-left: auto;
+  justify-content: flex-end;
+  padding: 0 0 8px;
+}
+@media (min-width: 640px) {
+  .j-edit-tabs-row--customize .j-edit-subtabs {
+    padding-bottom: 0;
+  }
 }
 
 .j-edit-tabs {
@@ -10688,9 +10719,11 @@ select.j-edit-input {
   overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
-  background: #000;
+  --post-media-stage: var(--bg-page, var(--bg-surface, #fff));
+  background: var(--post-media-stage);
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+  scrollbar-color: color-mix(in srgb, var(--ink-muted, #9aa0ab) 55%, transparent)
+    transparent;
 }
 .j-post-sheet:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media::-webkit-scrollbar {
@@ -10703,12 +10736,12 @@ select.j-edit-input {
 }
 .j-post-sheet:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.28);
+  background: color-mix(in srgb, var(--ink-muted, #9aa0ab) 55%, transparent);
   border-radius: 999px;
 }
 .j-post-sheet:has(.post-canvas--media.post-canvas--split)
   .post-view-content--media::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.45);
+  background: color-mix(in srgb, var(--ink-muted, #9aa0ab) 75%, transparent);
 }
 
 /*
@@ -10730,7 +10763,7 @@ select.j-edit-input {
   display: flex;
   flex-direction: column;
   overflow: visible;
-  background: #000;
+  background: var(--post-media-stage, var(--bg-page, var(--bg-surface, #fff)));
 }
 
 .j-post-sheet:has(.post-canvas--media.post-canvas--split)
@@ -10755,7 +10788,7 @@ select.j-edit-input {
   display: flex;
   flex-direction: column;
   overflow: visible;
-  background: #000;
+  background: var(--post-media-stage, var(--bg-page, var(--bg-surface, #fff)));
 }
 
 .j-post-sheet:has(.post-canvas--media.post-canvas--split)
@@ -10813,7 +10846,7 @@ select.j-edit-input {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #000;
+  background: var(--post-media-stage, var(--bg-page, var(--bg-surface, #fff)));
 }
 
 .j-post-sheet:has(.post-canvas--media.post-canvas--split)
@@ -10995,7 +11028,7 @@ select.j-edit-input {
   position: relative;
   align-self: stretch;
   margin-inline: 0;
-  background: #000;
+  background: var(--post-media-stage, var(--bg-page, var(--bg-surface, #fff)));
   border: none;
 }
 
@@ -11015,7 +11048,7 @@ select.j-edit-input {
   max-height: none;
   min-height: 0;
   aspect-ratio: unset;
-  background: #000;
+  background: var(--post-media-stage, var(--bg-page, var(--bg-surface, #fff)));
 }
 
 .j-post-sheet:has(.post-canvas--media.post-canvas--split)
@@ -11026,7 +11059,7 @@ select.j-edit-input {
   height: 100%;
   object-fit: contain;
   object-position: center;
-  background: #000;
+  background: var(--post-media-stage, var(--bg-page, var(--bg-surface, #fff)));
 }
 
 /*

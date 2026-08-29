@@ -9,10 +9,18 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 
-import { JourneyComposeOverlay } from "@/components/journey/JourneyComposeOverlay";
 import { JourneyPersonalFilterProvider } from "@/components/journey/JourneyPersonalFilterContext";
+
+const JourneyComposeOverlay = dynamic(
+  () =>
+    import("@/components/journey/JourneyComposeOverlay").then((mod) => ({
+      default: mod.JourneyComposeOverlay,
+    })),
+  { ssr: false },
+);
 import type { CongDongComposeConfig } from "@/lib/cong-dong/types";
 import type { Tier1EmbedPlatformId } from "@/lib/editor/embed-providers";
 import {
@@ -121,6 +129,11 @@ export function JourneyComposeProvider({
   const [compose, setCompose] = useState<JourneyComposeState | null>(
     canCompose ? initialCompose : null,
   );
+
+  useEffect(() => {
+    if (!canCompose) return;
+    void import("@/components/journey/JourneyComposeOverlay");
+  }, [canCompose]);
   const openCompose = useCallback(
     (state: JourneyComposeState) => {
       if (!canCompose) return;

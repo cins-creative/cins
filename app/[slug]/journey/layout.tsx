@@ -1,9 +1,5 @@
-import "./journey.css";
-import "./image-grid.css";
-import "@/styles/article-rich-content.css";
-/* Modal `JourneyPostModal` portal vào document.body và hiển thị bài viết
-   theo layout editor canvas (`.cins-editor-page`). Cần load editor.css +
-   post-page.css ở layout journey để modal style đúng. */
+/* Intercept `@modal` render `JourneyPostBody` (không qua JourneyPostModal).
+   Overlay click từ `/{slug}` tự import CSS; alias `/journey` cần CSS ở đây. */
 import "../p/new/editor.css";
 import "../p/[postSlug]/post-page.css";
 

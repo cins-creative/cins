@@ -1,5 +1,6 @@
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block as ServerBlock } from "@/lib/editor/types";
+import type { AvatarFrameDto } from "@/lib/journey/avatar-frame";
 import type {
   CommentIdentityBadge,
   CommentReactionSummary,
@@ -10,6 +11,8 @@ export type MilestonePostAuthor = {
   slug: string;
   tenHienThi: string;
   avatarId: string | null;
+  /** Khung overlay avatar — SoT `giao_dien.avatarFrame`. */
+  avatarFrame?: AvatarFrameDto | null;
   /**
    * Bình luận dưới danh nghĩa org — hiện avatar/tên org; `id`/`isOwn` vẫn theo
    * người gửi thật (`nguoi_binh_luan`).

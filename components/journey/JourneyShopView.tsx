@@ -29,7 +29,6 @@ import {
 } from "@/lib/shop/cua-hang-href";
 import { manageSellerHref } from "@/lib/cins/manage-site";
 
-import "@/components/shop/shop-dashboard.css";
 import "./journey-shop-view.css";
 
 type Props = {
@@ -40,6 +39,7 @@ type Props = {
   viewerProfileId?: string | null;
   /** Avatar chủ shop (chat preview) — ưu tiên hơn avatar cửa hàng. */
   ownerAvatarUrl?: string | null;
+  initialShop?: ShopCuaHang | null;
 };
 
 function warmPrefetchBanHang() {
@@ -53,14 +53,15 @@ export function JourneyShopView({
   isOwner,
   viewerProfileId = null,
   ownerAvatarUrl = null,
+  initialShop = null,
 }: Props) {
   const t = useT();
   const journeyView = useJourneyViewOptional();
   const setShopSlugCtx = journeyView?.setShopSlug;
-  const [shop, setShop] = useState<ShopCuaHang | null>(null);
-  const [banHangBat, setBanHangBat] = useState(false);
-  const [shopVisible, setShopVisible] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [shop, setShop] = useState<ShopCuaHang | null>(initialShop);
+  const [banHangBat, setBanHangBat] = useState(Boolean(initialShop));
+  const [shopVisible, setShopVisible] = useState(Boolean(initialShop));
+  const [loading, setLoading] = useState(!initialShop);
   const [err, setErr] = useState<string | null>(null);
 
   const shopSlug = shopSlugFromTen(shop?.ten, ownerSlug);
@@ -122,8 +123,17 @@ export function JourneyShopView({
   }, [ownerId, ownerSlug, t]);
 
   useEffect(() => {
+    if (initialShop && !isOwner) {
+      writeShopCuaHangCache(initialShop, {
+        slug: ownerSlug,
+        banHangBat: true,
+        shopVisible: true,
+        isOwner: false,
+      });
+      return;
+    }
     void load();
-  }, [load]);
+  }, [load, initialShop, isOwner, ownerSlug]);
 
   useEffect(() => {
     const onChanged = (ev: Event) => {
@@ -175,7 +185,7 @@ export function JourneyShopView({
     return (
       <section className="j-shop" aria-busy="true">
         <div className="j-shop-loading">
-          <Loader2 size={18} className="shop-spin" aria-hidden />
+          <Loader2 size={18} aria-hidden />
           {t("shop.loading")}
         </div>
       </section>

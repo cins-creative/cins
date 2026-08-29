@@ -615,6 +615,12 @@ export type ShopCuaHang = {
   capNhatLuc: string;
 };
 
+/** Bản mặt tiền / khách — giữ `sanSangNhanDon`, không kèm STK / QR / PTTT. */
+export function toPublicShop(shop: ShopCuaHang): ShopCuaHang {
+  if (shop.phuongThucTt.length === 0) return shop;
+  return { ...shop, phuongThucTt: [] };
+}
+
 export function resolveShopNhanPhanLoai(
   shop: Pick<ShopCuaHang, "nhanPhanLoai"> | null | undefined,
 ): string {

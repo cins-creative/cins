@@ -1127,9 +1127,6 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
               <span className="j-theme-home-check-title" id="j-theme-home-heading">
                 Áp dụng giao diện này lên trang chủ của tôi
               </span>
-              <span className="j-theme-home-check-desc">
-                Người khác không thấy theme của bạn trên trang chủ họ.
-              </span>
             </span>
             <button
               type="button"
@@ -1157,10 +1154,6 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
               Khôi phục mặc định
             </button>
           </div>
-          <p className="j-theme-picker-hint">
-            Chọn xong bấm <strong>Lưu giao diện</strong>. Đổi tab thiết bị để
-            neo / ảnh riêng; rê vào demo rồi kéo để chỉnh vùng ảnh.
-          </p>
         </footer>
         </div>
 

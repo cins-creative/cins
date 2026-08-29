@@ -434,9 +434,6 @@ export const JourneyAvatarFramePicker = forwardRef<
               >
                 Bật khung avatar
               </span>
-              <span className="j-theme-home-check-desc">
-                Viền màu theo preset + overlay thiết kế quanh ảnh đại diện.
-              </span>
             </span>
             <button
               type="button"
@@ -659,14 +656,47 @@ export const JourneyAvatarFramePicker = forwardRef<
               );
             })}
           </div>
-          {frame.overlayImageId ? (
-            <>
-              <div className="j-theme-picker-label">
-                <span>Hòa trộn</span>
-                <span className="j-theme-picker-status">
-                  Áp lớp phủ lên ảnh đại diện
-                </span>
-              </div>
+        </section>
+      </div>
+
+      <aside
+        className="j-theme-picker-aside j-avf-picker-aside"
+        aria-label="Xem trước avatar"
+      >
+        <div className="j-theme-picker-label j-theme-device-head">
+          <span>Xem trước</span>
+          <div className="j-avf-preview-tools">
+            <div
+              className="j-theme-scheme-toggle"
+              role="group"
+              aria-label="Nền demo"
+            >
+              <button
+                type="button"
+                className={
+                  "j-theme-scheme-btn" + (scheme === "light" ? " is-active" : "")
+                }
+                aria-pressed={scheme === "light"}
+                title="Nền sáng"
+                onClick={() => setScheme("light")}
+              >
+                <Sun size={14} strokeWidth={2.1} aria-hidden />
+                <span>Sáng</span>
+              </button>
+              <button
+                type="button"
+                className={
+                  "j-theme-scheme-btn" + (scheme === "dark" ? " is-active" : "")
+                }
+                aria-pressed={scheme === "dark"}
+                title="Nền tối"
+                onClick={() => setScheme("dark")}
+              >
+                <Moon size={14} strokeWidth={2.1} aria-hidden />
+                <span>Tối</span>
+              </button>
+            </div>
+            {frame.overlayImageId ? (
               <div
                 className="j-avf-blend-row"
                 role="listbox"
@@ -690,53 +720,7 @@ export const JourneyAvatarFramePicker = forwardRef<
                   );
                 })}
               </div>
-            </>
-          ) : null}
-        </section>
-
-        <footer className="j-theme-picker-footer">
-          <p className="j-theme-picker-hint">
-            Chọn xong bấm <strong>Lưu giao diện</strong>. Overlay phủ ngoài
-            avatar ~15px, luôn contain giữa khung.
-          </p>
-        </footer>
-      </div>
-
-      <aside
-        className="j-theme-picker-aside j-avf-picker-aside"
-        aria-label="Xem trước avatar"
-      >
-        <div className="j-theme-picker-label j-theme-device-head">
-          <span>Xem trước</span>
-          <div
-            className="j-theme-scheme-toggle"
-            role="group"
-            aria-label="Nền demo"
-          >
-            <button
-              type="button"
-              className={
-                "j-theme-scheme-btn" + (scheme === "light" ? " is-active" : "")
-              }
-              aria-pressed={scheme === "light"}
-              title="Nền sáng"
-              onClick={() => setScheme("light")}
-            >
-              <Sun size={14} strokeWidth={2.1} aria-hidden />
-              <span>Sáng</span>
-            </button>
-            <button
-              type="button"
-              className={
-                "j-theme-scheme-btn" + (scheme === "dark" ? " is-active" : "")
-              }
-              aria-pressed={scheme === "dark"}
-              title="Nền tối"
-              onClick={() => setScheme("dark")}
-            >
-              <Moon size={14} strokeWidth={2.1} aria-hidden />
-              <span>Tối</span>
-            </button>
+            ) : null}
           </div>
         </div>
         <div

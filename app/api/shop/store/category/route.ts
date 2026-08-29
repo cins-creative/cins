@@ -53,19 +53,26 @@ export async function GET(request: Request) {
   try {
     const shop = await getShopCuaHangByUserId(owner.id);
     const shopSlug = shopSlugFromTen(shop?.ten, owner.slug);
-    const [nhomCards, items] = await Promise.all([
-      listShopStorefrontNhomCards({
-        sellerId: owner.id,
-        ownerSlug: owner.slug,
-        shopSlug,
-        asOwner,
-      }),
-      listShopStorefrontItems({
-        sellerId: owner.id,
-        ownerSlug: owner.slug,
-        asOwner,
-      }),
-    ]);
+    const wantItems = url.searchParams.get("items") === "1";
+    const includeKiosk = url.searchParams.get("kiosk") === "1";
+    const catalog = await listShopStorefrontItems({
+      sellerId: owner.id,
+      ownerSlug: owner.slug,
+      asOwner,
+      includeSold: false,
+      includeKiosk,
+      imageVariant: "grid",
+    });
+    const nhomCards = await listShopStorefrontNhomCards({
+      sellerId: owner.id,
+      ownerSlug: owner.slug,
+      shopSlug,
+      asOwner,
+      items: catalog,
+    });
+    const items = wantItems
+      ? catalog
+      : catalog.filter((i) => i.noiBat === true);
     return NextResponse.json({ nhomCards, items, shopSlug });
   } catch (e) {
     console.error("[api/shop/cua-hang/mat-hang]", e);

@@ -145,11 +145,55 @@ html[data-theme="dark"]
   min-height: 0;
 }
 
-.j-avf-picker-aside {
+.j-theme-picker-aside.j-avf-picker-aside {
   display: flex;
   flex-direction: column;
   gap: 12px;
   min-width: 0;
+  /* Mobile dock: chừa chỗ cụm Sáng/Tối + hòa trộn, không cắt chip. */
+  max-height: min(52vh, 22rem);
+}
+
+@container j-edit-theme (min-width: 480px) {
+  .j-theme-picker-aside.j-avf-picker-aside {
+    max-height: none;
+  }
+}
+
+.j-avf-picker .j-theme-device-head {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.j-avf-preview-tools {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+.j-avf-preview-tools .j-theme-scheme-toggle {
+  align-self: flex-end;
+}
+
+.j-avf-blend-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.j-avf-picker .j-avf-blend-chip {
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 12px;
 }
 
 .j-avf-picker-aside-meta {
@@ -166,7 +210,9 @@ html[data-theme="dark"]
   padding: 1.25rem 1rem 1.5rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm, 10px);
-  overflow: visible;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
   --bg-page: #f4f5f8;
   --bg-surface: #ffffff;
   --ink-display: #1b1f2a;
@@ -261,13 +307,6 @@ html[data-theme="dark"]
 .j-avf-stop2-row {
   grid-template-columns: repeat(auto-fill, minmax(40px, 56px));
   max-width: 56px;
-}
-
-.j-avf-blend-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
 }
 
 .j-avf-picker .j-avf-overlay-remove {
@@ -535,7 +574,8 @@ html[data-theme="dark"]
 
 /* Org chip / friend card — khung scale theo size; overflow visible cho expand. */
 .org-logo.j-avf,
-.j-friend-avatar.j-avf {
+.j-friend-avatar.j-avf,
+.post-rail-avatar.j-avf {
   position: relative;
   overflow: visible;
   z-index: 2;
@@ -562,6 +602,7 @@ html[data-theme="dark"]
 }
 
 .org-logo.j-avf img,
-.j-friend-avatar.j-avf img {
+.j-friend-avatar.j-avf img,
+.post-rail-avatar.j-avf img {
   border-radius: inherit;
 }

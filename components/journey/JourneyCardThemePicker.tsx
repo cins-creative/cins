@@ -484,11 +484,6 @@ export const JourneyCardThemePicker = forwardRef<
             <span className="j-theme-picker-status">Chưa lưu</span>
           ) : null}
         </div>
-        <p className="j-card-theme-picker-blurb">
-          Mọi người trên trang chủ / World đều thấy thanh này theo style của bạn
-          (không theo người xem).
-        </p>
-
         <label className="j-card-theme-toggle">
           <input
             type="checkbox"
@@ -578,23 +573,16 @@ export const JourneyCardThemePicker = forwardRef<
                 />
               </label>
             </div>
-          ) : (
-            <p className="j-card-theme-hint">
-              {theme.accent === "cins" && !theme.accentHex
-                ? "Theme hồ sơ đang mặc định CINs — bật màu riêng hoặc đổi Theme trước."
-                : `Đang dùng accent theme: ${resolveAccentHex(theme)}.`}
-            </p>
-          )}
+          ) : null}
         </fieldset>
 
         <fieldset className="j-card-theme-fieldset" disabled={!card.enabled}>
           <legend>Ảnh nền thanh</legend>
-          <div className="j-theme-picker-label">
-            <span>Ảnh thực tế</span>
-            {uploading ? (
+          {uploading ? (
+            <div className="j-theme-picker-label">
               <JourneyThemeUploadProgress progress={uploadPct} />
-            ) : null}
-          </div>
+            </div>
+          ) : null}
           <div className="j-theme-image-row">
             <button
               type="button"
@@ -690,11 +678,6 @@ export const JourneyCardThemePicker = forwardRef<
             />
           </div>
         </fieldset>
-
-        <p className="j-theme-picker-hint">
-          Chọn xong bấm <strong>Lưu giao diện</strong>. Demo bên cạnh cập nhật
-          ngay — người khác thấy thanh này trên World.
-        </p>
       </div>
 
       <aside

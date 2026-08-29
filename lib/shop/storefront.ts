@@ -7,6 +7,7 @@ import {
   isStreamUid,
 } from "@/lib/cloudflare/stream-embed";
 import { shopLoaiHref } from "@/lib/shop/cua-hang-href";
+import type { CfNamedVariant } from "@/lib/cloudflare/cf-image-variants";
 import { getShopHienThi, shopImageUrl } from "@/lib/shop/settings";
 import type {
   ShopStorefrontItem,
@@ -89,6 +90,18 @@ export async function listShopStorefrontItems(opts: {
   idNhom?: string | null;
   /** Lọc tên (`ilike`) — search quầy / hub. */
   tenIlike?: string | null;
+  /**
+   * Sold count (`shop_don_hang_dong`) — mặc định bật cho giỏ/quầy.
+   * Mặt tiền category/group tắt để khỏi scan đơn.
+   */
+  includeSold?: boolean;
+  /**
+   * Kiosk `postHref` — mặc định bật cho giỏ/kiosk.
+   * Lưới loại mặt tiền không dùng.
+   */
+  includeKiosk?: boolean;
+  /** Variant CF cho thumb listing (mặc định `public` — giỏ / lightbox). */
+  imageVariant?: CfNamedVariant;
 }): Promise<ShopStorefrontItem[]> {
   if (!opts.asOwner) {
     const publicVisible = await getShopHienThi(opts.sellerId);
@@ -99,6 +112,9 @@ export async function listShopStorefrontItems(opts: {
     STOREFRONT_SP_MAX,
   );
   const idNhom = opts.idNhom?.trim() || null;
+  const includeSold = opts.includeSold !== false;
+  const includeKiosk = opts.includeKiosk !== false;
+  const imageVariant = opts.imageVariant ?? "public";
   const admin = createServiceRoleClient();
 
   const sps: SpRow[] = [];
@@ -192,24 +208,29 @@ export async function listShopStorefrontItems(opts: {
     const bgIds = bangGias.map((b) => b.id);
     const bgRank = new Map(bangGias.map((b, i) => [b.id, i]));
     const bgTienTe = new Map(bangGias.map((b) => [b.id, b.tien_te || "VND"]));
-    const { data: dongRows } = await admin
-      .from("shop_bang_gia_dong")
-      .select("id_bang_gia, id_bien_the, gia, gia_giam")
-      .in("id_bang_gia", bgIds);
-    for (const d of (dongRows ?? []) as DongRow[]) {
-      const rank = bgRank.get(d.id_bang_gia);
-      if (rank == null) continue;
-      const prev = giaByBt.get(d.id_bien_the);
-      if (prev && prev.bgRank <= rank) continue;
-      const giaBan = Number(d.gia);
-      const giaGiam = d.gia_giam == null ? null : Number(d.gia_giam);
-      giaByBt.set(d.id_bien_the, {
-        giaBan,
-        giaGiam,
-        giaHieuLuc: giaGiam != null ? giaGiam : giaBan,
-        tienTe: bgTienTe.get(d.id_bang_gia) || "VND",
-        bgRank: rank,
-      });
+    const btIdList = bts.map((b) => b.id);
+    for (let i = 0; i < btIdList.length; i += IN_CHUNK) {
+      const chunk = btIdList.slice(i, i + IN_CHUNK);
+      const { data: dongRows } = await admin
+        .from("shop_bang_gia_dong")
+        .select("id_bang_gia, id_bien_the, gia, gia_giam")
+        .in("id_bang_gia", bgIds)
+        .in("id_bien_the", chunk);
+      for (const d of (dongRows ?? []) as DongRow[]) {
+        const rank = bgRank.get(d.id_bang_gia);
+        if (rank == null) continue;
+        const prev = giaByBt.get(d.id_bien_the);
+        if (prev && prev.bgRank <= rank) continue;
+        const giaBan = Number(d.gia);
+        const giaGiam = d.gia_giam == null ? null : Number(d.gia_giam);
+        giaByBt.set(d.id_bien_the, {
+          giaBan,
+          giaGiam,
+          giaHieuLuc: giaGiam != null ? giaGiam : giaBan,
+          tienTe: bgTienTe.get(d.id_bang_gia) || "VND",
+          bgRank: rank,
+        });
+      }
     }
   }
 
@@ -219,7 +240,7 @@ export async function listShopStorefrontItems(opts: {
     { href: string; hangId: string; cotMocId: string }
   >();
   const btIds = bts.map((b) => b.id);
-  if (btIds.length > 0) {
+  if (includeKiosk && btIds.length > 0) {
     const hangs: HangRow[] = [];
     for (let i = 0; i < btIds.length; i += IN_CHUNK) {
       const chunk = btIds.slice(i, i + IN_CHUNK);
@@ -294,7 +315,7 @@ export async function listShopStorefrontItems(opts: {
 
   /* Tổng SL đã bán theo biến thể. */
   const soldByBienThe = new Map<string, number>();
-  if (btIds.length > 0) {
+  if (includeSold && btIds.length > 0) {
     type SoldRow = {
       id_bien_the: string | null;
       so_luong: number;
@@ -381,7 +402,7 @@ export async function listShopStorefrontItems(opts: {
       postHref: post?.href ?? null,
       tenSanPham: sp.ten,
       nhanBienThe: nhan,
-      anhUrl: shopImageUrl(displayBt?.anh_id ?? sp.anh_id),
+      anhUrl: shopImageUrl(displayBt?.anh_id ?? sp.anh_id, imageVariant),
       anhThumbFit: parseShopThumbFit(sp.anh_thumb_fit),
       giaHienThi,
       giaGoc,
@@ -414,8 +435,20 @@ export async function listShopStorefrontNhomCards(opts: {
   shopSlug: string;
   asOwner?: boolean;
   limit?: number;
+  /** Tái sử dụng catalog đã fetch — tránh gọi `listShopStorefrontItems` lần 2. */
+  items?: ShopStorefrontItem[];
 }): Promise<ShopStorefrontNhomCard[]> {
-  const items = await listShopStorefrontItems(opts);
+  const items =
+    opts.items ??
+    (await listShopStorefrontItems({
+      sellerId: opts.sellerId,
+      ownerSlug: opts.ownerSlug,
+      asOwner: opts.asOwner,
+      limit: opts.limit,
+      includeSold: false,
+      includeKiosk: false,
+      imageVariant: "grid",
+    }));
   if (items.length === 0) return [];
 
   const admin = createServiceRoleClient();
@@ -477,7 +510,7 @@ export async function listShopStorefrontNhomCards(opts: {
         id: key,
         nhan: nhom?.nhan ?? "Khác",
         moTa: nhom?.mo_ta?.trim() || null,
-        anhUrl: shopImageUrl(nhom?.anh_id ?? null),
+        anhUrl: shopImageUrl(nhom?.anh_id ?? null, "grid"),
         thuTu: nhom?.thu_tu ?? 9999,
         noiBat: nhom?.noi_bat === true,
         soMau: 0,
@@ -560,6 +593,7 @@ export async function listShopStorefrontNhomCards(opts: {
 
 async function buildMauFromItems(
   items: ShopStorefrontItem[],
+  sellerId: string,
 ): Promise<ShopStorefrontMau[]> {
   if (items.length === 0) return [];
   const admin = createServiceRoleClient();
@@ -578,16 +612,13 @@ async function buildMauFromItems(
   }>;
   const btIds = bts.map((b) => b.id);
 
-  const sellerIdFromItems = items[0];
-  void sellerIdFromItems;
-
   const { data: bgRows } = await admin
     .from("shop_bang_gia")
     .select("id, tien_te, tao_luc, id_nguoi_dung")
+    .eq("id_nguoi_dung", sellerId)
     .eq("da_xoa", false)
     .order("tao_luc", { ascending: false })
-    .limit(80);
-  /* Filter bang gia by products' seller via san_pham */
+    .limit(50);
   const { data: spOwnerRows } = await admin
     .from("shop_san_pham")
     .select("id, id_nguoi_dung, ten, anh_id")
@@ -603,15 +634,12 @@ async function buildMauFromItems(
       }>
     ).map((s) => [s.id, s]),
   );
-  const sellerId = spMeta.get(spIds[0]!)?.id_nguoi_dung;
-  const bangGias = (
-    (bgRows ?? []) as Array<{
-      id: string;
-      tien_te: string;
-      tao_luc: string;
-      id_nguoi_dung: string;
-    }>
-  ).filter((b) => !sellerId || b.id_nguoi_dung === sellerId);
+  const bangGias = (bgRows ?? []) as Array<{
+    id: string;
+    tien_te: string;
+    tao_luc: string;
+    id_nguoi_dung: string;
+  }>;
 
   const giaByBt = new Map<
     string,
@@ -650,36 +678,6 @@ async function buildMauFromItems(
   }
 
   const soldByBienThe = new Map<string, number>();
-  if (btIds.length > 0) {
-    const { data: dongBan } = await admin
-      .from("shop_don_hang_dong")
-      .select("id_bien_the, so_luong, shop_don_hang!inner(trang_thai)")
-      .in("id_bien_the", btIds);
-    for (const row of (dongBan ?? []) as Array<{
-      id_bien_the: string | null;
-      so_luong: number;
-      shop_don_hang:
-        | { trang_thai: string }
-        | { trang_thai: string }[]
-        | null;
-    }>) {
-      if (!row.id_bien_the) continue;
-      const don = Array.isArray(row.shop_don_hang)
-        ? row.shop_don_hang[0]
-        : row.shop_don_hang;
-      if (!don) continue;
-      if (
-        !(SHOP_DON_TINH_DA_BAN as readonly string[]).includes(don.trang_thai)
-      ) {
-        continue;
-      }
-      const qty = Math.max(0, Math.trunc(Number(row.so_luong) || 0));
-      soldByBienThe.set(
-        row.id_bien_the,
-        (soldByBienThe.get(row.id_bien_the) ?? 0) + qty,
-      );
-    }
-  }
 
   const btBySp = new Map<string, typeof bts>();
   for (const bt of bts) {
@@ -695,7 +693,7 @@ async function buildMauFromItems(
     mau.push({
       sanPhamId: item.sanPhamId,
       ten: meta?.ten ?? item.tenSanPham,
-      anhUrl: shopImageUrl(meta?.anh_id ?? null) ?? item.anhUrl,
+      anhUrl: shopImageUrl(meta?.anh_id ?? null, "grid") ?? item.anhUrl,
       noiBat: item.noiBat === true,
       phanLoai: item.phanLoai,
       phanLoai2: item.phanLoai2,
@@ -705,7 +703,7 @@ async function buildMauFromItems(
         return {
           id: bt.id,
           nhan: bt.nhan,
-          anhUrl: shopImageUrl(bt.anh_id),
+          anhUrl: shopImageUrl(bt.anh_id, "grid"),
           soLuongTon: ton,
           soLuongBan: soldByBienThe.get(bt.id) ?? 0,
           giaHienThi: g?.giaHieuLuc ?? null,
@@ -737,6 +735,9 @@ export async function getShopStorefrontNhomDetail(opts: {
       ownerSlug: opts.ownerSlug,
       asOwner: opts.asOwner,
       idNhom: opts.nhomIdOrKhac,
+      includeSold: false,
+      includeKiosk: false,
+      imageVariant: "grid",
     });
     if (filtered.length === 0) return null;
 
@@ -774,7 +775,7 @@ export async function getShopStorefrontNhomDetail(opts: {
       }>();
     if (!nhom || nhom.truc !== 1) return null;
 
-    const mau = await buildMauFromItems(filtered);
+    const mau = await buildMauFromItems(filtered, opts.sellerId);
     const coverFallback =
       mau.find((m) => m.anhUrl)?.anhUrl ??
       mau.flatMap((m) => m.bienThe).find((b) => b.anhUrl)?.anhUrl ??
@@ -790,10 +791,10 @@ export async function getShopStorefrontNhomDetail(opts: {
       id: nhom.id,
       nhan: nhom.nhan,
       moTa: nhom.mo_ta?.trim() || null,
-      anhUrl: shopImageUrl(nhom.anh_id) ?? coverFallback,
+      anhUrl: shopImageUrl(nhom.anh_id, "grid") ?? coverFallback,
       overlayAnhUrl: shopImageUrl(nhom.overlay_anh_id),
       anhPhuUrls: anhPhuIds
-        .map((id) => shopImageUrl(id))
+        .map((id) => shopImageUrl(id, "grid"))
         .filter((u): u is string => Boolean(u)),
       videoPhuId,
       videoPhuEmbedUrl:
@@ -819,6 +820,9 @@ export async function getShopStorefrontNhomDetail(opts: {
     sellerId: opts.sellerId,
     ownerSlug: opts.ownerSlug,
     asOwner: opts.asOwner,
+    includeSold: false,
+    includeKiosk: false,
+    imageVariant: "grid",
   });
   if (items.length === 0) return null;
 
@@ -858,7 +862,7 @@ export async function getShopStorefrontNhomDetail(opts: {
     tienTe = item.tienTe || tienTe;
   }
 
-  const mau = await buildMauFromItems(filtered);
+  const mau = await buildMauFromItems(filtered, opts.sellerId);
   const cover =
     mau.find((m) => m.anhUrl)?.anhUrl ??
     mau.flatMap((m) => m.bienThe).find((b) => b.anhUrl)?.anhUrl ??

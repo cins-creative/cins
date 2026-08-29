@@ -11,6 +11,7 @@ import {
   upsertShopPhuongThucTt,
 } from "@/lib/shop/cua-hang";
 import { getBanHangEnabled, getShopHienThi } from "@/lib/shop/settings";
+import { toPublicShop } from "@/lib/shop/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 async function resolveOwnerId(opts: {
@@ -102,7 +103,7 @@ export async function GET(request: Request) {
     : await getShopCuaHangByUserId(ownerId);
 
   return NextResponse.json({
-    shop,
+    shop: shop && !isOwner ? toPublicShop(shop) : shop,
     banHangBat,
     shopVisible,
     isOwner,

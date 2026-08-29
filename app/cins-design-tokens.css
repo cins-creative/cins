@@ -44,11 +44,12 @@
   --neutral-800:  #1B1F2A;
   --neutral-900:  #0E1117;
 
-  /* Brand sheet specifies title/body text @ Black 50%–60% — i.e. soft black */
+  /* Brand sheet specifies title/body text @ Black 50%–60% — i.e. soft black.
+     Caption/body were too faint on World + shop; keep hierarchy, raise opacity. */
   --ink-display: rgba(0, 0, 0, 0.85);  /* large display headings */
-  --ink-title:   rgba(0, 0, 0, 0.60);  /* section titles per brand sheet */
-  --ink-body:    rgba(0, 0, 0, 0.55);  /* body text */
-  --ink-muted:   rgba(0, 0, 0, 0.40);  /* secondary, captions */
+  --ink-title:   rgba(0, 0, 0, 0.76);  /* section titles */
+  --ink-body:    rgba(0, 0, 0, 0.68);  /* body text */
+  --ink-muted:   rgba(0, 0, 0, 0.55);  /* secondary, captions */
 
   /* ---------- SEMANTIC ---------- */
   --fg-1: var(--ink-display);
@@ -179,9 +180,9 @@
 
   /* Mực chữ trên nền tối */
   --ink-display: rgba(255, 255, 255, 0.92);
-  --ink-title:   rgba(255, 255, 255, 0.72);
-  --ink-body:    rgba(255, 255, 255, 0.64);
-  --ink-muted:   rgba(255, 255, 255, 0.46);
+  --ink-title:   rgba(255, 255, 255, 0.82);
+  --ink-body:    rgba(255, 255, 255, 0.74);
+  --ink-muted:   rgba(255, 255, 255, 0.60);
 
   --bg-page:    #030406;
   --bg-surface: #0a0d12;

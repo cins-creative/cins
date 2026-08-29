@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { JourneyProfilePageSkeleton } from "@/app/[slug]/_components/JourneyProfilePage.skeleton";
+import { JourneyShopPageSkeleton } from "@/app/[slug]/_components/JourneyShopPage.skeleton";
 import { ShopLoaiBody } from "@/app/[slug]/shop/_components/ShopStorefrontBody";
 import { CinsShell } from "@/components/cins/CinsShell";
 import { getConfiguredSiteOrigin } from "@/lib/auth/auth-origin";
@@ -68,7 +68,7 @@ export async function generateMetadata({
 export default function ShopLoaiPage({ params }: { params: Params }) {
   return (
     <CinsShell data-screen-label="Shop loại hàng">
-      <Suspense fallback={<JourneyProfilePageSkeleton />}>
+      <Suspense fallback={<JourneyShopPageSkeleton />}>
         <ShopLoaiBody params={params} />
       </Suspense>
     </CinsShell>

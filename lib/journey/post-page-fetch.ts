@@ -17,6 +17,7 @@ import { loadVerifiedMetaForCotMocs } from "@/lib/journey/milestone-verify";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { enrichBlocksVideoCanvasRatio } from "@/lib/journey/enrich-blocks-video-canvas-ratio";
 import { isCotMocDueForPublic } from "@/lib/journey/cot-moc-schedule";
+import { avatarFrameFromGiaoDien } from "@/lib/journey/avatar-frame";
 
 export type PostFetchResult =
   | { ok: true; data: MilestonePostDetail }
@@ -49,6 +50,7 @@ type ProfileRow = {
   slug: string;
   ten_hien_thi: string | null;
   avatar_id: string | null;
+  giao_dien?: unknown;
 };
 
 type CommentRow = {
@@ -384,7 +386,7 @@ export async function fetchMilestonePostDetail(
   const [ownerResult, linkedResult, comments, social] = await Promise.all([
     admin
       .from("user_nguoi_dung")
-      .select("id, slug, ten_hien_thi, avatar_id")
+      .select("id, slug, ten_hien_thi, avatar_id, giao_dien")
       .eq("id", cotMoc.id_nguoi_dung)
       .maybeSingle<ProfileRow>(),
     admin
@@ -423,12 +425,14 @@ export async function fetchMilestonePostDetail(
         slug: ownerRow.slug,
         tenHienThi: ownerRow.ten_hien_thi || ownerRow.slug,
         avatarId: ownerRow.avatar_id,
+        avatarFrame: avatarFrameFromGiaoDien(ownerRow.giao_dien),
       }
     : {
         id: cotMoc.id_nguoi_dung,
         slug: "user",
         tenHienThi: "Người dùng",
         avatarId: null,
+        avatarFrame: null,
       };
 
   const tacPhamRows: TacPhamRow[] = (linkedTacPham ?? [])

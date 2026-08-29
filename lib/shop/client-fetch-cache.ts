@@ -550,6 +550,28 @@ const matHangCache = createCachedResource<ShopMatHangPayload, [string]>({
   },
 });
 
+const matHangFullCache = createCachedResource<ShopMatHangPayload, [string]>({
+  keyPrefix: "shop:mat-hang-full",
+  ttlMs: 45_000,
+  keyFromArgs: (slug) => slug,
+  fetcher: async (slug) => {
+    const res = await fetch(
+      `/api/shop/store/category?slug=${encodeURIComponent(slug)}&items=1`,
+      { cache: "no-store" },
+    );
+    const json = (await res.json().catch(() => null)) as {
+      nhomCards?: ShopStorefrontNhomCard[];
+      items?: ShopStorefrontItem[];
+      error?: string;
+    } | null;
+    if (!res.ok) throw new Error(json?.error ?? "Không tải mặt hàng.");
+    return {
+      nhomCards: json?.nhomCards ?? [],
+      items: json?.items ?? [],
+    };
+  },
+});
+
 const quaySapCoMatCache = createCachedResource<ShopQuaySapCoMat[], [string]>({
   keyPrefix: "shop:quay-sap-co-mat",
   ttlMs: 60_000,
@@ -588,6 +610,12 @@ export async function fetchMatHangCached(
 ) {
   return matHangCache.fetch(slug, opts);
 }
+export async function fetchMatHangFullCached(
+  slug: string,
+  opts?: { force?: boolean },
+) {
+  return matHangFullCache.fetch(slug, opts);
+}
 export async function fetchQuaySapCoMatCached(
   slug: string,
   opts?: { force?: boolean },
@@ -615,8 +643,13 @@ export function invalidateNhomCache() {
   nhomCache.invalidateAll();
 }
 export function invalidateMatHangCache(slug?: string) {
-  if (slug) matHangCache.invalidate(slug);
-  else matHangCache.invalidateAll();
+  if (slug) {
+    matHangCache.invalidate(slug);
+    matHangFullCache.invalidate(slug);
+  } else {
+    matHangCache.invalidateAll();
+    matHangFullCache.invalidateAll();
+  }
 }
 
 export function prefetchKhoCatalog() {

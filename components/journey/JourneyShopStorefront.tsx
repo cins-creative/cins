@@ -19,6 +19,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import dynamic from "next/dynamic";
 
 import { useAuthGate } from "@/components/auth/AuthGateProvider";
 import { JourneyShopSectionHead } from "@/components/journey/JourneyShopSectionHead";
@@ -28,7 +29,6 @@ import {
   notifyGioChungAdded,
 } from "@/components/shop/ShopGioChungButton";
 import { ShopImageProtect } from "@/components/shop/ShopImageProtect";
-import { ShopStorefrontComboStrip } from "@/components/shop/ShopStorefrontComboStrip";
 import { ShopTamDongOverlay } from "@/components/shop/ShopTamDongOverlay";
 import { formatMoney } from "@/lib/format";
 import { useT } from "@/lib/i18n/use-t";
@@ -36,6 +36,7 @@ import { useLocale } from "@/lib/locale/context";
 import type { CinsLocale } from "@/lib/locale/types";
 import {
   fetchMatHangCached,
+  fetchMatHangFullCached,
   fetchQuaySapCoMatCached,
   invalidateMatHangCache,
   peekMatHang,
@@ -60,6 +61,14 @@ import { formatTimelineDate } from "@/lib/truong/timeline";
 
 /** Debounce sync giỏ — gộp nhiều lần bấm ± thành 1 PATCH. */
 const QTY_SYNC_MS = 200;
+
+const ShopStorefrontComboStrip = dynamic(
+  () =>
+    import("@/components/shop/ShopStorefrontComboStrip").then((m) => ({
+      default: m.ShopStorefrontComboStrip,
+    })),
+  { ssr: false },
+);
 type HeroChrome = {
   actions: ReactNode;
 };
@@ -563,6 +572,7 @@ export function JourneyShopStorefront({
   const [items, setItems] = useState<ShopStorefrontItem[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<ShopQuaySapCoMat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [uuDaiReady, setUuDaiReady] = useState(false);
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   /** idBienThe → số lượng trong giỏ (seller này). */
@@ -762,6 +772,35 @@ export function JourneyShopStorefront({
   }, [ownerSlug, canShop, viewerProfileId, refreshGio]);
 
   useEffect(() => {
+    const idle =
+      typeof window !== "undefined" && "requestIdleCallback" in window
+        ? window.requestIdleCallback(() => setUuDaiReady(true), { timeout: 2500 })
+        : window.setTimeout(() => setUuDaiReady(true), 400);
+    return () => {
+      if (typeof window !== "undefined" && "cancelIdleCallback" in window) {
+        window.cancelIdleCallback(idle as number);
+      } else {
+        window.clearTimeout(idle as number);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!deferredSearch.trim()) return;
+    let cancelled = false;
+    void fetchMatHangFullCached(ownerSlug)
+      .then((full) => {
+        if (cancelled) return;
+        setCards(full.nhomCards);
+        setItems(full.items);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [deferredSearch, ownerSlug]);
+
+  useEffect(() => {
     if (!canShop || !viewerProfileId) {
       setQtyByBt(new Map());
       return;
@@ -858,7 +897,7 @@ export function JourneyShopStorefront({
         actions={isOwner ? undefined : guestChrome?.actions}
       />
 
-      {!shopClosed ? (
+      {uuDaiReady && !shopClosed ? (
         <ShopStorefrontComboStrip
           sellerId={ownerId}
           ownerSlug={ownerSlug}

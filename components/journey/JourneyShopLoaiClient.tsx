@@ -105,6 +105,7 @@ type Props = {
   isOwner?: boolean;
   viewerProfileId?: string | null;
   ownerAvatarUrl?: string | null;
+  initialShop?: ShopCuaHang | null;
 };
 
 const FILTER_KHAC = "__khac";
@@ -295,6 +296,7 @@ export function JourneyShopLoaiClient({
   isOwner: isOwnerProp,
   viewerProfileId: viewerProfileIdProp = null,
   ownerAvatarUrl = null,
+  initialShop = null,
 }: Props) {
   const t = useT();
   const locale = useLocale();
@@ -304,7 +306,7 @@ export function JourneyShopLoaiClient({
   const mauFromQuery = searchParams.get("variant")?.trim() || null;
   const comboFromQuery = searchParams.get("combo")?.trim() || null;
   const [detail, setDetail] = useState<ShopStorefrontNhomDetail | null>(null);
-  const [shop, setShop] = useState<ShopCuaHang | null>(null);
+  const [shop, setShop] = useState<ShopCuaHang | null>(initialShop);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [viewerId, setViewerId] = useState<string | null>(
@@ -484,6 +486,10 @@ export function JourneyShopLoaiClient({
   }, [viewerProfileIdProp, isOwnerProp]);
 
   const loadShop = useCallback(async () => {
+    if (initialShop && isOwnerProp !== true) {
+      setShop(initialShop);
+      return;
+    }
     try {
       const data = await fetchShopCuaHangClient({ slug: ownerSlug });
       setShop(data.shop);
@@ -493,7 +499,7 @@ export function JourneyShopLoaiClient({
     } catch {
       setShop(null);
     }
-  }, [ownerSlug, isOwnerProp]);
+  }, [ownerSlug, isOwnerProp, initialShop]);
 
   const loadOtherNhom = useCallback(async () => {
     try {
@@ -598,7 +604,7 @@ export function JourneyShopLoaiClient({
       }
       const q = params.toString() ? `?${params}` : "";
       const res = await fetch(
-        `/api/shop/groups/${encodeURIComponent(nhomId)}/danh-gia${q}`,
+        `/api/shop/groups/${encodeURIComponent(nhomId)}/reviews${q}`,
         { cache: "no-store" },
       );
       const json = (await res.json().catch(() => null)) as {
@@ -648,21 +654,6 @@ export function JourneyShopLoaiClient({
     if (!detail || !selectedSpId) return null;
     return detail.mau.find((m) => m.sanPhamId === selectedSpId) ?? null;
   }, [detail, selectedSpId]);
-
-  useEffect(() => {
-    if (!selectedMau || isOwner) return;
-    trackImpression({
-      loaiDoiTuong: "shop_san_pham",
-      idDoiTuong: selectedMau.sanPhamId,
-      nguon: "shop",
-    });
-    trackTuongTac({
-      loaiDoiTuong: "shop_san_pham",
-      idDoiTuong: selectedMau.sanPhamId,
-      hanhVi: "click_sidebar_hang",
-      nguon: "shop",
-    });
-  }, [selectedMau, isOwner]);
 
   const selectedBt = useMemo(() => {
     if (!selectedMau || !selectedBtId) return null;
@@ -1595,6 +1586,19 @@ export function JourneyShopLoaiClient({
                         ) ?? m.bienThe[0] ?? null;
                       setSelectedBtId(bt?.id ?? null);
                       setQty(1);
+                      if (!isOwner) {
+                        trackImpression({
+                          loaiDoiTuong: "shop_san_pham",
+                          idDoiTuong: m.sanPhamId,
+                          nguon: "shop",
+                        });
+                        trackTuongTac({
+                          loaiDoiTuong: "shop_san_pham",
+                          idDoiTuong: m.sanPhamId,
+                          hanhVi: "click_sidebar_hang",
+                          nguon: "shop",
+                        });
+                      }
                     }}
                   >
                     <span className="j-shop-loai-chip-media" aria-hidden>

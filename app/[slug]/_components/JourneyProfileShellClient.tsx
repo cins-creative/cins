@@ -9,6 +9,7 @@ import { VideoProcessingPoller } from "@/components/journey/VideoProcessingPolle
 import { SubjectPageTracker } from "@/components/social/SubjectPageTracker";
 import { JourneyComposeProvider } from "@/components/journey/JourneyComposeContext";
 import { JourneyFeaturedAsideFilterProvider } from "@/components/journey/JourneyFeaturedAsideFilterContext";
+import { JourneyPersonalFilterProvider } from "@/components/journey/JourneyPersonalFilterContext";
 import {
   JourneySidebar,
   type JourneyProfileView,
@@ -114,30 +115,41 @@ export function JourneyProfileShellClient({
     </div>
   );
 
+  const tracked = (
+    <>
+      {canComposePosts ? (
+        <VideoProcessingPoller ownerSlug={profile.slug} />
+      ) : null}
+      <SubjectPageTracker
+        loai="nguoi_dung"
+        id={ownerId}
+        nguon="permalink"
+        enabled={!isOwner}
+      />
+      {shell}
+    </>
+  );
+
   return (
     <JourneyViewProvider initialView={activeView} slug={profile.slug}>
       <JourneyFeaturedAsideFilterProvider>
-        {/* Khách cũng cần PersonalFilterProvider — không thì mất «Nhãn riêng» trong filter. */}
-        <JourneyComposeProvider
-          ownerId={ownerId}
-          ownerSlug={profile.slug}
-          ownerName={ownerName}
-          ownerAvatarId={ownerAvatarId}
-          isOwner={isOwner}
-          adminSeedingEdit={adminSeedingEdit}
-          initialCompose={canComposePosts ? initialCompose : null}
-        >
-          {canComposePosts ? (
-            <VideoProcessingPoller ownerSlug={profile.slug} />
-          ) : null}
-          <SubjectPageTracker
-            loai="nguoi_dung"
-            id={ownerId}
-            nguon="permalink"
-            enabled={!isOwner}
-          />
-          {shell}
-        </JourneyComposeProvider>
+        {canComposePosts ? (
+          <JourneyComposeProvider
+            ownerId={ownerId}
+            ownerSlug={profile.slug}
+            ownerName={ownerName}
+            ownerAvatarId={ownerAvatarId}
+            isOwner={isOwner}
+            adminSeedingEdit={adminSeedingEdit}
+            initialCompose={initialCompose}
+          >
+            {tracked}
+          </JourneyComposeProvider>
+        ) : (
+          <JourneyPersonalFilterProvider ownerId={ownerId} isOwner={isOwner}>
+            {tracked}
+          </JourneyPersonalFilterProvider>
+        )}
       </JourneyFeaturedAsideFilterProvider>
     </JourneyViewProvider>
   );
