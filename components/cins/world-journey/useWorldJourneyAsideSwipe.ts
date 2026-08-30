@@ -130,8 +130,14 @@ export function useWorldJourneyAsideSwipe({
         drag = null;
         return;
       }
-      const el = e.target;
-      if (el instanceof Element && el.closest(IGNORE)) {
+      const raw = e.target;
+      const el =
+        raw instanceof Element
+          ? raw
+          : raw instanceof Node
+            ? raw.parentElement
+            : null;
+      if (el?.closest(IGNORE)) {
         drag = null;
         return;
       }

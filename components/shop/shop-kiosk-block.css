@@ -42,7 +42,12 @@
   text-align: left;
   font: inherit;
   color: inherit;
-  touch-action: pan-y;
+  /*
+   * none — không pan-y. pan-y để iOS/Chrome khóa cuộn trang ngay touchstart,
+   * rồi touchcancel; đổi touch-action lúc .is-dragging không ăn (đã chốt gesture).
+   * Vuốt dọc bắt đầu trên hàng này không cuộn trang (hàng ~96–128px).
+   */
+  touch-action: none;
 }
 
 .shop-kiosk-ticker-label {
@@ -141,13 +146,12 @@
   cursor: grab;
   user-select: none;
   -webkit-user-select: none;
-  touch-action: pan-y;
+  touch-action: none;
   overscroll-behavior-x: contain;
 }
 
 .shop-kiosk-ticker.is-dragging {
   cursor: grabbing;
-  touch-action: none;
 }
 
 .shop-kiosk-ticker-track {
@@ -174,8 +178,9 @@
   cursor: pointer;
   line-height: 0;
   overflow: hidden;
-  touch-action: pan-y;
+  touch-action: none;
   -webkit-touch-callout: none;
+  -webkit-user-drag: none;
 }
 
 .shop-kiosk-ticker-thumb-btn:focus-visible {
@@ -185,6 +190,8 @@
 
 .shop-kiosk-ticker-thumb-btn .shop-img-protect-decoy-hit {
   z-index: 2;
+  touch-action: none;
+  -webkit-user-drag: none;
 }
 
 .shop-kiosk-ticker-thumb {

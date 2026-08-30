@@ -86,6 +86,11 @@ const TICKER_INERTIA_SAMPLES_MAX = 12;
 const TICKER_COPIES_MIN = 3;
 /** Trần bản nhân — 1 thumb hẹp + viewport rộng vẫn đủ cuộn. */
 const TICKER_COPIES_MAX = 24;
+/**
+ * Khóa trục — 3px quá thấp: ngón trên mobile hay lệch dọc trước,
+ * rồi abort drag / iOS nuốt gesture thành cuộn trang.
+ */
+const TICKER_AXIS_LOCK_PX = 10;
 
 function canIncreaseLineQty(soLuongTon: number, currentQty: number): boolean {
   return currentQty < Math.max(0, soLuongTon);
@@ -166,7 +171,10 @@ export function ShopKioskBlock({
   const qtyEpochRef = useRef(new Map<string, number>());
 
   const tickerScrollRef = useRef<HTMLDivElement>(null);
+  const tickerHitRef = useRef<HTMLDivElement>(null);
   const tickerTrackRef = useRef<HTMLDivElement>(null);
+  /** TouchEvent đã nhận — pointermove/up touch nhường native (tránh giật 2x / iOS cancel). */
+  const tickerPreferTouchRef = useRef(false);
   const catalogBodyRef = useRef<HTMLDivElement>(null);
   const tickerDragRef = useRef<{
     pointerId: number;
@@ -353,15 +361,19 @@ export function ShopKioskBlock({
       const dy = clientY - drag.startY;
 
       if (!drag.active) {
-        if (Math.abs(dx) < 3 && Math.abs(dy) < 3) return "ignore";
-        /* Touch/pen vuốt dọc → trả lại trang, đừng khóa ticker. */
-        if (pointerType !== "mouse" && Math.abs(dy) >= Math.abs(dx)) {
+        const adx = Math.abs(dx);
+        const ady = Math.abs(dy);
+        if (adx < TICKER_AXIS_LOCK_PX && ady < TICKER_AXIS_LOCK_PX) {
+          return "ignore";
+        }
+        /* Touch/pen: chỉ trả gesture khi đã rõ là vuốt dọc. */
+        if (pointerType !== "mouse" && ady > adx) {
           tickerDragRef.current = null;
           abortTickerDragHold();
           tickerScrollRef.current?.classList.remove("is-dragging");
           return "vertical";
         }
-        if (Math.abs(dx) < 3) return "ignore";
+        if (adx < TICKER_AXIS_LOCK_PX) return "ignore";
         drag.active = true;
         tickerScrollRef.current?.classList.add("is-dragging");
       }
@@ -415,14 +427,24 @@ export function ShopKioskBlock({
     }
   }, []);
 
+  const tickerFromLabel = useCallback((target: EventTarget | null) => {
+    const node =
+      target instanceof Element
+        ? target
+        : target instanceof Node
+          ? target.parentElement
+          : null;
+    return Boolean(node?.closest(".shop-kiosk-ticker-label"));
+  }, []);
+
   const onTickerPointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
-      /* Touch: native touchstart/move (passive:false). Pointer + touch cùng lúc → giật. */
-      if (e.pointerType === "touch") return;
       if (e.pointerType === "mouse" && e.button !== 0) return;
-      /* Dừng ticker ngay từ lúc nhấn — không đợi ngưỡng 3px. */
+      if (tickerFromLabel(e.target)) return;
+      /* TouchEvent tới sau trên máy thật. Pointerdown vẫn bắt đầu để
+         Chrome DevTools / Pointer-only (không có TouchEvent) kéo được. */
+      if (tickerPreferTouchRef.current) return;
       beginTickerDrag(e.clientX, e.clientY, e.pointerId);
-      /* Chỉ capture chuột. iOS setPointerCapture hay mất gesture giữa chừng. */
       if (e.pointerType === "mouse") {
         try {
           e.currentTarget.setPointerCapture(e.pointerId);
@@ -431,12 +453,13 @@ export function ShopKioskBlock({
         }
       }
     },
-    [beginTickerDrag],
+    [beginTickerDrag, tickerFromLabel],
   );
 
   const onTickerPointerMove = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
-      if (e.pointerType === "touch") return;
+      /* Có TouchEvent → native touchmove là SoT (tránh dx 2 lần). */
+      if (tickerPreferTouchRef.current) return;
       const drag = tickerDragRef.current;
       if (!drag || drag.pointerId !== e.pointerId) return;
       if (applyTickerDragMove(e.clientX, e.clientY, e.pointerType) === "horizontal") {
@@ -448,36 +471,42 @@ export function ShopKioskBlock({
 
   const finishTickerDrag = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
-      /* pointercancel touch hay cắt native drag khi iOS nghĩ đang scroll. */
-      if (e.pointerType === "touch") return;
+      /* iOS + Chrome DevTools hay bắn pointercancel trước TouchEvent / khi
+         nghĩ đang scroll — đừng cắt drag. Native touchend hoặc pointerup kết. */
+      if (e.pointerType === "touch" && e.type === "pointercancel") return;
+      if (tickerPreferTouchRef.current) return;
       const drag = tickerDragRef.current;
       if (!drag || drag.pointerId !== e.pointerId) return;
-      endTickerDrag(e.currentTarget);
+      endTickerDrag(tickerScrollRef.current);
     },
     [endTickerDrag],
   );
 
   const onTickerLostPointerCapture = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
-      /* Touch không capture — lostpointercapture giả trên iOS đừng cắt drag. */
       if (e.pointerType !== "mouse") return;
+      if (tickerPreferTouchRef.current) return;
       const drag = tickerDragRef.current;
       if (!drag || drag.pointerId !== e.pointerId) return;
-      endTickerDrag(e.currentTarget);
+      endTickerDrag(tickerScrollRef.current);
     },
     [endTickerDrag],
   );
 
   /*
-   * Mobile: React onPointerMove thường passive → preventDefault không khóa
-   * trình duyệt. Gắn touchmove native {passive:false} để dải hàng bám tay.
+   * Native touch: preventDefault + SoT khi TouchEvent có thật.
+   * Pointer-only (DevTools mobile) đi nhánh pointer ở trên.
    */
   useEffect(() => {
+    const root = tickerHitRef.current ?? tickerScrollRef.current;
     const el = tickerScrollRef.current;
-    if (!el) return;
+    if (!root || !el) return;
 
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length !== 1) return;
+      if (tickerFromLabel(e.target)) return;
+      tickerPreferTouchRef.current = true;
+      e.stopPropagation();
       const t = e.touches[0];
       beginTickerDrag(t.clientX, t.clientY, t.identifier);
     };
@@ -486,31 +515,34 @@ export function ShopKioskBlock({
       if (!tickerDragRef.current) return;
       if (e.touches.length !== 1) return;
       const t = e.touches[0];
-      if (
-        applyTickerDragMove(t.clientX, t.clientY, "touch") === "horizontal"
-      ) {
+      const axis = applyTickerDragMove(t.clientX, t.clientY, "touch");
+      if (axis === "horizontal" && e.cancelable) {
         e.preventDefault();
       }
     };
 
     const onTouchEnd = () => {
+      tickerPreferTouchRef.current = false;
       endTickerDrag(el);
     };
 
-    el.addEventListener("touchstart", onTouchStart, { passive: true });
-    el.addEventListener("touchmove", onTouchMove, {
+    root.addEventListener("touchstart", onTouchStart, {
+      passive: true,
+      capture: true,
+    });
+    root.addEventListener("touchmove", onTouchMove, {
       passive: false,
       capture: true,
     });
-    el.addEventListener("touchend", onTouchEnd);
-    el.addEventListener("touchcancel", onTouchEnd);
+    root.addEventListener("touchend", onTouchEnd);
+    root.addEventListener("touchcancel", onTouchEnd);
     return () => {
-      el.removeEventListener("touchstart", onTouchStart);
-      el.removeEventListener("touchmove", onTouchMove, true);
-      el.removeEventListener("touchend", onTouchEnd);
-      el.removeEventListener("touchcancel", onTouchEnd);
+      root.removeEventListener("touchstart", onTouchStart, true);
+      root.removeEventListener("touchmove", onTouchMove, true);
+      root.removeEventListener("touchend", onTouchEnd);
+      root.removeEventListener("touchcancel", onTouchEnd);
     };
-  }, [applyTickerDragMove, beginTickerDrag, endTickerDrag]);
+  }, [applyTickerDragMove, beginTickerDrag, endTickerDrag, tickerFromLabel]);
 
   const onTickerClickCapture = useCallback(
     (e: ReactMouseEvent<HTMLDivElement>) => {
@@ -1482,20 +1514,21 @@ export function ShopKioskBlock({
         onKeyDown={(e) => e.stopPropagation()}
       >
         <div
+          ref={tickerHitRef}
           className="shop-kiosk-ticker-hit"
           role="group"
           aria-label={`Hàng bán · ${items.length} sản phẩm`}
+          onPointerDown={onTickerPointerDown}
+          onPointerMove={onTickerPointerMove}
+          onPointerUp={finishTickerDrag}
+          onPointerCancel={finishTickerDrag}
+          onLostPointerCapture={onTickerLostPointerCapture}
+          onClickCapture={onTickerClickCapture}
         >
           <div
             ref={tickerScrollRef}
             className="shop-kiosk-ticker"
             data-cins-auto-scroll=""
-            onPointerDown={onTickerPointerDown}
-            onPointerMove={onTickerPointerMove}
-            onPointerUp={finishTickerDrag}
-            onPointerCancel={finishTickerDrag}
-            onLostPointerCapture={onTickerLostPointerCapture}
-            onClickCapture={onTickerClickCapture}
           >
             <div ref={tickerTrackRef} className="shop-kiosk-ticker-track">
               {Array.from({

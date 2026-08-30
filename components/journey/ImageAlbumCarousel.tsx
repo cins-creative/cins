@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import {
   gridLightboxSrc,
@@ -98,6 +98,12 @@ export function ImageAlbumCarousel({ images, isFirstGroup = false }: Props) {
     ? naturalSize.height > naturalSize.width
     : isPortraitGridImage(current);
 
+  const naturalAspect = naturalSize
+    ? naturalSize.width / naturalSize.height
+    : current.width > 0 && current.height > 0
+      ? current.width / current.height
+      : undefined;
+
   return (
     <div
       className={`image-album-carousel${portrait ? " is-portrait" : ""}`}
@@ -105,6 +111,13 @@ export function ImageAlbumCarousel({ images, isFirstGroup = false }: Props) {
       role="region"
       aria-roledescription="carousel"
       aria-label="Album ảnh"
+      style={
+        naturalAspect != null && naturalAspect > 0
+          ? ({
+              ["--media-natural-aspect" as string]: String(naturalAspect),
+            } as CSSProperties)
+          : undefined
+      }
     >
       <div className="image-album-carousel-stage">
         <figure className="image-album-carousel-figure">

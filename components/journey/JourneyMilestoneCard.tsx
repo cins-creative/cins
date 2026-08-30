@@ -1895,6 +1895,10 @@ export function JourneyMilestoneCard({
             ...(milestone.authorCardTheme.imageUrl
               ? { "data-card-image": "1" as const }
               : {}),
+            ...(milestone.authorCardTheme.patternId !== "none" &&
+            !milestone.authorCardTheme.imageUrl
+              ? { "data-card-pattern": "1" as const }
+              : {}),
             style: authorCardThemeStyle(milestone.authorCardTheme),
           }
         : {})}

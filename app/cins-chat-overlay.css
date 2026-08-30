@@ -7745,6 +7745,10 @@ button.cins-canvas-table-cell-text {
   --cins-chat-sender-avatar: 28px;
 }
 
+.j-chat-mini-messages .cins-chat-sender-text {
+  max-width: 100%;
+}
+
 .j-chat-mini-messages .cins-chat-sender-cluster .j-chat-mini-avatar {
   width: var(--cins-chat-sender-avatar);
   height: var(--cins-chat-sender-avatar);
@@ -11312,7 +11316,11 @@ button.cins-chat-don-card-cta.is-action:disabled {
   --cins-chat-cluster-gap: 2px;
   --cins-chat-sender-gap: 16px;
   flex: 1 1 auto;
+  min-width: 0;
   min-height: 0;
+  /* Chỉ overflow-y:auto → CSS tính overflow-x:auto; scrollbar dọc Windows
+     + hàng width 100% / nút hover ~78px làm lộ thanh ngang. Khớp overlay. */
+  overflow-x: hidden;
   overflow-y: auto;
   /* Chặn scroll chaining → timeline phía sau (mobile). */
   overscroll-behavior: contain;
@@ -11625,24 +11633,17 @@ button.cins-chat-don-card-cta.is-action:disabled {
     display: none;
   }
 
-  /* Bubble peek — cột dọc sát mép phải. */
+  /* Bubble peek — cột dọc sát mép phải. overflow visible: badge unread
+     (top/right -4px) và trash-zone phía trên không bị crop. */
   .j-chat-dock.is-botbar-anchored .j-chat-bubbles {
     flex-direction: column;
     align-items: flex-end;
     justify-content: flex-end;
     max-width: none;
-    max-height: min(36dvh, 252px);
-    overflow-x: visible;
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    max-height: none;
+    overflow: visible;
     gap: 8px;
-    padding: 2px 0;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-
-  .j-chat-dock.is-botbar-anchored .j-chat-bubbles::-webkit-scrollbar {
-    display: none;
+    padding: 4px;
   }
 
   /* Mini panel bên trái cột bubble, neo đáy phải. */

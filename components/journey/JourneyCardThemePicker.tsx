@@ -8,12 +8,22 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
 } from "react";
-import { Moon, MoreHorizontal, Sun, X } from "lucide-react";
+import { Moon, MoreHorizontal, Move, Sun, X } from "lucide-react";
 
 import {
   authorCardThemeStyle,
+  CARD_IMAGE_ROTATE_DEFAULT,
+  CARD_IMAGE_ROTATE_MAX,
+  CARD_IMAGE_ROTATE_MIN,
+  CARD_IMAGE_SCALE_DEFAULT,
+  CARD_IMAGE_SCALE_MAX,
+  CARD_IMAGE_SCALE_MIN,
   cardsEqual,
+  clampCardImagePos,
+  clampCardImageRotate,
+  clampCardImageScale,
   DEFAULT_CARD_THEME,
   parseCardTheme,
   resolveAuthorCardThemeDto,
@@ -27,9 +37,12 @@ import {
   PROFILE_BG_DIM_DEFAULT,
   PROFILE_BG_DIM_MAX,
   PROFILE_BG_DIM_MIN,
+  PROFILE_PATTERNS,
+  getPatternDef,
   profileThemeImageUrl,
   resolveAccentHex,
   type ProfileCustomEntry,
+  type ProfilePatternId,
   type ProfilePresetAccentId,
   type ProfileThemeSlice,
 } from "@/lib/journey/profile-theme";
@@ -74,7 +87,13 @@ export type JourneyCardThemePickerHandle = {
 function sliceCard(
   raw: ProfileCardThemeSlice | null | undefined,
 ): ProfileCardThemeSlice {
-  return raw ? { ...raw } : { ...DEFAULT_CARD_THEME };
+  return parseCardTheme(raw ?? DEFAULT_CARD_THEME);
+}
+
+function cardPosCss(x: number, y: number): string {
+  const px = Math.round(clampCardImagePos(x) * 1000) / 10;
+  const py = Math.round(clampCardImagePos(y) * 1000) / 10;
+  return `${px}% ${py}%`;
 }
 
 function sliceTheme(
@@ -115,6 +134,15 @@ export const JourneyCardThemePicker = forwardRef<
   const themeRef = useRef(theme);
   const customsRef = useRef(customs);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const previewArticleRef = useRef<HTMLElement>(null);
+  const cropRef = useRef<HTMLDivElement>(null);
+  const datebarRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{
+    pointerId: number;
+    lastX: number;
+    lastY: number;
+    pos: { x: number; y: number };
+  } | null>(null);
   const [status, setStatus] = useState<"idle" | "saving" | "ok" | "err">(
     "idle",
   );
@@ -149,6 +177,21 @@ export const JourneyCardThemePicker = forwardRef<
   useEffect(() => {
     onDirtyChange?.(dirty);
   }, [dirty, onDirtyChange]);
+
+  useEffect(() => {
+    const el = cropRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!cardRef.current.enabled || !cardRef.current.imageId) return;
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 0.06 : -0.06;
+      onImagePlace({
+        scale: clampCardImageScale(cardRef.current.scale + delta),
+      });
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [card.enabled, card.imageId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -285,11 +328,125 @@ export const JourneyCardThemePicker = forwardRef<
   }
 
   function onSelectImage(imageId: string) {
-    commit({ ...cardRef.current, imageId, enabled: true });
+    commit({
+      ...cardRef.current,
+      imageId,
+      enabled: true,
+      patternId: "none",
+    });
   }
 
   function onClearImage() {
-    commit({ ...cardRef.current, imageId: null });
+    commit({ ...cardRef.current, imageId: null, patternId: "none" });
+  }
+
+  function onPattern(id: ProfilePatternId) {
+    commit({
+      ...cardRef.current,
+      mode: "custom",
+      enabled: true,
+      patternId: id,
+      imageId: id === "none" ? cardRef.current.imageId : null,
+    });
+  }
+
+  function onImagePlace(partial: {
+    position?: { x: number; y: number };
+    scale?: number;
+    rotate?: number;
+  }) {
+    const cur = cardRef.current;
+    commit({
+      ...cur,
+      position: partial.position
+        ? {
+            x: clampCardImagePos(partial.position.x),
+            y: clampCardImagePos(partial.position.y),
+          }
+        : cur.position,
+      scale:
+        partial.scale !== undefined
+          ? clampCardImageScale(partial.scale)
+          : cur.scale,
+      rotate:
+        partial.rotate !== undefined
+          ? clampCardImageRotate(partial.rotate)
+          : cur.rotate,
+    });
+  }
+
+  function resetImagePlace() {
+    onImagePlace({
+      position: { x: 0.5, y: 0.5 },
+      scale: CARD_IMAGE_SCALE_DEFAULT,
+      rotate: CARD_IMAGE_ROTATE_DEFAULT,
+    });
+  }
+
+  function paintPreviewPlace(
+    pos: { x: number; y: number },
+    scale: number,
+    rotate: number,
+  ) {
+    const el = previewArticleRef.current;
+    if (!el) return;
+    el.style.setProperty("--j-card-image-pos", cardPosCss(pos.x, pos.y));
+    el.style.setProperty("--j-card-image-nx", String(pos.x));
+    el.style.setProperty("--j-card-image-ny", String(pos.y));
+    el.style.setProperty("--j-card-image-scale", String(scale));
+    el.style.setProperty("--j-card-image-rotate", `${rotate}deg`);
+  }
+
+  function onCropPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
+    if (!cardRef.current.imageId || !cardRef.current.enabled) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const el = cropRef.current;
+    if (!el) return;
+    el.setPointerCapture(e.pointerId);
+    el.classList.add("is-dragging");
+    const pos = cardRef.current.position;
+    dragRef.current = {
+      pointerId: e.pointerId,
+      lastX: e.clientX,
+      lastY: e.clientY,
+      pos: { x: pos.x, y: pos.y },
+    };
+  }
+
+  function onCropPointerMove(e: ReactPointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== e.pointerId) return;
+    const cur = cardRef.current;
+    const bar = datebarRef.current;
+    if (!bar) return;
+    const rect = bar.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    /* Cùng hệ số với ::before trên thanh thật (rộng × 1/1.44). */
+    const canvasH = Math.max(rect.height, rect.width / 1.44);
+    const dx = (e.clientX - drag.lastX) / rect.width;
+    const dy = (e.clientY - drag.lastY) / canvasH;
+    const next = {
+      x: clampCardImagePos(drag.pos.x - dx),
+      y: clampCardImagePos(drag.pos.y - dy),
+    };
+    drag.lastX = e.clientX;
+    drag.lastY = e.clientY;
+    drag.pos = next;
+    paintPreviewPlace(next, cur.scale, cur.rotate);
+  }
+
+  function onCropPointerUp(e: ReactPointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (drag?.pointerId !== e.pointerId) return;
+    dragRef.current = null;
+    cropRef.current?.classList.remove("is-dragging");
+    try {
+      cropRef.current?.releasePointerCapture(e.pointerId);
+    } catch {
+      /* already released */
+    }
+    onImagePlace({ position: drag.pos });
   }
 
   function onAccent(id: ProfilePresetAccentId) {
@@ -395,16 +552,59 @@ export const JourneyCardThemePicker = forwardRef<
       ? { ["--j-card-accent"]: previewAccent }
       : undefined;
 
+  const canPlaceImage = Boolean(card.enabled && card.imageId);
+  const imageScale = clampCardImageScale(card.scale);
+  const imageRotate = clampCardImageRotate(card.rotate);
+  const imagePos = {
+    x: clampCardImagePos(card.position?.x),
+    y: clampCardImagePos(card.position?.y),
+  };
+
+  const datebarInner = (
+    <>
+      <span className="org-chip">
+        <span className="org-logo" aria-hidden>
+          {authorAvatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={authorAvatarUrl} alt="" />
+          ) : (
+            initials
+          )}
+        </span>
+        <span className="org-copy">
+          <strong>{previewName}</strong>
+          <small>Vừa xong</small>
+        </span>
+      </span>
+      <div className="jcard-corner-actions">
+        <span className="j-m-menu jcard-date-menu">
+          <span className="j-m-menu-btn" aria-hidden>
+            <MoreHorizontal size={18} strokeWidth={2} />
+          </span>
+        </span>
+      </div>
+    </>
+  );
+
   const previewNode = (
     <article
-      className="j-milestone j-self j-card-theme-demo"
-      aria-hidden
+      ref={previewArticleRef}
+      className={
+        "j-milestone j-self j-card-theme-demo" +
+        (canPlaceImage ? " is-placing" : "")
+      }
       data-preview-scheme={scheme}
       {...(previewDto
         ? {
             "data-card-theme": "1" as const,
             ...(previewDto.imageUrl
               ? { "data-card-image": "1" as const }
+              : {}),
+            ...(previewDto.patternId !== "none" && !previewDto.imageUrl
+              ? { "data-card-pattern": "1" as const }
+              : {}),
+            ...(previewDto.accentHex
+              ? { "data-card-accent": "1" as const }
               : {}),
             style: previewStyle,
           }
@@ -415,27 +615,36 @@ export const JourneyCardThemePicker = forwardRef<
       <div className="j-m-body-wrap">
         <div className="j-m-card jcard jcard--photo">
           <div className="j-m-card-main">
-            <div className="jcard-datebar jcard-datebar--guest">
-              <span className="org-chip">
-                <span className="org-logo" aria-hidden>
-                  {authorAvatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={authorAvatarUrl} alt="" />
-                  ) : (
-                    initials
-                  )}
-                </span>
-                <span className="org-copy">
-                  <strong>{previewName}</strong>
-                  <small>Vừa xong</small>
-                </span>
-              </span>
-              <div className="jcard-corner-actions">
-                <span className="j-m-menu jcard-date-menu">
-                  <span className="j-m-menu-btn" aria-hidden>
-                    <MoreHorizontal size={18} strokeWidth={2} />
-                  </span>
-                </span>
+            <div
+              ref={canPlaceImage ? cropRef : undefined}
+              className={canPlaceImage ? "j-card-theme-crop" : undefined}
+              onPointerDown={canPlaceImage ? onCropPointerDown : undefined}
+              onPointerMove={canPlaceImage ? onCropPointerMove : undefined}
+              onPointerUp={canPlaceImage ? onCropPointerUp : undefined}
+              onPointerCancel={canPlaceImage ? onCropPointerUp : undefined}
+            >
+              <div
+                ref={datebarRef}
+                className={
+                  "jcard-datebar jcard-datebar--guest" +
+                  (previewDto ? " jcard-datebar--author-theme" : "")
+                }
+              >
+                {datebarInner}
+                {canPlaceImage ? (
+                  <div
+                    className="j-card-theme-crop-handle"
+                    role="slider"
+                    aria-label="Kéo vị trí ảnh"
+                    aria-valuemin={-100}
+                    aria-valuemax={200}
+                    aria-valuenow={Math.round(imagePos.x * 100)}
+                    tabIndex={0}
+                    onPointerDown={onCropPointerDown}
+                  >
+                    <Move size={12} strokeWidth={2.4} aria-hidden />
+                  </div>
+                ) : null}
               </div>
             </div>
             <div className="jcard-body j-card-theme-demo-body">
@@ -574,109 +783,176 @@ export const JourneyCardThemePicker = forwardRef<
               </label>
             </div>
           ) : null}
-        </fieldset>
 
-        <fieldset className="j-card-theme-fieldset" disabled={!card.enabled}>
-          <legend>Ảnh nền thanh</legend>
-          {uploading ? (
-            <div className="j-theme-picker-label">
-              <JourneyThemeUploadProgress progress={uploadPct} />
+          {card.mode === "custom" ? (
+            <div className="j-card-theme-pattern-block">
+              <span className="j-card-theme-pattern-label">Họa tiết</span>
+              <div
+                className="j-theme-pattern-row"
+                role="listbox"
+                aria-label="Họa tiết thanh bài"
+              >
+                {PROFILE_PATTERNS.map((p) => {
+                  const selected =
+                    !card.imageId && (card.patternId ?? "none") === p.id;
+                  const def = getPatternDef(p.id);
+                  const thumbImage =
+                    def.thumbImage !== undefined ? def.thumbImage : def.image;
+                  const thumbSize = def.thumbSize ?? def.size;
+                  const thumbPosition = def.thumbPosition ?? def.position;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      role="option"
+                      aria-selected={selected}
+                      aria-label={p.label}
+                      title={p.label}
+                      className={
+                        "j-theme-pattern" + (selected ? " is-active" : "")
+                      }
+                      style={
+                        {
+                          ["--j-accent" as string]:
+                            previewAccent ?? customValue,
+                        } as CSSProperties
+                      }
+                      onClick={() => onPattern(p.id)}
+                    >
+                      <span
+                        className="j-theme-pattern-preview"
+                        style={
+                          thumbImage
+                            ? ({
+                                ["--preview-image" as string]: thumbImage,
+                                ["--preview-size" as string]:
+                                  thumbSize ?? "auto",
+                                ["--preview-position" as string]:
+                                  thumbPosition ?? "0 0",
+                              } as CSSProperties)
+                            : undefined
+                        }
+                        aria-hidden
+                      />
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           ) : null}
-          <div className="j-theme-image-row">
-            <button
-              type="button"
-              className="j-theme-image-upload"
-              disabled={uploading || status === "saving"}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              + Tải ảnh
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              className="j-theme-image-file"
-              aria-label="Tải ảnh nền thanh bài"
-              onChange={(e) =>
-                void onUploadFile(e.currentTarget.files?.[0] ?? null)
-              }
-            />
-            <button
-              type="button"
-              className={
-                "j-card-theme-mode" + (!card.imageId ? " is-active" : "")
-              }
-              aria-pressed={!card.imageId}
-              disabled={uploading || status === "saving"}
-              onClick={onClearImage}
-            >
-              Chỉ màu
-            </button>
-            {customs.map((c) => {
-              const thumb = profileThemeImageUrl(c.imageId, "gridsm");
-              const selected = card.imageId === c.imageId;
-              const busy = removingId === c.imageId;
-              return (
-                <div
-                  key={c.imageId}
-                  className={
-                    "j-theme-image-custom" +
-                    (selected ? " is-active" : "") +
-                    (busy ? " is-removing" : "")
-                  }
-                >
-                  <button
-                    type="button"
-                    className={
-                      "j-theme-image-thumb" + (selected ? " is-active" : "")
-                    }
-                    aria-pressed={selected}
-                    aria-label="Chọn ảnh nền thanh"
-                    disabled={
-                      Boolean(removingId) || uploading || status === "saving"
-                    }
-                    style={
-                      thumb
-                        ? { backgroundImage: `url("${thumb}")` }
-                        : undefined
-                    }
-                    onClick={() => onSelectImage(c.imageId)}
-                  />
-                  <button
-                    type="button"
-                    className="j-theme-image-remove"
-                    aria-label="Xóa ảnh này khỏi lịch sử"
-                    title="Xóa ảnh"
-                    disabled={
-                      Boolean(removingId) || uploading || status === "saving"
-                    }
-                    onClick={() => void onRemoveCustom(c.imageId)}
-                  >
-                    <X size={12} strokeWidth={2.2} aria-hidden />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
+        </fieldset>
 
-          <div className="j-theme-dim">
-            <label className="j-theme-dim-label" htmlFor="j-card-theme-dim">
-              Độ đậm nền
-              <span>
-                {Math.round((card.dim || PROFILE_BG_DIM_DEFAULT) * 100)}%
-              </span>
-            </label>
-            <input
-              id="j-card-theme-dim"
-              type="range"
-              min={PROFILE_BG_DIM_MIN}
-              max={PROFILE_BG_DIM_MAX}
-              step={0.01}
-              value={card.dim || PROFILE_BG_DIM_DEFAULT}
-              onChange={(e) => onDim(Number(e.currentTarget.value))}
-            />
-          </div>
+        <fieldset
+          className="j-card-theme-fieldset"
+          disabled={!card.enabled}
+          aria-label="Ảnh nền thanh"
+        >
+          <section className="j-theme-section">
+            <div className="j-theme-picker-label">
+              <span>Ảnh nền thanh</span>
+              {uploading ? (
+                <JourneyThemeUploadProgress progress={uploadPct} />
+              ) : null}
+            </div>
+            <div className="j-theme-image-row">
+              <button
+                type="button"
+                className={
+                  "j-theme-image-thumb j-card-theme-img-none" +
+                  (!card.imageId ? " is-active" : "")
+                }
+                aria-pressed={!card.imageId}
+                disabled={uploading || status === "saving"}
+                onClick={onClearImage}
+              >
+                Chỉ màu
+              </button>
+              <button
+                type="button"
+                className="j-theme-image-upload"
+                disabled={uploading || status === "saving"}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                + Tải ảnh
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="j-theme-image-file"
+                aria-label="Tải ảnh nền thanh bài"
+                onChange={(e) =>
+                  void onUploadFile(e.currentTarget.files?.[0] ?? null)
+                }
+              />
+              {customs.map((c) => {
+                const thumb = profileThemeImageUrl(c.imageId, "gridsm");
+                const selected = card.imageId === c.imageId;
+                const busy = removingId === c.imageId;
+                return (
+                  <div
+                    key={c.imageId}
+                    className={
+                      "j-theme-image-custom" +
+                      (selected ? " is-active" : "")
+                      + (busy ? " is-removing" : "")
+                    }
+                  >
+                    <button
+                      type="button"
+                      className={
+                        "j-theme-image-thumb" + (selected ? " is-active" : "")
+                      }
+                      aria-pressed={selected}
+                      aria-label="Chọn ảnh nền thanh"
+                      disabled={
+                        Boolean(removingId) ||
+                        uploading ||
+                        status === "saving"
+                      }
+                      style={
+                        thumb
+                          ? { backgroundImage: `url("${thumb}")` }
+                          : undefined
+                      }
+                      onClick={() => onSelectImage(c.imageId)}
+                    />
+                    <button
+                      type="button"
+                      className="j-theme-image-remove"
+                      aria-label="Xóa ảnh này khỏi lịch sử"
+                      title="Xóa ảnh"
+                      disabled={
+                        Boolean(removingId) ||
+                        uploading ||
+                        status === "saving"
+                      }
+                      onClick={() => void onRemoveCustom(c.imageId)}
+                    >
+                      <X size={12} strokeWidth={2.2} aria-hidden />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="j-theme-dim">
+              <label className="j-theme-dim-label" htmlFor="j-card-theme-dim">
+                Độ đậm nền
+                <span>
+                  {Math.round((card.dim || PROFILE_BG_DIM_DEFAULT) * 100)}%
+                </span>
+              </label>
+              <input
+                id="j-card-theme-dim"
+                type="range"
+                min={PROFILE_BG_DIM_MIN}
+                max={PROFILE_BG_DIM_MAX}
+                step={0.01}
+                value={card.dim || PROFILE_BG_DIM_DEFAULT}
+                onChange={(e) => onDim(Number(e.currentTarget.value))}
+              />
+            </div>
+          </section>
         </fieldset>
       </div>
 
@@ -717,7 +993,55 @@ export const JourneyCardThemePicker = forwardRef<
             </button>
           </div>
         </div>
-        <div className="j-card-theme-aside-stage">{previewNode}</div>
+        <div className="j-card-theme-aside-stage">
+          {previewNode}
+          {canPlaceImage ? (
+            <div className="j-card-theme-place">
+              <p className="j-card-theme-place-hint">
+                Kéo thanh bài để đặt ảnh. Lăn chuột để phóng.
+              </p>
+              <div className="j-card-theme-place-row">
+                <label htmlFor="j-card-theme-scale">Phóng</label>
+                <input
+                  id="j-card-theme-scale"
+                  type="range"
+                  min={CARD_IMAGE_SCALE_MIN}
+                  max={CARD_IMAGE_SCALE_MAX}
+                  step={0.01}
+                  value={imageScale}
+                  onChange={(e) =>
+                    onImagePlace({ scale: Number(e.currentTarget.value) })
+                  }
+                />
+                <span>{Math.round(imageScale * 100)}%</span>
+              </div>
+              <div className="j-card-theme-place-row">
+                <label htmlFor="j-card-theme-rotate">Xoay</label>
+                <input
+                  id="j-card-theme-rotate"
+                  type="range"
+                  min={CARD_IMAGE_ROTATE_MIN}
+                  max={CARD_IMAGE_ROTATE_MAX}
+                  step={1}
+                  value={imageRotate}
+                  onChange={(e) =>
+                    onImagePlace({ rotate: Number(e.currentTarget.value) })
+                  }
+                />
+                <span>{Math.round(imageRotate)}°</span>
+              </div>
+              <div className="j-card-theme-place-actions">
+                <button
+                  type="button"
+                  className="j-card-theme-place-btn"
+                  onClick={resetImagePlace}
+                >
+                  Đặt lại
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </div>
       </aside>
     </div>
   );

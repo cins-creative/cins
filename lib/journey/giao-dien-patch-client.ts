@@ -61,6 +61,9 @@ export function cardSliceToPatch(
       dim: next.dim,
       imageId: next.imageId,
       position: next.position,
+      scale: next.scale,
+      rotate: next.rotate,
+      patternId: next.patternId,
       ...(next.mode === "custom"
         ? {
             accent: next.accent,

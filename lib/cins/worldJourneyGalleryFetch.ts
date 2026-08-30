@@ -1136,3 +1136,19 @@ export async function fetchWorldJourneyGalleryPageCached(
   const boosted = await withWorldBoostGalleryItems(filtered);
   return sliceGalleryPage(boosted, offset, limit);
 }
+
+/**
+ * Toàn bộ pool Stream video (đã boost) — dùng cho rail video dọc lọc portrait.
+ * Không slice trang; caller tự filter + paginate.
+ */
+export async function fetchWorldJourneyVideoPoolItemsCached(
+  viewerId: string,
+): Promise<GalleryMainItem[]> {
+  const ranked = await buildVideoCached(viewerId);
+  const filtered = applyWorldJourneyGalleryPageFilters(
+    ranked,
+    videoGalleryPageOptions({ filter: "video", source: "all" }),
+  );
+  const boosted = await withWorldBoostGalleryItems(filtered);
+  return boosted.map(({ sortAt: _s, postOwnerId: _owner, ...rest }) => rest);
+}

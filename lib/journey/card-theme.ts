@@ -10,13 +10,16 @@ import type { CSSProperties } from "react";
 
 import { getCfAccountHash } from "@/lib/cloudflare/account-hash";
 import {
+  getPatternDef,
   isProfileAccentId,
+  isProfilePatternId,
   isProfilePresetAccentId,
   normalizeAccentHex,
   resolveAccentHex,
   type ProfileAccentId,
   type ProfileBgPosition,
   type ProfileCustomEntry,
+  type ProfilePatternId,
   type ProfileThemeSlice,
 } from "@/lib/journey/profile-theme";
 
@@ -27,14 +30,47 @@ const CARD_DIM_MIN = 0.2;
 const CARD_DIM_MAX = 1;
 const CARD_DIM_DEFAULT = 0.35;
 
+export const CARD_IMAGE_SCALE_MIN = 0.5;
+export const CARD_IMAGE_SCALE_MAX = 3;
+export const CARD_IMAGE_SCALE_DEFAULT = 1;
+export const CARD_IMAGE_ROTATE_MIN = -180;
+export const CARD_IMAGE_ROTATE_MAX = 180;
+export const CARD_IMAGE_ROTATE_DEFAULT = 0;
+
 function clampCardDim(raw: unknown): number {
   if (typeof raw !== "number" || !Number.isFinite(raw)) return CARD_DIM_DEFAULT;
   return Math.min(CARD_DIM_MAX, Math.max(CARD_DIM_MIN, raw));
 }
 
+export const CARD_IMAGE_POS_MIN = -1;
+export const CARD_IMAGE_POS_MAX = 2;
+
 function clampCardPos(raw: unknown, fallback = 0.5): number {
   if (typeof raw !== "number" || !Number.isFinite(raw)) return fallback;
-  return Math.min(1, Math.max(0, raw));
+  return Math.min(CARD_IMAGE_POS_MAX, Math.max(CARD_IMAGE_POS_MIN, raw));
+}
+
+export function clampCardImagePos(
+  raw: unknown,
+  fallback = 0.5,
+): number {
+  return clampCardPos(raw, fallback);
+}
+
+export function clampCardImageScale(
+  raw: unknown,
+  fallback = CARD_IMAGE_SCALE_DEFAULT,
+): number {
+  if (typeof raw !== "number" || !Number.isFinite(raw)) return fallback;
+  return Math.min(CARD_IMAGE_SCALE_MAX, Math.max(CARD_IMAGE_SCALE_MIN, raw));
+}
+
+export function clampCardImageRotate(
+  raw: unknown,
+  fallback = CARD_IMAGE_ROTATE_DEFAULT,
+): number {
+  if (typeof raw !== "number" || !Number.isFinite(raw)) return fallback;
+  return Math.min(CARD_IMAGE_ROTATE_MAX, Math.max(CARD_IMAGE_ROTATE_MIN, raw));
 }
 
 function parseCardPosition(raw: unknown): ProfileBgPosition {
@@ -47,6 +83,15 @@ function cardPositionToCss(pos: ProfileBgPosition): string {
   const x = Math.round(clampCardPos(pos.x) * 1000) / 10;
   const y = Math.round(clampCardPos(pos.y) * 1000) / 10;
   return `${x}% ${y}%`;
+}
+
+function resolveCardPatternId(
+  card: ProfileCardThemeSlice,
+  imageUrl: string | null,
+): ProfilePatternId {
+  if (imageUrl) return "none";
+  if (card.mode !== "custom") return "none";
+  return isProfilePatternId(card.patternId) ? card.patternId : "none";
 }
 
 /** Slider độ đậm → CSS overlay (đảo: 100% nền → phủ 0). */
@@ -79,8 +124,14 @@ export type ProfileCardThemeSlice = {
   dim: number;
   /** CF Images id trong `customs`; null = chỉ nền màu. */
   imageId: string | null;
-  /** Trọng tâm crop ảnh trên datebar — 0..1 (giống Theme wallpaper). */
+  /** Trọng tâm crop ảnh trên datebar — −1…2 (0.5 = giữa; ngoài 0–1 để kéo góc). */
   position: ProfileBgPosition;
+  /** Phóng ảnh quanh điểm neo — 0.5–3 (1 = cover). */
+  scale: number;
+  /** Xoay ảnh quanh điểm neo — độ, −180…180. */
+  rotate: number;
+  /** Họa tiết CSS (cùng catalog Theme). Chỉ áp khi mode = custom và không có ảnh. */
+  patternId: ProfilePatternId;
 };
 
 /** DTO gắn lên milestone / datebar — hex + dim + URL ảnh đã resolve. */
@@ -90,6 +141,10 @@ export type AuthorCardThemeDto = {
   dim: number;
   imageUrl: string | null;
   position: ProfileBgPosition;
+  scale: number;
+  rotate: number;
+  /** `none` = không họa tiết. */
+  patternId: ProfilePatternId;
 };
 
 export const DEFAULT_CARD_THEME: ProfileCardThemeSlice = {
@@ -100,6 +155,9 @@ export const DEFAULT_CARD_THEME: ProfileCardThemeSlice = {
   dim: CARD_DIM_DEFAULT,
   imageId: null,
   position: { x: 0.5, y: 0.5 },
+  scale: CARD_IMAGE_SCALE_DEFAULT,
+  rotate: CARD_IMAGE_ROTATE_DEFAULT,
+  patternId: "none",
 };
 
 export function isCardAccentMode(value: unknown): value is CardAccentMode {
@@ -162,6 +220,9 @@ export function parseCardTheme(
     dim,
     imageId,
     position: parseCardPosition(obj.position),
+    scale: clampCardImageScale(obj.scale),
+    rotate: clampCardImageRotate(obj.rotate),
+    patternId: isProfilePatternId(obj.patternId) ? obj.patternId : "none",
   };
 }
 
@@ -169,6 +230,8 @@ export function serializeCardTheme(
   card: ProfileCardThemeSlice,
 ): Record<string, unknown> | undefined {
   const position = parseCardPosition(card.position);
+  const scale = clampCardImageScale(card.scale);
+  const rotate = clampCardImageRotate(card.rotate);
   return {
     v: 1,
     enabled: card.enabled === true,
@@ -186,6 +249,9 @@ export function serializeCardTheme(
     dim: clampCardDim(card.dim),
     imageId: card.imageId,
     position: { x: position.x, y: position.y },
+    scale,
+    rotate,
+    patternId: isProfilePatternId(card.patternId) ? card.patternId : "none",
   };
 }
 
@@ -197,6 +263,9 @@ export type CardThemePatchInput = {
   dim?: number;
   imageId?: string | null;
   position?: ProfileBgPosition;
+  scale?: number;
+  rotate?: number;
+  patternId?: ProfilePatternId;
 };
 
 export type ValidateCardPatchResult =
@@ -254,6 +323,27 @@ export function validateCardPatchBody(
     };
   }
 
+  if ("scale" in obj) {
+    if (typeof obj.scale !== "number" || Number.isNaN(obj.scale)) {
+      return { ok: false, error: "card.scale phải là số." };
+    }
+    patch.scale = clampCardImageScale(obj.scale);
+  }
+
+  if ("rotate" in obj) {
+    if (typeof obj.rotate !== "number" || Number.isNaN(obj.rotate)) {
+      return { ok: false, error: "card.rotate phải là số." };
+    }
+    patch.rotate = clampCardImageRotate(obj.rotate);
+  }
+
+  if ("patternId" in obj) {
+    if (!isProfilePatternId(obj.patternId)) {
+      return { ok: false, error: "card.patternId không hợp lệ." };
+    }
+    patch.patternId = obj.patternId;
+  }
+
   if ("accent" in obj) {
     if (!isProfileAccentId(obj.accent)) {
       return { ok: false, error: "card.accent không hợp lệ." };
@@ -308,6 +398,17 @@ export function applyCardPatch(
     if (!allowed.has(imageId)) imageId = null;
   }
 
+  let patternId: ProfilePatternId = isProfilePatternId(prev.patternId)
+    ? prev.patternId
+    : "none";
+  if (patch.patternId !== undefined) {
+    patternId = patch.patternId;
+    if (patternId !== "none" && patch.imageId === undefined) {
+      imageId = null;
+    }
+  }
+  if (imageId) patternId = "none";
+
   const prevPos = parseCardPosition(prev.position);
   const position = patch.position
     ? {
@@ -327,6 +428,15 @@ export function applyCardPatch(
         : clampCardDim(prev.dim),
     imageId,
     position,
+    scale:
+      patch.scale !== undefined
+        ? clampCardImageScale(patch.scale)
+        : clampCardImageScale(prev.scale),
+    rotate:
+      patch.rotate !== undefined
+        ? clampCardImageRotate(patch.rotate)
+        : clampCardImageRotate(prev.rotate),
+    patternId,
   };
 }
 
@@ -346,10 +456,21 @@ export function resolveAuthorCardThemeDto(
     : null;
   const position = parseCardPosition(card.position);
   const dim = clampCardDim(card.dim);
+  const scale = clampCardImageScale(card.scale);
+  const rotate = clampCardImageRotate(card.rotate);
+  const patternId = resolveCardPatternId(card, imageUrl);
 
   if (card.mode === "none") {
     if (!imageUrl) return null;
-    return { accentHex: null, dim, imageUrl, position };
+    return {
+      accentHex: null,
+      dim,
+      imageUrl,
+      position,
+      scale,
+      rotate,
+      patternId: "none",
+    };
   }
 
   let accentHex: string;
@@ -360,8 +481,13 @@ export function resolveAuthorCardThemeDto(
       accentHex: card.accentHex,
     });
   } else {
-    /* inherit — không tint nếu theme vẫn CINs mặc định và không có ảnh. */
-    if (theme.accent === "cins" && !theme.accentHex && !card.imageId) {
+    /* inherit — không tint nếu theme vẫn CINs mặc định và không có ảnh / họa tiết. */
+    if (
+      theme.accent === "cins" &&
+      !theme.accentHex &&
+      !card.imageId &&
+      patternId === "none"
+    ) {
       return null;
     }
     accentHex = resolveAccentHex(theme);
@@ -372,6 +498,9 @@ export function resolveAuthorCardThemeDto(
     dim,
     imageUrl,
     position,
+    scale,
+    rotate,
+    patternId,
   };
 }
 
@@ -449,6 +578,13 @@ export type CardThemeCssVars = CSSProperties & {
   ["--j-card-overlay"]?: string;
   ["--j-card-image"]?: string;
   ["--j-card-image-pos"]?: string;
+  ["--j-card-image-nx"]?: string;
+  ["--j-card-image-ny"]?: string;
+  ["--j-card-image-scale"]?: string;
+  ["--j-card-image-rotate"]?: string;
+  ["--j-card-pattern"]?: string;
+  ["--j-card-pattern-size"]?: string;
+  ["--j-card-pattern-pos"]?: string;
 };
 
 export function authorCardThemeStyle(
@@ -467,6 +603,17 @@ export function authorCardThemeStyle(
   if (dto.imageUrl) {
     vars["--j-card-image"] = `url("${dto.imageUrl}")`;
     vars["--j-card-image-pos"] = cardPositionToCss(pos);
+    vars["--j-card-image-nx"] = String(pos.x);
+    vars["--j-card-image-ny"] = String(pos.y);
+    vars["--j-card-image-scale"] = String(clampCardImageScale(dto.scale));
+    vars["--j-card-image-rotate"] = `${clampCardImageRotate(dto.rotate)}deg`;
+  } else if (dto.patternId !== "none") {
+    const def = getPatternDef(dto.patternId);
+    if (def.image) {
+      vars["--j-card-pattern"] = def.image;
+      vars["--j-card-pattern-size"] = def.size ?? "auto";
+      vars["--j-card-pattern-pos"] = def.position ?? "0 0";
+    }
   }
   return vars;
 }
@@ -484,8 +631,13 @@ export function cardsEqual(
     a.accentHex === b.accentHex &&
     a.dim === b.dim &&
     a.imageId === b.imageId &&
+    (a.patternId ?? "none") === (b.patternId ?? "none") &&
     pa.x === pb.x &&
-    pa.y === pb.y
+    pa.y === pb.y &&
+    Math.abs(clampCardImageScale(a.scale) - clampCardImageScale(b.scale)) <
+      0.0005 &&
+    Math.abs(clampCardImageRotate(a.rotate) - clampCardImageRotate(b.rotate)) <
+      0.05
   );
 }
 

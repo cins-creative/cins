@@ -20,12 +20,14 @@ import {
   WORLD_JOURNEY_FEED_PAGE_SIZE,
   WORLD_JOURNEY_GALLERY_PAGE_SIZE,
   WORLD_JOURNEY_VIDEO_PAGE_SIZE,
+  WORLD_JOURNEY_VIDEO_RAIL_POOL,
 } from "@/lib/cins/worldJourneyFeedConstants";
 import { fetchWorldJourneyFeedPageCached } from "@/lib/cins/worldJourneyFeedFetch";
 import { buildWorldJourneyFilterChips } from "@/lib/cins/worldJourneyFeedFilters";
 import { loadFeedInlinePromos } from "@/lib/cins/worldJourneyFeedPromos";
 import { FEED_SOURCE_DEFAULT } from "@/lib/cins/worldJourneyFeedSource";
 import { fetchWorldJourneyGalleryPageCached } from "@/lib/cins/worldJourneyGalleryFetch";
+import { fetchWorldJourneyVideoRailPageCached } from "@/lib/cins/worldJourneyVideoRailFetch";
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 import {
   getAvatarUrl,
@@ -112,8 +114,20 @@ export async function HomeWorldJourneyFeedBlock({
           nextOffset: 0,
         });
 
-  const [ownerResult, feedPage, galleryPage, layoutResolved, editPromos] =
-    await Promise.all([
+  const videoRailPromise = fetchWorldJourneyVideoRailPageCached(
+    viewerId,
+    0,
+    WORLD_JOURNEY_VIDEO_RAIL_POOL,
+  );
+
+  const [
+    ownerResult,
+    feedPage,
+    galleryPage,
+    layoutResolved,
+    editPromos,
+    videoRailPage,
+  ] = await Promise.all([
       fetchOwnerBySlug(slug),
       fetchWorldJourneyFeedPageCached(viewerId, 0, WORLD_JOURNEY_FEED_PAGE_SIZE, {
         source: FEED_SOURCE_DEFAULT,
@@ -122,6 +136,7 @@ export async function HomeWorldJourneyFeedBlock({
       galleryPromise,
       layoutPromise,
       editing ? promosPromise : Promise.resolve(undefined),
+      videoRailPromise,
     ]);
 
   const { owner, error } = ownerResult;
@@ -190,6 +205,9 @@ export async function HomeWorldJourneyFeedBlock({
       galleryItems={galleryPage.items}
       galleryHasMore={galleryPage.hasMore}
       galleryNextOffset={galleryPage.nextOffset}
+      videoRailItems={videoRailPage.items}
+      videoRailHasMore={videoRailPage.hasMore}
+      videoRailNextOffset={videoRailPage.nextOffset}
       initialView={initialView}
       initialPlayId={initialPlayId}
       capabilities={capabilityList}

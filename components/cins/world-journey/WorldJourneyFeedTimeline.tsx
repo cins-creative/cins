@@ -12,6 +12,10 @@ import {
 
 import { WorldJourneyFeedPromoRail } from "@/components/cins/world-journey/WorldJourneyFeedPromoRail";
 import {
+  WorldJourneyVideoRail,
+  type VideoRailOpenPayload,
+} from "@/components/cins/world-journey/WorldJourneyVideoRail";
+import {
   JourneyYearBlock,
   timelineExpandKey,
   type TimelineInlineExpandState,
@@ -23,6 +27,7 @@ import {
 import {
   WORLD_JOURNEY_FEED_PREFETCH_REMAINING_POSTS,
   WORLD_JOURNEY_FEED_SCROLL_ROOT_MARGIN,
+  WORLD_JOURNEY_VIDEO_RAIL_SIZE,
 } from "@/lib/cins/worldJourneyFeedConstants";
 import { warmFeedMediaUrls } from "@/lib/journey/warm-feed-media";
 import {
@@ -35,11 +40,16 @@ import {
   type FeedPromoKind,
   type FeedPromoVariant,
 } from "@/lib/cins/worldJourneyFeedPromosTypes";
+import { takeVideoRailSlice } from "@/lib/cins/worldJourneyVideoRail";
+import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 
 type Props = {
   milestones: ReadonlyArray<MilestoneItem>;
   viewerProfileId: string;
   feedPromos?: FeedPromoVariant[];
+  /** Pool video dọc — rail top + xen kẽ với promo. */
+  videoRailItems?: ReadonlyArray<GalleryMainItem>;
+  onOpenVideoRail?: (payload: VideoRailOpenPayload) => void;
   scrollLoad?: { enabled: boolean } | null;
   loadingMore?: boolean;
   loadError?: boolean;
@@ -80,6 +90,7 @@ const SHOW_FEED_PROMO_RAIL = true;
  * IntersectionObserver bị hủy & tạo lại liên tục → prefetch mất.
  */
 const EMPTY_FEED_PROMOS: FeedPromoVariant[] = [];
+const EMPTY_VIDEO_RAIL: GalleryMainItem[] = [];
 
 function useFeedPromoBreakpoint(): FeedPromoBreakpoint {
   const [bp, setBp] = useState<FeedPromoBreakpoint>("lg");
@@ -96,44 +107,80 @@ function useFeedPromoBreakpoint(): FeedPromoBreakpoint {
 }
 
 /**
- * Chèn rail theo chu kỳ S1–S6; mỗi lần lấy slice mới từ pool (tránh lặp cùng bộ card).
- * Số card theo breakpoint — không scroll ngang.
+ * Chèn rail theo chu kỳ: k lẻ → promo, k chẵn → video dọc.
+ * Video rail #1 (top) render riêng ngoài map (after=0).
  */
-function buildPromoInsertMap(
+function buildFeedRailInsertMap(
   postCount: number,
   promos: FeedPromoVariant[],
+  videoPool: ReadonlyArray<GalleryMainItem>,
   viewerProfileId: string,
   bp: FeedPromoBreakpoint,
+  onOpenVideoRail: ((payload: VideoRailOpenPayload) => void) | undefined,
+  /** Cursor sau rail top (#1) — tiếp tục slice cho rail xen kẽ. */
+  videoCursorStart: number,
 ): Map<number, ReactNode> {
   const map = new Map<number, ReactNode>();
-  if (!SHOW_FEED_PROMO_RAIL || postCount === 0 || promos.length === 0) {
-    return map;
-  }
+  if (postCount === 0) return map;
 
   const cursors: Partial<Record<FeedPromoKind, number>> = {};
   let cycleIdx = 0;
+  let videoCursor = videoCursorStart;
+  /** Số rail video đã chèn trong map (không tính top #1). */
+  let videoRailSeq = 1;
 
   for (
-    let after = FEED_INLINE_PROMO_INTERVAL;
+    let after = FEED_INLINE_PROMO_INTERVAL, slot = 1;
     after <= postCount;
-    after += FEED_INLINE_PROMO_INTERVAL
+    after += FEED_INLINE_PROMO_INTERVAL, slot += 1
   ) {
-    let variant: FeedPromoVariant | null = null;
+    /* k lẻ → promo; k chẵn → video dọc (xen kẽ 1:1). */
+    const wantVideo = slot % 2 === 0;
 
+    if (wantVideo) {
+      if (videoPool.length === 0 || !onOpenVideoRail) continue;
+      const { items, nextOffset } = takeVideoRailSlice(
+        videoPool,
+        videoCursor,
+        WORLD_JOURNEY_VIDEO_RAIL_SIZE,
+      );
+      if (items.length === 0) continue;
+      videoCursor = nextOffset;
+      videoRailSeq += 1;
+      map.set(
+        after,
+        <WorldJourneyVideoRail
+          key={`feed-video-rail-${after}`}
+          items={items}
+          slotKey={`${after}`}
+          railIndex={videoRailSeq}
+          onOpenVideo={onOpenVideoRail}
+        />,
+      );
+      continue;
+    }
+
+    if (!SHOW_FEED_PROMO_RAIL || promos.length === 0) continue;
+
+    let variant: FeedPromoVariant | null = null;
     for (let attempt = 0; attempt < FEED_PROMO_CYCLE.length; attempt += 1) {
-      const slot = FEED_PROMO_CYCLE[cycleIdx % FEED_PROMO_CYCLE.length];
+      const promoSlot = FEED_PROMO_CYCLE[cycleIdx % FEED_PROMO_CYCLE.length];
       cycleIdx += 1;
-      const count = feedPromoVisibleCount(slot.kind, slot.density, bp);
-      const offset = cursors[slot.kind] ?? 0;
+      const count = feedPromoVisibleCount(
+        promoSlot.kind,
+        promoSlot.density,
+        bp,
+      );
+      const offset = cursors[promoSlot.kind] ?? 0;
       variant = takePromoSlice(
         promos,
-        slot.kind,
+        promoSlot.kind,
         offset,
         count,
-        slot.density,
+        promoSlot.density,
       );
       if (variant) {
-        cursors[slot.kind] = offset + variant.items.length;
+        cursors[promoSlot.kind] = offset + variant.items.length;
         break;
       }
     }
@@ -157,6 +204,8 @@ export function WorldJourneyFeedTimeline({
   milestones,
   viewerProfileId,
   feedPromos = EMPTY_FEED_PROMOS,
+  videoRailItems = EMPTY_VIDEO_RAIL,
+  onOpenVideoRail,
   scrollLoad = null,
   loadingMore = false,
   loadError = false,
@@ -175,6 +224,15 @@ export function WorldJourneyFeedTimeline({
     onLoadMoreRef.current = onLoadMore;
   }, [onLoadMore]);
 
+  const onOpenVideoRailRef = useRef(onOpenVideoRail);
+  useEffect(() => {
+    onOpenVideoRailRef.current = onOpenVideoRail;
+  }, [onOpenVideoRail]);
+
+  const openVideoRailStable = useCallback((payload: VideoRailOpenPayload) => {
+    onOpenVideoRailRef.current?.(payload);
+  }, []);
+
   const scrollLoadEnabled = scrollLoad?.enabled ?? false;
 
   const byYear = useMemo(
@@ -187,15 +245,38 @@ export function WorldJourneyFeedTimeline({
     warmFeedMediaUrls(milestones);
   }, [milestones]);
 
+  /** Rail #1 trên cùng — slice đầu pool. */
+  const topVideoRail = useMemo(() => {
+    if (videoRailItems.length === 0) {
+      return { items: [] as GalleryMainItem[], nextOffset: 0 };
+    }
+    return takeVideoRailSlice(
+      videoRailItems,
+      0,
+      WORLD_JOURNEY_VIDEO_RAIL_SIZE,
+    );
+  }, [videoRailItems]);
+
   const promoInsertMap = useMemo(
     () =>
-      buildPromoInsertMap(
+      buildFeedRailInsertMap(
         milestones.length,
         feedPromos,
+        videoRailItems,
         viewerProfileId,
         promoBp,
+        videoRailItems.length > 0 ? openVideoRailStable : undefined,
+        topVideoRail.nextOffset,
       ),
-    [milestones.length, feedPromos, viewerProfileId, promoBp],
+    [
+      milestones.length,
+      feedPromos,
+      videoRailItems,
+      viewerProfileId,
+      promoBp,
+      openVideoRailStable,
+      topVideoRail.nextOffset,
+    ],
   );
 
   /**
@@ -350,6 +431,15 @@ export function WorldJourneyFeedTimeline({
 
   return (
     <main className="j-timeline wj-feed-timeline" aria-label="Feed World Journey">
+      {topVideoRail.items.length > 0 ? (
+        <WorldJourneyVideoRail
+          items={topVideoRail.items}
+          slotKey="top"
+          railIndex={1}
+          onOpenVideo={openVideoRailStable}
+        />
+      ) : null}
+
       {byYear.map((yb) => {
         const block = (
           <JourneyYearBlock

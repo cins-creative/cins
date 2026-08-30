@@ -25,6 +25,15 @@ export const WORLD_JOURNEY_TAB_PAN_MS = 420;
 /** Listing masonry tab Video — ~4 cột × vài hàng trước khi cuộn tải thêm. */
 export const WORLD_JOURNEY_VIDEO_LISTING_PAGE_SIZE = 24;
 
+/** Số video dọc mỗi railbar xen feed trang chủ. */
+export const WORLD_JOURNEY_VIDEO_RAIL_SIZE = 5;
+
+/**
+ * Pool video dọc tải trang đầu — đủ vài vòng rail (top + xen kẽ).
+ * Client wrap-around khi hết pool.
+ */
+export const WORLD_JOURNEY_VIDEO_RAIL_POOL = 24;
+
 /**
  * Quét pool rộng khi dựng tab Video — gallery thường lấy ~360 bài lẫn ảnh;
  * video Stream dễ bị cắt hết trước khi filter `media=video`.

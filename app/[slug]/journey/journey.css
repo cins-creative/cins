@@ -5693,25 +5693,36 @@ button.j-main-gallery-info-title {
   background: var(--bg-surface, #fff);
 }
 /* Unfold bài dài — ảnh full tỉ lệ gốc (width 100%, height auto), không clamp feed/timeline. */
-.j-m-unfold-post .image-grid--single.is-portrait {
+.j-m-unfold-post .image-grid.image-grid--single.is-portrait,
+.j-m-unfold-post .preview--photo-grid .image-grid.image-grid--single.is-portrait {
   width: 100%;
   max-width: 100%;
   margin-inline: 0;
   aspect-ratio: auto;
   height: auto;
 }
-.j-m-unfold-post .image-grid--single.is-portrait .image-grid-cell,
+.j-m-unfold-post .image-grid.image-grid--single.is-portrait .image-grid-cell,
 .j-m-unfold-post .image-grid--single:not(.is-portrait) .image-grid-cell {
   width: 100%;
   height: auto;
 }
-.j-m-unfold-post .image-grid--single.is-portrait .image-grid-cell img,
+.j-m-unfold-post .image-grid.image-grid--single.is-portrait .image-grid-cell img,
 .j-m-unfold-post .image-grid--single:not(.is-portrait) .image-grid-cell img {
   width: 100%;
   height: auto;
   max-height: none;
   object-fit: contain;
   display: block;
+}
+.j-m-unfold-post .image-grid--stack .image-grid-cell,
+.j-m-unfold-post .image-grid--masonry .image-grid-cell {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+}
+.j-m-unfold-post .image-grid-jrow {
+  width: 100%;
+  max-height: none;
 }
 .j-m-unfold-post .image-grid--stack .image-grid-cell--tall {
   max-height: none;
@@ -9267,6 +9278,7 @@ button.j-g-item:disabled {
     margin-bottom: 0;
   }
 
+  /* Card nội dung: 5px so với mép màn, bo góc (không full-bleed). */
   .cins-journey-page .j-m-card,
   .cins-journey-page .j-m-card.jcard,
   .cins-journey-page .j-milestone.j-tagged .j-m-card.jcard,
@@ -9275,10 +9287,11 @@ button.j-g-item:disabled {
   .cins-journey-page .j-m-card.has-unfold.is-expanded:hover,
   .cins-journey-page .j-m-card.jcard:hover,
   .cins-journey-page .j-milestone.j-tagged .j-m-card.jcard:hover {
-    border-radius: 0;
+    margin-inline: 5px;
+    border-radius: 20px;
     border-left: none;
     border-right: none;
-    box-shadow: none;
+    box-shadow: var(--shadow-xs);
     transform: none;
     background: var(--bg-surface, #fff);
   }
@@ -9289,23 +9302,23 @@ button.j-g-item:disabled {
 
   .cins-journey-page .j-milestone.j-tagged .j-m-card > .j-truong-verify-bar,
   .cins-journey-page .j-milestone.j-verified .j-m-card > .j-truong-verify-bar {
-    border-radius: 0;
+    border-radius: 20px 20px 0 0;
   }
 
   .cins-journey-page .j-bookmark-frame {
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
+    margin-inline: 5px;
+    border-radius: 16px;
     box-shadow: none;
   }
 
   .cins-journey-page .j-bookmark-frame .j-m-card.j-bookmark-frame-card,
   .cins-journey-page .j-bookmark-frame .j-m-card.j-bookmark-frame-card.is-expanded,
   .cins-journey-page .j-bookmark-frame .j-m-card.j-bookmark-frame-card.jcard.is-expanded {
-    border-radius: 0;
+    margin-inline: 0;
+    border-radius: 12px;
     border-left: none;
     border-right: none;
-    box-shadow: none;
+    box-shadow: var(--shadow-xs);
   }
 
   .cins-journey-page .j-create-composer,
@@ -18185,11 +18198,22 @@ button.j-user-pop-close svg {
   width: 100%;
   border-radius: 0;
 }
+.preview--photo-grid .image-grid.image-grid--single.is-portrait {
+  width: min(
+    100%,
+    calc(
+      100% * var(--media-natural-aspect, var(--media-canvas-max-aspect, 0.8)) /
+        var(--media-canvas-max-aspect, 0.8)
+    )
+  );
+  max-width: 100%;
+  margin-inline: auto;
+}
 .preview--photo-grid .image-grid-cell {
   cursor: pointer;
   pointer-events: auto;
 }
-/* 1 ảnh dọc — khung thu ngang khi cao hơn max (desktop 3:4 · mobile 9:16), không crop */
+/* 1 ảnh dọc — khung thu ngang khi cao hơn max 4:5, không crop */
 .preview--photo-grid.is-portrait-media,
 .preview--photo-grid:has(.image-grid--single.is-portrait) {
   width: 100%;
@@ -18209,7 +18233,7 @@ button.j-user-pop-close svg {
   min-height: 0;
 }
 .preview--photo-single.is-portrait-media {
-  --media-canvas-max-aspect: 0.75;
+  --media-canvas-max-aspect: 0.8; /* 4:5 */
   width: min(
     100%,
     calc(
@@ -18229,7 +18253,7 @@ button.j-user-pop-close svg {
 }
 @media (max-width: 767px) {
   .preview--photo-single.is-portrait-media {
-    --media-canvas-max-aspect: 0.5625;
+    --media-canvas-max-aspect: 0.8; /* 4:5 */
   }
 }
 /* Article peek thu gọn — canvas cố định 4:3, cắt phần nội dung vượt khung. */

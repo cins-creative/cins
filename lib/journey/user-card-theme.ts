@@ -17,6 +17,13 @@ const CARD_STYLE_KEYS = [
   "--j-card-overlay",
   "--j-card-image",
   "--j-card-image-pos",
+  "--j-card-image-nx",
+  "--j-card-image-ny",
+  "--j-card-image-scale",
+  "--j-card-image-rotate",
+  "--j-card-pattern",
+  "--j-card-pattern-size",
+  "--j-card-pattern-pos",
 ] as const;
 
 function selfMilestoneEls(): HTMLElement[] {
@@ -31,6 +38,8 @@ function selfMilestoneEls(): HTMLElement[] {
 function clearCardThemeEl(el: HTMLElement): void {
   el.removeAttribute("data-card-theme");
   el.removeAttribute("data-card-image");
+  el.removeAttribute("data-card-accent");
+  el.removeAttribute("data-card-pattern");
   for (const key of CARD_STYLE_KEYS) {
     el.style.removeProperty(key);
   }
@@ -50,10 +59,20 @@ export function applyLiveCardPreview(
       continue;
     }
     el.setAttribute("data-card-theme", "1");
+    if (dto.accentHex) {
+      el.setAttribute("data-card-accent", "1");
+    } else {
+      el.removeAttribute("data-card-accent");
+    }
     if (dto.imageUrl) {
       el.setAttribute("data-card-image", "1");
     } else {
       el.removeAttribute("data-card-image");
+    }
+    if (dto.patternId !== "none" && !dto.imageUrl) {
+      el.setAttribute("data-card-pattern", "1");
+    } else {
+      el.removeAttribute("data-card-pattern");
     }
     for (const key of CARD_STYLE_KEYS) {
       el.style.removeProperty(key);

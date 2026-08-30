@@ -21,6 +21,7 @@
 }
 
 .image-grid {
+  --media-canvas-max-aspect: 0.8; /* trần cao 4:5 — cao hơn thì thu ngang */
   display: flex;
   gap: var(--cins-img-slot-gap);
   border-radius: var(--radius-sm, 10px);
@@ -48,9 +49,9 @@
   background: var(--bg-page, #f4f5f8);
 }
 /* 1 ảnh dọc — tỉ lệ gốc; nếu cao hơn max canvas thì thu ngang (không crop).
-   Desktop max 3:4 · mobile max 9:16 */
-.image-grid--single.is-portrait {
-  --media-canvas-max-aspect: 0.75; /* 3:4 */
+   Trần chiều cao khung: 4:5
+   Selector 3 class để thắng `.preview--photo-grid .image-grid { width: 100% }`. */
+.image-grid.image-grid--single.is-portrait {
   display: block;
   width: min(
     100%,
@@ -64,7 +65,7 @@
   aspect-ratio: var(--media-natural-aspect, var(--media-canvas-max-aspect));
   background: var(--bg-page, #f4f5f8);
 }
-.image-grid--single.is-portrait .image-grid-cell {
+.image-grid.image-grid--single.is-portrait .image-grid-cell {
   width: 100%;
   height: 100%;
 }
@@ -76,23 +77,17 @@
   background: transparent;
   cursor: pointer;
 }
-.image-grid--single.is-portrait .image-grid-cell img {
+.image-grid.image-grid--single.is-portrait .image-grid-cell img {
   width: 100%;
   height: 100%;
   object-fit: contain;
   display: block;
 }
-@media (max-width: 767px) {
-  .image-grid--single.is-portrait {
-    --media-canvas-max-aspect: 0.5625; /* 9:16 */
-  }
-}
-
 /* Bài viết dài (permalink / modal split, không phải album media) — full ngang
-   kiểu Behance: bỏ clamp width 3:4, height theo tỉ lệ gốc.
+   kiểu Behance: bỏ clamp width 4:5, height theo tỉ lệ gốc.
    Card timeline / feed vẫn dùng rule `.is-portrait` phía trên. */
 .cins-post-view.post-canvas--split:not(.post-canvas--media)
-  .image-grid--single.is-portrait {
+  .image-grid.image-grid--single.is-portrait {
   width: 100%;
   max-width: 100%;
   margin-inline: 0;
@@ -100,13 +95,13 @@
   height: auto;
 }
 .cins-post-view.post-canvas--split:not(.post-canvas--media)
-  .image-grid--single.is-portrait
+  .image-grid.image-grid--single.is-portrait
   .image-grid-cell {
   width: 100%;
   height: auto;
 }
 .cins-post-view.post-canvas--split:not(.post-canvas--media)
-  .image-grid--single.is-portrait
+  .image-grid.image-grid--single.is-portrait
   .image-grid-cell
   img {
   width: 100%;
@@ -117,22 +112,17 @@
 }
 
 /* 1 ảnh ngang/vuông: canvas ôm đúng chiều cao ảnh (không letterbox 560px).
-   Trần 3:4 (mobile 9:16) chỉ là fallback khi chưa đo được tỉ lệ intrinsic —
-   ảnh cao hơn 3:4 sẽ chuyển sang .is-portrait sau khi đo (ImageGrid). */
+   Trần 4:5 chỉ là fallback khi chưa đo được tỉ lệ intrinsic —
+   ảnh cao hơn 4:5 sẽ chuyển sang .is-portrait sau khi đo (ImageGrid). */
 .image-grid--single:not(.is-portrait) {
   container-type: inline-size;
 }
 .image-grid--single:not(.is-portrait) .image-grid-cell img {
   width: 100%;
   height: auto;
-  max-height: calc(100cqi * 4 / 3);
+  max-height: calc(100cqi * 5 / 4);
   object-fit: contain;
   display: block;
-}
-@media (max-width: 767px) {
-  .image-grid--single:not(.is-portrait) .image-grid-cell img {
-    max-height: calc(100cqi * 16 / 9);
-  }
 }
 
 /* ── 2 ảnh: 2 cột vuông ──
@@ -217,7 +207,15 @@
   gap: var(--cins-img-slot-gap);
 }
 .image-grid--masonry .image-grid-cell {
-  width: 100%;
+  width: min(
+    100%,
+    calc(
+      100% * var(--media-natural-aspect, 999) /
+        var(--media-canvas-max-aspect, 0.8)
+    )
+  );
+  max-width: 100%;
+  margin-inline: auto;
   /* aspect-ratio đặt inline theo từng ảnh */
 }
 
@@ -228,7 +226,15 @@
   background: var(--bg-page, #f4f5f8);
 }
 .image-grid--stack .image-grid-cell {
-  width: 100%;
+  width: min(
+    100%,
+    calc(
+      100% * var(--media-natural-aspect, 999) /
+        var(--media-canvas-max-aspect, 0.8)
+    )
+  );
+  max-width: 100%;
+  margin-inline: auto;
   height: auto;
   /* Bỏ aspect-ratio inline giả (mặc định 1200×800) — để img quyết định chiều cao. */
   aspect-ratio: auto !important;
@@ -243,38 +249,30 @@
   display: block;
 }
 
-/*
- * Sheet / collage quá cao: cắt trong viewport, bấm mở lightbox xem đủ.
- * (Cột permalink hẹp — cùng ảnh trên Behance rộng hơn nên đỡ “bể”.)
- */
+/* Stack cao hơn 4:5: thu ngang (rule width ở trên), không crop cover. */
 .image-grid--stack .image-grid-cell--tall {
-  max-height: min(80vh, 960px);
   overflow: hidden;
 }
 .image-grid--stack .image-grid-cell--tall img {
   width: 100%;
-  height: 100%;
-  min-height: min(80vh, 960px);
-  object-fit: cover;
+  height: auto;
+  min-height: 0;
+  object-fit: contain;
   object-position: center top;
 }
 .image-grid--stack .image-grid-cell--tall::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 72px;
-  pointer-events: none;
-  background: linear-gradient(
-    to top,
-    color-mix(in srgb, var(--bg-page, #f4f5f8) 88%, transparent),
-    transparent
-  );
+  display: none;
 }
 
 /* Bài viết dài (permalink / modal split) — Behance: hiện đủ chiều cao, không crop.
    Timeline card vẫn dùng clip ở trên. */
+.cins-post-view.post-canvas--split:not(.post-canvas--media)
+  .image-grid--stack
+  .image-grid-cell {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+}
 .cins-post-view.post-canvas--split:not(.post-canvas--media)
   .image-grid--stack
   .image-grid-cell--tall {
@@ -343,7 +341,15 @@
   gap: var(--cins-img-slot-gap);
   row-gap: var(--cins-img-slot-gap);
   column-gap: var(--cins-img-slot-gap);
-  width: 100%;
+  /* Hàng cao hơn 4:5 (tổng aspect < 0.8) → thu ngang cho vừa khung. */
+  width: min(
+    100%,
+    calc(
+      100% * var(--jrow-aspect-sum, 1) / var(--media-canvas-max-aspect, 0.8)
+    )
+  );
+  max-width: 100%;
+  margin-inline: auto;
   align-items: stretch;
   overflow: hidden;
   min-height: 0;
@@ -352,6 +358,7 @@
     (100cqi - (var(--jrow-gaps, 0) * var(--cins-img-slot-gap))) /
       var(--jrow-aspect-sum, 1)
   );
+  max-height: calc(100cqi * 5 / 4);
   aspect-ratio: auto;
 }
 .image-grid-jrow .image-grid-cell {
@@ -377,21 +384,11 @@
   width: 100%;
 }
 
-/* Hàng 1 ảnh dọc — cùng clamp 3:4 / 9:16 như album 1 ảnh: đủ khung, không crop. */
+/* Hàng 1 ảnh dọc — inherit clamp 4:5 của .image-grid-jrow. */
 .image-grid-jrow.is-solo-portrait {
-  --media-canvas-max-aspect: 0.75; /* 3:4 */
-  width: min(
-    100%,
-    calc(
-      100% * var(--jrow-aspect-sum, var(--media-canvas-max-aspect)) /
-        var(--media-canvas-max-aspect)
-    )
-  );
-  max-width: 100%;
-  margin-inline: auto;
   height: auto;
-  aspect-ratio: var(--jrow-aspect-sum, var(--media-canvas-max-aspect));
-  overflow: hidden;
+  aspect-ratio: var(--jrow-aspect-sum, var(--media-canvas-max-aspect, 0.8));
+  max-height: none;
 }
 .image-grid-jrow.is-solo-portrait .image-grid-cell {
   width: 100%;
@@ -400,11 +397,6 @@
 }
 .image-grid-jrow.is-solo-portrait .image-grid-cell img {
   object-fit: contain;
-}
-@media (max-width: 767px) {
-  .image-grid-jrow.is-solo-portrait {
-    --media-canvas-max-aspect: 0.5625; /* 9:16 */
-  }
 }
 
 .grid-overlay {
@@ -650,6 +642,7 @@
 
 /* Album carousel — khung ôm sát ảnh (intrinsic size), không letterbox thừa. */
 .image-album-carousel {
+  --media-canvas-max-aspect: 0.8; /* 4:5 */
   position: relative;
   max-width: 100%;
   border-radius: 12px;
@@ -662,8 +655,16 @@
 }
 
 .image-album-carousel.is-portrait {
-  width: fit-content;
+  width: min(
+    100%,
+    calc(
+      100% * var(--media-natural-aspect, var(--media-canvas-max-aspect)) /
+        var(--media-canvas-max-aspect)
+    )
+  );
+  max-width: 100%;
   margin-inline: auto;
+  aspect-ratio: var(--media-natural-aspect, var(--media-canvas-max-aspect));
 }
 
 .image-album-carousel-stage {
@@ -689,8 +690,16 @@
   height: auto;
 }
 
+.image-album-carousel.is-portrait .image-album-carousel-figure,
+.image-album-carousel.is-portrait .image-album-carousel-stage {
+  width: 100%;
+  height: 100%;
+}
 .image-album-carousel.is-portrait .image-album-carousel-figure img {
-  max-height: min(78vh, 720px);
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: contain;
 }
 
 .image-album-carousel-nav {

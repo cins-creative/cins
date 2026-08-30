@@ -51,6 +51,15 @@ import {
 import { setShareDragData } from "@/lib/cins/share-drag";
 import { isCloudflareImageId } from "@/lib/chat/image-url";
 
+function mediaNaturalAspectStyle(
+  aspect: number | undefined,
+): CSSProperties | undefined {
+  if (aspect == null || !(aspect > 0) || !Number.isFinite(aspect)) {
+    return undefined;
+  }
+  return { ["--media-natural-aspect" as string]: String(aspect) };
+}
+
 /** CF variant nhỏ/crop có thể 403 hoặc lệch — thử `public` trước khi ẩn ảnh. */
 function handleGridThumbError(e: { currentTarget: HTMLImageElement }): void {
   const img = e.currentTarget;
@@ -630,7 +639,7 @@ export function ImageGrid({
     const naturalAspect =
       measuredAspectByIndex[0] ?? layout.cell.aspect;
     /* Metadata width/height hay sai (mặc định 1200×800) — quyết định portrait
-       theo tỉ lệ intrinsic đo được để canvas 3:4 kích hoạt đúng. */
+       theo tỉ lệ intrinsic đo được để canvas 4:5 kích hoạt đúng. */
     const singlePortrait = layout.portrait || naturalAspect < 1;
     body = (
       <div
@@ -657,13 +666,17 @@ export function ImageGrid({
       >
         {columns.map((col, ci) => (
           <div key={`mcol-${ci}`} className="image-grid-mcol">
-            {col.map((c: AlbumCell) =>
-              renderCell(c.index, {
-                style: { aspectRatio: String(resolveCellAspect(c)) },
+            {col.map((c: AlbumCell) => {
+              const aspect = resolveCellAspect(c);
+              return renderCell(c.index, {
+                style: {
+                  aspectRatio: String(aspect),
+                  ...mediaNaturalAspectStyle(aspect),
+                },
                 overlay: layout.overlaySlotIndex === c.index,
                 remaining: layout.remaining,
-              }),
-            )}
+              });
+            })}
           </div>
         ))}
       </div>
@@ -729,16 +742,17 @@ export function ImageGrid({
       <div className="image-grid image-grid-col image-grid--stack" data-count={total}>
         {layout.cells.map((c: AlbumCell) => {
           const img = layoutImages[c.index];
-          const w = img?.width ?? 0;
-          const h = img?.height ?? 0;
-          const tallClip =
-            (w > 0 && h > 0 && h / w >= 2.5) || h >= 2200;
+          const aspect =
+            measuredAspectByIndex[c.index] ??
+            (img && hasGridImageDimensions(img)
+              ? img.width / img.height
+              : undefined);
           return renderCell(c.index, {
             /* Không ép aspect-ratio từ metadata mặc định 1200×800 — vỡ tỉ lệ stack. */
+            style: mediaNaturalAspectStyle(aspect),
             overlay: layout.overlaySlotIndex === c.index,
             remaining: layout.remaining,
             preferPublicSrc: true,
-            tallClip,
             /* Stack luôn dùng variant `tall` — `public` cap height 1080 làm
                ảnh dọc dài bị bóp bề ngang → vỡ (kể cả khi thiếu width/height). */
             useTallVariant: true,

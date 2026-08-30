@@ -61,6 +61,9 @@ type Props = {
   galleryItems?: ReadonlyArray<GalleryMainItem>;
   galleryHasMore?: boolean;
   galleryNextOffset?: number;
+  videoRailItems?: ReadonlyArray<GalleryMainItem>;
+  videoRailHasMore?: boolean;
+  videoRailNextOffset?: number;
   pendingConfirmations?: ReactNode;
   feedPromos?: FeedPromoVariant[];
   /** Stream promos sau — không chặn paint feed. */
@@ -139,6 +142,9 @@ export function HomeWorldJourneyClient({
   galleryItems = [],
   galleryHasMore = false,
   galleryNextOffset = 0,
+  videoRailItems = [],
+  videoRailHasMore = false,
+  videoRailNextOffset = 0,
   pendingConfirmations,
   feedPromos: feedPromosProp,
   feedPromosPromise,
@@ -286,6 +292,9 @@ export function HomeWorldJourneyClient({
             galleryItems={galleryItems}
             galleryHasMore={galleryHasMore}
             galleryNextOffset={galleryNextOffset}
+            videoRailItems={videoRailItems}
+            videoRailHasMore={videoRailHasMore}
+            videoRailNextOffset={videoRailNextOffset}
             initialView={initialView}
             initialPlayId={initialPlayId}
             leftAside={<HomeEditableColumn side="left" />}

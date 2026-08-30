@@ -195,17 +195,15 @@ export function isPortraitGridImage(image: GridImage): boolean {
 }
 
 /**
- * Canvas dọc tối đa theo breakpoint (width/height):
- * - desktop ≥768px: 3:4
- * - mobile: 9:16
- * Ảnh/video cao hơn ngưỡng → clamp + cover; thấp hơn → giữ tỉ lệ gốc.
+ * Canvas dọc tối đa (width/height): 4:5.
+ * Ảnh cao hơn ngưỡng → thu ngang (CSS); thấp hơn → giữ tỉ lệ gốc.
  */
-export const MEDIA_CANVAS_ASPECT_DESKTOP = 3 / 4;
-export const MEDIA_CANVAS_ASPECT_MOBILE = 9 / 16;
-/** height/width — cao hơn 3:4 (desktop). */
-export const PORTRAIT_CANVAS_MAX_HW_DESKTOP = 4 / 3;
-/** height/width — cao hơn 9:16 (mobile). */
-export const PORTRAIT_CANVAS_MAX_HW_MOBILE = 16 / 9;
+export const MEDIA_CANVAS_ASPECT_DESKTOP = 4 / 5;
+export const MEDIA_CANVAS_ASPECT_MOBILE = 4 / 5;
+/** height/width — cao hơn 4:5. */
+export const PORTRAIT_CANVAS_MAX_HW_DESKTOP = 5 / 4;
+/** height/width — cao hơn 4:5. */
+export const PORTRAIT_CANVAS_MAX_HW_MOBILE = 5 / 4;
 
 /** @deprecated Dùng PORTRAIT_CANVAS_MAX_HW_MOBILE */
 export const PORTRAIT_CANVAS_MAX_HW = PORTRAIT_CANVAS_MAX_HW_MOBILE;
@@ -215,7 +213,7 @@ export function mediaNaturalAspect(width: number, height: number): number | null
   return width / height;
 }
 
-/** Cao hơn canvas desktop 3:4 — cần clamp trên desktop. */
+/** Cao hơn canvas 4:5 — cần clamp. */
 export function isTallPortraitGridImage(image: GridImage): boolean {
   if (!(image.height > 0 && image.width > 0)) return false;
   if (!(image.height > image.width)) return false;

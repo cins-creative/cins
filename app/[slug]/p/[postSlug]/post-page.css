@@ -425,7 +425,15 @@
   .post-view-content--media
   .image-grid--stack
   .image-grid-cell {
-  width: 100%;
+  width: min(
+    100%,
+    calc(
+      100% * var(--media-natural-aspect, 999) /
+        var(--media-canvas-max-aspect, 0.8)
+    )
+  );
+  max-width: 100%;
+  margin-inline: auto;
   height: auto;
   aspect-ratio: auto !important;
   background: var(--post-media-stage, var(--bg-page, var(--bg-surface, #fff)));
@@ -449,7 +457,6 @@
   .post-view-content--media
   .image-grid--stack
   .image-grid-cell--tall {
-  max-height: min(80vh, 960px);
   overflow: hidden;
 }
 
@@ -459,9 +466,9 @@
   .image-grid-cell--tall
   img {
   width: 100%;
-  height: 100%;
-  min-height: min(80vh, 960px);
-  object-fit: cover;
+  height: auto;
+  min-height: 0;
+  object-fit: contain;
   object-position: center top;
 }
 
@@ -469,14 +476,7 @@
   .post-view-content--media
   .image-grid--stack
   .image-grid-cell--tall::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 72px;
-  pointer-events: none;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.55), transparent);
+  display: none;
 }
 
 .j-post-page:has(.post-canvas--media.post-canvas--split)
@@ -2461,9 +2461,16 @@
   .post-canvas--split
   .post-view-content--media
   .image-album-carousel.is-portrait {
-  width: fit-content;
+  width: min(
+    100%,
+    calc(
+      100% * var(--media-natural-aspect, var(--media-canvas-max-aspect, 0.8)) /
+        var(--media-canvas-max-aspect, 0.8)
+    )
+  );
   max-width: 100%;
   margin-inline: auto;
+  aspect-ratio: var(--media-natural-aspect, var(--media-canvas-max-aspect, 0.8));
 }
 
 .cins-post-view.post-canvas--split
@@ -2489,9 +2496,11 @@
   .image-album-carousel.is-portrait
   .image-album-carousel-figure
   img {
-  width: auto;
+  width: 100%;
+  height: 100%;
   max-width: 100%;
-  max-height: min(78dvh, 900px);
+  max-height: none;
+  object-fit: contain;
 }
 
 .cins-post-view.post-canvas--split .post-view-content--media .post-blocks-fb {

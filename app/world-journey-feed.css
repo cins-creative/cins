@@ -1586,6 +1586,506 @@
   color: var(--blue-dark);
 }
 
+/* Rail video dọc — coverflow 3D (rotateY), avatar + tiêu đề dưới */
+.world-journey-home .wj-video-rail {
+  --wj-video-pad: 8px;
+  --wj-video-meta-h: 44px;
+  --wj-video-aspect: 9 / 16;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  margin: 8px 0 20px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  touch-action: pan-y;
+  container-type: inline-size;
+}
+
+.world-journey-home .wj-video-rail-stage {
+  --wj-inner-h: calc(
+    100cqi - 36px - var(--wj-video-meta-h) - var(--wj-video-pad) * 2
+  );
+  --wj-video-deck-w: max(
+    200px,
+    min(
+      58cqi,
+      calc(
+        var(--wj-inner-h) * var(--wj-video-aspect, 0.5625) +
+          var(--wj-video-pad) * 2
+      )
+    )
+  );
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: none;
+  gap: 4px;
+  overflow: visible;
+}
+
+.world-journey-home .wj-video-rail-stack {
+  position: relative;
+  width: var(--wj-video-deck-w);
+  height: auto;
+  transition: width 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  margin: 0;
+  touch-action: pan-y;
+  user-select: none;
+  overflow: visible;
+}
+
+.world-journey-home .wj-video-rail-card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border: none;
+  background: transparent;
+  transform-origin: center center;
+  backface-visibility: visible;
+  transition:
+    transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 320ms ease,
+    filter 280ms ease;
+  will-change: transform, opacity;
+}
+
+.world-journey-home .wj-video-rail-card.is-back {
+  pointer-events: auto;
+}
+
+.world-journey-home .wj-video-rail-card.is-front {
+  position: relative;
+  left: auto;
+  top: auto;
+  height: auto;
+  filter: none;
+}
+
+.world-journey-home .wj-video-rail-card[data-cover-offset="2"],
+.world-journey-home .wj-video-rail-card[data-cover-offset="-2"],
+.world-journey-home .wj-video-rail-card[aria-hidden="true"] {
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.world-journey-home .wj-video-rail-shell {
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  padding: var(--wj-video-pad);
+  border-radius: 16px;
+  background: var(--bg-surface, #fff);
+  color: var(--ink1);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--border, #e5e7eb) 90%, transparent),
+    0 10px 28px color-mix(in srgb, var(--ink-display, #111) 12%, transparent);
+}
+
+.world-journey-home .wj-video-rail-card.is-front .wj-video-rail-shell {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--border, #e5e7eb) 80%, transparent),
+    0 16px 36px color-mix(in srgb, var(--ink-display, #111) 16%, transparent);
+}
+
+.world-journey-home .wj-video-rail-card.is-back .wj-video-rail-thumb,
+.world-journey-home .wj-video-rail-card.is-back .wj-video-rail-card-meta {
+  opacity: 0.38;
+  transition: opacity 320ms ease;
+}
+
+.world-journey-home .wj-video-rail-card.is-front .wj-video-rail-thumb,
+.world-journey-home .wj-video-rail-card.is-front .wj-video-rail-card-meta {
+  opacity: 1;
+}
+
+:root[data-theme="dark"] .world-journey-home .wj-video-rail-shell {
+  box-shadow:
+    0 0 0 1px var(--border-strong, #2c3340),
+    0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+:root[data-theme="dark"] .world-journey-home .wj-video-rail-card.is-front .wj-video-rail-shell {
+  box-shadow:
+    0 0 0 1px var(--border-strong, #2c3340),
+    0 16px 36px rgba(0, 0, 0, 0.55);
+}
+
+.world-journey-home .wj-video-rail-thumb-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.world-journey-home .wj-video-rail-card-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  border-radius: 10px;
+  touch-action: pan-y;
+}
+
+.world-journey-home .wj-video-rail-card-hit:disabled {
+  cursor: default;
+}
+
+.world-journey-home .wj-video-rail-card-hit:focus-visible {
+  outline: 2px solid var(--blue, #1877f2);
+  outline-offset: 3px;
+}
+
+.world-journey-home .wj-video-rail-thumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  height: auto;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #0f172a;
+}
+
+.world-journey-home .wj-video-rail-clip {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: contain;
+  object-position: center;
+  pointer-events: none;
+  background: transparent;
+  opacity: 0;
+}
+
+.world-journey-home .wj-video-rail-clip.is-ready {
+  opacity: 1;
+}
+
+.world-journey-home .wj-video-rail-thumb > img,
+.world-journey-home .wj-video-rail-thumb .j-gallery-video-ph,
+.world-journey-home .wj-video-rail-thumb .j-gallery-video-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+}
+
+.world-journey-home .wj-video-rail-thumb .j-g-play {
+  width: 36px;
+  height: 36px;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.world-journey-home .wj-video-rail-thumb .j-g-play svg {
+  width: 14px;
+  height: 14px;
+}
+
+.world-journey-home .wj-video-rail-nav {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink1);
+  box-shadow: none;
+  cursor: pointer;
+  z-index: 8;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: color 140ms ease, transform 140ms ease, opacity 140ms ease;
+}
+
+.world-journey-home .wj-video-rail-nav--prev {
+  left: 0;
+}
+
+.world-journey-home .wj-video-rail-nav--next {
+  right: 0;
+}
+
+.world-journey-home .wj-video-rail-nav:hover {
+  background: transparent;
+  transform: translateY(-50%) scale(1.08);
+}
+
+.world-journey-home .wj-video-rail-nav:focus-visible {
+  outline: 2px solid var(--blue, #1877f2);
+  outline-offset: 2px;
+}
+
+.world-journey-home .wj-video-rail-dots {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 10px;
+}
+
+.world-journey-home .wj-video-rail-dot {
+  appearance: none;
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink1, #111) 22%, transparent);
+  cursor: pointer;
+}
+
+.world-journey-home .wj-video-rail-dot.is-active {
+  width: 8px;
+  height: 8px;
+  background: var(--ink1, #111);
+}
+
+.world-journey-home .wj-video-rail-dot:focus-visible {
+  outline: 2px solid var(--blue, #1877f2);
+  outline-offset: 2px;
+}
+
+.world-journey-home .wj-video-rail-card-meta {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-width: 0;
+  width: 100%;
+  padding: 8px 2px 0;
+}
+
+.world-journey-home .wj-video-rail-card-av {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--neutral-100, #f1f2f5);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--border, #e5e7eb) 90%, transparent);
+}
+
+.world-journey-home .wj-video-rail-card-av--in-clip {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 4;
+  pointer-events: none;
+  width: 26px;
+  height: 26px;
+  box-shadow:
+    0 0 0 1.5px rgba(255, 255, 255, 0.92),
+    0 4px 10px rgba(0, 0, 0, 0.35);
+}
+
+.world-journey-home .wj-video-rail-card-av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.world-journey-home .wj-video-rail-card-av-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink-title, #1c1e21);
+  background: var(--cins-blue-soft, #e7f0fb);
+}
+
+.world-journey-home .wj-video-rail-card-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-top: 1px;
+}
+
+.world-journey-home .wj-video-rail-card-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--ink1);
+}
+
+.world-journey-home .wj-video-rail-card-title {
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 550;
+  line-height: 1.3;
+  color: var(--ink-muted, #65676b);
+  word-break: break-word;
+}
+
+/* Rail đầu (top) — hàng ngang, card cùng design, cuộn native */
+.world-journey-home .wj-video-rail--strip {
+  --wj-video-pad: 0;
+  aspect-ratio: auto;
+  width: 100%;
+  max-width: none;
+  align-items: stretch;
+  margin-top: 0;
+  padding: 0;
+  gap: 0;
+}
+
+.world-journey-home .wj-video-rail--strip .wj-video-rail-stage {
+  flex: none;
+  display: block;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  --wj-video-deck-w: min(176px, 42cqi);
+}
+
+.world-journey-home .wj-video-rail--strip .wj-video-rail-stack {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 4px;
+  width: 100%;
+  height: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  touch-action: pan-y;
+  padding: 0;
+  cursor: grab;
+  -webkit-overflow-scrolling: touch;
+}
+
+.world-journey-home .wj-video-rail--strip .wj-video-rail-stack.is-dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
+  user-select: none;
+  touch-action: none;
+}
+
+.world-journey-home .wj-video-rail--strip .wj-video-rail-stack.is-dragging .wj-video-rail-card-hit {
+  pointer-events: none;
+}
+
+.world-journey-home .wj-video-rail--strip .wj-video-rail-stack::-webkit-scrollbar {
+  display: none;
+}
+
+.world-journey-home .wj-video-rail--strip .wj-video-rail-card {
+  position: relative;
+  left: auto;
+  top: auto;
+  flex: 0 0 var(--wj-video-deck-w);
+  width: var(--wj-video-deck-w);
+  height: auto;
+  transform: none;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  scroll-snap-align: start;
+}
+
+.world-journey-home .wj-video-rail--strip .wj-video-rail-card.is-back .wj-video-rail-thumb,
+.world-journey-home .wj-video-rail--strip .wj-video-rail-card.is-back .wj-video-rail-card-meta {
+  opacity: 1;
+}
+
+.world-journey-home .wj-video-rail--strip .wj-video-rail-shell,
+.world-journey-home .wj-video-rail--strip .wj-video-rail-card.is-front .wj-video-rail-shell,
+:root[data-theme="dark"] .world-journey-home .wj-video-rail--strip .wj-video-rail-shell,
+:root[data-theme="dark"] .world-journey-home .wj-video-rail--strip .wj-video-rail-card.is-front .wj-video-rail-shell {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+@media (max-width: 719px) {
+  .world-journey-home .wj-video-rail {
+    margin: 6px 0 16px;
+  }
+
+  .world-journey-home .wj-video-rail-stage {
+    --wj-video-deck-w: max(
+      168px,
+      min(
+        64cqi,
+        calc(
+          var(--wj-inner-h) * var(--wj-video-aspect, 0.5625) +
+            var(--wj-video-pad) * 2
+        )
+      )
+    );
+  }
+
+  .world-journey-home .wj-video-rail-nav {
+    display: none;
+  }
+
+  .world-journey-home .wj-video-rail-thumb {
+    border-radius: 10px;
+  }
+
+  .world-journey-home .wj-video-rail-card-hit {
+    border-radius: 10px;
+  }
+
+  .world-journey-home .wj-video-rail--strip .wj-video-rail-stage {
+    --wj-video-deck-w: min(152px, 44cqi);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .world-journey-home .wj-video-rail-card,
+  .world-journey-home .wj-video-rail-stack {
+    transition: none;
+  }
+}
+
 .world-journey-home .wj-feed-promo-rail-track {
   display: flex;
   gap: 8px;

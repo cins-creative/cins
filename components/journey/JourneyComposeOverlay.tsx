@@ -139,7 +139,6 @@ export function JourneyComposeOverlay({
 }: Props) {
   const [editInitial, setEditInitial] = useState<EditorInitial | null>(null);
   const [editPostSlug, setEditPostSlug] = useState<string | null>(null);
-  const [editError, setEditError] = useState<string | null>(null);
   const [editLoading, setEditLoading] = useState(compose.kind === "edit");
   const pendingPhotoFiles =
     compose.kind === "photo" ? compose.pendingFiles : undefined;
@@ -218,14 +217,12 @@ export function JourneyComposeOverlay({
     if (compose.kind !== "edit") {
       setEditInitial(null);
       setEditPostSlug(null);
-      setEditError(null);
       setEditLoading(false);
       return;
     }
 
     let cancelled = false;
     setEditLoading(true);
-    setEditError(null);
     setEditInitial(null);
 
     const loadEdit = orgBaiDangCompose
@@ -287,14 +284,16 @@ export function JourneyComposeOverlay({
             : err instanceof Error
               ? err.message.trim()
               : "";
-        setEditError(formatEditLoadError(extra));
+        console.warn("[compose-overlay] edit load failed:", formatEditLoadError(extra));
         setEditLoading(false);
+        /* Không hiện bảng lỗi — đóng overlay (bài không tồn tại / không quyền…). */
+        onClose();
       });
 
     return () => {
       cancelled = true;
     };
-  }, [compose, ownerSlug, orgBaiDangCompose?.orgId]);
+  }, [compose, ownerSlug, orgBaiDangCompose?.orgId, onClose]);
 
   if (typeof document === "undefined") return null;
 
@@ -376,13 +375,6 @@ export function JourneyComposeOverlay({
               label="Đang tải bài viết…"
               onClose={onClose}
             />
-          ) : editError ? (
-            <div className="j-compose-error">
-              <p>{editError}</p>
-              <button type="button" className="ed-btn ghost" onClick={onClose}>
-                Đóng
-              </button>
-            </div>
           ) : editInitial && editPostSlug ? (
             <ComposeLoadErrorBoundary
               onClose={onClose}

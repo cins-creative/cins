@@ -35,6 +35,7 @@ import {
   WorldJourneyVideoListing,
   type VideoListingOpenPayload,
 } from "@/components/cins/world-journey/WorldJourneyVideoListing";
+import type { VideoRailOpenPayload } from "@/components/cins/world-journey/WorldJourneyVideoRail";
 import { VideoProcessingPoller } from "@/components/journey/VideoProcessingPoller";
 import { JourneyGalleryGridView } from "@/components/journey/JourneyGalleryGridView";
 import type { SidebarProfile } from "@/components/journey/JourneySidebar";
@@ -369,6 +370,9 @@ export function WorldJourneyFeed({
   galleryItems = [],
   galleryHasMore = false,
   galleryNextOffset = 0,
+  videoRailItems = [],
+  videoRailHasMore: _videoRailHasMore = false,
+  videoRailNextOffset: _videoRailNextOffset = 0,
   leftAside,
   rightAside,
   pendingConfirmations,
@@ -386,6 +390,10 @@ export function WorldJourneyFeed({
   galleryItems?: ReadonlyArray<GalleryMainItem>;
   galleryHasMore?: boolean;
   galleryNextOffset?: number;
+  /** Pool video dọc cho railbar xen timeline journey. */
+  videoRailItems?: ReadonlyArray<GalleryMainItem>;
+  videoRailHasMore?: boolean;
+  videoRailNextOffset?: number;
   leftAside?: ReactNode;
   rightAside?: ReactNode;
   /** Banner "việc cần xác nhận" — hiện đầu cột feed để user chú ý. */
@@ -483,6 +491,7 @@ export function WorldJourneyFeed({
   const [galleryRows, setGalleryRows] = useState(galleryItems);
   const [galleryMore, setGalleryMore] = useState(galleryHasMore);
   const [galleryOffset, setGalleryOffset] = useState(galleryNextOffset);
+  const [videoRailRows, setVideoRailRows] = useState(videoRailItems);
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [filterLoading, setFilterLoading] = useState(false);
@@ -729,6 +738,26 @@ export function WorldJourneyFeed({
     });
     pushVideoPlayUrl(startId);
   }, []);
+
+  /** Rail video dọc trên timeline → Reels với playlist portrait. */
+  const openVideoFromRail = useCallback(
+    (payload: VideoRailOpenPayload) => {
+      const pool =
+        videoRailRows.length > 0 ? [...videoRailRows] : [...payload.items];
+      const items = pool.some((row) => row.id === payload.item.id)
+        ? pool
+        : [payload.item, ...pool];
+      /* Load-more Reels dùng videoEndpoint (mọi hướng) — offset 0 + dedupe id. */
+      openVideoPlayer({
+        id: payload.item.id,
+        item: payload.item,
+        items,
+        hasMore: true,
+        nextOffset: 0,
+      });
+    },
+    [openVideoPlayer, videoRailRows],
+  );
 
   const openVideoFromMilestone = useCallback(
     (milestone: MilestoneItem) => {
@@ -1068,6 +1097,9 @@ export function WorldJourneyFeed({
       setGalleryMore(galleryHasMore);
       setGalleryOffset(galleryNextOffset);
     }
+    if (videoRailItems.length > 0) {
+      setVideoRailRows(videoRailItems);
+    }
   }, [
     milestones,
     feedHasMore,
@@ -1075,6 +1107,7 @@ export function WorldJourneyFeed({
     galleryItems,
     galleryHasMore,
     galleryNextOffset,
+    videoRailItems,
     filterLoading,
     activeFilter,
     activeLinhVucSlug,
@@ -1708,6 +1741,16 @@ export function WorldJourneyFeed({
               milestones={model.milestones}
               viewerProfileId={viewerProfileId}
               feedPromos={paneShop ? undefined : feedPromos}
+              videoRailItems={
+                paneShop || model.view !== "journey"
+                  ? undefined
+                  : videoRailRows
+              }
+              onOpenVideoRail={
+                paneShop || model.view !== "journey" || !model.interactive
+                  ? undefined
+                  : openVideoFromRail
+              }
               scrollLoad={model.interactive ? scrollLoad : null}
               loadingMore={model.interactive ? loadingMore : false}
               loadError={model.interactive ? loadError : false}

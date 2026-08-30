@@ -56,13 +56,27 @@
   )::before {
   content: "";
   position: absolute;
-  inset: 0;
   z-index: 0;
   pointer-events: none;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  /* Cùng tỉ lệ canvas crop picker (360px cao / ~518px ngang). */
+  aspect-ratio: 1.44 / 1;
+  height: auto;
   background-image: var(--j-card-image, none);
-  background-size: cover;
-  background-position: var(--j-card-image-pos, center);
+  background-size: contain;
+  background-position: center;
   background-repeat: no-repeat;
+  transform-origin: center center;
+  transform: translateY(-50%)
+    translate3d(
+      calc((0.5 - var(--j-card-image-nx, 0.5)) * 100%),
+      calc((0.5 - var(--j-card-image-ny, 0.5)) * 100%),
+      0
+    )
+    scale(var(--j-card-image-scale, 1))
+    rotate(var(--j-card-image-rotate, 0deg));
   -webkit-mask-image: linear-gradient(
     to right,
     transparent 0%,
@@ -272,6 +286,22 @@
     var(--_card-accent) 32%,
     var(--neutral-400, #94a3b8)
   );
+}
+
+/* Họa tiết — catalog Theme; --j-accent nhuộm theo accent thanh */
+.j-milestone[data-card-theme][data-card-pattern]:not([data-card-image])
+  .jcard-datebar:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  ),
+.j-milestone[data-card-theme][data-card-pattern]:not([data-card-image])
+  .jcard-datebar--author-theme:not(.jcard-datebar--cong-dong):not(
+    .jcard-datebar--bookmark-source
+  ) {
+  --j-accent: var(--j-card-accent, var(--cins-blue, #1f74c9));
+  background-image: var(--j-card-pattern, none);
+  background-size: var(--j-card-pattern-size, auto);
+  background-position: var(--j-card-pattern-pos, 0 0);
+  background-repeat: repeat;
 }
 
 @media (prefers-reduced-motion: reduce) {
