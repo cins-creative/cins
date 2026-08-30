@@ -16,25 +16,32 @@ type Props = {
   dto: WatermarkRenderDto;
   /** Thêm decoy chống save — mặc định true khi bảo vệ ảnh bài. */
   protect?: boolean;
+  /**
+   * Sọc URL mặc định. Layout feed/bài = false (chỉ decoy + chữ ký).
+   * Lightbox / picker preview = true.
+   */
+  showProtectText?: boolean;
   className?: string;
 };
 
 /**
  * Overlay watermark ảnh bài (album / bài dài).
- * Mặc định: sọc URL (cùng ShopImageWatermark loại hàng).
- * Logo PNG tùy chỉnh (nếu có) nằm trên sọc.
+ * Sọc URL mặc định chỉ khi `showProtectText` (xem lớn).
+ * Logo/chữ ký PNG tùy chỉnh luôn hiện nếu có `dto.src`.
  */
 export function JourneyImageWatermark({
   dto,
   protect = true,
+  showProtectText = false,
   className,
 }: Props) {
   const cornerClass = watermarkCornerClass(dto.corner);
   const style = watermarkCssVars(dto);
+  const protectLabel = (dto.protectText ?? "").trim();
   return (
     <>
-      {(dto.protectText ?? "").trim() ? (
-        <ShopImageWatermark text={dto.protectText} />
+      {showProtectText && protectLabel ? (
+        <ShopImageWatermark text={protectLabel} />
       ) : null}
       {dto.src ? (
         <span

@@ -8,12 +8,15 @@ import {
   useState,
 } from "react";
 
+import { useWorldJourneyFeedAudio } from "@/components/cins/world-journey/WorldJourneyFeedAudioContext";
+import { WorldJourneyVideoListingPlayer } from "@/components/cins/world-journey/WorldJourneyVideoListingPlayer";
 import { JourneyCoverImage } from "@/components/journey/JourneyCoverImage";
 import { MilestoneVideoEmbed } from "@/components/journey/MilestoneVideoEmbed";
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import {
   buildStreamThumbnailUrl,
   classifyStreamVideoUrl,
+  isStreamUid,
 } from "@/lib/cloudflare/stream-embed";
 import type { Block } from "@/lib/editor/types";
 import { youtubeVideoThumbnailUrl } from "@/lib/journey/post-media";
@@ -24,9 +27,11 @@ import {
   videoIdFromBlocks,
 } from "@/lib/journey/video-embed";
 import { setShareDragData } from "@/lib/cins/share-drag";
+import { useFeedVideoSnap } from "@/lib/journey/use-feed-video-snap";
 import { useOffscreenMedia } from "@/lib/journey/use-offscreen-media";
 import { useResolvedVideoCanvas } from "@/lib/journey/use-resolved-video-canvas-ratio";
 import {
+  VIDEO_FEED_MAX_ASPECT,
   videoCanvasRatioClass,
   videoPreviewDimensionsFromRatio,
 } from "@/lib/journey/video-canvas-ratio";
@@ -101,6 +106,14 @@ export function JourneyCardVideo({
   const posterWidth = preview?.width ?? posterDims.width;
   const posterHeight = preview?.height ?? posterDims.height;
   const showProcessing = Boolean(processing);
+  const stream = classifyStreamVideoUrl(url);
+  const streamUid =
+    stream?.uid ?? (videoId && isStreamUid(videoId) ? videoId : null);
+  const { bindEl, active: snapActive, pin } = useFeedVideoSnap(
+    streamUid ?? url,
+    Boolean(streamUid) && !showProcessing,
+  );
+  const { muted, toggleMuted } = useWorldJourneyFeedAudio();
   const iframeSrc = useMemo(
     () =>
       buildVideoIframeSrc(url, {
@@ -130,6 +143,36 @@ export function JourneyCardVideo({
           processing
           videoProvider={hints.videoProvider}
           videoId={hints.videoId ?? videoId}
+        />
+      </div>
+    );
+  }
+
+  if (streamUid) {
+    return (
+      <div
+        className={`jcard-video-player ${canvasClass}`}
+        style={canvasStyle}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <WorldJourneyVideoListingPlayer
+          item={{
+            id: streamUid,
+            streamUid,
+            src: posterSrc,
+            videoPreviewSrc: preview?.src,
+            label: title,
+            width: posterWidth,
+            height: posterHeight,
+          }}
+          thumbAspect={Math.max(canvasAspect, VIDEO_FEED_MAX_ASPECT)}
+          active={snapActive}
+          muted={muted}
+          onToggleMuted={toggleMuted}
+          onOpenViewer={onPlay}
+          onActivate={pin}
+          rootRef={bindEl}
+          fillParent
         />
       </div>
     );

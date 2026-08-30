@@ -688,7 +688,7 @@ export function JourneyMilestoneCardBodyContent({
         <div
           className="jcard-media-zone"
           onClickCapture={
-            onOpenStreamVideo
+            onOpenStreamVideo && !isVideoPost
               ? (e) => {
                   e.preventDefault();
                   e.stopPropagation();

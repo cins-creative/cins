@@ -683,7 +683,11 @@ export const JourneyWatermarkPicker = forwardRef<
                 aria-hidden
               />
               {previewDto ? (
-                <JourneyImageWatermark dto={previewDto} protect={false} />
+                <JourneyImageWatermark
+                  dto={previewDto}
+                  protect={false}
+                  showProtectText
+                />
               ) : (
                 <span className="j-wm-preview-stage-label">
                   Bật watermark để xem

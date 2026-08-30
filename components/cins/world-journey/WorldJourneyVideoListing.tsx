@@ -9,11 +9,11 @@ import {
   type CSSProperties,
 } from "react";
 
-import { GalleryItemVisual, GalleryVideoPlayBadge } from "@/components/journey/GalleryItemVisual";
 import { GalleryAuthorRow } from "@/components/journey/GalleryMainHoverOverlay";
 import { useBalancedMasonryColumns } from "@/components/journey/useBalancedMasonryColumns";
 import { useGalleryMasonryAspects } from "@/components/journey/useGalleryMasonryAspects";
-import { GALLERY_GRID_IMAGE_SIZES } from "@/lib/cloudflare/cf-variant-url";
+import { useWorldJourneyFeedAudio } from "@/components/cins/world-journey/WorldJourneyFeedAudioContext";
+import { WorldJourneyVideoListingPlayer } from "@/components/cins/world-journey/WorldJourneyVideoListingPlayer";
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 
 export type VideoListingOpenPayload = {
@@ -57,6 +57,13 @@ export function WorldJourneyVideoListing({
   const [loadError, setLoadError] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
+  const tileElsRef = useRef(new Map<string, HTMLElement>());
+  const snappedIdRef = useRef<string | null>(null);
+  const ioRef = useRef<IntersectionObserver | null>(null);
+  const { muted, toggleMuted } = useWorldJourneyFeedAudio();
+  const [snappedId, setSnappedId] = useState<string | null>(null);
+  const [pinnedId, setPinnedId] = useState<string | null>(null);
+  const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
     setItems(initialItems.filter(isStreamVideoItem));
@@ -114,6 +121,89 @@ export function WorldJourneyVideoListing({
     return () => observer.disconnect();
   }, [hasMore, loadMore, items.length]);
 
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReduceMotion(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  const pickSnapped = useCallback(() => {
+    const vh = window.innerHeight;
+    let bestId: string | null = null;
+    let bestDist = Infinity;
+    for (const [id, el] of tileElsRef.current) {
+      const r = el.getBoundingClientRect();
+      const visible = Math.min(r.bottom, vh) - Math.max(r.top, 0);
+      if (visible < 72) continue;
+      const dist = Math.abs(r.bottom - vh);
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestId = id;
+      }
+    }
+    const currentId = snappedIdRef.current;
+    if (currentId && currentId === bestId) return;
+    if (currentId && bestId && currentId !== bestId) {
+      const currentEl = tileElsRef.current.get(currentId);
+      if (currentEl) {
+        const r = currentEl.getBoundingClientRect();
+        const visible = Math.min(r.bottom, vh) - Math.max(r.top, 0);
+        const currentDist = Math.abs(r.bottom - vh);
+        if (visible >= 72 && currentDist <= bestDist + 48) {
+          return;
+        }
+      }
+    }
+    snappedIdRef.current = bestId;
+    setSnappedId(bestId);
+    setPinnedId(null);
+  }, []);
+
+  useEffect(() => {
+    let raf = 0;
+    const onScrollOrResize = () => {
+      if (raf) return;
+      raf = window.requestAnimationFrame(() => {
+        raf = 0;
+        pickSnapped();
+      });
+    };
+    const io = new IntersectionObserver(onScrollOrResize, {
+      root: null,
+      threshold: [0, 0.2, 0.4, 0.6, 0.8, 1],
+    });
+    ioRef.current = io;
+    for (const el of tileElsRef.current.values()) io.observe(el);
+    pickSnapped();
+    window.addEventListener("scroll", onScrollOrResize, {
+      passive: true,
+      capture: true,
+    });
+    window.addEventListener("resize", onScrollOrResize);
+    return () => {
+      ioRef.current = null;
+      io.disconnect();
+      if (raf) window.cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScrollOrResize, true);
+      window.removeEventListener("resize", onScrollOrResize);
+    };
+  }, [items, pickSnapped]);
+
+  const playingId = pinnedId ?? (reduceMotion ? null : snappedId);
+  const bindTileEl = useCallback((id: string, el: HTMLElement | null) => {
+    const prev = tileElsRef.current.get(id);
+    if (prev && ioRef.current) ioRef.current.unobserve(prev);
+    if (el) {
+      tileElsRef.current.set(id, el);
+      ioRef.current?.observe(el);
+      pickSnapped();
+    } else {
+      tileElsRef.current.delete(id);
+    }
+  }, [pickSnapped]);
+
   const aspectById = useGalleryMasonryAspects(items, true);
   const {
     containerRef,
@@ -149,6 +239,11 @@ export function WorldJourneyVideoListing({
                 key={item.id}
                 item={item}
                 thumbAspect={aspectById.get(item.id)}
+                active={playingId === item.id}
+                muted={muted}
+                onToggleMuted={toggleMuted}
+                onActivate={() => setPinnedId(item.id)}
+                bindEl={bindTileEl}
                 onOpen={() =>
                   onOpenVideo({
                     id: item.id,
@@ -194,40 +289,34 @@ export function WorldJourneyVideoListing({
 function VideoListingTile({
   item,
   thumbAspect,
+  active,
+  muted,
+  onToggleMuted,
+  onActivate,
+  bindEl,
   onOpen,
 }: {
   item: GalleryMainItem;
   thumbAspect?: number;
+  active: boolean;
+  muted: boolean;
+  onToggleMuted: () => void;
+  onActivate: () => void;
+  bindEl: (id: string, el: HTMLElement | null) => void;
   onOpen: () => void;
 }) {
-  const visualSrc = item.masonrySrc?.trim() || item.src;
-  const viewLabel = `Xem video ${item.label}`;
-
   return (
     <div className="j-main-gallery-item j-main-gallery-item--caption-below">
-      <button
-        type="button"
-        className="j-main-gallery-item-hit"
-        onClick={onOpen}
-        aria-label={viewLabel}
-      >
-        <div
-          className="j-main-gallery-thumb"
-          style={{ aspectRatio: String(thumbAspect ?? 16 / 9) }}
-        >
-          <GalleryItemVisual
-            src={visualSrc}
-            sizes={GALLERY_GRID_IMAGE_SIZES}
-            width={item.width}
-            height={item.height}
-            alt={item.label}
-            isVideo
-            videoProcessing={item.videoProcessing}
-            videoPreviewSrc={item.videoPreviewSrc}
-          />
-          <GalleryVideoPlayBadge />
-        </div>
-      </button>
+      <WorldJourneyVideoListingPlayer
+        item={item}
+        thumbAspect={thumbAspect}
+        active={active}
+        muted={muted}
+        onToggleMuted={onToggleMuted}
+        onOpenViewer={onOpen}
+        onActivate={onActivate}
+        rootRef={(el) => bindEl(item.id, el)}
+      />
       <span className="j-main-gallery-info-panel">
         <button
           type="button"

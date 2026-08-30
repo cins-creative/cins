@@ -27,6 +27,7 @@ import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButto
 import { JourneyCommentLink } from "@/components/journey/JourneyCommentLink";
 import { JourneyLikeButton } from "@/components/journey/JourneyLikeButton";
 import { PostShareMenu } from "@/components/journey/PostActionsRail";
+import { useWorldJourneyFeedAudio } from "@/components/cins/world-journey/WorldJourneyFeedAudioContext";
 import {
   WORLD_JOURNEY_TAB_PAN_MS,
   WORLD_JOURNEY_VIDEO_LISTING_PAGE_SIZE,
@@ -38,7 +39,9 @@ import {
   buildStreamThumbnailAtTime,
 } from "@/lib/cloudflare/stream-embed";
 import {
+  applyStreamAudio,
   bindStreamPlayer,
+  playStreamWithAudio,
   type StreamPlayer,
 } from "@/lib/cloudflare/stream-player-sdk";
 import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
@@ -606,7 +609,10 @@ function ReelSlide({
   useEffect(() => {
     const player = playerRef.current;
     if (!player) return;
-    player.muted = muted;
+    applyStreamAudio(player, muted);
+    if (!muted && activeRef.current && canPlayRef.current && !userPausedRef.current) {
+      void player.play().catch(() => undefined);
+    }
   }, [muted]);
 
   const toggleFullscreen = useCallback(() => {
@@ -891,6 +897,32 @@ function ReelSlide({
                 </span>
                 <button
                   type="button"
+                  className={"wj-reel-timeline-btn" + (muted ? "" : " is-on")}
+                  aria-label={muted ? t("rail.unmute") : t("rail.mute")}
+                  aria-pressed={!muted}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const nextMuted = !muted;
+                    onToggleMuted();
+                    const player = playerRef.current;
+                    if (player) {
+                      void playStreamWithAudio(
+                        player,
+                        nextMuted,
+                        iframeRef.current,
+                      );
+                    }
+                    revealChrome(false);
+                  }}
+                >
+                  {muted ? (
+                    <VolumeX size={16} strokeWidth={2.2} />
+                  ) : (
+                    <Volume2 size={16} strokeWidth={2.2} />
+                  )}
+                </button>
+                <button
+                  type="button"
                   className={
                     "wj-reel-timeline-btn" + (loopOn ? " is-on" : "")
                   }
@@ -1016,13 +1048,22 @@ function ReelSlide({
             <button
               type="button"
               className={
-                "wj-reel-audio" + (muted ? "" : " is-hearing")
+                "wj-reel-audio" + (muted ? "" : " is-hearing is-on")
               }
               aria-label={muted ? t("reel.muteAll") : t("reel.hearAll")}
               aria-pressed={!muted}
               onClick={(e) => {
                 e.stopPropagation();
+                const nextMuted = !muted;
                 onToggleMuted();
+                const player = playerRef.current;
+                if (player) {
+                  void playStreamWithAudio(
+                    player,
+                    nextMuted,
+                    iframeRef.current,
+                  );
+                }
               }}
             >
               {muted ? (
@@ -1130,7 +1171,8 @@ export function WorldJourneyVideoFeed({
     () => seedPlaylist(initialItems, startItemId, lockPlaylist).length > 0,
   );
   const [loopOn, setLoopOn] = useState(true);
-  const [mutedAll, setMutedAll] = useState(true);
+  const { muted: mutedAll, toggleMuted: toggleMutedAll } =
+    useWorldJourneyFeedAudio();
   const [framedId, setFramedId] = useState<string | null>(() =>
     pickStartId(
       seedPlaylist(initialItems, startItemId, lockPlaylist),
@@ -1139,9 +1181,6 @@ export function WorldJourneyVideoFeed({
   );
   const toggleLoop = useCallback(() => {
     setLoopOn((prev) => !prev);
-  }, []);
-  const toggleMutedAll = useCallback(() => {
-    setMutedAll((prev) => !prev);
   }, []);
 
   const activeIndex = useMemo(() => {

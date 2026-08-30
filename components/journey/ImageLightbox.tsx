@@ -170,7 +170,11 @@ export function ImageLightbox({
                 onError={handleBlockImageError}
               />
               {watermark ? (
-                <JourneyImageWatermark dto={watermark} protect />
+                <JourneyImageWatermark
+                  dto={watermark}
+                  protect
+                  showProtectText
+                />
               ) : null}
             </div>
           </figure>

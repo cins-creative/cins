@@ -1157,6 +1157,7 @@ export function ShopKioskBlock({
 
   const messageSeller = useCallback(async () => {
     if (!sellerUserId) return;
+    setCatalogOpen(false);
     await openChat({ targetUserId: sellerUserId });
   }, [sellerUserId, openChat]);
 

@@ -18302,7 +18302,7 @@ button.j-user-pop-close svg {
 .preview--video.is-canvas-9-16,
 .jcard-video-trigger.is-canvas-9-16,
 .jcard-video-player.is-canvas-9-16 {
-  --media-canvas-max-aspect: 0.75; /* desktop 3:4 */
+  --media-canvas-max-aspect: calc(6 / 7); /* feed max 6:7 */
   width: min(
     100%,
     calc(
@@ -18322,7 +18322,7 @@ button.j-user-pop-close svg {
   .preview--video.is-canvas-9-16,
   .jcard-video-trigger.is-canvas-9-16,
   .jcard-video-player.is-canvas-9-16 {
-    --media-canvas-max-aspect: 0.5625; /* mobile 9:16 */
+    --media-canvas-max-aspect: calc(6 / 7); /* feed max 6:7 */
   }
 }
 .preview--video.is-canvas-16-9,
@@ -18534,6 +18534,11 @@ button.j-user-pop-close svg {
   background: #0f172a;
   pointer-events: auto;
 }
+.jcard-video-player .wj-list-player.is-fill {
+  position: absolute;
+  inset: 0;
+  height: auto;
+}
 .jcard-video-poster-layer {
   position: absolute;
   inset: 0;
@@ -18661,7 +18666,7 @@ button.j-user-pop-close svg {
 .j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .jcard-video-trigger.is-canvas-9-16,
 .j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .jcard-video-player.is-canvas-9-16,
 .j-m-card.jcard--video .jcard-media-zone .jcard-video-root > .preview.preview--video.is-canvas-9-16 {
-  --media-canvas-max-aspect: 0.75;
+  --media-canvas-max-aspect: calc(6 / 7);
   width: min(
     100%,
     calc(
@@ -18724,7 +18729,7 @@ button.j-user-pop-close svg {
 .j-m-card.jcard--video .jcard-media-zone > .jcard-video-trigger.is-canvas-9-16,
 .j-m-card.jcard--video .jcard-media-zone > .jcard-video-player.is-canvas-9-16,
 .j-m-card.jcard--video .jcard-media-zone > .preview.preview--video.is-canvas-9-16 {
-  --media-canvas-max-aspect: 0.75;
+  --media-canvas-max-aspect: calc(6 / 7);
   width: min(
     100%,
     calc(
@@ -18766,7 +18771,7 @@ button.j-user-pop-close svg {
   .j-m-card.jcard--video .jcard-media-zone > .jcard-video-trigger.is-canvas-9-16,
   .j-m-card.jcard--video .jcard-media-zone > .jcard-video-player.is-canvas-9-16,
   .j-m-card.jcard--video .jcard-media-zone > .preview.preview--video.is-canvas-9-16 {
-    --media-canvas-max-aspect: 0.5625;
+    --media-canvas-max-aspect: calc(6 / 7);
   }
 }
 

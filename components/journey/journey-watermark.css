@@ -17,7 +17,7 @@
   -webkit-touch-callout: none;
 }
 
-.image-grid-cell:has(.j-wm-overlay, .shop-img-protect-wm) > img:not(.shop-img-protect-decoy):not(.j-wm-overlay-img) {
+.image-grid-cell:has(.j-wm-overlay, .shop-img-protect-wm, .j-wm-decoy) > img:not(.shop-img-protect-decoy):not(.j-wm-overlay-img) {
   pointer-events: none;
   user-select: none;
   -webkit-user-drag: none;

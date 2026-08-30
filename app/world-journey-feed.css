@@ -1784,8 +1784,17 @@
   outline-offset: 2px;
 }
 
-.world-journey-home .wj-video-rail-audio.is-hearing {
+.world-journey-home .wj-video-rail-audio.is-hearing,
+.world-journey-home .wj-video-rail-audio.is-on {
   background: transparent;
+  color: var(--cins-orange, #fdad4c);
+}
+
+.world-journey-home .wj-video-rail-audio.is-hearing:hover,
+.world-journey-home .wj-video-rail-audio.is-hearing:focus-visible,
+.world-journey-home .wj-video-rail-audio.is-on:hover,
+.world-journey-home .wj-video-rail-audio.is-on:focus-visible {
+  color: color-mix(in srgb, var(--cins-orange, #fdad4c) 78%, white);
 }
 
 .world-journey-home .wj-video-rail-thumb {
@@ -5061,6 +5070,79 @@ body:has(.world-journey-home.view-video) .cins-home-feed-root {
   flex-direction: column;
 }
 
+.wj-list-player {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  overflow: hidden;
+  background: #0b0c0e;
+  border-radius: 12px;
+}
+
+.wj-list-player.is-fill {
+  height: 100%;
+  aspect-ratio: auto;
+  border-radius: 0;
+}
+
+.wj-list-player:fullscreen,
+.wj-list-player:-webkit-full-screen {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  aspect-ratio: auto;
+  border-radius: 0;
+}
+
+.wj-list-player-media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: #0b0c0e;
+}
+
+.wj-list-player-media > * {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.wj-list-player-media img,
+.wj-list-player-media video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.wj-list-player-iframe {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  pointer-events: none;
+}
+
+.wj-list-player-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.wj-list-player .wj-reel-timeline {
+  z-index: 4;
+}
+
 .world-journey-home.view-video .wj-guest-aside--left,
 .world-journey-home.view-video .wj-guest-aside--right,
 .world-journey-home.view-video .ha-col {
@@ -5084,6 +5166,8 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
   --wj-reel-rail-w: 72px;
   --wj-reel-row-pad-l: 24px;
   --wj-reel-pan-ms: 420ms;
+  /* Khung video không cao hơn 6:7. 16:9 giữ nguyên. */
+  --wj-reel-a-min: calc(6 / 7);
   /* Dọc (9:16) vs ngang fill-W (16:9). */
   --wj-reel-max-w-portrait: 420px;
   --wj-reel-max-w-landscape: min(960px, calc(100vw - 220px));
@@ -5232,7 +5316,10 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
 }
 
 .wj-reel-video-row {
-  --reel-a: var(--wj-reel-aspect, 1.777777);
+  --reel-a: max(
+    var(--wj-reel-aspect, 1.777777),
+    var(--wj-reel-a-min, 0.857143)
+  );
   --reel-avail-w: calc(
     100cqw - var(--wj-reel-rail-w) - 12px - var(--wj-reel-row-pad-l, 0px)
   );
@@ -5263,7 +5350,7 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
   max-height: 100cqh;
   min-width: 0;
   min-height: 0;
-  aspect-ratio: var(--wj-reel-aspect, 16 / 9);
+  aspect-ratio: var(--reel-a);
   overflow: hidden;
   background: #0b0c0e;
   border: 1px solid rgba(255, 255, 255, 0.22);
@@ -5472,8 +5559,9 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
   color: #fff;
 }
 
-.wj-reel-audio.is-hearing {
-  color: #4ade80;
+.wj-reel-audio.is-hearing,
+.wj-reel-audio.is-on {
+  color: #22c55e;
 }
 
 .wj-reel-audio.is-hearing:hover,
@@ -5612,6 +5700,7 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
   transition: opacity 160ms ease;
 }
 
+.wj-reel-timeline.is-pinned,
 .wj-reel-slide.is-chrome .wj-reel-timeline,
 .wj-reel-timeline.is-scrubbing {
   opacity: 1;
@@ -5947,25 +6036,17 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
     box-shadow: none;
   }
 
-  /* Ngang: khít tỉ lệ, căn giữa dọc — letterbox đen như Reels. */
+  /* Khít tỉ lệ, max cao 4:5; căn giữa — letterbox đen như Reels. */
   .wj-reel-video-box {
     position: relative;
     inset: auto;
     flex: 0 0 auto;
-    width: 100%;
+    width: min(100%, calc(100cqh * var(--reel-a)));
     max-width: 100%;
     height: auto;
     max-height: 100%;
-    aspect-ratio: var(--wj-reel-aspect, 16 / 9);
+    aspect-ratio: var(--reel-a);
     margin: 0 auto;
-  }
-
-  /* Dọc: phủ gần hết chiều cao khung. */
-  .wj-reel-stage[data-aspect="portrait"] .wj-reel-video-box {
-    width: auto;
-    height: 100%;
-    max-height: 100%;
-    aspect-ratio: var(--wj-reel-aspect, 9 / 16);
   }
 
   .wj-reel-media {

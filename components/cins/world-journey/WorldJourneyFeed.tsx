@@ -30,6 +30,7 @@ import { WorldJourneyGuestLeftAside } from "@/components/cins/world-journey/Worl
 import { WorldJourneyGuestRightAside } from "@/components/cins/world-journey/WorldJourneyGuestRightAside";
 import { useWorldJourneyAsideSwipe } from "@/components/cins/world-journey/useWorldJourneyAsideSwipe";
 import { WorldJourneyOpenFeedVideoProvider } from "@/components/cins/world-journey/WorldJourneyOpenFeedVideoContext";
+import { WorldJourneyFeedAudioProvider } from "@/components/cins/world-journey/WorldJourneyFeedAudioContext";
 import { WorldJourneyVideoFeed } from "@/components/cins/world-journey/WorldJourneyVideoFeed";
 import {
   WorldJourneyVideoListing,
@@ -1798,6 +1799,7 @@ export function WorldJourneyFeed({
 
   return (
     <WorldJourneyOpenFeedVideoProvider value={openVideoFromMilestone}>
+    <WorldJourneyFeedAudioProvider>
     <div
       ref={homeRootRef}
       className={
@@ -1925,6 +1927,7 @@ export function WorldJourneyFeed({
       </div>
       <VideoProcessingPoller ownerSlug={sidebarProfile.slug} />
     </div>
+    </WorldJourneyFeedAudioProvider>
     </WorldJourneyOpenFeedVideoProvider>
   );
 }

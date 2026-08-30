@@ -10,10 +10,16 @@ import {
   useState,
 } from "react";
 
+import { useWorldJourneyFeedAudio } from "@/components/cins/world-journey/WorldJourneyFeedAudioContext";
 import { GalleryItemVisual } from "@/components/journey/GalleryItemVisual";
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
 import { buildStreamIframeUrl } from "@/lib/cloudflare/stream-embed";
-import { bindStreamPlayer } from "@/lib/cloudflare/stream-player-sdk";
+import {
+  applyStreamAudio,
+  bindStreamPlayer,
+  pauseStream,
+  playStreamWithAudio,
+} from "@/lib/cloudflare/stream-player-sdk";
 import { GALLERY_GRID_IMAGE_SIZES } from "@/lib/cloudflare/cf-variant-url";
 import { WORLD_JOURNEY_VIDEO_RAIL_SIZE } from "@/lib/cins/worldJourneyFeedConstants";
 import { useT } from "@/lib/i18n/use-t";
@@ -24,18 +30,9 @@ const SWIPE_THRESHOLD_PX = 48;
 const WHEEL_THRESHOLD = 48;
 const WHEEL_COOLDOWN_MS = 420;
 const STEP_LOCK_MS = 380;
-const PREVIEW_LOOP_SECONDS = 3;
 const STRIP_LOOP_COPIES = 3;
-
-function applyStreamAudio(player: {
-  muted: boolean;
-  volume?: number;
-}, wantMuted: boolean) {
-  player.muted = wantMuted;
-  if (!wantMuted) {
-    player.volume = 1;
-  }
-}
+/** Buffer đầu clip hàng xóm rồi pause — vào giữa chỉ play, không reload iframe. */
+const COVERFLOW_WARM_SECONDS = 2.5;
 
 function postStreamPlay(el: HTMLIFrameElement | null) {
   try {
@@ -49,13 +46,13 @@ function stripCopyWidth(el: HTMLElement): number {
   return el.scrollWidth / STRIP_LOOP_COPIES;
 }
 
-function railIframeSrc(uid: string, autoplay: boolean): string {
+function railIframeSrc(uid: string, loop: boolean): string {
   const params = new URLSearchParams({
-    autoplay: autoplay ? "true" : "false",
+    autoplay: "false",
     muted: "true",
     controls: "false",
     preload: "auto",
-    loop: "true",
+    loop: loop ? "true" : "false",
     startTime: "0",
   });
   return `${buildStreamIframeUrl(uid)}?${params.toString()}`;
@@ -106,7 +103,8 @@ export function WorldJourneyVideoRail({
   });
   const [stripCopy, setStripCopy] = useState(0);
   const [stripDragging, setStripDragging] = useState(false);
-  const [muted, setMuted] = useState(true);
+  const [railInView, setRailInView] = useState(false);
+  const { muted, toggleMuted } = useWorldJourneyFeedAudio();
   const lockUntilRef = useRef(0);
   const wheelAccRef = useRef(0);
   const rootRef = useRef<HTMLElement | null>(null);
@@ -117,9 +115,16 @@ export function WorldJourneyVideoRail({
   const mutedRef = useRef(true);
   const hoverLoopKeyRef = useRef<string | null>(null);
   const activeLoopKeyRef = useRef<string | null>(null);
+  const isStripRef = useRef(isStrip);
   mutedRef.current = muted;
   hoverLoopKeyRef.current = hoverLoopKey;
   activeLoopKeyRef.current = activeLoopKey;
+  isStripRef.current = isStrip;
+
+  const hearingKey = useCallback(() => {
+    if (isStripRef.current) return hoverLoopKeyRef.current;
+    return hoverLoopKeyRef.current ?? activeLoopKeyRef.current;
+  }, []);
 
   const displayCards = useMemo(() => {
     if (!isStrip || items.length < 2) {
@@ -181,6 +186,23 @@ export function WorldJourneyVideoRail({
     setActiveLoopKey(items[activeIndex]?.id ?? null);
   }, [isStrip, items, activeIndex]);
 
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el || isStrip) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry) {
+          setRailInView(false);
+          return;
+        }
+        setRailInView(entry.isIntersecting);
+      },
+      { threshold: [0, 0.35, 0.55, 0.72, 0.9, 1] },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [isStrip, slotKey, n]);
+
   const step = useCallback(
     (dir: 1 | -1) => {
       if (n <= 1) return;
@@ -196,20 +218,40 @@ export function WorldJourneyVideoRail({
 
   const goNext = useCallback(() => step(1), [step]);
   const goPrev = useCallback(() => step(-1), [step]);
-  const toggleMuted = useCallback(() => {
-    setMuted((prev) => {
-      const next = !prev;
-      const key = hoverLoopKeyRef.current ?? activeLoopKeyRef.current;
-      for (const [loopKey, bound] of playersRef.current) {
-        const hearing = !next && loopKey === key;
-        applyStreamAudio(bound.player, !hearing);
-        if (hearing) {
-          void bound.player.play().catch(() => undefined);
-        }
+
+  const onToggleAudio = useCallback(() => {
+    const nextMuted = !muted;
+    toggleMuted();
+    const key = hearingKey();
+    for (const [loopKey, bound] of playersRef.current) {
+      const hearing = !nextMuted && key != null && loopKey === key;
+      if (hearing) {
+        void playStreamWithAudio(bound.player, false, bound.iframe);
+      } else {
+        applyStreamAudio(bound.player, true, bound.iframe);
       }
-      return next;
-    });
-  }, []);
+    }
+  }, [muted, toggleMuted, hearingKey]);
+
+  useEffect(() => {
+    const key = hearingKey();
+    for (const [loopKey, bound] of playersRef.current) {
+      const hearing = !muted && key != null && loopKey === key;
+      if (hearing) {
+        void playStreamWithAudio(bound.player, false, bound.iframe);
+      } else {
+        applyStreamAudio(bound.player, true, bound.iframe);
+      }
+    }
+  }, [muted, hearingKey]);
+
+  useEffect(() => {
+    if (!isStrip) return;
+    if (hoverLoopKey) return;
+    for (const bound of playersRef.current.values()) {
+      pauseStream(bound.player, bound.iframe);
+    }
+  }, [isStrip, hoverLoopKey]);
 
   const registerPlayer = useCallback(
     (
@@ -218,12 +260,14 @@ export function WorldJourneyVideoRail({
       iframe: HTMLIFrameElement,
     ) => {
       playersRef.current.set(loopKey, { player, iframe });
-      const playingKey = hoverLoopKeyRef.current ?? activeLoopKeyRef.current;
+      const playingKey = hearingKey();
       if (playingKey === loopKey) {
-        applyStreamAudio(player, mutedRef.current);
+        applyStreamAudio(player, mutedRef.current, iframe);
+      } else {
+        applyStreamAudio(player, true, iframe);
       }
     },
-    [],
+    [hearingKey],
   );
 
   const unregisterPlayer = useCallback((loopKey: string) => {
@@ -519,10 +563,10 @@ export function WorldJourneyVideoRail({
             const visibleCopy = stripLoops ? stripCopy : 0;
             const playing = isStrip
               ? copy === visibleCopy && loopKey === hoverLoopKey
-              : sourceIndex === (hoverIndex ?? activeIndex);
+              : railInView && sourceIndex === (hoverIndex ?? activeIndex);
             const clipMounted = isStrip
               ? copy === visibleCopy
-              : Math.abs(offset) <= 2;
+              : true;
             return (
               <VideoStackCard
                 key={loopKey}
@@ -533,6 +577,7 @@ export function WorldJourneyVideoRail({
                 layout={isStrip ? "strip" : "coverflow"}
                 playing={playing}
                 clipMounted={clipMounted}
+                inView={isStrip || railInView}
                 muted={muted}
                 onOpen={() => handleOpen(item)}
                 onFocusCard={() => setActiveIndex(sourceIndex)}
@@ -540,6 +585,7 @@ export function WorldJourneyVideoRail({
                   setHoverIndex(sourceIndex);
                   setHoverLoopKey(loopKey);
                 }}
+                onEnded={isStrip || n <= 1 ? undefined : goNext}
                 onBindPlayer={registerPlayer}
                 onUnbindPlayer={unregisterPlayer}
               />
@@ -560,10 +606,10 @@ export function WorldJourneyVideoRail({
 
         <button
           type="button"
-          className={"wj-video-rail-audio" + (muted ? "" : " is-hearing")}
+          className={"wj-video-rail-audio" + (muted ? "" : " is-hearing is-on")}
           aria-label={muted ? t("rail.unmute") : t("rail.mute")}
           aria-pressed={!muted}
-          onClick={toggleMuted}
+          onClick={onToggleAudio}
         >
           {muted ? (
             <VolumeX size={16} strokeWidth={2.25} aria-hidden />
@@ -635,8 +681,10 @@ function RailClip({
   active,
   mounted,
   muted,
-  autoplay,
+  loop,
+  inView,
   bindKey,
+  onEnded,
   onBindPlayer,
   onUnbindPlayer,
 }: {
@@ -644,8 +692,10 @@ function RailClip({
   active: boolean;
   mounted: boolean;
   muted: boolean;
-  autoplay: boolean;
+  loop: boolean;
+  inView: boolean;
   bindKey: string;
+  onEnded?: () => void;
   onBindPlayer?: (
     loopKey: string,
     player: Awaited<ReturnType<typeof bindStreamPlayer>>,
@@ -661,13 +711,21 @@ function RailClip({
   activeRef.current = active;
   const mutedRef = useRef(muted);
   mutedRef.current = muted;
+  const loopRef = useRef(loop);
+  loopRef.current = loop;
+  const inViewRef = useRef(inView);
+  inViewRef.current = inView;
+  const onEndedRef = useRef(onEnded);
+  onEndedRef.current = onEnded;
+  const warmingRef = useRef(false);
   const warmedRef = useRef(false);
-  const wasActiveRef = useRef(false);
+  const advancedRef = useRef(false);
+  const playGenRef = useRef(0);
   const uid = item.streamUid?.trim() || "";
   const poster = item.masonrySrc?.trim() || item.src;
   const src = useMemo(
-    () => (uid ? railIframeSrc(uid, autoplay) : ""),
-    [uid, autoplay],
+    () => (uid ? railIframeSrc(uid, loop) : ""),
+    [uid, loop],
   );
   const [ready, setReady] = useState(false);
 
@@ -675,7 +733,8 @@ function RailClip({
     setReady(false);
     playerRef.current = null;
     warmedRef.current = false;
-    wasActiveRef.current = false;
+    warmingRef.current = false;
+    advancedRef.current = false;
   }, [src]);
 
   useEffect(() => {
@@ -684,68 +743,102 @@ function RailClip({
     let cancelled = false;
     let player: Awaited<ReturnType<typeof bindStreamPlayer>> | null = null;
 
-    const loopHead = () => {
-      if (cancelled || !player || !activeRef.current) return;
-      const dur = player.duration;
-      if (!Number.isFinite(dur) || dur <= 0) return;
-      const loopAt = Math.min(PREVIEW_LOOP_SECONDS, dur);
-      if (player.currentTime >= loopAt) {
-        player.currentTime = 0.05;
-      }
-    };
-
-    const capWarm = () => {
-      if (cancelled || !player || activeRef.current) return;
-      player.pause();
+    const stopHard = () => {
+      if (!player) return;
+      pauseStream(player, el);
       try {
         player.currentTime = 0;
       } catch {
         /* ignore */
       }
-      warmedRef.current = true;
     };
 
     const applyMute = () => {
       if (!player) return;
-      applyStreamAudio(player, !activeRef.current || mutedRef.current);
+      applyStreamAudio(
+        player,
+        !activeRef.current || mutedRef.current,
+        el,
+      );
+    };
+
+    const fireAdvance = () => {
+      if (!activeRef.current || !inViewRef.current || loopRef.current || warmingRef.current) return;
+      if (advancedRef.current) return;
+      advancedRef.current = true;
+      onEndedRef.current?.();
     };
 
     const kickPlay = () => {
-      if (!player || !activeRef.current) return;
-      applyMute();
-      void player.play().catch(() => {
-        if (mutedRef.current) {
-          applyStreamAudio(player, true);
-          void player.play().catch(() => {
-            postStreamPlay(el);
-          });
+      if (!player || !activeRef.current || !inViewRef.current) return;
+      warmingRef.current = false;
+      const gen = ++playGenRef.current;
+      void playStreamWithAudio(player, mutedRef.current, el).then(() => {
+        if (cancelled || gen !== playGenRef.current || !activeRef.current) {
+          stopHard();
         }
       });
     };
 
+    const startWarm = () => {
+      if (!player || activeRef.current || warmedRef.current) return;
+      if (!inViewRef.current) return;
+      if (loopRef.current) return;
+      warmingRef.current = true;
+      applyStreamAudio(player, true, el);
+      void player.play().catch(() => {
+        postStreamPlay(el);
+      });
+    };
+
+    const capWarm = () => {
+      if (cancelled || !player || activeRef.current) return;
+      warmingRef.current = false;
+      stopHard();
+      warmedRef.current = true;
+    };
+
+    const onUnexpectedPlay = () => {
+      if (cancelled || !player) return;
+      if (activeRef.current && inViewRef.current) return;
+      if (warmingRef.current) return;
+      pauseStream(player, el);
+    };
+
     const syncPlayback = () => {
       if (cancelled || !player) return;
-      player.loop = true;
+      player.loop = loopRef.current;
       applyMute();
       if (activeRef.current) {
-        wasActiveRef.current = true;
+        advancedRef.current = false;
         kickPlay();
         return;
       }
-      capWarm();
+      startWarm();
     };
 
     const onTime = () => {
-      if (activeRef.current) loopHead();
+      if (cancelled || !player) return;
+      if (warmingRef.current) {
+        const cap = Math.min(
+          COVERFLOW_WARM_SECONDS,
+          player.duration || COVERFLOW_WARM_SECONDS,
+        );
+        if (player.currentTime >= cap) capWarm();
+        return;
+      }
+      if (!activeRef.current || loopRef.current) return;
+      const d = player.duration;
+      if (Number.isFinite(d) && d > 0.4 && player.currentTime >= d - 0.2) {
+        fireAdvance();
+      }
     };
-
-    postStreamPlay(el);
 
     const retryIds: number[] = [];
     const retryPlay = () => {
-      if (cancelled || !activeRef.current) return;
-      kickPlay();
-      postStreamPlay(el);
+      if (cancelled) return;
+      if (activeRef.current && inViewRef.current) kickPlay();
+      else if (inViewRef.current) startWarm();
     };
 
     void (async () => {
@@ -755,11 +848,13 @@ function RailClip({
         playerRef.current = player;
         onBindPlayer?.(bindKey, player, el);
         applyMute();
-        player.addEventListener("timeupdate", onTime);
         player.addEventListener("loadedmetadata", () => {
           setReady(true);
           syncPlayback();
         });
+        player.addEventListener("play", onUnexpectedPlay);
+        player.addEventListener("timeupdate", onTime);
+        player.addEventListener("ended", fireAdvance);
         setReady(true);
         syncPlayback();
         retryIds.push(
@@ -768,7 +863,7 @@ function RailClip({
         );
       } catch {
         setReady(true);
-        postStreamPlay(el);
+        if (activeRef.current && inViewRef.current) postStreamPlay(el);
       }
     })();
 
@@ -777,8 +872,10 @@ function RailClip({
       for (const id of retryIds) window.clearTimeout(id);
       onUnbindPlayer?.(bindKey);
       if (player) {
+        player.removeEventListener("play", onUnexpectedPlay);
         player.removeEventListener("timeupdate", onTime);
-        player.pause();
+        player.removeEventListener("ended", fireAdvance);
+        pauseStream(player, el);
       }
       playerRef.current = null;
     };
@@ -788,29 +885,33 @@ function RailClip({
     const player = playerRef.current;
     const el = iframeRef.current;
     if (!player) {
-      if (active) postStreamPlay(el);
+      if (active && inView) postStreamPlay(el);
       return;
     }
-    player.loop = true;
-    applyStreamAudio(player, !active || muted);
-    if (active) {
-      wasActiveRef.current = true;
-      void player.play().catch(() => {
-        if (mutedRef.current) {
-          applyStreamAudio(player, true);
-          void player.play().catch(() => postStreamPlay(el));
+    player.loop = loop;
+    const gen = ++playGenRef.current;
+    if (active && inView) {
+      warmingRef.current = false;
+      advancedRef.current = false;
+      void playStreamWithAudio(player, muted, el).then(() => {
+        if (gen !== playGenRef.current || !activeRef.current) {
+          pauseStream(player, el);
+          try {
+            player.currentTime = 0;
+          } catch {
+            /* ignore */
+          }
         }
       });
       return;
     }
-    wasActiveRef.current = false;
-    player.pause();
+    pauseStream(player, el);
     try {
       player.currentTime = 0;
     } catch {
       /* ignore */
     }
-  }, [active, muted, mounted]);
+  }, [active, muted, mounted, loop, inView]);
 
   return (
     <>
@@ -827,7 +928,8 @@ function RailClip({
         <iframe
           ref={iframeRef}
           className={
-            "wj-video-rail-clip" + (ready && active ? " is-ready" : "")
+            "wj-video-rail-clip" +
+            (ready && (active || !loop) ? " is-ready" : "")
           }
           src={src}
           title={item.label || "Video"}
@@ -836,7 +938,6 @@ function RailClip({
           tabIndex={-1}
           onLoad={() => {
             setReady(true);
-            if (activeRef.current) postStreamPlay(iframeRef.current);
           }}
         />
       ) : null}
@@ -852,10 +953,12 @@ function VideoStackCard({
   layout,
   playing,
   clipMounted,
+  inView,
   muted,
   onOpen,
   onFocusCard,
   onHover,
+  onEnded,
   onBindPlayer,
   onUnbindPlayer,
 }: {
@@ -866,10 +969,12 @@ function VideoStackCard({
   layout: "strip" | "coverflow";
   playing: boolean;
   clipMounted: boolean;
+  inView: boolean;
   muted: boolean;
   onOpen: () => void;
   onFocusCard: () => void;
   onHover?: () => void;
+  onEnded?: () => void;
   onBindPlayer?: (
     loopKey: string,
     player: Awaited<ReturnType<typeof bindStreamPlayer>>,
@@ -883,6 +988,7 @@ function VideoStackCard({
   const abs = Math.abs(offset);
   const visible = isStrip || abs <= 1;
   const mounted = clipMounted;
+  const loop = isStrip || total <= 1;
 
   return (
     <article
@@ -908,11 +1014,13 @@ function VideoStackCard({
           <span className="wj-video-rail-thumb" aria-hidden>
             <RailClip
               item={item}
-              active={isFront}
+              active={isFront && inView}
               mounted={mounted}
               muted={muted}
-              autoplay={!isStrip && isFront}
+              loop={loop}
+              inView={inView}
               bindKey={loopKey}
+              onEnded={onEnded}
               onBindPlayer={onBindPlayer}
               onUnbindPlayer={onUnbindPlayer}
             />

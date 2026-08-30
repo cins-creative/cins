@@ -12,6 +12,8 @@ const SQUARE_TOLERANCE = 0.08;
  * Clamp thật theo breakpoint nằm ở CSS (`max(--media-natural-aspect, …)`).
  */
 export const VIDEO_PORTRAIT_MAX_HW = 16 / 9;
+/** Khung video trên feed/timeline — không cao hơn 6:7. */
+export const VIDEO_FEED_MAX_ASPECT = 6 / 7;
 
 export function resolveVideoCanvasRatio(
   width: number,
