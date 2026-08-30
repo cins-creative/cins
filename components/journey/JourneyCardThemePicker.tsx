@@ -693,14 +693,34 @@ export const JourneyCardThemePicker = forwardRef<
             <span className="j-theme-picker-status">Chưa lưu</span>
           ) : null}
         </div>
-        <label className="j-card-theme-toggle">
-          <input
-            type="checkbox"
-            checked={card.enabled}
-            onChange={(e) => setEnabled(e.target.checked)}
-          />
-          <span>Bật màu thanh bài viết</span>
-        </label>
+        <section
+          className={
+            "j-theme-section j-theme-section--home" +
+            (card.enabled ? " is-active" : "")
+          }
+          aria-labelledby="j-card-enable-heading"
+        >
+          <div className="j-theme-home-row">
+            <span className="j-theme-home-text">
+              <span
+                className="j-theme-home-check-title"
+                id="j-card-enable-heading"
+              >
+                Bật màu thanh bài viết
+              </span>
+            </span>
+            <button
+              type="button"
+              className={"j-theme-home-switch" + (card.enabled ? " is-on" : "")}
+              role="switch"
+              aria-checked={card.enabled}
+              aria-labelledby="j-card-enable-heading"
+              onClick={() => setEnabled(!card.enabled)}
+            >
+              <span className="j-theme-home-switch-knob" aria-hidden />
+            </button>
+          </div>
+        </section>
 
         <fieldset className="j-card-theme-fieldset" disabled={!card.enabled}>
           <legend>Màu</legend>

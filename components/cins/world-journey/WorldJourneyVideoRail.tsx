@@ -25,14 +25,37 @@ const WHEEL_THRESHOLD = 48;
 const WHEEL_COOLDOWN_MS = 420;
 const STEP_LOCK_MS = 380;
 const PREVIEW_LOOP_SECONDS = 3;
+const STRIP_LOOP_COPIES = 3;
 
-function railIframeSrc(uid: string): string {
+function applyStreamAudio(player: {
+  muted: boolean;
+  volume?: number;
+}, wantMuted: boolean) {
+  player.muted = wantMuted;
+  if (!wantMuted) {
+    player.volume = 1;
+  }
+}
+
+function postStreamPlay(el: HTMLIFrameElement | null) {
+  try {
+    el?.contentWindow?.postMessage(JSON.stringify({ event: "play" }), "*");
+  } catch {
+    /* ignore */
+  }
+}
+
+function stripCopyWidth(el: HTMLElement): number {
+  return el.scrollWidth / STRIP_LOOP_COPIES;
+}
+
+function railIframeSrc(uid: string, autoplay: boolean): string {
   const params = new URLSearchParams({
-    autoplay: "false",
+    autoplay: autoplay ? "true" : "false",
     muted: "true",
     controls: "false",
     preload: "auto",
-    loop: "false",
+    loop: "true",
     startTime: "0",
   });
   return `${buildStreamIframeUrl(uid)}?${params.toString()}`;
@@ -74,12 +97,56 @@ export function WorldJourneyVideoRail({
   const [activeIndex, setActiveIndex] = useState(0);
   const [animDir, setAnimDir] = useState<0 | 1 | -1>(0);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const [hoverLoopKey, setHoverLoopKey] = useState<string | null>(null);
+  const [activeLoopKey, setActiveLoopKey] = useState<string | null>(() => {
+    const first = items[0];
+    if (!first) return null;
+    if (isStrip && items.length >= 2) return `${first.id}-c0`;
+    return first.id;
+  });
+  const [stripCopy, setStripCopy] = useState(0);
   const [stripDragging, setStripDragging] = useState(false);
   const [muted, setMuted] = useState(true);
   const lockUntilRef = useRef(0);
   const wheelAccRef = useRef(0);
   const rootRef = useRef<HTMLElement | null>(null);
   const stripTrackRef = useRef<HTMLDivElement | null>(null);
+  const playersRef = useRef(
+    new Map<string, { player: Awaited<ReturnType<typeof bindStreamPlayer>>; iframe: HTMLIFrameElement }>(),
+  );
+  const mutedRef = useRef(true);
+  const hoverLoopKeyRef = useRef<string | null>(null);
+  const activeLoopKeyRef = useRef<string | null>(null);
+  mutedRef.current = muted;
+  hoverLoopKeyRef.current = hoverLoopKey;
+  activeLoopKeyRef.current = activeLoopKey;
+
+  const displayCards = useMemo(() => {
+    if (!isStrip || items.length < 2) {
+      return items.map((item, sourceIndex) => ({
+        item,
+        loopKey: item.id,
+        sourceIndex,
+      }));
+    }
+    const out: Array<{
+      item: GalleryMainItem;
+      loopKey: string;
+      sourceIndex: number;
+    }> = [];
+    for (let copy = 0; copy < STRIP_LOOP_COPIES; copy += 1) {
+      items.forEach((item, sourceIndex) => {
+        out.push({
+          item,
+          loopKey: `${item.id}-c${copy}`,
+          sourceIndex,
+        });
+      });
+    }
+    return out;
+  }, [isStrip, items]);
+
+  const stripLoops = isStrip && items.length >= 2;
   const dragRef = useRef<{
     pointerId: number;
     startX: number;
@@ -101,8 +168,18 @@ export function WorldJourneyVideoRail({
     setActiveIndex(0);
     setAnimDir(0);
     setHoverIndex(null);
+    setHoverLoopKey(null);
+    setStripCopy(0);
+    setActiveLoopKey(
+      isStrip && n >= 2 && items[0] ? `${items[0].id}-c0` : items[0]?.id ?? null,
+    );
     wheelAccRef.current = 0;
-  }, [slotKey, n]);
+  }, [slotKey, n, isStrip, items]);
+
+  useEffect(() => {
+    if (isStrip) return;
+    setActiveLoopKey(items[activeIndex]?.id ?? null);
+  }, [isStrip, items, activeIndex]);
 
   const step = useCallback(
     (dir: 1 | -1) => {
@@ -120,8 +197,56 @@ export function WorldJourneyVideoRail({
   const goNext = useCallback(() => step(1), [step]);
   const goPrev = useCallback(() => step(-1), [step]);
   const toggleMuted = useCallback(() => {
-    setMuted((prev) => !prev);
+    setMuted((prev) => {
+      const next = !prev;
+      const key = hoverLoopKeyRef.current ?? activeLoopKeyRef.current;
+      for (const [loopKey, bound] of playersRef.current) {
+        const hearing = !next && loopKey === key;
+        applyStreamAudio(bound.player, !hearing);
+        if (hearing) {
+          void bound.player.play().catch(() => undefined);
+        }
+      }
+      return next;
+    });
   }, []);
+
+  const registerPlayer = useCallback(
+    (
+      loopKey: string,
+      player: Awaited<ReturnType<typeof bindStreamPlayer>>,
+      iframe: HTMLIFrameElement,
+    ) => {
+      playersRef.current.set(loopKey, { player, iframe });
+      const playingKey = hoverLoopKeyRef.current ?? activeLoopKeyRef.current;
+      if (playingKey === loopKey) {
+        applyStreamAudio(player, mutedRef.current);
+      }
+    },
+    [],
+  );
+
+  const unregisterPlayer = useCallback((loopKey: string) => {
+    playersRef.current.delete(loopKey);
+  }, []);
+
+  const wrapInfiniteScroll = useCallback(() => {
+    const el = stripTrackRef.current;
+    if (!el || !stripLoops) return;
+    const setWidth = stripCopyWidth(el);
+    if (setWidth <= 0) return;
+    if (el.scrollLeft < setWidth * 0.25) {
+      /* Đầu track (scroll≈0) giữ copy 0; chỉ wrap khi đã kéo vào giữa. */
+      if (el.scrollLeft > 8) el.scrollLeft += setWidth;
+    } else if (el.scrollLeft > setWidth * 1.75) {
+      el.scrollLeft -= setWidth;
+    }
+    const copy = Math.min(
+      2,
+      Math.max(0, Math.round(el.scrollLeft / setWidth)),
+    );
+    setStripCopy(copy);
+  }, [stripLoops]);
 
   const handleOpen = useCallback(
     (item: GalleryMainItem) => {
@@ -161,10 +286,8 @@ export function WorldJourneyVideoRail({
 
   useEffect(() => {
     if (!isStrip || n === 0) return;
-    const root = rootRef.current;
-    if (!root) return;
-    const track = root.querySelector(".wj-video-rail-stack");
-    if (!(track instanceof HTMLElement)) return;
+    const track = stripTrackRef.current;
+    if (!track) return;
     const cards = [...track.querySelectorAll<HTMLElement>(".wj-video-rail-card")];
     if (cards.length === 0) return;
     const ratios = new Map<Element, number>();
@@ -173,24 +296,28 @@ export function WorldJourneyVideoRail({
         for (const entry of entries) {
           ratios.set(entry.target, entry.intersectionRatio);
         }
-        let bestId: string | null = null;
-        let bestRatio = 0.4;
+        let bestCard: HTMLElement | null = null;
+        let bestRatio = 0.15;
         for (const card of cards) {
           const ratio = ratios.get(card) ?? 0;
           if (ratio > bestRatio) {
             bestRatio = ratio;
-            bestId = card.getAttribute("data-item-id");
+            bestCard = card;
           }
         }
-        if (!bestId) return;
-        const idx = items.findIndex((item) => item.id === bestId);
+        if (!bestCard) return;
+        const loopKey = bestCard.getAttribute("data-loop-key");
+        const itemId = bestCard.getAttribute("data-item-id");
+        if (loopKey) setActiveLoopKey(loopKey);
+        if (!itemId) return;
+        const idx = items.findIndex((item) => item.id === itemId);
         if (idx >= 0) setActiveIndex(idx);
       },
-      { root: track, threshold: [0.4, 0.6, 0.8, 1] },
+      { root: track, threshold: [0.15, 0.4, 0.6, 0.8, 1] },
     );
     for (const card of cards) io.observe(card);
     return () => io.disconnect();
-  }, [isStrip, n, items]);
+  }, [isStrip, n, items, displayCards.length]);
 
   const onPointerDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
@@ -293,8 +420,9 @@ export function WorldJourneyVideoRail({
       }
       if (drag.axis !== "x") return;
       el.scrollLeft = drag.startScroll - dx;
+      wrapInfiniteScroll();
     },
-    [],
+    [wrapInfiniteScroll],
   );
 
   const endStripPointer = useCallback(
@@ -307,11 +435,12 @@ export function WorldJourneyVideoRail({
       }
       if (drag.moved) {
         suppressClickRef.current = true;
+        wrapInfiniteScroll();
         setStripDragging(false);
       }
       stripDragRef.current = null;
     },
-    [],
+    [wrapInfiniteScroll],
   );
 
   useEffect(() => {
@@ -368,6 +497,7 @@ export function WorldJourneyVideoRail({
           onPointerMove={isStrip ? onStripPointerMove : onPointerMove}
           onPointerUp={isStrip ? endStripPointer : endPointer}
           onPointerCancel={isStrip ? endStripPointer : endPointer}
+          onScroll={stripLoops ? wrapInfiniteScroll : undefined}
           onPointerLeave={
             isStrip
               ? (event) => {
@@ -376,24 +506,42 @@ export function WorldJourneyVideoRail({
                     return;
                   }
                   setHoverIndex(null);
+                  setHoverLoopKey(null);
                 }
               : undefined
           }
         >
-          {items.map((item, i) => {
-            const offset = isStrip ? 0 : circularOffset(i, activeIndex, n);
+          {displayCards.map(({ item, loopKey, sourceIndex }, cardIndex) => {
+            const offset = isStrip
+              ? 0
+              : circularOffset(sourceIndex, activeIndex, n);
+            const copy = stripLoops && n > 0 ? Math.floor(cardIndex / n) : 0;
+            const visibleCopy = stripLoops ? stripCopy : 0;
+            const playing = isStrip
+              ? copy === visibleCopy && loopKey === hoverLoopKey
+              : sourceIndex === (hoverIndex ?? activeIndex);
+            const clipMounted = isStrip
+              ? copy === visibleCopy
+              : Math.abs(offset) <= 2;
             return (
               <VideoStackCard
-                key={item.id}
+                key={loopKey}
+                loopKey={loopKey}
                 item={item}
                 offset={offset}
                 total={n}
                 layout={isStrip ? "strip" : "coverflow"}
-                playing={i === (hoverIndex ?? activeIndex)}
+                playing={playing}
+                clipMounted={clipMounted}
                 muted={muted}
                 onOpen={() => handleOpen(item)}
-                onFocusCard={() => setActiveIndex(i)}
-                onHover={() => setHoverIndex(i)}
+                onFocusCard={() => setActiveIndex(sourceIndex)}
+                onHover={() => {
+                  setHoverIndex(sourceIndex);
+                  setHoverLoopKey(loopKey);
+                }}
+                onBindPlayer={registerPlayer}
+                onUnbindPlayer={unregisterPlayer}
               />
             );
           })}
@@ -437,7 +585,10 @@ export function WorldJourneyVideoRail({
               }
               aria-selected={i === activeIndex}
               aria-label={`Video ${i + 1}`}
-              onClick={() => setActiveIndex(i)}
+              onClick={() => {
+                setActiveIndex(i);
+                setActiveLoopKey(item.id);
+              }}
             />
           ))}
         </div>
@@ -484,11 +635,23 @@ function RailClip({
   active,
   mounted,
   muted,
+  autoplay,
+  bindKey,
+  onBindPlayer,
+  onUnbindPlayer,
 }: {
   item: GalleryMainItem;
   active: boolean;
   mounted: boolean;
   muted: boolean;
+  autoplay: boolean;
+  bindKey: string;
+  onBindPlayer?: (
+    loopKey: string,
+    player: Awaited<ReturnType<typeof bindStreamPlayer>>,
+    iframe: HTMLIFrameElement,
+  ) => void;
+  onUnbindPlayer?: (loopKey: string) => void;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerRef = useRef<Awaited<ReturnType<typeof bindStreamPlayer>> | null>(
@@ -502,7 +665,10 @@ function RailClip({
   const wasActiveRef = useRef(false);
   const uid = item.streamUid?.trim() || "";
   const poster = item.masonrySrc?.trim() || item.src;
-  const src = useMemo(() => (uid ? railIframeSrc(uid) : ""), [uid]);
+  const src = useMemo(
+    () => (uid ? railIframeSrc(uid, autoplay) : ""),
+    [uid, autoplay],
+  );
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -530,70 +696,56 @@ function RailClip({
 
     const capWarm = () => {
       if (cancelled || !player || activeRef.current) return;
-      const dur = player.duration;
-      const cap =
-        Number.isFinite(dur) && dur > 0
-          ? Math.min(PREVIEW_LOOP_SECONDS, dur)
-          : PREVIEW_LOOP_SECONDS;
-      if (player.currentTime >= cap) {
-        player.pause();
-        player.currentTime = 0;
-        warmedRef.current = true;
-      }
-    };
-
-    const rewindToStart = () => {
-      if (!player) return;
+      player.pause();
       try {
         player.currentTime = 0;
       } catch {
         /* ignore */
       }
+      warmedRef.current = true;
     };
 
     const applyMute = () => {
       if (!player) return;
-      player.muted = !activeRef.current || mutedRef.current;
+      applyStreamAudio(player, !activeRef.current || mutedRef.current);
     };
 
     const kickPlay = () => {
-      if (!player) return;
+      if (!player || !activeRef.current) return;
       applyMute();
       void player.play().catch(() => {
-        player.muted = true;
-        void player.play().catch(() => {
-          try {
-            el.contentWindow?.postMessage(
-              JSON.stringify({ event: "play" }),
-              "*",
-            );
-          } catch {
-            /* ignore */
-          }
-        });
+        if (mutedRef.current) {
+          applyStreamAudio(player, true);
+          void player.play().catch(() => {
+            postStreamPlay(el);
+          });
+        }
       });
     };
 
     const syncPlayback = () => {
       if (cancelled || !player) return;
-      player.loop = false;
+      player.loop = true;
       applyMute();
       if (activeRef.current) {
         wasActiveRef.current = true;
-        rewindToStart();
         kickPlay();
         return;
       }
-      if (!warmedRef.current) {
-        kickPlay();
-        return;
-      }
-      player.pause();
+      capWarm();
     };
 
     const onTime = () => {
       if (activeRef.current) loopHead();
-      else capWarm();
+    };
+
+    postStreamPlay(el);
+
+    const retryIds: number[] = [];
+    const retryPlay = () => {
+      if (cancelled || !activeRef.current) return;
+      kickPlay();
+      postStreamPlay(el);
     };
 
     void (async () => {
@@ -601,6 +753,7 @@ function RailClip({
         player = await bindStreamPlayer(el);
         if (cancelled) return;
         playerRef.current = player;
+        onBindPlayer?.(bindKey, player, el);
         applyMute();
         player.addEventListener("timeupdate", onTime);
         player.addEventListener("loadedmetadata", () => {
@@ -609,48 +762,55 @@ function RailClip({
         });
         setReady(true);
         syncPlayback();
+        retryIds.push(
+          window.setTimeout(retryPlay, 280),
+          window.setTimeout(retryPlay, 900),
+        );
       } catch {
         setReady(true);
+        postStreamPlay(el);
       }
     })();
 
     return () => {
       cancelled = true;
+      for (const id of retryIds) window.clearTimeout(id);
+      onUnbindPlayer?.(bindKey);
       if (player) {
         player.removeEventListener("timeupdate", onTime);
         player.pause();
       }
       playerRef.current = null;
     };
-  }, [mounted, src]);
+  }, [mounted, src, bindKey, onBindPlayer, onUnbindPlayer]);
 
   useEffect(() => {
     const player = playerRef.current;
-    if (!player) return;
-    player.loop = false;
-    player.muted = !active || muted;
+    const el = iframeRef.current;
+    if (!player) {
+      if (active) postStreamPlay(el);
+      return;
+    }
+    player.loop = true;
+    applyStreamAudio(player, !active || muted);
     if (active) {
-      const firstPlay = !wasActiveRef.current;
       wasActiveRef.current = true;
-      if (firstPlay) {
-        try {
-          player.currentTime = 0;
-        } catch {
-          /* ignore */
+      void player.play().catch(() => {
+        if (mutedRef.current) {
+          applyStreamAudio(player, true);
+          void player.play().catch(() => postStreamPlay(el));
         }
-      }
-      void player.play().catch(() => undefined);
+      });
       return;
     }
     wasActiveRef.current = false;
-    if (!warmedRef.current) {
-      player.muted = true;
-      void player.play().catch(() => undefined);
-      return;
-    }
     player.pause();
-    player.currentTime = 0;
-  }, [active, muted]);
+    try {
+      player.currentTime = 0;
+    } catch {
+      /* ignore */
+    }
+  }, [active, muted, mounted]);
 
   return (
     <>
@@ -671,9 +831,13 @@ function RailClip({
           }
           src={src}
           title={item.label || "Video"}
-          allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+          allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
           allowFullScreen={false}
           tabIndex={-1}
+          onLoad={() => {
+            setReady(true);
+            if (activeRef.current) postStreamPlay(iframeRef.current);
+          }}
         />
       ) : null}
     </>
@@ -682,31 +846,43 @@ function RailClip({
 
 function VideoStackCard({
   item,
+  loopKey,
   offset,
   total,
   layout,
   playing,
+  clipMounted,
   muted,
   onOpen,
   onFocusCard,
   onHover,
+  onBindPlayer,
+  onUnbindPlayer,
 }: {
   item: GalleryMainItem;
+  loopKey: string;
   offset: number;
   total: number;
   layout: "strip" | "coverflow";
   playing: boolean;
+  clipMounted: boolean;
   muted: boolean;
   onOpen: () => void;
   onFocusCard: () => void;
   onHover?: () => void;
+  onBindPlayer?: (
+    loopKey: string,
+    player: Awaited<ReturnType<typeof bindStreamPlayer>>,
+    iframe: HTMLIFrameElement,
+  ) => void;
+  onUnbindPlayer?: (loopKey: string) => void;
 }) {
   const isStrip = layout === "strip";
   const style = isStrip ? undefined : coverflowStyle(offset, total);
   const isFront = isStrip ? playing : offset === 0;
   const abs = Math.abs(offset);
   const visible = isStrip || abs <= 1;
-  const mounted = isStrip || abs <= 2;
+  const mounted = clipMounted;
 
   return (
     <article
@@ -716,6 +892,7 @@ function VideoStackCard({
       role="listitem"
       data-cover-offset={isStrip ? undefined : offset}
       data-item-id={item.id}
+      data-loop-key={loopKey}
       style={style}
       aria-hidden={isStrip ? undefined : !visible}
       onPointerEnter={
@@ -734,6 +911,10 @@ function VideoStackCard({
               active={isFront}
               mounted={mounted}
               muted={muted}
+              autoplay={!isStrip && isFront}
+              bindKey={loopKey}
+              onBindPlayer={onBindPlayer}
+              onUnbindPlayer={onUnbindPlayer}
             />
             {isStrip ? <VideoStackAvatar item={item} overlay /> : null}
           </span>

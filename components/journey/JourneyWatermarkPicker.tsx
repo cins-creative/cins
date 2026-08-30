@@ -29,7 +29,6 @@ import {
   WATERMARK_MARGIN_MIN,
   WATERMARK_OPACITY_MAX,
   WATERMARK_OPACITY_MIN,
-  WATERMARK_PRESETS,
   WATERMARK_SIZE_MAX,
   WATERMARK_SIZE_MIN,
   parseWatermark,
@@ -37,7 +36,6 @@ import {
   watermarksEqual,
   type ProfileWatermarkSlice,
   type WatermarkCornerId,
-  type WatermarkPresetId,
 } from "@/lib/journey/watermark";
 import { downloadWatermarkTemplate } from "@/lib/journey/watermark-template";
 
@@ -46,6 +44,8 @@ import "./journey-watermark.css";
 
 type Props = {
   initialWatermark?: ProfileWatermarkSlice | null;
+  ownerSlug?: string | null;
+  tenHienThi?: string | null;
   onDirtyChange?: (dirty: boolean) => void;
 };
 
@@ -75,7 +75,7 @@ export const JourneyWatermarkPicker = forwardRef<
   JourneyWatermarkPickerHandle,
   Props
 >(function JourneyWatermarkPicker(
-  { initialWatermark = null, onDirtyChange },
+  { initialWatermark = null, ownerSlug = null, tenHienThi = null, onDirtyChange },
   ref,
 ) {
   const [wm, setWm] = useState(() => sliceWm(initialWatermark));
@@ -214,12 +214,10 @@ export const JourneyWatermarkPicker = forwardRef<
     commit({ ...wmRef.current, enabled });
   }
 
-  function setPreset(presetId: WatermarkPresetId) {
+  function setProtectOverlay(protectOverlay: boolean) {
     commit({
       ...wmRef.current,
-      source: "preset",
-      presetId,
-      imageId: null,
+      protectOverlay,
       enabled: true,
     });
   }
@@ -333,22 +331,40 @@ export const JourneyWatermarkPicker = forwardRef<
     }
   }
 
-  const previewDto = resolveWatermarkDto({
-    ...wm,
-    enabled: true,
+  const previewDto = resolveWatermarkDto(wm, {
+    ownerSlug,
+    tenHienThi,
   });
+  const hasCustomLogo = wm.source === "custom" && Boolean(wm.imageId);
 
   return (
     <div className="j-theme-picker j-wm-picker">
       <div className="j-theme-picker-main">
-        <label className="j-theme-toggle-row">
-          <input
-            type="checkbox"
-            checked={wm.enabled}
-            onChange={(e) => setEnabled(e.target.checked)}
-          />
-          <span>Bật watermark ảnh bài</span>
-        </label>
+        <section
+          className={
+            "j-theme-section j-theme-section--home" +
+            (wm.enabled ? " is-active" : "")
+          }
+          aria-labelledby="j-wm-enable-heading"
+        >
+          <div className="j-theme-home-row">
+            <span className="j-theme-home-text">
+              <span className="j-theme-home-check-title" id="j-wm-enable-heading">
+                Bật watermark ảnh bài
+              </span>
+            </span>
+            <button
+              type="button"
+              className={"j-theme-home-switch" + (wm.enabled ? " is-on" : "")}
+              role="switch"
+              aria-checked={wm.enabled}
+              aria-labelledby="j-wm-enable-heading"
+              onClick={() => setEnabled(!wm.enabled)}
+            >
+              <span className="j-theme-home-switch-knob" aria-hidden />
+            </button>
+          </div>
+        </section>
         {status === "err" && errMsg ? (
           <p className="j-theme-picker-error" role="alert">
             {errMsg}
@@ -362,34 +378,34 @@ export const JourneyWatermarkPicker = forwardRef<
 
         <section
           className={
-            "j-theme-section" + (!wm.enabled ? " j-wm-section--dim" : "")
+            "j-theme-section j-theme-section--home" +
+            (wm.enabled && wm.protectOverlay ? " is-active" : "") +
+            (!wm.enabled ? " j-wm-section--dim" : "")
           }
-          aria-labelledby="j-wm-preset-heading"
+          aria-labelledby="j-wm-overlay-heading"
         >
-          <div className="j-theme-picker-label" id="j-wm-preset-heading">
-            <span>Preset</span>
-          </div>
-          <div className="j-wm-preset-grid">
-            {WATERMARK_PRESETS.map((p) => {
-              const selected =
-                wm.source === "preset" && wm.presetId === p.id;
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  className={
-                    "j-wm-preset-btn" + (selected ? " is-active" : "")
-                  }
-                  aria-pressed={selected}
-                  disabled={!wm.enabled}
-                  onClick={() => setPreset(p.id)}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.src} alt="" />
-                  <span>{p.label}</span>
-                </button>
-              );
-            })}
+          <div className="j-theme-home-row">
+            <span className="j-theme-home-text">
+              <span
+                className="j-theme-home-check-title"
+                id="j-wm-overlay-heading"
+              >
+                Lớp phủ mặc định
+              </span>
+            </span>
+            <button
+              type="button"
+              className={
+                "j-theme-home-switch" + (wm.protectOverlay ? " is-on" : "")
+              }
+              role="switch"
+              aria-checked={wm.protectOverlay}
+              aria-labelledby="j-wm-overlay-heading"
+              disabled={!wm.enabled}
+              onClick={() => setProtectOverlay(!wm.protectOverlay)}
+            >
+              <span className="j-theme-home-switch-knob" aria-hidden />
+            </button>
           </div>
         </section>
 
@@ -400,19 +416,19 @@ export const JourneyWatermarkPicker = forwardRef<
           aria-labelledby="j-wm-custom-heading"
         >
           <div className="j-theme-picker-label" id="j-wm-custom-heading">
-            <span>Watermark của bạn</span>
+            <span>Logo tùy chọn</span>
             {uploading ? (
               <JourneyThemeUploadProgress progress={uploadPct} />
-            ) : wm.source === "custom" && wm.imageId ? (
+            ) : hasCustomLogo ? (
               <button
                 type="button"
                 className="j-theme-picker-reset"
                 onClick={() => setCustom(null)}
               >
-                Dùng preset
+                Bỏ logo
               </button>
             ) : (
-              <span className="j-theme-picker-status">PNG / chữ ký / logo</span>
+              <span className="j-theme-picker-status">PNG / chữ ký</span>
             )}
           </div>
           <div className="j-theme-image-row">
@@ -494,9 +510,11 @@ export const JourneyWatermarkPicker = forwardRef<
 
         <section
           className={
-            "j-theme-section" + (!wm.enabled ? " j-wm-section--dim" : "")
+            "j-theme-section" +
+            (!wm.enabled || !hasCustomLogo ? " j-wm-section--dim" : "")
           }
           aria-labelledby="j-wm-corner-heading"
+          hidden={!hasCustomLogo}
         >
           <div className="j-theme-picker-label" id="j-wm-corner-heading">
             <span>Góc đặt</span>
@@ -660,7 +678,7 @@ export const JourneyWatermarkPicker = forwardRef<
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 className="j-wm-preview-stage-photo"
-                src="/watermarks/cins-mark.svg"
+                src="/watermarks/preview-sample.jpg"
                 alt=""
                 aria-hidden
               />
@@ -671,9 +689,6 @@ export const JourneyWatermarkPicker = forwardRef<
                   Bật watermark để xem
                 </span>
               )}
-              {previewDto ? (
-                <span className="j-wm-preview-stage-label">Demo ảnh bài</span>
-              ) : null}
             </div>
           </>
         ) : (
@@ -681,7 +696,7 @@ export const JourneyWatermarkPicker = forwardRef<
             <p className="j-theme-picker-status">
               Tải PNG guideline ({DEFAULT_WATERMARK.sizePct}% gợi ý kích thước,
               vùng TL / TR / BL / BR / CENTER). Vẽ logo/chữ ký trên nền trong
-              suốt rồi upload ở mục «Watermark của bạn».
+              suốt rồi upload ở mục «Logo tùy chọn».
             </p>
             <button
               type="button"

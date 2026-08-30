@@ -1724,6 +1724,7 @@
 .world-journey-home .wj-video-rail-thumb-wrap {
   position: relative;
   width: 100%;
+  aspect-ratio: 9 / 16;
 }
 
 .world-journey-home .wj-video-rail-card-hit {
@@ -2083,16 +2084,7 @@
     margin: 6px 0 16px;
   }
 
-  /* Coverflow (rail 2+) — khung + clip 4:5. Strip đầu feed giữ 9:16. */
-  .world-journey-home .wj-video-rail--coverflow {
-    --wj-video-aspect: 4 / 5;
-    aspect-ratio: 4 / 5;
-  }
-
-  .world-journey-home .wj-video-rail--coverflow .wj-video-rail-thumb {
-    aspect-ratio: 4 / 5;
-  }
-
+  /* Coverflow + strip: clip luôn 9:16. */
   .world-journey-home .wj-video-rail-stage {
     --wj-video-deck-w: max(
       168px,

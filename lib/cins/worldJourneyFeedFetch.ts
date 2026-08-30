@@ -408,7 +408,12 @@ async function hydrateAuthorCardThemes(
         next = rest as MilestoneItem;
       }
     } else if (m.variant === "self" || m.variant === "verified") {
-      const wmDto = author ? watermarkFromGiaoDien(author.giao_dien) : null;
+      const wmDto = author
+        ? watermarkFromGiaoDien(author.giao_dien, {
+            ownerSlug: author.slug,
+            tenHienThi: author.ten_hien_thi,
+          })
+        : null;
       next = wmDto
         ? { ...next, authorWatermark: wmDto }
         : next.authorWatermark == null

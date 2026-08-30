@@ -986,7 +986,10 @@ export function ShopKhoLoaiMeta({
       const prepRes = await fetch("/api/post-video/prepare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: `Shop · ${nhom.nhan}` }),
+        body: JSON.stringify({
+          title: `Shop · ${nhom.nhan}`,
+          uploadLength: file.size,
+        }),
       });
       const prep = (await prepRes
         .json()

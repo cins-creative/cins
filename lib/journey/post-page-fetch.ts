@@ -428,7 +428,10 @@ export async function fetchMilestonePostDetail(
         tenHienThi: ownerRow.ten_hien_thi || ownerRow.slug,
         avatarId: ownerRow.avatar_id,
         avatarFrame: avatarFrameFromGiaoDien(ownerRow.giao_dien),
-        watermark: watermarkFromGiaoDien(ownerRow.giao_dien),
+        watermark: watermarkFromGiaoDien(ownerRow.giao_dien, {
+          ownerSlug: ownerRow.slug,
+          tenHienThi: ownerRow.ten_hien_thi,
+        }),
       }
     : {
         id: cotMoc.id_nguoi_dung,

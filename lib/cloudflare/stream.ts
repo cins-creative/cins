@@ -41,11 +41,42 @@ function streamApiError(json: StreamApiResult<unknown> | null, fallback: string)
   return json?.errors?.[0]?.message?.trim() || fallback;
 }
 
+function encodeTusMetadataValue(value: string): string {
+  return Buffer.from(value, "utf8").toString("base64");
+}
+
+function buildStreamTusMetadata(params: {
+  title?: string;
+  maxDurationSeconds: number;
+}): string {
+  const parts = [
+    `maxdurationseconds ${encodeTusMetadataValue(String(params.maxDurationSeconds))}`,
+  ];
+  const name = params.title?.trim().slice(0, 200);
+  if (name) {
+    parts.push(`name ${encodeTusMetadataValue(name)}`);
+  }
+  return parts.join(",");
+}
+
+function uidFromStreamTusLocation(location: string): string | null {
+  try {
+    const path = new URL(location).pathname;
+    const match = path.match(/\/([0-9a-f]{32})(?:\/|$)/i);
+    return match?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Tạo direct-creator upload (tus resumable) — client upload thẳng file lên
- * `uploadURL` bằng tus-js-client, không đi qua server. Trả `uid` để lưu block.
+ * Tạo slot TUS direct-creator (`POST /stream?direct_user=true`).
+ * `/stream/direct_upload` chỉ dành cho POST multipart ≤200MB — tus-js-client
+ * POST lên URL đó sẽ bị Cloudflare 400 Decoding Error.
+ * Client PATCH thẳng `uploadURL` (Location), không tạo upload lần nữa.
  */
-export async function createStreamDirectUpload(params?: {
+export async function createStreamDirectUpload(params: {
+  uploadLength: number;
   maxDurationSeconds?: number;
   title?: string;
 }): Promise<
@@ -56,37 +87,52 @@ export async function createStreamDirectUpload(params?: {
     return { ok: false, error: "Cloudflare Stream chưa được cấu hình." };
   }
 
+  const uploadLength = Math.floor(params.uploadLength);
+  if (!Number.isFinite(uploadLength) || uploadLength <= 0) {
+    return { ok: false, error: "Thiếu kích thước file video." };
+  }
+
+  const maxDurationSeconds = params.maxDurationSeconds ?? 3600;
   const res = await fetch(
-    `${STREAM_API_BASE}/accounts/${config.accountId}/stream/direct_upload`,
+    `${STREAM_API_BASE}/accounts/${config.accountId}/stream?direct_user=true`,
     {
       method: "POST",
       headers: {
         Authorization: `Bearer ${config.apiToken}`,
-        "Content-Type": "application/json",
+        "Tus-Resumable": "1.0.0",
+        "Upload-Length": String(uploadLength),
+        "Upload-Metadata": buildStreamTusMetadata({
+          title: params.title,
+          maxDurationSeconds,
+        }),
       },
-      body: JSON.stringify({
-        maxDurationSeconds: params?.maxDurationSeconds ?? 3600,
-        requireSignedURLs: false,
-        ...(params?.title
-          ? { meta: { name: params.title.slice(0, 200) } }
-          : {}),
-      }),
     },
   );
 
-  const json = (await res.json().catch(() => null)) as StreamApiResult<{
-    uid?: string;
-    uploadURL?: string;
-  }> | null;
+  const locationRaw = res.headers.get("Location")?.trim() ?? "";
+  let uploadURL = "";
+  if (locationRaw) {
+    try {
+      uploadURL = new URL(locationRaw, `${STREAM_API_BASE}/`).href;
+    } catch {
+      uploadURL = "";
+    }
+  }
+  const uid =
+    res.headers.get("stream-media-id")?.trim() ||
+    uidFromStreamTusLocation(uploadURL);
 
-  if (!res.ok || !json?.result?.uid || !json.result.uploadURL) {
+  if (!res.ok || !uploadURL || !uid) {
+    const json = (await res.json().catch(() => null)) as StreamApiResult<{
+      uid?: string;
+    }> | null;
     return {
       ok: false,
       error: streamApiError(json, "Không tạo được upload trên Cloudflare Stream."),
     };
   }
 
-  return { ok: true, uid: json.result.uid, uploadURL: json.result.uploadURL };
+  return { ok: true, uid, uploadURL };
 }
 
 /**

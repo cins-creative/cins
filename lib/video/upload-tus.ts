@@ -5,7 +5,7 @@ export type VideoPrepareResponse = {
   provider?: "stream";
   videoId?: string;
   embedUrl?: string;
-  /** Stream direct-creator tus URL. */
+  /** Location TUS đã tạo (?direct_user=true) — client PATCH, không POST create. */
   uploadURL?: string;
   error?: string;
 };
@@ -26,7 +26,7 @@ export function prepareResponseIsValid(prep: VideoPrepareResponse): boolean {
   return Boolean(prep.uploadURL);
 }
 
-/** Tạo tus Upload tới Cloudflare Stream (uploadURL = endpoint tạo upload). */
+/** Tạo tus Upload PATCH tới Location Stream (slot đã tạo trên server). */
 export async function createVideoTusUpload(
   file: File,
   prep: VideoPrepareResponse,
@@ -37,11 +37,11 @@ export async function createVideoTusUpload(
     throw new Error("Thiếu uploadURL Cloudflare Stream.");
   }
   return new Upload(file, {
-    endpoint: prep.uploadURL,
+    uploadUrl: prep.uploadURL,
     /* Stream: tối thiểu 5MB, khuyến nghị 50MB, tối đa 200MB. */
     chunkSize: 50 * 1024 * 1024,
     retryDelays: [0, 3000, 5000, 10000, 20000],
-    metadata: { filename: file.name, filetype: file.type, name: file.name },
+    metadata: { name: file.name, filetype: file.type || "video/mp4" },
     storeFingerprintForResuming: false,
     removeFingerprintOnSuccess: true,
     onProgress: handlers.onProgress,

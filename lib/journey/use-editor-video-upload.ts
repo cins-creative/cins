@@ -157,7 +157,7 @@ export function useEditorVideoUpload() {
         const prepRes = await fetch("/api/post-video/prepare", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: file.name }),
+          body: JSON.stringify({ title: file.name, uploadLength: file.size }),
         });
         const prep = (await prepRes.json()) as VideoPrepareResponse;
         if (session !== uploadSessionRef.current) return;

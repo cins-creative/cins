@@ -8,6 +8,7 @@ import type { CSSProperties } from "react";
 
 import { getCfAccountHash } from "@/lib/cloudflare/account-hash";
 import type { ProfileCustomEntry } from "@/lib/journey/profile-theme";
+import { shopProtectWatermarkText } from "@/lib/shop/image-protect";
 
 /* ── Corners ─────────────────────────────────────────────────────── */
 
@@ -145,6 +146,8 @@ export type WatermarkSource = "preset" | "custom";
 
 export type ProfileWatermarkSlice = {
   enabled: boolean;
+  /** Sọc URL mặc định (overlay loại hàng). Tách với logo PNG. */
+  protectOverlay: boolean;
   source: WatermarkSource;
   presetId: WatermarkPresetId;
   /** CF Images id ∈ customs — khi source = custom. */
@@ -159,6 +162,7 @@ export type ProfileWatermarkSlice = {
 
 export const DEFAULT_WATERMARK: ProfileWatermarkSlice = {
   enabled: false,
+  protectOverlay: true,
   source: "preset",
   presetId: "cins-mark",
   imageId: null,
@@ -168,8 +172,16 @@ export const DEFAULT_WATERMARK: ProfileWatermarkSlice = {
   marginPct: WATERMARK_MARGIN_DEFAULT,
 };
 
+export type WatermarkProtectContext = {
+  ownerSlug?: string | null;
+  tenHienThi?: string | null;
+};
+
 export type WatermarkRenderDto = {
-  src: string;
+  /** Sọc chữ + URL — mặc định khi bật (cùng lớp overlay shop loại hàng). */
+  protectText: string;
+  /** Logo PNG tùy chỉnh; null = chỉ sọc URL. */
+  src: string | null;
   corner: WatermarkCornerId;
   sizePct: number;
   opacity: number;
@@ -190,6 +202,7 @@ export function watermarksEqual(
 ): boolean {
   return (
     a.enabled === b.enabled &&
+    a.protectOverlay === b.protectOverlay &&
     a.source === b.source &&
     a.presetId === b.presetId &&
     a.imageId === b.imageId &&
@@ -209,6 +222,9 @@ export function parseWatermark(
   }
   const obj = raw as Record<string, unknown>;
   const enabled = obj.enabled === true || obj.enabled === "true";
+  const protectOverlay = !(
+    obj.protectOverlay === false || obj.protectOverlay === "false"
+  );
   const source: WatermarkSource =
     obj.source === "custom" ? "custom" : "preset";
   const presetId = isWatermarkPresetId(obj.presetId)
@@ -228,6 +244,7 @@ export function parseWatermark(
 
   return {
     enabled,
+    protectOverlay,
     source: source === "custom" && !imageId ? "preset" : source,
     presetId,
     imageId,
@@ -247,6 +264,7 @@ export function serializeWatermark(
   return {
     v: 1,
     enabled: wm.enabled === true,
+    protectOverlay: wm.protectOverlay !== false,
     source: wm.source,
     presetId: wm.presetId,
     imageId: wm.source === "custom" ? wm.imageId : null,
@@ -259,6 +277,7 @@ export function serializeWatermark(
 
 export type WatermarkPatchInput = {
   enabled?: boolean;
+  protectOverlay?: boolean;
   source?: WatermarkSource;
   presetId?: WatermarkPresetId;
   imageId?: string | null;
@@ -286,6 +305,12 @@ export function validateWatermarkPatchBody(
       return { ok: false, error: "watermark.enabled phải là boolean." };
     }
     patch.enabled = obj.enabled;
+  }
+  if ("protectOverlay" in obj) {
+    if (typeof obj.protectOverlay !== "boolean") {
+      return { ok: false, error: "watermark.protectOverlay phải là boolean." };
+    }
+    patch.protectOverlay = obj.protectOverlay;
   }
   if ("source" in obj) {
     if (obj.source !== "preset" && obj.source !== "custom") {
@@ -359,6 +384,10 @@ export function applyWatermarkPatch(
 
   return {
     enabled: patch.enabled !== undefined ? patch.enabled : prev.enabled,
+    protectOverlay:
+      patch.protectOverlay !== undefined
+        ? patch.protectOverlay
+        : prev.protectOverlay !== false,
     source,
     presetId,
     imageId: source === "custom" ? imageId : null,
@@ -380,18 +409,22 @@ export function applyWatermarkPatch(
 
 export function resolveWatermarkDto(
   wm: ProfileWatermarkSlice,
+  ctx?: WatermarkProtectContext,
 ): WatermarkRenderDto | null {
   if (!wm.enabled) return null;
 
   let src: string | null = null;
   if (wm.source === "custom" && wm.imageId) {
     src = customImageUrl(wm.imageId);
-  } else {
-    src = getWatermarkPreset(wm.presetId).src;
   }
-  if (!src) return null;
 
   return {
+    protectText: wm.protectOverlay
+      ? shopProtectWatermarkText({
+          shopTen: ctx?.tenHienThi,
+          ownerSlug: ctx?.ownerSlug,
+        })
+      : "",
     src,
     corner: wm.corner,
     sizePct: clampSize(wm.sizePct),
@@ -403,6 +436,7 @@ export function resolveWatermarkDto(
 /** Parse raw giao_dien → DTO (null nếu tắt). */
 export function watermarkFromGiaoDien(
   giaoDienRaw: unknown,
+  ctx?: WatermarkProtectContext,
 ): WatermarkRenderDto | null {
   if (giaoDienRaw == null) return null;
   let obj: Record<string, unknown>;
@@ -422,7 +456,7 @@ export function watermarkFromGiaoDien(
   const customsRaw = Array.isArray(obj.customs)
     ? (obj.customs as ProfileCustomEntry[])
     : null;
-  return resolveWatermarkDto(parseWatermark(obj.watermark, customsRaw));
+  return resolveWatermarkDto(parseWatermark(obj.watermark, customsRaw), ctx);
 }
 
 export function watermarkCssVars(
@@ -439,13 +473,11 @@ export function watermarkCornerClass(corner: WatermarkCornerId): string {
   return `j-wm-overlay--${corner}`;
 }
 
-/** Owner đã cấu hình watermark (enabled + có nguồn ảnh hợp lệ). */
+/** Owner đã bật watermark (sọc URL mặc định; logo tùy chỉnh không bắt buộc). */
 export function ownerHasWatermarkConfig(
   wm: ProfileWatermarkSlice | null | undefined,
 ): boolean {
-  if (!wm?.enabled) return false;
-  if (wm.source === "custom") return Boolean(wm.imageId);
-  return isWatermarkPresetId(wm.presetId);
+  return wm?.enabled === true;
 }
 
 /**

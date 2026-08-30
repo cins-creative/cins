@@ -120,6 +120,7 @@ export function watermarkSliceToPatch(
   return {
     watermark: {
       enabled: next.enabled,
+      protectOverlay: next.protectOverlay,
       source: next.source,
       presetId: next.presetId,
       imageId: next.imageId,

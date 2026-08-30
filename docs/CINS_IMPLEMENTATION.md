@@ -230,7 +230,7 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 | Route | Việc |
 |---|---|
 | `post-image/upload` · `article-inline-image` · `career-thumbnail` | Ảnh → Cloudflare |
-| `post-video/prepare` · `complete` · `processing` · `status` | Video Journey/Shop → Cloudflare **Stream** (`lib/video/prepare-upload.ts` + `lib/video/status.ts`): tus direct-upload. `status`/`complete` nhận `?provider=stream`. Client tus qua `lib/video/upload-tus.ts` |
+| `post-video/prepare` · `complete` · `processing` · `status` | Video Journey/Shop → Cloudflare **Stream** (`lib/video/prepare-upload.ts` + `lib/video/status.ts`): TUS `?direct_user=true`. `status`/`complete` nhận `?provider=stream`. Client PATCH qua `lib/video/upload-tus.ts` |
 | `chat-video/upload` | Chat video → **Cloudflare R2** (`cins-chat-video`): auth + rate-limit (`MAX_CHAT_VIDEO_PER_DAY`), cap size/mime, dedup theo SHA256 key, ghi `content_media(loai_media='video', cloudflare_id=R2 key)`. Client probe/poster: `lib/chat/compose-video.ts` |
 | `embed/thumbnail` | GET `?url=` — preview/auto thumb embed (auth): YouTube sync · Vimeo/Sketchfab oEmbed · OG fallback (Spline/PlayCanvas/Figma/…) |
 | `link/og` | GET `?url=` — chat link preview (auth). **CINs host** (`cins.vn` / `NEXT_PUBLIC_SITE_URL`): resolve DB nội bộ (`lib/link/cins-internal-preview.ts`) → card giàu avatar/cover/badge/meta. URL ngoài: scrape OG HTML. SSRF: `isSafePublicHttpUrl`. |
@@ -547,7 +547,7 @@ Code map: `lib/journey/images.ts` (role `gallery-grid` → `grid` + `srcset` `gr
     - **Redirect URLs**: `https://cins.vn/auth/callback` (và `https://www.cins.vn/auth/callback` nếu dùng www); dev: `http://localhost:3001/auth/callback`
     - **Xóa** mọi URL `*.vercel.app` / host Vercel cũ — lệch domain → mất cookie PKCE verifier. Branding consent Google: cấu hình OAuth Client riêng trên Google Cloud + (khuyến nghị) Supabase Custom Domain `auth.cins.vn` — chi tiết bảng *Journey & auth* → *OAuth branding*.
   - Request body lớn: video Journey/Shop KHÔNG đi qua server (browser upload thẳng Cloudflare Stream qua TUS; server chỉ `post-video/prepare` tạo slot). Chat video R2 đi qua route `chat-video/upload` (clip ngắn cap ~50MB).
-- **Video flow (Journey/Shop)**: `prepare` (Stream direct-upload) → browser TUS upload → re-encode HLS → poll `status`/`processing` → `complete` → `notifications/video-ready`. Block ghi `videoProvider: 'stream' + videoId`; render/HTML (`PostRenderer`, `lib/editor/sanitize.ts`, `lib/article/compose/compile.ts`) phát qua Cloudflare Stream iframe.
+- **Video flow (Journey/Shop)**: `prepare` (Stream TUS `POST /stream?direct_user=true` + `Upload-Length`, **không** `/stream/direct_upload`) → browser PATCH TUS (`uploadUrl`) → re-encode HLS → poll `status`/`processing` → `complete` → `notifications/video-ready`. Block ghi `videoProvider: 'stream' + videoId`; render/HTML (`PostRenderer`, `lib/editor/sanitize.ts`, `lib/article/compose/compile.ts`) phát qua Cloudflare Stream iframe.
 - **Dời nhà Cloudflare (2026-07)**: chat video → R2 (egress free); Journey/Shop → Stream. **(2026-08-05) Bunny đã gỡ hoàn toàn** khỏi codebase (lib/env/CI) sau migrate + để giảm kích thước Worker; metadata `legacyBunny*` vẫn có thể còn trong DB (không đọc để phát).
 - **Auth**: Google OAuth (+ email/password OTP đăng ký + **quên mật khẩu**), `/login` với cookie intent phân biệt đăng ký/đăng nhập; onboarding modal overlay khi `giai_doan IS NULL`; trigger `handle_new_user()` `SECURITY DEFINER`. In-app browser bị chặn sớm (`in-app-browser.ts`) để tránh Google 403 `disallowed_useragent`.
 

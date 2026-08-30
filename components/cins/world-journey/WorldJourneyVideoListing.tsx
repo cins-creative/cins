@@ -25,6 +25,8 @@ export type VideoListingOpenPayload = {
   nextOffset: number;
   /** Giữ đúng thứ tự list (rail) — không đưa clip click lên đầu, không load-more ngoài list. */
   lockPlaylist?: boolean;
+  /** Xáo clip sau clip đang mở (và trang load-more) — dùng khi vào Reels từ rail. */
+  shuffleUpcoming?: boolean;
 };
 
 type Props = {

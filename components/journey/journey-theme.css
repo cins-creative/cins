@@ -737,6 +737,11 @@
   background: var(--j-accent, var(--cins-blue));
 }
 
+.j-theme-home-switch:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 .j-theme-home-switch:focus-visible {
   outline: 2px solid var(--j-accent, var(--cins-blue));
   outline-offset: 2px;

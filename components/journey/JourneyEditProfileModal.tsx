@@ -1136,6 +1136,8 @@ export function JourneyEditProfileModal({
                 <JourneyWatermarkPicker
                   ref={watermarkPickerRef}
                   initialWatermark={initial.profileWatermark ?? null}
+                  ownerSlug={slug || ownerSlug}
+                  tenHienThi={tenHienThi}
                   onDirtyChange={onWatermarkDirtyChange}
                 />
               ) : null}

@@ -5,7 +5,10 @@ import {
   watermarkCssVars,
   type WatermarkRenderDto,
 } from "@/lib/journey/watermark";
-import { ShopImageDecoy } from "@/components/shop/ShopImageProtect";
+import {
+  ShopImageDecoy,
+  ShopImageWatermark,
+} from "@/components/shop/ShopImageProtect";
 
 import "./journey-watermark.css";
 
@@ -18,7 +21,8 @@ type Props = {
 
 /**
  * Overlay watermark ảnh bài (album / bài dài).
- * pointer-events:none trên watermark; decoy nhận right-click/save.
+ * Mặc định: sọc URL (cùng ShopImageWatermark loại hàng).
+ * Logo PNG tùy chỉnh (nếu có) nằm trên sọc.
  */
 export function JourneyImageWatermark({
   dto,
@@ -29,23 +33,28 @@ export function JourneyImageWatermark({
   const style = watermarkCssVars(dto);
   return (
     <>
-      <span
-        className={
-          "j-wm-overlay " +
-          cornerClass +
-          (className ? ` ${className}` : "")
-        }
-        style={style}
-        aria-hidden
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          className="j-wm-overlay-img"
-          src={dto.src}
-          alt=""
-          draggable={false}
-        />
-      </span>
+      {(dto.protectText ?? "").trim() ? (
+        <ShopImageWatermark text={dto.protectText} />
+      ) : null}
+      {dto.src ? (
+        <span
+          className={
+            "j-wm-overlay " +
+            cornerClass +
+            (className ? ` ${className}` : "")
+          }
+          style={style}
+          aria-hidden
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className="j-wm-overlay-img"
+            src={dto.src}
+            alt=""
+            draggable={false}
+          />
+        </span>
+      ) : null}
       {protect ? <ShopImageDecoy className="j-wm-decoy" /> : null}
     </>
   );

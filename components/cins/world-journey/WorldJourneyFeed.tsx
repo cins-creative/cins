@@ -163,25 +163,40 @@ type ReelSession = {
   hasMore: boolean;
   nextOffset: number;
   lockPlaylist?: boolean;
+  shuffleUpcoming?: boolean;
 };
 
 function isStreamVideoItem(item: GalleryMainItem): boolean {
   return Boolean(item.streamUid?.trim());
 }
 
+function shuffleCopy<T>(list: readonly T[]): T[] {
+  const out = [...list];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const a = out[i]!;
+    out[i] = out[j]!;
+    out[j] = a;
+  }
+  return out;
+}
+
 function playlistStartingAt(
   list: readonly GalleryMainItem[],
   startId: string,
   clicked?: GalleryMainItem | null,
+  shuffleUpcoming = false,
 ): GalleryMainItem[] {
   const stream = list.filter(isStreamVideoItem);
   const head =
     clicked && isStreamVideoItem(clicked) && clicked.id === startId
       ? clicked
       : stream.find((item) => item.id === startId) ?? null;
-  if (!head) return stream;
+  if (!head) {
+    return shuffleUpcoming ? shuffleCopy(stream) : stream;
+  }
   const rest = stream.filter((item) => item.id !== startId);
-  return [head, ...rest];
+  return [head, ...(shuffleUpcoming ? shuffleCopy(rest) : rest)];
 }
 
 function reelSessionFromPlayId(
@@ -726,9 +741,15 @@ export function WorldJourneyFeed({
   const openVideoPlayer = useCallback((payload: VideoListingOpenPayload) => {
     const startId = payload.item.id || payload.id;
     const lockPlaylist = Boolean(payload.lockPlaylist);
+    const shuffleUpcoming = Boolean(payload.shuffleUpcoming);
     const items = lockPlaylist
       ? payload.items.filter(isStreamVideoItem)
-      : playlistStartingAt(payload.items, startId, payload.item);
+      : playlistStartingAt(
+          payload.items,
+          startId,
+          payload.item,
+          shuffleUpcoming,
+        );
     if (!lockPlaylist) {
       /* Giữ list listing để lúc đóng Reels không mất trang đã tải. */
       setGalleryRows(payload.items);
@@ -743,33 +764,14 @@ export function WorldJourneyFeed({
       hasMore: lockPlaylist ? false : payload.hasMore,
       nextOffset: lockPlaylist ? 0 : payload.nextOffset,
       lockPlaylist,
+      shuffleUpcoming,
     });
     pushVideoPlayUrl(startId);
   }, []);
 
-  /** Rail video dọc trên timeline → Reels chỉ trong đúng rail vừa click. */
-  const openVideoFromRail = useCallback(
-    (payload: VideoRailOpenPayload) => {
-      const items = payload.items.some((row) => row.id === payload.item.id)
-        ? [...payload.items]
-        : [payload.item, ...payload.items];
-      openVideoPlayer({
-        id: payload.item.id,
-        item: payload.item,
-        items,
-        hasMore: false,
-        nextOffset: 0,
-        lockPlaylist: true,
-      });
-    },
-    [openVideoPlayer],
-  );
-
-  const openVideoFromMilestone = useCallback(
-    (milestone: MilestoneItem) => {
-      const item = galleryItemFromFeedMilestone(milestone);
-      if (!item) return;
-
+  /** Mở Reels từ timeline (rail / moc) — pool tab Video, không khóa theo rail. */
+  const openGeneralVideoPlayer = useCallback(
+    (item: GalleryMainItem, shuffleUpcoming = false) => {
       const prev = surfaceViewRef.current;
       if (prev === "journey" || prev === "shop") {
         timelineCacheRef.current[prev] = {
@@ -792,6 +794,7 @@ export function WorldJourneyFeed({
         items,
         hasMore: cached?.hasMore ?? true,
         nextOffset: cached?.nextOffset ?? 0,
+        shuffleUpcoming,
       });
 
       if (!galleryCacheHasStreamVideos(cached)) {
@@ -799,6 +802,22 @@ export function WorldJourneyFeed({
       }
     },
     [feedMilestones, hasMore, nextOffset, openVideoPlayer, prefetchSurface],
+  );
+
+  const openVideoFromRail = useCallback(
+    (payload: VideoRailOpenPayload) => {
+      openGeneralVideoPlayer(payload.item, true);
+    },
+    [openGeneralVideoPlayer],
+  );
+
+  const openVideoFromMilestone = useCallback(
+    (milestone: MilestoneItem) => {
+      const item = galleryItemFromFeedMilestone(milestone);
+      if (!item) return;
+      openGeneralVideoPlayer(item);
+    },
+    [openGeneralVideoPlayer],
   );
 
   const handleSurfaceView = useCallback(
@@ -1851,6 +1870,7 @@ export function WorldJourneyFeed({
                 endpoint={videoEndpoint}
                 startItemId={reelSession.startId}
                 lockPlaylist={reelSession.lockPlaylist}
+                shuffleUpcoming={reelSession.shuffleUpcoming}
                 onClose={closeVideoPlayer}
               />
             </div>

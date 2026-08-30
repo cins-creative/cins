@@ -120,6 +120,8 @@ type Props = {
   startItemId?: string | null;
   /** Rail: giữ thứ tự clip, không xoay start lên đầu, không fetch thêm ngoài list. */
   lockPlaylist?: boolean;
+  /** Xáo clip mới khi load-more — session từ rail (pool video chung). */
+  shuffleUpcoming?: boolean;
   onClose?: () => void;
 };
 
@@ -132,6 +134,17 @@ const REEL_PAGE_PREFETCH_REMAINING = 3;
 
 function isStreamVideoItem(item: GalleryMainItem): boolean {
   return Boolean(item.streamUid?.trim());
+}
+
+function shuffleCopy<T>(list: readonly T[]): T[] {
+  const out = [...list];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const a = out[i]!;
+    out[i] = out[j]!;
+    out[j] = a;
+  }
+  return out;
 }
 
 function reactionTarget(item: GalleryMainItem): {
@@ -1093,6 +1106,7 @@ export function WorldJourneyVideoFeed({
   endpoint,
   startItemId = null,
   lockPlaylist = false,
+  shuffleUpcoming = false,
   onClose,
 }: Props) {
   const [items, setItems] = useState<GalleryMainItem[]>(() =>
@@ -1210,7 +1224,11 @@ export function WorldJourneyVideoFeed({
       if (!page) return;
       setItems((prev) => {
         const seen = new Set(prev.map((i) => i.id));
-        return [...prev, ...page.items.filter((i) => !seen.has(i.id))];
+        const incoming = page.items.filter((i) => !seen.has(i.id));
+        return [
+          ...prev,
+          ...(shuffleUpcoming ? shuffleCopy(incoming) : incoming),
+        ];
       });
       setHasMore(page.hasMore);
       setOffset(page.nextOffset);
@@ -1218,7 +1236,7 @@ export function WorldJourneyVideoFeed({
       loadingRef.current = false;
       setLoading(false);
     }
-  }, [endpoint, hasMore, lockPlaylist, offset]);
+  }, [endpoint, hasMore, lockPlaylist, offset, shuffleUpcoming]);
 
   const goBy = useCallback(
     (dir: -1 | 1) => {

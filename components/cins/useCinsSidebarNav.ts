@@ -29,15 +29,17 @@ export function useCinsSidebarNav(
   }, [sidebarId, pathname]);
 
   useEffect(() => {
-    const sidebar = document.getElementById(sidebarId);
-    const topbar = document.getElementById("app-topbar");
-    const burger = document.getElementById("app-tb-burger");
     const desktopMq = window.matchMedia("(min-width: 961px)");
     const mobileMq = window.matchMedia(MOBILE_MQ);
     let raf = 0;
 
+    const getSidebar = () => document.getElementById(sidebarId);
+    const getTopbar = () => document.getElementById("app-topbar");
+    const getBurger = () => document.getElementById("app-tb-burger");
+
     const syncTopbar = () => {
       raf = 0;
+      const topbar = getTopbar();
       if (!topbar) return;
       const y = Math.max(0, window.scrollY);
       topbar.classList.toggle("scrolled", y > 4);
@@ -53,29 +55,30 @@ export function useCinsSidebarNav(
     mobileMq.addEventListener("change", syncTopbar);
 
     let ignoreOutsideCloseUntil = 0;
-    const toggleHit = topbar?.querySelector(".tb-left") ?? burger;
 
-    const isToggleTarget = (t: Node | null) => {
-      if (!t) return false;
-      if (burger?.contains(t)) return true;
-      if (toggleHit instanceof Node && toggleHit.contains(t)) return true;
-      return false;
+    /* Chỉ #app-tb-burger — không cả .tb-left (page-slot portal nằm trong đó).
+       Query lúc click: topbar là RSC + Suspense; gắn node lúc fallback
+       → burger thật mount sau thì nút chết (đứt listener). */
+    const isBurgerClick = (t: EventTarget | null) => {
+      const burger = getBurger();
+      return Boolean(burger && t instanceof Node && burger.contains(t));
     };
 
-    const onBurger = (e: MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      sidebar?.classList.toggle("open");
-      if (sidebar?.classList.contains("open")) {
-        /* Ghost click sau touchend đập vào scrim (::after) → đóng ngay. */
-        ignoreOutsideCloseUntil = Date.now() + 450;
-      }
-    };
     const onDocClick = (e: MouseEvent) => {
-      if (!sidebar || !burger) return;
+      const sidebar = getSidebar();
+      if (!sidebar) return;
+      if (isBurgerClick(e.target)) {
+        e.preventDefault();
+        sidebar.classList.toggle("open");
+        if (sidebar.classList.contains("open")) {
+          /* Ghost click sau touchend đập vào scrim (::after) → đóng ngay. */
+          ignoreOutsideCloseUntil = Date.now() + 450;
+        }
+        return;
+      }
       if (Date.now() < ignoreOutsideCloseUntil) return;
       const t = e.target as Node;
-      if (!sidebar.contains(t) && !isToggleTarget(t)) {
+      if (!sidebar.contains(t)) {
         sidebar.classList.remove("open");
       }
     };
@@ -84,32 +87,27 @@ export function useCinsSidebarNav(
     const onSidebarClick = (e: MouseEvent) => {
       if (window.innerWidth > 960) return;
       const link = (e.target as HTMLElement).closest("a[href]");
-      if (link) sidebar?.classList.remove("open");
+      if (link) getSidebar()?.classList.remove("open");
     };
     const onSidebarMouseLeave = () => {
       /* Delay nhẹ — tránh blur ngay khi rê/click vào subitem khiến rail thu
          giữa mousedown→click và nuốt navigation. */
-      window.setTimeout(() => blurSidebarFocus(sidebar), 0);
+      window.setTimeout(() => blurSidebarFocus(getSidebar()), 0);
     };
     const onDocPointerDown = (e: PointerEvent) => {
+      const sidebar = getSidebar();
       if (!sidebar || !desktopMq.matches) return;
       const t = e.target as Node;
       if (!sidebar.contains(t)) blurSidebarFocus(sidebar);
     };
     const onDesktopMqChange = () => {
-      if (desktopMq.matches) sidebar?.classList.remove("open");
+      if (desktopMq.matches) getSidebar()?.classList.remove("open");
     };
 
-    const toggleEl =
-      toggleHit instanceof HTMLElement ? toggleHit : burger;
-
-    burger?.addEventListener("click", onBurger);
-    if (toggleEl && toggleEl !== burger) {
-      toggleEl.addEventListener("click", onBurger);
-    }
+    const sidebarEl = getSidebar();
     document.addEventListener("click", onDocClick);
-    sidebar?.addEventListener("click", onSidebarClick);
-    sidebar?.addEventListener("mouseleave", onSidebarMouseLeave);
+    sidebarEl?.addEventListener("click", onSidebarClick);
+    sidebarEl?.addEventListener("mouseleave", onSidebarMouseLeave);
     document.addEventListener("pointerdown", onDocPointerDown, {
       capture: true,
     });
@@ -124,7 +122,7 @@ export function useCinsSidebarNav(
     }> = [];
 
     const mq = window.matchMedia("(max-width: 960px)");
-    if (!mq.matches && sidebar) {
+    if (!mq.matches && sidebarEl) {
       tip = document.createElement("div");
       tip.className = "sb-tooltip";
       tip.innerHTML =
@@ -145,7 +143,7 @@ export function useCinsSidebarNav(
         tip.style.top = `${ny}px`;
       };
 
-      sidebar.querySelectorAll<HTMLElement>(".sb-item[data-tip]").forEach(
+      sidebarEl.querySelectorAll<HTMLElement>(".sb-item[data-tip]").forEach(
         (item) => {
           const enter = (e: MouseEvent) => {
             const lbl = item.querySelector(".sb-label");
@@ -168,13 +166,9 @@ export function useCinsSidebarNav(
       window.removeEventListener("scroll", onScroll);
       mobileMq.removeEventListener("change", syncTopbar);
       if (raf) window.cancelAnimationFrame(raf);
-      burger?.removeEventListener("click", onBurger);
-      if (toggleEl && toggleEl !== burger) {
-        toggleEl.removeEventListener("click", onBurger);
-      }
       document.removeEventListener("click", onDocClick);
-      sidebar?.removeEventListener("click", onSidebarClick);
-      sidebar?.removeEventListener("mouseleave", onSidebarMouseLeave);
+      sidebarEl?.removeEventListener("click", onSidebarClick);
+      sidebarEl?.removeEventListener("mouseleave", onSidebarMouseLeave);
       document.removeEventListener("pointerdown", onDocPointerDown, {
         capture: true,
       });

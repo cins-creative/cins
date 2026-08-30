@@ -6,9 +6,12 @@ import {
   getCloudflareStreamConfig,
 } from "@/lib/cloudflare/stream";
 
+/** Khớp giới hạn client Journey/Shop — Stream TUS cần Upload-Length lúc tạo slot. */
+export const MAX_VIDEO_UPLOAD_BYTES = 500 * 1024 * 1024;
+
 /**
  * Chuẩn bị upload video (Journey/Shop) lên Cloudflare Stream
- * (direct-creator upload — tus qua uploadURL).
+ * (TUS direct-user — Location rồi client PATCH).
  */
 
 export type VideoUploadPreparePayload = {
@@ -20,6 +23,7 @@ export type VideoUploadPreparePayload = {
 
 export async function prepareVideoUpload(
   title: string,
+  uploadLength: number,
 ): Promise<
   { ok: true; data: VideoUploadPreparePayload } | { ok: false; error: string }
 > {
@@ -30,7 +34,14 @@ export async function prepareVideoUpload(
     };
   }
 
-  const up = await createStreamDirectUpload({ title });
+  if (!Number.isFinite(uploadLength) || uploadLength <= 0) {
+    return { ok: false, error: "Thiếu kích thước file video." };
+  }
+  if (uploadLength > MAX_VIDEO_UPLOAD_BYTES) {
+    return { ok: false, error: "Video quá lớn (giới hạn 500MB)." };
+  }
+
+  const up = await createStreamDirectUpload({ title, uploadLength });
   if (!up.ok) return { ok: false, error: up.error };
   return {
     ok: true,

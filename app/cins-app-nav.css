@@ -1435,6 +1435,9 @@
   color: var(--ink-display);
   cursor: pointer;
   padding: 0;
+  position: relative;
+  z-index: 2;
+  touch-action: manipulation;
 }
 
 .cins-app-topbar .tb-burger svg {

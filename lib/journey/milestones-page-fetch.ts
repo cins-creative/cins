@@ -834,16 +834,23 @@ export async function fetchMilestoneTimelinePage(params: {
 
   const { data: ownerGiaoDienRow } = await admin
     .from("user_nguoi_dung")
-    .select("giao_dien")
+    .select("giao_dien, slug, ten_hien_thi")
     .eq("id", userId)
-    .maybeSingle<{ giao_dien: unknown }>();
+    .maybeSingle<{
+      giao_dien: unknown;
+      slug: string | null;
+      ten_hien_thi: string | null;
+    }>();
   const ownerCardTheme = authorCardThemeFromGiaoDien(
     ownerGiaoDienRow?.giao_dien,
   );
   const ownerAvatarFrame = avatarFrameFromGiaoDien(
     ownerGiaoDienRow?.giao_dien,
   );
-  const ownerWatermark = watermarkFromGiaoDien(ownerGiaoDienRow?.giao_dien);
+  const ownerWatermark = watermarkFromGiaoDien(ownerGiaoDienRow?.giao_dien, {
+    ownerSlug: ownerGiaoDienRow?.slug,
+    tenHienThi: ownerGiaoDienRow?.ten_hien_thi,
+  });
   const themedMilestones = attachAuthorWatermarkToSelfMilestones(
     attachAuthorAvatarFrameToSelfMilestones(
       attachAuthorCardThemeToSelfMilestones(milestones, ownerCardTheme),
