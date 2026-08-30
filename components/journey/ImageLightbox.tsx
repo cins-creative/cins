@@ -11,14 +11,19 @@ import {
   isPortraitGridImage,
   type GridImage,
 } from "@/lib/journey/image-grid";
+import type { WatermarkRenderDto } from "@/lib/journey/watermark";
+import { JourneyImageWatermark } from "@/components/journey/JourneyImageWatermark";
 import { useHorizontalSwipe } from "@/lib/ui/use-horizontal-swipe";
 import { usePinchZoomPan } from "@/lib/ui/use-pinch-zoom-pan";
+
+import "./journey-watermark.css";
 
 type Props = {
   images: GridImage[];
   index: number;
   onClose: () => void;
   onIndexChange: (index: number) => void;
+  watermark?: WatermarkRenderDto | null;
 };
 
 export function ImageLightbox({
@@ -26,12 +31,35 @@ export function ImageLightbox({
   index,
   onClose,
   onIndexChange,
+  watermark = null,
 }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const activeThumbRef = useRef<HTMLButtonElement>(null);
   const total = images.length;
   const current = images[index];
   const hasFilmstrip = total > 1;
+
+  const {
+    viewportRef,
+    contentRef,
+    isZoomed,
+    isImmersive,
+    gestureLock,
+    exitImmersive,
+  } = usePinchZoomPan(`${index}-${current?.id ?? ""}`);
+
+  const dismiss = useCallback(() => {
+    if (isImmersive) exitImmersive();
+    else onClose();
+  }, [exitImmersive, isImmersive, onClose]);
+
+  const goPrev = useCallback(() => {
+    onIndexChange((index - 1 + total) % total);
+  }, [index, onIndexChange, total]);
+
+  const goNext = useCallback(() => {
+    onIndexChange((index + 1) % total);
+  }, [index, onIndexChange, total]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -46,7 +74,7 @@ export function ImageLightbox({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
-        onClose();
+        dismiss();
         return;
       }
       if (total <= 1) return;
@@ -61,7 +89,7 @@ export function ImageLightbox({
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [index, onClose, onIndexChange, total]);
+  }, [dismiss, index, onIndexChange, total]);
 
   useEffect(() => {
     if (!hasFilmstrip) return;
@@ -71,18 +99,6 @@ export function ImageLightbox({
       block: "nearest",
     });
   }, [hasFilmstrip, index]);
-
-  const goPrev = useCallback(() => {
-    onIndexChange((index - 1 + total) % total);
-  }, [index, onIndexChange, total]);
-
-  const goNext = useCallback(() => {
-    onIndexChange((index + 1) % total);
-  }, [index, onIndexChange, total]);
-
-  const { viewportRef, contentRef, isZoomed, gestureLock } = usePinchZoomPan(
-    `${index}-${current?.id ?? ""}`,
-  );
 
   const swipe = useHorizontalSwipe({
     enabled: hasFilmstrip && !isZoomed && !gestureLock,
@@ -95,14 +111,14 @@ export function ImageLightbox({
   return createPortal(
     <dialog
       ref={dialogRef}
-      className={`image-lightbox${hasFilmstrip ? " has-filmstrip" : ""}`}
+      className={`image-lightbox${hasFilmstrip ? " has-filmstrip" : ""}${isImmersive ? " is-immersive" : ""}`}
       aria-label="Xem ảnh"
       onCancel={(e) => {
         e.preventDefault();
-        onClose();
+        dismiss();
       }}
       onClick={(e) => {
-        if (e.target === dialogRef.current) onClose();
+        if (e.target === dialogRef.current) dismiss();
       }}
     >
       <div className="image-lightbox-inner">
@@ -114,8 +130,8 @@ export function ImageLightbox({
           <button
             type="button"
             className="image-lightbox-close"
-            aria-label="Đóng"
-            onClick={onClose}
+            aria-label={isImmersive ? "Thoát toàn màn hình" : "Đóng"}
+            onClick={dismiss}
           >
             <X size={22} strokeWidth={2} aria-hidden />
           </button>
@@ -142,7 +158,7 @@ export function ImageLightbox({
           ) : null}
 
           <figure className="image-lightbox-figure">
-            <div ref={contentRef} className="image-lightbox-zoom">
+            <div ref={contentRef} className="image-lightbox-zoom j-wm-host">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={gridLightboxSrc(current, isPortraitGridImage(current))}
@@ -153,6 +169,9 @@ export function ImageLightbox({
                 draggable={false}
                 onError={handleBlockImageError}
               />
+              {watermark ? (
+                <JourneyImageWatermark dto={watermark} protect />
+              ) : null}
             </div>
           </figure>
         </div>

@@ -35,6 +35,27 @@ export function ShopImageLightbox({
   const caption = captions?.[index]?.trim() || "";
   const hasNav = total > 1;
   const wm = watermarkText.trim();
+  const {
+    viewportRef,
+    contentRef,
+    isZoomed,
+    isImmersive,
+    gestureLock,
+    exitImmersive,
+  } = usePinchZoomPan(`${index}-${current}`);
+
+  const dismiss = useCallback(() => {
+    if (isImmersive) exitImmersive();
+    else onClose();
+  }, [exitImmersive, isImmersive, onClose]);
+
+  const goPrev = useCallback(() => {
+    onIndexChange((index - 1 + total) % total);
+  }, [index, onIndexChange, total]);
+
+  const goNext = useCallback(() => {
+    onIndexChange((index + 1) % total);
+  }, [index, onIndexChange, total]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -49,7 +70,7 @@ export function ShopImageLightbox({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
-        onClose();
+        dismiss();
         return;
       }
       if (!hasNav) return;
@@ -64,7 +85,7 @@ export function ShopImageLightbox({
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [hasNav, index, onClose, onIndexChange, total]);
+  }, [dismiss, hasNav, index, onIndexChange, total]);
 
   useEffect(() => {
     if (!hasNav) return;
@@ -74,18 +95,6 @@ export function ShopImageLightbox({
       block: "nearest",
     });
   }, [hasNav, index]);
-
-  const goPrev = useCallback(() => {
-    onIndexChange((index - 1 + total) % total);
-  }, [index, onIndexChange, total]);
-
-  const goNext = useCallback(() => {
-    onIndexChange((index + 1) % total);
-  }, [index, onIndexChange, total]);
-
-  const { viewportRef, contentRef, isZoomed, gestureLock } = usePinchZoomPan(
-    `${index}-${current}`,
-  );
 
   const swipe = useHorizontalSwipe({
     enabled: hasNav && !isZoomed && !gestureLock,
@@ -98,14 +107,14 @@ export function ShopImageLightbox({
   return createPortal(
     <dialog
       ref={dialogRef}
-      className={`shop-img-lb${hasNav ? " has-filmstrip" : ""}`}
+      className={`shop-img-lb${hasNav ? " has-filmstrip" : ""}${isImmersive ? " is-immersive" : ""}`}
       aria-label={caption || "Xem ảnh sản phẩm"}
       onCancel={(e) => {
         e.preventDefault();
-        onClose();
+        dismiss();
       }}
       onClick={(e) => {
-        if (e.target === dialogRef.current) onClose();
+        if (e.target === dialogRef.current) dismiss();
       }}
     >
       <div className="shop-img-lb-inner">
@@ -117,8 +126,8 @@ export function ShopImageLightbox({
           <button
             type="button"
             className="shop-img-lb-close"
-            aria-label="Đóng"
-            onClick={onClose}
+            aria-label={isImmersive ? "Thoát toàn màn hình" : "Đóng"}
+            onClick={dismiss}
           >
             <X size={22} strokeWidth={2} aria-hidden />
           </button>

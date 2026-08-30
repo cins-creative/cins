@@ -88,6 +88,7 @@ export async function DELETE(request: Request) {
     popover: next.popover,
     avatarFrame: next.avatarFrame,
     shopSwitch: next.shopSwitch,
+    watermark: next.watermark,
     cfDeleted: cf.ok,
   });
 }

@@ -23,6 +23,8 @@ export type VideoListingOpenPayload = {
   items: GalleryMainItem[];
   hasMore: boolean;
   nextOffset: number;
+  /** Giữ đúng thứ tự list (rail) — không đưa clip click lên đầu, không load-more ngoài list. */
+  lockPlaylist?: boolean;
 };
 
 type Props = {

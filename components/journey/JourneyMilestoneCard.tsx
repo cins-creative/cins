@@ -990,6 +990,14 @@ export function JourneyMilestoneCard({
     hasCoverPreview,
     body,
   );
+  const imageWatermark =
+    milestone.watermarkBat === true &&
+    milestone.authorWatermark &&
+    viewerProfileId !== postOwnerId
+      ? milestone.authorWatermark
+      : null;
+  const hasPostImages =
+    cardContentKind === "photo" || (photoGridImages?.length ?? 0) > 0;
   const cardShellKind = bookmarkListing ? "listing" : cardContentKind;
   const contributorCount = coAuthorCredits.length;
   const otherContributorCount = coAuthorsOnly.length;
@@ -2090,6 +2098,9 @@ export function JourneyMilestoneCard({
             banHangEnabled={banHangEnabled}
             congDongOrg={congDongOrg}
             orgAttach={orgAttach}
+            hasImages={hasPostImages}
+            watermarkOn={milestone.watermarkBat === true}
+            ownerHasWatermark={Boolean(milestone.authorWatermark)}
           />
         ) : null}
       </>
@@ -2455,6 +2466,9 @@ export function JourneyMilestoneCard({
                     banHangEnabled={banHangEnabled}
                     congDongOrg={congDongOrg}
                     orgAttach={orgAttach}
+                    hasImages={hasPostImages}
+                    watermarkOn={milestone.watermarkBat === true}
+                    ownerHasWatermark={Boolean(milestone.authorWatermark)}
                   />
                 </>
               ) : null}
@@ -2659,6 +2673,7 @@ export function JourneyMilestoneCard({
               eagerMedia={eagerMedia}
               readMoreHref={cardReadMoreHref}
               hasLinkedPost={Boolean(postSlug)}
+              watermark={imageWatermark}
               captionExpandMode={
                 cardContentKind === "photo" || cardContentKind === "video"
                   ? "inline"

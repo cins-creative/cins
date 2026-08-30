@@ -6,7 +6,7 @@
  * - Camera pan/zoom bằng CSS transform trên world layer (ghi DOM trực tiếp;
  *   React chỉ flush 1 lần/frame cho lưới / thanh chọn — không re-render card).
  *   Desktop: wheel / pinch trackpad. Cảm ứng: 2 ngón pinch zoom + pan;
- *   1 ngón giữ im ~1s trên nền trống rồi kéo = pan (như tool bàn tay).
+ *   1 ngón trên nền trống = bật bàn tay và pan ngay.
  * - Node render HTML tuyệt đối (NodeCard) — kéo, resize, multi-select,
  *   marquee, group/frame, undo/redo command stack.
  * - Persist qua adapter (BoardPersistAdapter) — engine không biết endpoint.
@@ -164,10 +164,6 @@ const GROUP_SNAP_LEAVE_MARGIN = 56;
 const GROUP_EMPTY_MIN_W = 160;
 const GROUP_EMPTY_MIN_H = GROUP_TITLE_H + GROUP_PAD * 2 + 48;
 const DRAG_THRESHOLD_PX = 3;
-/** Cảm ứng: giữ im trên nền trống trước khi chuyển sang pan 1 ngón. */
-const HOLD_PAN_MS = 1000;
-/** Jitter ngón — lệch quá ngưỡng trước 1s thì thành marquee, không pan. */
-const HOLD_PAN_STILL_PX = 12;
 /** Zoom khi đặt ô chữ — trần cố định, không nhân thêm mỗi lần tạo. */
 const TEXT_PLACE_ZOOM = 1.2;
 /** Double-click focus — padding viewport + zoom out nhẹ so với fit tight. */
@@ -407,15 +403,6 @@ type Gesture =
   | {
       type: "marquee";
       pointerId: number;
-      startPage: { x: number; y: number };
-      additive: boolean;
-      baseSelection: Set<string>;
-    }
-  | {
-      /** Cảm ứng: giữ im trên nền trống — 1s → pan; lệch sớm → marquee. */
-      type: "hold-wait";
-      pointerId: number;
-      startClient: { x: number; y: number };
       startPage: { x: number; y: number };
       additive: boolean;
       baseSelection: Set<string>;
@@ -1077,15 +1064,6 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
 
     const gestureRef = useRef<Gesture | null>(null);
     const pinchRef = useRef<PinchGesture | null>(null);
-    const holdPanTimerRef = useRef(0);
-
-    const clearHoldPanTimer = useCallback(() => {
-      if (!holdPanTimerRef.current) return;
-      window.clearTimeout(holdPanTimerRef.current);
-      holdPanTimerRef.current = 0;
-    }, []);
-
-    useEffect(() => () => clearHoldPanTimer(), [clearHoldPanTimer]);
     const hydratedRef = useRef(false);
     const zCounterRef = useRef(1);
     /** Paste/upload bị user xóa giữa chừng — chặn create xong hiện lại. */
@@ -3710,7 +3688,6 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
     /* ---------- cảm ứng: 2 ngón pinch zoom + pan ---------- */
 
     const abortActiveGesture = useCallback(() => {
-      clearHoldPanTimer();
       const g = gestureRef.current;
       gestureRef.current = null;
       wirePathClickRef.current = null;
@@ -3777,7 +3754,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           );
         }
       }
-      if (g.type === "marquee" || g.type === "hold-wait") {
+      if (g.type === "marquee") {
         setSelection(new Set(g.baseSelection));
       }
 
@@ -3786,7 +3763,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       setWireDraft(null);
       setWireSnap(null);
       setDrawDraft(null);
-    }, [clearGroupSnapUi, clearHoldPanTimer, commitNodes, setSelection]);
+    }, [clearGroupSnapUi, commitNodes, setSelection]);
 
     // TouchEvent (không PointerEvent): iOS không luôn gửi pointerdown ngón 2
     // khi ngón 1 đã capture. preventDefault chặn zoom trang.
@@ -4151,8 +4128,8 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           return;
         }
 
-        // Nền trống. Cảm ứng: giữ im 1s → bật công cụ bàn tay (và pan ngay).
-        // Kéo trước 1s → marquee chọn.
+        // Nền trống. Cảm ứng: lần nhấn đầu = công cụ bàn tay + pan ngay.
+        // Chuột: marquee chọn.
         const start = pageFromClient(e.clientX, e.clientY);
         const additive = e.shiftKey;
         const baseSelection = additive
@@ -4160,38 +4137,26 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
           : new Set<string>();
         if (e.pointerType === "touch") {
           e.preventDefault();
-          gestureRef.current = {
-            type: "hold-wait",
-            pointerId: e.pointerId,
-            startClient: { x: e.clientX, y: e.clientY },
-            startPage: start,
-            additive,
-            baseSelection,
-          };
-          if (!additive) {
-            setSelection(new Set());
-            setEditingId(null);
-          }
-          (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
-          clearHoldPanTimer();
-          holdPanTimerRef.current = window.setTimeout(() => {
-            holdPanTimerRef.current = 0;
-            const cur = gestureRef.current;
-            if (!cur || cur.type !== "hold-wait") return;
+          if (toolRef.current !== "pan") {
             setTool("pan");
-            gestureRef.current = {
-              type: "pan",
-              pointerId: cur.pointerId,
-              startClient: cur.startClient,
-              camStart: { ...cameraRef.current },
-            };
-            setPanning(true);
             try {
               navigator.vibrate?.(15);
             } catch {
               /* không hỗ trợ haptic */
             }
-          }, HOLD_PAN_MS);
+          }
+          if (!additive) {
+            setSelection(new Set());
+            setEditingId(null);
+          }
+          gestureRef.current = {
+            type: "pan",
+            pointerId: e.pointerId,
+            startClient: { x: e.clientX, y: e.clientY },
+            camStart: { ...cameraRef.current },
+          };
+          setPanning(true);
+          (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
           return;
         }
         gestureRef.current = {
@@ -4207,7 +4172,7 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         }
         (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
       },
-      [clearHoldPanTimer, pageFromClient, placeArmedAtPage, setSelection, setTool],
+      [pageFromClient, placeArmedAtPage, setSelection, setTool],
     );
 
     const onRootPointerMove = useCallback(
@@ -4215,23 +4180,6 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         if (pinchRef.current) return;
         const g = gestureRef.current;
         if (!g || g.pointerId !== e.pointerId) return;
-
-        if (g.type === "hold-wait") {
-          const dist = Math.hypot(
-            e.clientX - g.startClient.x,
-            e.clientY - g.startClient.y,
-          );
-          if (dist < HOLD_PAN_STILL_PX) return;
-          clearHoldPanTimer();
-          gestureRef.current = {
-            type: "marquee",
-            pointerId: g.pointerId,
-            startPage: g.startPage,
-            additive: g.additive,
-            baseSelection: g.baseSelection,
-          };
-          return;
-        }
 
         if (g.type === "pan") {
           const cam = g.camStart;
@@ -4542,7 +4490,6 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
       [
         applyMovePreview,
         byId,
-        clearHoldPanTimer,
         commitCamera,
         commitNodes,
         pageFromClient,
@@ -4557,7 +4504,6 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         if (pinchRef.current) return;
         const g = gestureRef.current;
         if (!g || g.pointerId !== e.pointerId) return;
-        clearHoldPanTimer();
         gestureRef.current = null;
         if (movePreviewRafRef.current) {
           cancelAnimationFrame(movePreviewRafRef.current);
@@ -4900,7 +4846,6 @@ export const CinsBoard = forwardRef<BoardHandle, CinsBoardProps>(
         promoteLocalNode,
         toStoredLayout,
         clearGroupSnapUi,
-        clearHoldPanTimer,
       ],
     );
 

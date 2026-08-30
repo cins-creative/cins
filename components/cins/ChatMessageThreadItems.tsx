@@ -71,6 +71,7 @@ const CHAT_MEDIA_ACTION_SEL = [
   ".cins-chat-msg-image-link",
   ".cins-chat-album-cell",
   ".cins-chat-msg-sticker-btn",
+  ".cins-chat-msg-video-poster",
 ].join(",");
 
 function eventElement(target: EventTarget | null): Element | null {
@@ -100,6 +101,7 @@ function isIgnoredActionTarget(
         ".cins-chat-msg-mobile-scrim",
         ".cins-chat-msg-sheet-root",
         ".cins-chat-reply-quote",
+        ".cins-chat-msg-video",
         "a[href]",
         "input",
         "textarea",

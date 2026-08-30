@@ -63,6 +63,10 @@ import {
   attachAuthorAvatarFrameToSelfMilestones,
   avatarFrameFromGiaoDien,
 } from "@/lib/journey/avatar-frame";
+import {
+  attachAuthorWatermarkToSelfMilestones,
+  watermarkFromGiaoDien,
+} from "@/lib/journey/watermark";
 
 /** Số cột mốc hydrate mỗi lần user cuộn tới cuối timeline. */
 export const MILESTONE_SCROLL_PAGE_SIZE = 20;
@@ -748,7 +752,7 @@ async function hydrateTimelineStubs(
       ? admin
           .from("content_cot_moc")
           .select(
-            "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc, id_to_chuc, id_khoa_hoc, id_lop_hoc",
+            "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, watermark_bat, tao_luc, id_to_chuc, id_khoa_hoc, id_lop_hoc",
           )
           .in("id", selfCotMocIds)
           .returns<CotMocFullRow[]>()
@@ -839,9 +843,13 @@ export async function fetchMilestoneTimelinePage(params: {
   const ownerAvatarFrame = avatarFrameFromGiaoDien(
     ownerGiaoDienRow?.giao_dien,
   );
-  const themedMilestones = attachAuthorAvatarFrameToSelfMilestones(
-    attachAuthorCardThemeToSelfMilestones(milestones, ownerCardTheme),
-    ownerAvatarFrame,
+  const ownerWatermark = watermarkFromGiaoDien(ownerGiaoDienRow?.giao_dien);
+  const themedMilestones = attachAuthorWatermarkToSelfMilestones(
+    attachAuthorAvatarFrameToSelfMilestones(
+      attachAuthorCardThemeToSelfMilestones(milestones, ownerCardTheme),
+      ownerAvatarFrame,
+    ),
+    ownerWatermark,
   );
 
   const nextOffset = offset + themedMilestones.length;

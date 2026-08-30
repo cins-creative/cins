@@ -8,6 +8,8 @@ import {
 } from "react";
 
 import { ImageLightbox } from "@/components/journey/ImageLightbox";
+import { JourneyImageWatermark } from "@/components/journey/JourneyImageWatermark";
+import type { WatermarkRenderDto } from "@/lib/journey/watermark";
 import {
   flattenMosaicCells,
   normalizeImgSlotGap,
@@ -27,6 +29,8 @@ import {
   type GridImage,
 } from "@/lib/journey/image-grid";
 
+import "@/components/journey/journey-watermark.css";
+
 type Props = {
   block: Block;
   /** Gallery toàn bài — pool + controlled index từ PostBlockRenderer. */
@@ -36,6 +40,7 @@ type Props = {
   lightboxIndexOffset?: number;
   /** Parent đã mount ImageLightbox. */
   suppressLightbox?: boolean;
+  watermark?: WatermarkRenderDto | null;
 };
 
 /**
@@ -49,6 +54,7 @@ export function PostReadOnlyImgs({
   onLightboxIndexChange,
   lightboxIndexOffset = 0,
   suppressLightbox = false,
+  watermark = null,
 }: Props) {
   const cfg = block.config || {};
   const layout: ImgLayout = normalizeLegacyLayout(cfg.layout);
@@ -122,7 +128,7 @@ export function PostReadOnlyImgs({
     <button
       key={`${seed}-${index}`}
       type="button"
-      className="ph is-lightbox"
+      className="ph is-lightbox j-wm-host"
       aria-label="Xem ảnh lớn"
       style={style}
       onClick={() => openAt(index)}
@@ -132,11 +138,13 @@ export function PostReadOnlyImgs({
         src={resolveImageSeedUrl(seed, 900, 900)}
         alt=""
         loading="lazy"
+        draggable={false}
         onLoad={
           layout === "justified" ? (e) => onImgLoad(index, e) : undefined
         }
         onError={handleBlockImageError}
       />
+      {watermark ? <JourneyImageWatermark dto={watermark} protect /> : null}
     </button>
   );
 
@@ -187,6 +195,7 @@ export function PostReadOnlyImgs({
           index={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
           onIndexChange={setLightboxIndex}
+          watermark={watermark}
         />
       ) : null}
     </div>

@@ -905,10 +905,10 @@
   margin-bottom: 0;
 }
 
-/* Bo góc thẻ milestone gọn hơn ở trang chủ (mặc định journey.css là 20px). */
+/* Bo góc thẻ — khớp Journey user (`.j-m-card.jcard` 20px). */
 .world-journey-home .wj-feed .wj-feed-timeline .j-m-card,
 .world-journey-home .wj-feed .wj-feed-timeline .j-m-card.jcard {
-  border-radius: var(--r-lg);
+  border-radius: 20px;
 }
 
 .world-journey-home .wj-feed .wj-feed-timeline .j-timeline-end {
@@ -1753,6 +1753,40 @@
   outline-offset: 3px;
 }
 
+.world-journey-home .wj-video-rail-audio {
+  position: absolute;
+  z-index: 12;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.65));
+  top: 8px;
+  right: 8px;
+}
+
+.world-journey-home .wj-video-rail-audio:hover,
+.world-journey-home .wj-video-rail-audio:focus-visible {
+  background: transparent;
+  color: #fff;
+}
+
+.world-journey-home .wj-video-rail-audio:focus-visible {
+  outline: 2px solid var(--blue, #1877f2);
+  outline-offset: 2px;
+}
+
+.world-journey-home .wj-video-rail-audio.is-hearing {
+  background: transparent;
+}
+
 .world-journey-home .wj-video-rail-thumb {
   position: relative;
   display: block;
@@ -2047,6 +2081,16 @@
 @media (max-width: 719px) {
   .world-journey-home .wj-video-rail {
     margin: 6px 0 16px;
+  }
+
+  /* Coverflow (rail 2+) — khung + clip 4:5. Strip đầu feed giữ 9:16. */
+  .world-journey-home .wj-video-rail--coverflow {
+    --wj-video-aspect: 4 / 5;
+    aspect-ratio: 4 / 5;
+  }
+
+  .world-journey-home .wj-video-rail--coverflow .wj-video-rail-thumb {
+    aspect-ratio: 4 / 5;
   }
 
   .world-journey-home .wj-video-rail-stage {
@@ -4763,6 +4807,7 @@
     margin-bottom: 0;
   }
 
+  /* Card: 5px so với mép màn, bo 20px — khớp Journey user. */
   .world-journey-home .wj-feed .wj-feed-timeline .j-m-card,
   .world-journey-home .wj-feed .wj-feed-timeline .j-m-card.jcard,
   .world-journey-home .wj-feed .wj-feed-timeline .j-milestone.j-tagged .j-m-card.jcard,
@@ -4771,20 +4816,26 @@
   .world-journey-home .wj-feed .wj-feed-timeline .j-m-card.has-unfold.is-expanded:hover,
   .world-journey-home .wj-feed .wj-feed-timeline .j-m-card.jcard:hover,
   .world-journey-home .wj-feed .wj-feed-timeline .j-milestone.j-tagged .j-m-card.jcard:hover {
-    border-radius: 0;
+    margin-inline: 5px;
+    border-radius: 20px;
     border-left: none;
     border-right: none;
-    box-shadow: none;
+    box-shadow: var(--shadow-xs);
     transform: none;
     background: var(--bg-surface, #fff);
   }
 
   .world-journey-home .wj-feed .wj-feed-timeline .j-milestone,
-  .world-journey-home .wj-feed .wj-feed-timeline .j-m-body-wrap,
-  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card,
-  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card.jcard {
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-body-wrap {
     width: 100%;
     max-width: 100%;
+  }
+
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card,
+  .world-journey-home .wj-feed .wj-feed-timeline .j-m-card.jcard {
+    width: auto;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   /* Media full-bleed — padding gom trong datebar / jcard-text / actions */
@@ -5029,6 +5080,12 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   display: none !important;
 }
 
+/* Giỏ chờ mua portal ra body — đè player nếu không ẩn. */
+body:has(.world-journey-home.view-video) .gio-chung.is-floating,
+body:has(.world-journey-home.view-video) .gio-chung-toast {
+  display: none !important;
+}
+
 .wj-video-feed {
   --wj-reel-pad-y: 0;
   --wj-reel-pad-x: 0;
@@ -5139,6 +5196,10 @@ body:has(.world-journey-home.view-video) .j-chat-dock {
   min-height: var(--wj-reel-slide-h, 100%);
   max-height: var(--wj-reel-slide-h, 100%);
   padding: var(--wj-reel-pad-y) var(--wj-reel-pad-x);
+  pointer-events: none;
+}
+.wj-reel-snap.is-active {
+  pointer-events: auto;
 }
 
 .wj-reel-stage {

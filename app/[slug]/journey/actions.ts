@@ -962,6 +962,33 @@ export async function updateMilestoneVisibility(
   return { ok: true, data: null };
 }
 
+/** Bật/tắt watermark overlay ảnh bài trên cột mốc. */
+export async function updateMilestoneWatermark(
+  milestoneId: string,
+  on: boolean,
+): Promise<ActionResult<{ watermarkBat: boolean }>> {
+  const owner = await requireMilestoneEditorAccess(milestoneId);
+  if (!owner.ok) return { ok: false, error: owner.error };
+  if (typeof on !== "boolean") {
+    return { ok: false, error: "Giá trị watermark không hợp lệ." };
+  }
+
+  const admin = createServiceRoleClient();
+  const { error } = await admin
+    .from("content_cot_moc")
+    .update({ watermark_bat: on })
+    .eq("id", milestoneId);
+  if (error) {
+    return {
+      ok: false,
+      error: "Không đổi được watermark: " + error.message,
+    };
+  }
+
+  revalidatePath(`/${owner.profileSlug}`);
+  return { ok: true, data: { watermarkBat: on } };
+}
+
 /** Tùy chỉnh: chặn người (nền Bạn bè) hoặc chỉ một số người (nền Chỉ mình tôi). */
 export async function updateMilestoneVisibilityCustom(input: {
   milestoneId: string;

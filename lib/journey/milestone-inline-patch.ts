@@ -30,6 +30,11 @@ export type MilestoneInlinePatchDetail =
       milestoneId: string;
       kind: "journeyPin";
       value: string | null;
+    }
+  | {
+      milestoneId: string;
+      kind: "watermark";
+      value: boolean;
     };
 
 export const MILESTONE_INLINE_PATCH_EVENT = "cins:milestone-inline-patch";
@@ -63,6 +68,9 @@ export function applyMilestoneInlinePatch(
     }
     if (detail.kind === "journeyPin") {
       return { ...m, journeyGhimLuc: detail.value };
+    }
+    if (detail.kind === "watermark") {
+      return { ...m, watermarkBat: detail.value };
     }
     return {
       ...m,

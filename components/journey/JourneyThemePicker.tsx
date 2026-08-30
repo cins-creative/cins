@@ -48,6 +48,7 @@ import { DEFAULT_AVATAR_FRAME } from "@/lib/journey/avatar-frame";
 import { DEFAULT_CARD_THEME } from "@/lib/journey/card-theme";
 import { DEFAULT_POPOVER_THEME } from "@/lib/journey/popover-theme";
 import { DEFAULT_SHOP_SWITCH } from "@/lib/journey/shop-switch";
+import { DEFAULT_WATERMARK } from "@/lib/journey/watermark";
 import { dispatchUserThemeChange } from "@/lib/journey/user-shell-theme";
 import {
   patchGiaoDien,
@@ -120,6 +121,7 @@ function applyLivePreview(theme: ProfileThemeSlice) {
       avatarFrame: DEFAULT_AVATAR_FRAME,
       popover: DEFAULT_POPOVER_THEME,
       shopSwitch: DEFAULT_SHOP_SWITCH,
+      watermark: DEFAULT_WATERMARK,
     };
     if (isDefaultProfileTheme(state) && theme.background.kind !== "image") {
       clearPageThemeVars(page);
@@ -350,6 +352,7 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
       avatarFrame: DEFAULT_AVATAR_FRAME,
       popover: DEFAULT_POPOVER_THEME,
       shopSwitch: DEFAULT_SHOP_SWITCH,
+      watermark: DEFAULT_WATERMARK,
         };
         if (isDefaultProfileTheme(state)) {
           const data = await resetGiaoDienTheme();
@@ -409,6 +412,7 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
             avatarFrame: DEFAULT_AVATAR_FRAME,
             popover: DEFAULT_POPOVER_THEME,
             shopSwitch: DEFAULT_SHOP_SWITCH,
+      watermark: DEFAULT_WATERMARK,
           }),
         markSaved: (customs) => {
           const next = sliceFromInitial(themeRef.current);
@@ -743,6 +747,7 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
       avatarFrame: DEFAULT_AVATAR_FRAME,
       popover: DEFAULT_POPOVER_THEME,
       shopSwitch: DEFAULT_SHOP_SWITCH,
+      watermark: DEFAULT_WATERMARK,
           },
           id,
         ).theme;
@@ -755,6 +760,7 @@ export const JourneyThemePicker = forwardRef<JourneyThemePickerHandle, Props>(
       avatarFrame: DEFAULT_AVATAR_FRAME,
       popover: DEFAULT_POPOVER_THEME,
       shopSwitch: DEFAULT_SHOP_SWITCH,
+      watermark: DEFAULT_WATERMARK,
           },
           id,
         ).theme;

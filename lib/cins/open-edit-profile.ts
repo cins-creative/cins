@@ -7,10 +7,27 @@ export const EDIT_PROFILE_TAB_CUSTOMIZE = "customize";
 
 export type EditProfileOpenTab = "thong-tin" | "customize";
 
-export function openEditProfile(tab: EditProfileOpenTab = "customize"): void {
+export type EditProfileCustomizeSub =
+  | "theme"
+  | "avatar"
+  | "shop"
+  | "post"
+  | "watermark";
+
+export type OpenEditProfileDetail = {
+  tab?: EditProfileOpenTab;
+  customizeSub?: EditProfileCustomizeSub;
+};
+
+export function openEditProfile(
+  tab: EditProfileOpenTab = "customize",
+  customizeSub?: EditProfileCustomizeSub,
+): void {
   if (typeof window === "undefined") return;
   window.dispatchEvent(
-    new CustomEvent(OPEN_EDIT_PROFILE_EVENT, { detail: { tab } }),
+    new CustomEvent(OPEN_EDIT_PROFILE_EVENT, {
+      detail: { tab, customizeSub } satisfies OpenEditProfileDetail,
+    }),
   );
 }
 

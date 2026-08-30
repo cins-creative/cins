@@ -16,13 +16,16 @@ import {
   useEffect,
   useId,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type KeyboardEvent,
+  type ReactNode,
 } from "react";
 
 import { MoTaMarkdown } from "@/components/editor/compose/MoTaMarkdown";
 import { GalleryMainHoverOverlay } from "@/components/journey/GalleryMainHoverOverlay";
+import { MediaFocusLightbox, type MediaFocusItem } from "@/components/journey/MediaFocusLightbox";
 import { JourneyMilestoneCardBodyContent } from "@/components/journey/JourneyMilestoneCardBodyContent";
 import { JourneyUnfoldArticleContent } from "@/components/journey/JourneyUnfoldArticleContent";
 import type { MilestoneMediaItem } from "@/components/journey/milestone-types";
@@ -34,6 +37,7 @@ import {
   type ComposePreviewSnapshot,
 } from "@/lib/journey/compose-preview-adapter";
 import type { ComposeShopKioskPreview } from "@/lib/journey/compose-types";
+import { gridLightboxSrc } from "@/lib/journey/image-grid";
 import {
   coverThumbAspectCss,
   coverThumbAspectRatio,
@@ -65,6 +69,123 @@ const TABS: {
 ];
 
 const MOCK_NEIGHBOR_ASPECTS = [0.75, 1.15, 0.9, 1.35, 0.68, 1.05];
+
+const PREVIEW_MEDIA_HIT =
+  ".preview, .jcard-video-root, .jcard-video-trigger, .image-grid, .image-album-carousel, .ed-cp-thumb, .jcard-pc-scale";
+
+function fallbackFocusItem(snap: ComposePreviewSnapshot): MediaFocusItem | null {
+  const grid = snap.photoGrid?.[0];
+  if (grid) {
+    const src = gridLightboxSrc(grid) || grid.previewSrc || "";
+    if (src) {
+      return { src, width: grid.width, height: grid.height };
+    }
+  }
+  const src = snap.journeyMediaSrc || snap.thumbSrc;
+  if (!src) return null;
+  return {
+    src,
+    isVideo: snap.journeyIsVideo || snap.isVideo,
+    width: snap.thumbWidth,
+    height: snap.thumbHeight,
+  };
+}
+
+function focusItemFromEvent(
+  target: EventTarget | null,
+  fallback: MediaFocusItem | null,
+): MediaFocusItem | null {
+  const el = target as Element | null;
+  const img = el?.closest?.("img");
+  if (img instanceof HTMLImageElement) {
+    const src = img.currentSrc || img.src;
+    if (src) {
+      return {
+        src,
+        width: img.naturalWidth || fallback?.width,
+        height: img.naturalHeight || fallback?.height,
+        isVideo: fallback?.isVideo && src === fallback.src,
+      };
+    }
+  }
+  const video = el?.closest?.("video");
+  if (video instanceof HTMLVideoElement) {
+    const src = video.currentSrc || video.src;
+    if (src) {
+      return {
+        src,
+        isVideo: true,
+        width: video.videoWidth || fallback?.width,
+        height: video.videoHeight || fallback?.height,
+      };
+    }
+  }
+  return fallback;
+}
+
+function PreviewMediaFocusHost({
+  snap,
+  children,
+}: {
+  snap: ComposePreviewSnapshot;
+  children: ReactNode;
+}) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [focus, setFocus] = useState<MediaFocusItem | null>(null);
+  const fallback = useMemo(() => fallbackFocusItem(snap), [snap]);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const hit = (t: EventTarget | null) =>
+      Boolean((t as Element | null)?.closest?.(PREVIEW_MEDIA_HIT));
+
+    const openFrom = (e: Event) => {
+      if (!hit(e.target)) return;
+      const item = focusItemFromEvent(e.target, fallback);
+      if (!item) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setFocus(item);
+    };
+
+    let tap: { x: number; y: number; id: number } | null = null;
+    const onDown = (e: PointerEvent) => {
+      if (!hit(e.target)) return;
+      if (e.pointerType === "mouse") return;
+      tap = { x: e.clientX, y: e.clientY, id: e.pointerId };
+    };
+    const onUp = (e: PointerEvent) => {
+      if (!tap || tap.id !== e.pointerId) return;
+      const dist = Math.hypot(e.clientX - tap.x, e.clientY - tap.y);
+      tap = null;
+      if (dist > 14) return;
+      openFrom(e);
+    };
+    const onWheel = (e: WheelEvent) => {
+      if (!hit(e.target)) return;
+      openFrom(e);
+    };
+
+    root.addEventListener("pointerdown", onDown);
+    root.addEventListener("pointerup", onUp);
+    root.addEventListener("wheel", onWheel, { passive: false, capture: true });
+    return () => {
+      root.removeEventListener("pointerdown", onDown);
+      root.removeEventListener("pointerup", onUp);
+      root.removeEventListener("wheel", onWheel, true);
+    };
+  }, [fallback]);
+
+  return (
+    <div ref={rootRef}>
+      {children}
+      {focus ? (
+        <MediaFocusLightbox item={focus} onClose={() => setFocus(null)} />
+      ) : null}
+    </div>
+  );
+}
 
 function PreviewThumb({
   src,
@@ -547,14 +668,16 @@ export function ComposePreviewPanel({
         id={`${tabsId}-panel`}
         aria-labelledby={`${tabsId}-${tab}`}
       >
-        {tab === "journey" ? (
-          <JourneyPreview
-            snap={snap}
-            shopKioskPreview={deferredDraft.shopKioskPreview}
-          />
-        ) : null}
-        {tab === "gallery" ? <GalleryCardPreview snap={snap} /> : null}
-        {tab === "masonry" ? <MasonryPreview snap={snap} /> : null}
+        <PreviewMediaFocusHost snap={snap}>
+          {tab === "journey" ? (
+            <JourneyPreview
+              snap={snap}
+              shopKioskPreview={deferredDraft.shopKioskPreview}
+            />
+          ) : null}
+          {tab === "gallery" ? <GalleryCardPreview snap={snap} /> : null}
+          {tab === "masonry" ? <MasonryPreview snap={snap} /> : null}
+        </PreviewMediaFocusHost>
       </div>
     </aside>
   );

@@ -177,6 +177,8 @@ export type GalleryStub = {
   videoCanvasRatio?: VideoCanvasRatio;
   /** Tỉ lệ + điểm neo thumbnail (từ `noi_dung_blocks.coverThumb`). */
   coverThumb?: import("@/lib/journey/cover-thumb").CoverThumbMeta | null;
+  /** Owner bật watermark ảnh (`content_cot_moc.watermark_bat`). */
+  watermarkBat?: boolean;
 };
 
 function parseBlocks(raw: unknown): Block[] {

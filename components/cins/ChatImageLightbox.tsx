@@ -27,6 +27,28 @@ export function ChatImageLightbox({
   const activeThumbRef = useRef<HTMLButtonElement>(null);
   const total = images.length;
   const current = images[index];
+  const hasFilmstrip = total > 1;
+  const {
+    viewportRef,
+    contentRef,
+    isZoomed,
+    isImmersive,
+    gestureLock,
+    exitImmersive,
+  } = usePinchZoomPan(`${index}-${current}`);
+
+  const dismiss = useCallback(() => {
+    if (isImmersive) exitImmersive();
+    else onClose();
+  }, [exitImmersive, isImmersive, onClose]);
+
+  const goPrev = useCallback(() => {
+    onIndexChange((index - 1 + total) % total);
+  }, [index, onIndexChange, total]);
+
+  const goNext = useCallback(() => {
+    onIndexChange((index + 1) % total);
+  }, [index, onIndexChange, total]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -43,7 +65,7 @@ export function ChatImageLightbox({
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
-        onClose();
+        dismiss();
         return;
       }
       if (total <= 1) return;
@@ -59,7 +81,7 @@ export function ChatImageLightbox({
     /* Capture: chặn ESC trước overlay/mini chat (cùng keydown sẽ đóng cả bảng chat). */
     document.addEventListener("keydown", onKey, true);
     return () => document.removeEventListener("keydown", onKey, true);
-  }, [index, onClose, onIndexChange, total]);
+  }, [dismiss, index, onIndexChange, total]);
 
   useEffect(() => {
     activeThumbRef.current?.scrollIntoView({
@@ -68,19 +90,6 @@ export function ChatImageLightbox({
       block: "nearest",
     });
   }, [index]);
-
-  const goPrev = useCallback(() => {
-    onIndexChange((index - 1 + total) % total);
-  }, [index, onIndexChange, total]);
-
-  const goNext = useCallback(() => {
-    onIndexChange((index + 1) % total);
-  }, [index, onIndexChange, total]);
-
-  const hasFilmstrip = total > 1;
-  const { viewportRef, contentRef, isZoomed, gestureLock } = usePinchZoomPan(
-    `${index}-${current}`,
-  );
 
   const swipe = useHorizontalSwipe({
     enabled: hasFilmstrip && !isZoomed && !gestureLock,
@@ -93,22 +102,22 @@ export function ChatImageLightbox({
   return createPortal(
     <dialog
       ref={dialogRef}
-      className={`cins-chat-lightbox${hasFilmstrip ? " has-filmstrip" : ""}`}
+      className={`cins-chat-lightbox${hasFilmstrip ? " has-filmstrip" : ""}${isImmersive ? " is-immersive" : ""}`}
       aria-label={t("chat.lightbox")}
       onCancel={(e) => {
         e.preventDefault();
-        onClose();
+        dismiss();
       }}
       onClick={(e) => {
-        if (e.target === dialogRef.current) onClose();
+        if (e.target === dialogRef.current) dismiss();
       }}
     >
       <div className="cins-chat-lightbox-inner">
         <button
           type="button"
           className="cins-chat-lightbox-close"
-          aria-label={t("chat.close")}
-          onClick={onClose}
+          aria-label={isImmersive ? "Thoát toàn màn hình" : t("chat.close")}
+          onClick={dismiss}
         >
           <X size={22} strokeWidth={2} aria-hidden />
         </button>

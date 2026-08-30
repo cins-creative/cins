@@ -174,6 +174,7 @@ export async function JourneyProfilePageLoader({
         profileAvatarFrame: giaoDien.avatarFrame,
         profileCard: giaoDien.card,
         profileShopSwitch: giaoDien.shopSwitch,
+        profileWatermark: giaoDien.watermark,
         authorAvatarUrl: getAvatarUrl(owner.avatar_id),
         authorCoverUrl: getProfileCoverUrl(owner.cover_id),
       }

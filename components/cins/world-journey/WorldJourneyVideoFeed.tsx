@@ -118,11 +118,15 @@ type Props = {
   endpoint: string;
   /** Video đang chọn trên listing — cuộn tới slide này lúc mở Reels. */
   startItemId?: string | null;
+  /** Rail: giữ thứ tự clip, không xoay start lên đầu, không fetch thêm ngoài list. */
+  lockPlaylist?: boolean;
   onClose?: () => void;
 };
 
 /** Số video kế tiếp mount iframe (muted, không autoplay) trước khi scroll tới. */
 const REEL_IFRAME_PRELOAD = 2;
+/** Buffer ~3s rồi pause — clip kế mở là phát ngay, không tải lại từ đầu. */
+const REEL_WARM_SECONDS = 3;
 /** Còn ≤ N video trong list → prefetch trang API kế (không đợi sentinel). */
 const REEL_PAGE_PREFETCH_REMAINING = 3;
 
@@ -258,6 +262,8 @@ function ReelSlide({
   const mutedRef = useRef(muted);
   mutedRef.current = muted;
   const playRetryRef = useRef<number[]>([]);
+  const warmingRef = useRef(false);
+  const warmedRef = useRef(false);
   const t = useT();
   const target = reactionTarget(item);
   const caption = item.meta?.trim() || item.label?.trim() || "";
@@ -358,6 +364,7 @@ function ReelSlide({
     let player: StreamPlayer | null = null;
 
     const pauseIfNotCurrent = (next: StreamPlayer) => {
+      if (warmingRef.current) return;
       next.loop = false;
       next.pause();
       postStreamEvent(el, "pause");
@@ -384,6 +391,16 @@ function ReelSlide({
     };
     const onTime = () => {
       if (cancelled || !player || scrubbingRef.current) return;
+      if (warmingRef.current) {
+        const cap = Math.min(REEL_WARM_SECONDS, player.duration || REEL_WARM_SECONDS);
+        if (player.currentTime >= cap) {
+          warmingRef.current = false;
+          warmedRef.current = true;
+          player.pause();
+          player.currentTime = 0;
+        }
+        return;
+      }
       if (!activeRef.current || !canPlayRef.current) {
         if (!player.paused) pauseIfNotCurrent(player);
         return;
@@ -487,7 +504,7 @@ function ReelSlide({
     const player = playerRef.current;
     if (!player) return;
     player.loop = loopOn && canPlay;
-    if (!canPlay) player.pause();
+    if (!canPlay && !warmingRef.current) player.pause();
   }, [loopOn, canPlay]);
 
   /* Slide vào khung chính → play; preload / chưa snap xong → pause. */
@@ -532,6 +549,24 @@ function ReelSlide({
 
     if (!active) {
       clearPlayRetries();
+      if (preload && !warmedRef.current) {
+        warmingRef.current = true;
+        setPaused(true);
+        const player = playerRef.current;
+        if (player) {
+          player.muted = true;
+          player.loop = false;
+          void player.play().catch(() => {
+            postStreamEvent(el, "play");
+          });
+        } else {
+          postStreamEvent(el, "play");
+        }
+        return () => {
+          warmingRef.current = false;
+        };
+      }
+      warmingRef.current = false;
       pauseInactive();
       return;
     }
@@ -544,6 +579,7 @@ function ReelSlide({
       return;
     }
 
+    warmingRef.current = false;
     playActive();
     playRetryRef.current = [
       window.setTimeout(playActive, 350),
@@ -552,7 +588,7 @@ function ReelSlide({
     return () => {
       clearPlayRetries();
     };
-  }, [active, canPlay, iframeSrc]);
+  }, [active, canPlay, iframeSrc, preload]);
 
   useEffect(() => {
     const player = playerRef.current;
@@ -1037,9 +1073,10 @@ function pickStartId(
 function seedPlaylist(
   initial: readonly GalleryMainItem[],
   startItemId?: string | null,
+  lockPlaylist = false,
 ): GalleryMainItem[] {
   const stream = initial.filter(isStreamVideoItem);
-  if (!startItemId) return stream;
+  if (lockPlaylist || !startItemId) return stream;
   const head = stream.find((item) => item.id === startItemId);
   if (!head) return stream;
   return [head, ...stream.filter((item) => item.id !== startItemId)];
@@ -1055,29 +1092,36 @@ export function WorldJourneyVideoFeed({
   nextOffset: initialOffset = 0,
   endpoint,
   startItemId = null,
+  lockPlaylist = false,
   onClose,
 }: Props) {
   const [items, setItems] = useState<GalleryMainItem[]>(() =>
-    seedPlaylist(initialItems, startItemId),
+    seedPlaylist(initialItems, startItemId, lockPlaylist),
   );
-  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [hasMore, setHasMore] = useState(lockPlaylist ? false : initialHasMore);
   const [offset, setOffset] = useState(initialOffset);
   const [loading, setLoading] = useState(false);
   const [bootstrapping, setBootstrapping] = useState(
-    () => seedPlaylist(initialItems, startItemId).length === 0,
+    () => seedPlaylist(initialItems, startItemId, lockPlaylist).length === 0,
   );
   const [activeId, setActiveId] = useState<string | null>(() =>
-    pickStartId(seedPlaylist(initialItems, startItemId), startItemId),
+    pickStartId(
+      seedPlaylist(initialItems, startItemId, lockPlaylist),
+      startItemId,
+    ),
   );
   const scrollerRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
   const [opened, setOpened] = useState(
-    () => seedPlaylist(initialItems, startItemId).length > 0,
+    () => seedPlaylist(initialItems, startItemId, lockPlaylist).length > 0,
   );
   const [loopOn, setLoopOn] = useState(true);
   const [mutedAll, setMutedAll] = useState(true);
   const [framedId, setFramedId] = useState<string | null>(() =>
-    pickStartId(seedPlaylist(initialItems, startItemId), startItemId),
+    pickStartId(
+      seedPlaylist(initialItems, startItemId, lockPlaylist),
+      startItemId,
+    ),
   );
   const toggleLoop = useCallback(() => {
     setLoopOn((prev) => !prev);
@@ -1098,38 +1142,17 @@ export function WorldJourneyVideoFeed({
   const hasMoreRef = useRef(hasMore);
   hasMoreRef.current = hasMore;
   const firstFrameRef = useRef(true);
+  const panLockedRef = useRef(false);
+  const panUnlockTimerRef = useRef(0);
+  const wheelAccRef = useRef(0);
 
-  useEffect(() => {
-    const root = scrollerRef.current;
-    if (!root || items.length === 0) return;
-    const ratios = new Map<string, number>();
-    const pickFramed = () => {
-      let bestId: string | null = null;
-      let best = 0.52;
-      for (const [id, ratio] of ratios) {
-        if (ratio > best) {
-          best = ratio;
-          bestId = id;
-        }
-      }
-      if (bestId) setFramedId(bestId);
-    };
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          const id = (entry.target as HTMLElement).dataset.reelId;
-          if (!id) continue;
-          ratios.set(id, entry.intersectionRatio);
-        }
-        pickFramed();
-      },
-      { root, threshold: [0, 0.25, 0.4, 0.52, 0.65, 0.8, 1] },
-    );
-    root.querySelectorAll<HTMLElement>("[data-reel-id]").forEach((node) => {
-      io.observe(node);
-    });
-    return () => io.disconnect();
-  }, [items.length]);
+  const schedulePanUnlock = useCallback((idleMs: number) => {
+    window.clearTimeout(panUnlockTimerRef.current);
+    panUnlockTimerRef.current = window.setTimeout(() => {
+      panLockedRef.current = false;
+      wheelAccRef.current = 0;
+    }, WORLD_JOURNEY_TAB_PAN_MS + idleMs);
+  }, []);
 
   useEffect(() => {
     if (firstFrameRef.current) {
@@ -1155,7 +1178,7 @@ export function WorldJourneyVideoFeed({
       try {
         const page = await fetchVideoPage(endpoint, 0);
         if (cancelled || !page) return;
-        const seeded = seedPlaylist(page.items, startItemId);
+        const seeded = seedPlaylist(page.items, startItemId, lockPlaylist);
         setItems(seeded);
         setHasMore(page.hasMore);
         setOffset(page.nextOffset);
@@ -1179,7 +1202,7 @@ export function WorldJourneyVideoFeed({
   }, [endpoint, startItemId]);
 
   const loadMore = useCallback(async () => {
-    if (loadingRef.current || !hasMore) return;
+    if (lockPlaylist || loadingRef.current || !hasMore) return;
     loadingRef.current = true;
     setLoading(true);
     try {
@@ -1195,21 +1218,25 @@ export function WorldJourneyVideoFeed({
       loadingRef.current = false;
       setLoading(false);
     }
-  }, [endpoint, hasMore, offset]);
+  }, [endpoint, hasMore, lockPlaylist, offset]);
 
   const goBy = useCallback(
     (dir: -1 | 1) => {
+      if (panLockedRef.current) return false;
       const list = itemsRef.current;
       const next = activeIndexRef.current + dir;
-      if (next < 0) return;
+      if (next < 0) return false;
       if (next >= list.length) {
         if (hasMoreRef.current) void loadMore();
-        return;
+        return false;
       }
       const id = list[next]?.id;
-      if (!id) return;
+      if (!id) return false;
+      panLockedRef.current = true;
+      activeIndexRef.current = next;
       setActiveId(id);
       replaceVideoPlayUrl(id);
+      return true;
     },
     [loadMore],
   );
@@ -1268,7 +1295,7 @@ export function WorldJourneyVideoFeed({
       void loadMore();
       return;
     }
-    if (idx > 0 && !pinnedStartRef.current) {
+    if (idx > 0 && !pinnedStartRef.current && !lockPlaylist) {
       pinnedStartRef.current = true;
       setItems((prev) => seedPlaylist(prev, startItemId));
       setActiveId(startItemId);
@@ -1276,7 +1303,7 @@ export function WorldJourneyVideoFeed({
       pinnedStartRef.current = true;
     }
     setOpened(true);
-  }, [startItemId, items, hasMore, bootstrapping, loadMore]);
+  }, [startItemId, items, hasMore, bootstrapping, loadMore, lockPlaylist]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -1295,37 +1322,33 @@ export function WorldJourneyVideoFeed({
       }
       if (e.key === "ArrowDown" || e.key === "PageDown" || e.key === "j") {
         e.preventDefault();
-        goByRef.current(1);
+        if (goByRef.current(1)) schedulePanUnlock(80);
       } else if (e.key === "ArrowUp" || e.key === "PageUp" || e.key === "k") {
         e.preventDefault();
-        goByRef.current(-1);
+        if (goByRef.current(-1)) schedulePanUnlock(80);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, schedulePanUnlock]);
 
+  const hasSlides = items.length > 0;
   useEffect(() => {
     const root = scrollerRef.current;
-    if (!root) return;
-    let locked = false;
-    let acc = 0;
-    let unlockTimer = 0;
-    const panLock = WORLD_JOURNEY_TAB_PAN_MS + 80;
+    if (!root || !hasSlides) return;
     const onWheel = (e: WheelEvent) => {
       if (Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
       e.preventDefault();
-      if (locked) return;
-      acc += e.deltaY;
-      if (Math.abs(acc) < 48) return;
-      const dir: -1 | 1 = acc > 0 ? 1 : -1;
-      acc = 0;
-      locked = true;
-      goByRef.current(dir);
-      window.clearTimeout(unlockTimer);
-      unlockTimer = window.setTimeout(() => {
-        locked = false;
-      }, panLock);
+      /* Inertia trackpad: giữ khóa tới khi bánh xe nghỉ — đừng reset khi prefetch. */
+      if (panLockedRef.current) {
+        schedulePanUnlock(180);
+        return;
+      }
+      wheelAccRef.current += e.deltaY;
+      if (Math.abs(wheelAccRef.current) < 48) return;
+      const dir: -1 | 1 = wheelAccRef.current > 0 ? 1 : -1;
+      wheelAccRef.current = 0;
+      if (goByRef.current(dir)) schedulePanUnlock(180);
     };
 
     let startY = 0;
@@ -1348,21 +1371,16 @@ export function WorldJourneyVideoFeed({
     const onPointerUp = (e: PointerEvent) => {
       if (!tracking) return;
       tracking = false;
-      if (locked) return;
+      if (panLockedRef.current) return;
       const dy = e.clientY - startY;
       const dx = e.clientX - startX;
       if (Math.abs(dy) < 56 || Math.abs(dy) < Math.abs(dx) * 1.15) return;
-      locked = true;
       const blockClick = (ev: Event) => {
         ev.preventDefault();
         ev.stopPropagation();
       };
       root.addEventListener("click", blockClick, { capture: true, once: true });
-      goByRef.current(dy < 0 ? 1 : -1);
-      window.clearTimeout(unlockTimer);
-      unlockTimer = window.setTimeout(() => {
-        locked = false;
-      }, panLock);
+      if (goByRef.current(dy < 0 ? 1 : -1)) schedulePanUnlock(80);
     };
     const onPointerCancel = () => {
       tracking = false;
@@ -1377,9 +1395,12 @@ export function WorldJourneyVideoFeed({
       root.removeEventListener("pointerdown", onPointerDown);
       root.removeEventListener("pointerup", onPointerUp);
       root.removeEventListener("pointercancel", onPointerCancel);
-      window.clearTimeout(unlockTimer);
     };
-  }, [items.length]);
+  }, [hasSlides, schedulePanUnlock]);
+
+  useEffect(() => {
+    return () => window.clearTimeout(panUnlockTimerRef.current);
+  }, []);
 
   if (items.length === 0) {
     const empty = (
@@ -1417,7 +1438,11 @@ export function WorldJourneyVideoFeed({
               index > activeIndex &&
               index <= activeIndex + REEL_IFRAME_PRELOAD;
             return (
-              <div key={item.id} className="wj-reel-snap" data-reel-id={item.id}>
+              <div
+                key={item.id}
+                className={"wj-reel-snap" + (active ? " is-active" : "")}
+                data-reel-id={item.id}
+              >
                 <ReelSlide
                   item={item}
                   active={active}

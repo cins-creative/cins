@@ -127,6 +127,9 @@ export function AdminTaiKhoanClonePanel({
     ghiChu: string;
   } | null>(null);
   const [chiTiet, setChiTiet] = useState<AutopilotNickRow | null>(null);
+  const [pwMoi, setPwMoi] = useState<{ slug: string; matKhau: string } | null>(
+    null,
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -283,6 +286,9 @@ export function AdminTaiKhoanClonePanel({
         ghiChu: "",
       });
       setMoForm(false);
+      const mk = typeof data.matKhau === "string" ? data.matKhau : null;
+      const slug = typeof data.slug === "string" ? data.slug : null;
+      if (mk && slug) setPwMoi({ slug, matKhau: mk });
     }
   };
 
@@ -320,6 +326,25 @@ export function AdminTaiKhoanClonePanel({
       return;
     }
     await run({ action: "xoa_clone", id: n.id }, `Đã xóa @${n.slug}.`);
+  };
+
+  const datLaiMk = async (n: AutopilotNickRow) => {
+    if (
+      !confirm(
+        `Đặt lại mật khẩu @${n.slug}? Mật khẩu cũ hết hiệu lực; vault ghi lại bằng key hiện tại.`,
+      )
+    ) {
+      return;
+    }
+    const data = await run(
+      { action: "dat_lai_mat_khau", id: n.id },
+      `Đã đặt lại mật khẩu @${n.slug}.`,
+    );
+    const mk = typeof data?.matKhau === "string" ? data.matKhau : null;
+    if (mk) {
+      setPwMoi({ slug: n.slug, matKhau: mk });
+      setChiTiet((c) => (c && c.id === n.id ? { ...c, matKhau: mk } : c));
+    }
   };
 
   const moSua = (n: AutopilotNickRow) => {
@@ -362,6 +387,11 @@ export function AdminTaiKhoanClonePanel({
         <div className="tkai-flash tkai-flash--err" role="alert">
           Thiếu <code>CINS_CLONE_PASSWORD_KEY</code> (openssl rand -hex 32) —
           không tạo / hiện mật khẩu được.
+        </div>
+      ) : nicks.some((n) => n.coMatKhauVault && !n.matKhau) ? (
+        <div className="tkai-flash tkai-flash--err" role="alert">
+          Key hiện tại không mở được vault (key lệch so với lúc mã hóa, hoặc
+          blob hỏng). Đặt lại mật khẩu trên từng nick — Auth + vault ghi mới.
         </div>
       ) : null}
 
@@ -688,14 +718,25 @@ export function AdminTaiKhoanClonePanel({
                           <Copy size={14} />
                         </button>
                       </div>
+                    ) : n.coMatKhauVault ? (
+                      <div className="tkai-pw-cell">
+                        <span className="tkai-muted">
+                          {coVault ? "Lỗi giải mã" : "Thiếu vault key"}
+                        </span>
+                        {coVault ? (
+                          <button
+                            type="button"
+                            className="btn btn-ghost"
+                            disabled={busy}
+                            title="Đặt lại mật khẩu"
+                            onClick={() => void datLaiMk(n)}
+                          >
+                            Đặt lại
+                          </button>
+                        ) : null}
+                      </div>
                     ) : (
-                      <span className="tkai-muted">
-                        {n.coMatKhauVault
-                          ? coVault
-                            ? "Lỗi giải mã"
-                            : "Thiếu vault key"
-                          : "—"}
-                      </span>
+                      <span className="tkai-muted">—</span>
                     )}
                   </td>
                   <td>
@@ -904,6 +945,18 @@ export function AdminTaiKhoanClonePanel({
                       <Copy size={14} />
                     </button>
                   </span>
+                ) : chiTiet.coMatKhauVault && coVault ? (
+                  <span className="tkai-pw-cell">
+                    <span className="tkai-muted">Lỗi giải mã</span>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      disabled={busy}
+                      onClick={() => void datLaiMk(chiTiet)}
+                    >
+                      Đặt lại
+                    </button>
+                  </span>
                 ) : (
                   "—"
                 )}
@@ -935,6 +988,48 @@ export function AdminTaiKhoanClonePanel({
                 onClick={() => setChiTiet(null)}
               >
                 Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {pwMoi ? (
+        <div
+          className="tkai-modal"
+          role="dialog"
+          aria-modal
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setPwMoi(null);
+          }}
+        >
+          <div className="tkai-modal__card">
+            <header className="tkai-modal__head">
+              <strong>Mật khẩu @{pwMoi.slug}</strong>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                aria-label="Đóng"
+                onClick={() => setPwMoi(null)}
+              >
+                <X size={16} />
+              </button>
+            </header>
+            <p className="tkai-meta">
+              Copy ngay — không hiện lại nếu key lệch lần sau.
+            </p>
+            <div className="tkai-pw-cell">
+              <code className="tkai-pw tkai-pw--inline">{pwMoi.matKhau}</code>
+              <button
+                type="button"
+                className="btn btn-ghost tkai-card__link"
+                title="Copy mật khẩu"
+                onClick={() => {
+                  void navigator.clipboard.writeText(pwMoi.matKhau);
+                  setMsg(`Đã copy mật khẩu @${pwMoi.slug}.`);
+                }}
+              >
+                <Copy size={14} />
               </button>
             </div>
           </div>

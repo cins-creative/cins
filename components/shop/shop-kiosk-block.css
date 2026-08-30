@@ -79,9 +79,12 @@
   font: inherit;
   transform: none;
   transition: filter 120ms ease, transform 120ms ease;
+  /* Không kế thừa touch-action:none của ticker — tap 1 lần mở catalog. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.shop-kiosk-ticker-label:hover {
+.shop-kiosk-ticker-label:active {
   filter: brightness(0.97);
 }
 
@@ -97,8 +100,14 @@
   transform-origin: 50% 80%;
 }
 
-.shop-kiosk-ticker-label:hover svg {
-  animation: shop-kiosk-bag-bounce 560ms ease-in-out;
+@media (hover: hover) and (pointer: fine) {
+  .shop-kiosk-ticker-label:hover {
+    filter: brightness(0.97);
+  }
+
+  .shop-kiosk-ticker-label:hover svg {
+    animation: shop-kiosk-bag-bounce 560ms ease-in-out;
+  }
 }
 
 @keyframes shop-kiosk-bag-bounce {
@@ -234,9 +243,11 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .shop-kiosk-ticker-label:hover svg {
-    animation: none;
+@media (hover: hover) and (pointer: fine) {
+  @media (prefers-reduced-motion: reduce) {
+    .shop-kiosk-ticker-label:hover svg {
+      animation: none;
+    }
   }
 }
 

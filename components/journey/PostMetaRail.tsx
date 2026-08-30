@@ -74,6 +74,7 @@ type Props = {
     thoiDiem: string;
     loaiMoc: string;
     cheDoHienThi: string;
+    watermarkBat?: boolean;
     /** Org xác thực — `✓ Tên` (timeline `verifiedBy`). */
     verifiedBy?: string | null;
     verifier?: MilestonePostVerifier | null;
@@ -213,6 +214,11 @@ export function PostMetaRail({
                   )}
                   postSlug={postSlug ?? null}
                   onAfterChange={onMilestoneUpdated}
+                  hasImages={Boolean(
+                    mainPost?.noiDungBlocks?.some((b) => b.loai === "imgs"),
+                  )}
+                  watermarkOn={milestone.watermarkBat === true}
+                  ownerHasWatermark={Boolean(owner.watermark)}
                 />
               ) : null}
               {onClose ? (

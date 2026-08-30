@@ -133,6 +133,8 @@ export function useRoomPresence(
 
     const onVisible = () => {
       if (document.visibilityState !== "visible") return;
+      const state = channel?.state;
+      if (state === "joined" || state === "joining") return;
       clearRetryTimer();
       retryCount = 0;
       void hardReconnect();
@@ -153,7 +155,15 @@ export function useRoomPresence(
       }
     });
 
-    connect();
+    void (async () => {
+      try {
+        await supabase.realtime.setAuth();
+      } catch {
+        /* token callback lỗi — vẫn thử subscribe */
+      }
+      if (disposed) return;
+      connect();
+    })();
     watchdogTimer = setInterval(() => {
       if (disposed || reconnecting) return;
       if (document.visibilityState !== "visible") return;

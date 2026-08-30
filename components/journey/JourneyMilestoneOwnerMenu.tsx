@@ -19,6 +19,7 @@ import {
   Pencil,
   Share2,
   SlidersHorizontal,
+  Stamp,
   Star,
   Tag,
   Trash2,
@@ -45,8 +46,10 @@ import {
   updateMilestoneType,
   updateMilestoneVisibility,
   updateMilestoneVisibilityCustom,
+  updateMilestoneWatermark,
 } from "@/app/[slug]/journey/actions";
 import { useJourneyCompose } from "@/components/journey/JourneyComposeContext";
+import { openEditProfile } from "@/lib/cins/open-edit-profile";
 import {
   JourneyOrgAttachTrigger,
   type JourneyOrgAttachOpenHandle,
@@ -134,6 +137,14 @@ type Props = {
   journeyGhimLuc?: string | null;
   /** Hiện mục ghim lên đầu Journey — chỉ view timeline Journey. */
   showJourneyPin?: boolean;
+  /**
+   * Bật/tắt watermark ảnh bài. Chỉ hiện khi bài có ảnh (album / bài dài).
+   * `watermarkOn` = trạng thái hiện tại trên cột mốc.
+   */
+  hasImages?: boolean;
+  watermarkOn?: boolean;
+  /** Owner đã cấu hình watermark trong Customize. */
+  ownerHasWatermark?: boolean;
   /** Bật bán hàng — hiện «Thêm hàng bán» / «Xin làm quầy». */
   banHangEnabled?: boolean;
   /** Cộng đồng hiện tại nếu bài đã ở feed cộng đồng. */
@@ -226,6 +237,9 @@ export function JourneyMilestoneOwnerMenu({
   milestoneKey,
   journeyGhimLuc = null,
   showJourneyPin = false,
+  hasImages = false,
+  watermarkOn = false,
+  ownerHasWatermark = false,
   banHangEnabled = false,
   congDongOrg = null,
   orgAttach = null,
@@ -420,6 +434,43 @@ export function JourneyMilestoneOwnerMenu({
         milestoneId: key,
         kind: "journeyPin",
         value: res.data?.journeyGhimLuc ?? null,
+      });
+      router.refresh();
+      onAfterChange?.();
+    });
+  }
+
+  function handleWatermark(on: boolean) {
+    if (pending || personalAttach.pending || foreignJourney) return;
+    if (!ownerHasWatermark) {
+      close();
+      openEditProfile("customize", "watermark");
+      return;
+    }
+    const previous = watermarkOn;
+    setError(null);
+    close();
+    dispatchMilestoneInlinePatch({
+      milestoneId,
+      kind: "watermark",
+      value: on,
+    });
+    startTransition(async () => {
+      const res = await updateMilestoneWatermark(milestoneId, on);
+      if (!res.ok) {
+        dispatchMilestoneInlinePatch({
+          milestoneId,
+          kind: "watermark",
+          value: previous,
+        });
+        setError(res.error);
+        setOpen(true);
+        return;
+      }
+      dispatchMilestoneInlinePatch({
+        milestoneId,
+        kind: "watermark",
+        value: res.data?.watermarkBat ?? on,
       });
       router.refresh();
       onAfterChange?.();
@@ -806,6 +857,34 @@ export function JourneyMilestoneOwnerMenu({
               <span className="j-m-menu-lbl">Ghim lên đầu Journey</span>
             </button>
           )
+        ) : null}
+
+        {hasImages && !foreignJourney ? (
+          <button
+            type="button"
+            className="j-m-menu-item"
+            role="menuitem"
+            disabled={pending || personalAttach.pending}
+            onClick={() =>
+              ownerHasWatermark
+                ? handleWatermark(!watermarkOn)
+                : handleWatermark(true)
+            }
+          >
+            <span className="j-m-menu-ico" aria-hidden>
+              <Stamp size={14} strokeWidth={1.7} />
+            </span>
+            <span className="j-m-menu-lbl">
+              {!ownerHasWatermark
+                ? "Gắn watermark"
+                : watermarkOn
+                  ? "Bỏ watermark"
+                  : "Gắn watermark"}
+            </span>
+            {!ownerHasWatermark ? (
+              <span className="j-m-menu-hint">chưa cấu hình</span>
+            ) : null}
+          </button>
         ) : null}
 
         {orgAttach ? (

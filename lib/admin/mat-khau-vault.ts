@@ -44,13 +44,20 @@ export function maHoaMatKhau(plain: string): string {
 }
 
 export function giaiMaMatKhau(blob: string): string {
-  const parts = String(blob || "").split(":");
-  if (parts.length !== 3) throw new Error("Vault mật khẩu không hợp lệ.");
-  const [ivB64, tagB64, dataB64] = parts;
+  const raw = String(blob || "").trim();
+  const i1 = raw.indexOf(":");
+  const i2 = i1 >= 0 ? raw.indexOf(":", i1 + 1) : -1;
+  if (i1 < 0 || i2 < 0) throw new Error("Vault mật khẩu không hợp lệ.");
+  const ivB64 = raw.slice(0, i1);
+  const tagB64 = raw.slice(i1 + 1, i2);
+  const dataB64 = raw.slice(i2 + 1);
   const key = layKey();
-  const iv = Buffer.from(ivB64!, "base64");
-  const tag = Buffer.from(tagB64!, "base64");
-  const data = Buffer.from(dataB64!, "base64");
+  const iv = Buffer.from(ivB64, "base64");
+  const tag = Buffer.from(tagB64, "base64");
+  const data = Buffer.from(dataB64, "base64");
+  if (iv.length !== IV_LEN || tag.length !== 16 || data.length < 1) {
+    throw new Error("Vault mật khẩu không hợp lệ.");
+  }
   const decipher = createDecipheriv(ALGO, key, iv);
   decipher.setAuthTag(tag);
   const plain = Buffer.concat([decipher.update(data), decipher.final()]);

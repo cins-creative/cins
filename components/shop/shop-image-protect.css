@@ -313,6 +313,12 @@
   pointer-events: none;
 }
 
+.shop-img-lb.is-immersive .shop-img-lb-nav,
+.shop-img-lb.is-immersive .shop-img-lb-filmstrip,
+.shop-img-lb.is-immersive .shop-img-lb-caption {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .shop-img-lb-thumb,
   .shop-img-lb-filmstrip-track {

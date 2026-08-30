@@ -548,10 +548,11 @@ export function ShopKioskBlock({
     (e: ReactMouseEvent<HTMLDivElement>) => {
       if (!tickerSuppressClickRef.current) return;
       tickerSuppressClickRef.current = false;
+      if (tickerFromLabel(e.target)) return;
       e.preventDefault();
       e.stopPropagation();
     },
-    [],
+    [tickerFromLabel],
   );
 
   const isOwner =
@@ -1573,22 +1574,24 @@ export function ShopKioskBlock({
               )}
             </div>
           </div>
-          <button
-            type="button"
-            className="shop-kiosk-ticker-label"
-            onClick={(e) => {
-              e.stopPropagation();
-              setCatalogOpen(true);
-            }}
-            aria-expanded={catalogOpen}
-            aria-label={`Mở hàng bán · ${items.length} sản phẩm${cartCount ? ` · ${cartCount} trong giỏ` : ""}`}
-          >
-            <ShoppingBag strokeWidth={1.8} aria-hidden />
-            {cartCount > 0 ? (
-              <span className="shop-kiosk-badge">{cartCount}</span>
-            ) : null}
-          </button>
         </div>
+        <button
+          type="button"
+          className="shop-kiosk-ticker-label"
+          onPointerDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            setCatalogOpen(true);
+          }}
+          aria-expanded={catalogOpen}
+          aria-label={`Mở hàng bán · ${items.length} sản phẩm${cartCount ? ` · ${cartCount} trong giỏ` : ""}`}
+        >
+          <ShoppingBag strokeWidth={1.8} aria-hidden />
+          {cartCount > 0 ? (
+            <span className="shop-kiosk-badge">{cartCount}</span>
+          ) : null}
+        </button>
       </div>
       {previewLightbox}
       {catalogPortal}

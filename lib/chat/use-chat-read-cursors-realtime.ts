@@ -144,10 +144,10 @@ export function useChatReadCursorsRealtime(
       }, delay);
     };
 
-    /* Trở lại tab / có mạng lại — làm mới kênh khi socket cũ có thể đã
-       treo im lặng (không bắn CHANNEL_ERROR nhưng cũng không còn nhận frame). */
     const onVisible = () => {
       if (document.visibilityState !== "visible") return;
+      const state = channel?.state;
+      if (state === "joined" || state === "joining") return;
       clearRetryTimer();
       retryCount = 0;
       void hardReconnect();
@@ -168,7 +168,15 @@ export function useChatReadCursorsRealtime(
       }
     });
 
-    connect();
+    void (async () => {
+      try {
+        await supabase.realtime.setAuth();
+      } catch {
+        /* token callback lỗi — vẫn thử subscribe */
+      }
+      if (disposed) return;
+      connect();
+    })();
     watchdogTimer = setInterval(() => {
       if (disposed || reconnecting) return;
       if (document.visibilityState !== "visible") return;

@@ -6,6 +6,7 @@ import type {
   ProfileThemeSlice,
 } from "@/lib/journey/profile-theme";
 import type { ProfileShopSwitchSlice } from "@/lib/journey/shop-switch";
+import type { ProfileWatermarkSlice } from "@/lib/journey/watermark";
 
 export type GiaoDienPatchBody = Record<string, unknown>;
 
@@ -17,6 +18,7 @@ export type GiaoDienPatchResult = {
   card?: unknown;
   popover?: unknown;
   shopSwitch?: unknown;
+  watermark?: unknown;
   theme?: unknown;
 };
 
@@ -108,6 +110,23 @@ export function shopSwitchSliceToPatch(
       aspect: next.aspect,
       position: next.position,
       showName: next.showName,
+    },
+  };
+}
+
+export function watermarkSliceToPatch(
+  next: ProfileWatermarkSlice,
+): GiaoDienPatchBody {
+  return {
+    watermark: {
+      enabled: next.enabled,
+      source: next.source,
+      presetId: next.presetId,
+      imageId: next.imageId,
+      corner: next.corner,
+      sizePct: next.sizePct,
+      opacity: next.opacity,
+      marginPct: next.marginPct,
     },
   };
 }

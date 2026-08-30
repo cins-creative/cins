@@ -18,6 +18,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { enrichBlocksVideoCanvasRatio } from "@/lib/journey/enrich-blocks-video-canvas-ratio";
 import { isCotMocDueForPublic } from "@/lib/journey/cot-moc-schedule";
 import { avatarFrameFromGiaoDien } from "@/lib/journey/avatar-frame";
+import { watermarkFromGiaoDien } from "@/lib/journey/watermark";
 
 export type PostFetchResult =
   | { ok: true; data: MilestonePostDetail }
@@ -31,6 +32,7 @@ type CotMocDetailRow = {
   thoi_diem: string;
   loai_moc: string;
   che_do_hien_thi: "public" | "theo_nhom" | "chi_minh" | "feature" | "cong_dong";
+  watermark_bat?: boolean | null;
   tao_luc: string | null;
 };
 
@@ -354,7 +356,7 @@ export async function fetchMilestonePostDetail(
   const { data: cotMoc, error: cmErr } = await admin
     .from("content_cot_moc")
     .select(
-      "id, id_nguoi_dung, tieu_de, mo_ta, thoi_diem, loai_moc, che_do_hien_thi, tao_luc",
+      "id, id_nguoi_dung, tieu_de, mo_ta, thoi_diem, loai_moc, che_do_hien_thi, watermark_bat, tao_luc",
     )
     .eq("id", milestoneId)
     .maybeSingle<CotMocDetailRow>();
@@ -426,6 +428,7 @@ export async function fetchMilestonePostDetail(
         tenHienThi: ownerRow.ten_hien_thi || ownerRow.slug,
         avatarId: ownerRow.avatar_id,
         avatarFrame: avatarFrameFromGiaoDien(ownerRow.giao_dien),
+        watermark: watermarkFromGiaoDien(ownerRow.giao_dien),
       }
     : {
         id: cotMoc.id_nguoi_dung,
@@ -433,6 +436,7 @@ export async function fetchMilestonePostDetail(
         tenHienThi: "Người dùng",
         avatarId: null,
         avatarFrame: null,
+        watermark: null,
       };
 
   const tacPhamRows: TacPhamRow[] = (linkedTacPham ?? [])
@@ -505,6 +509,7 @@ export async function fetchMilestonePostDetail(
         thoiDiem: cotMoc.thoi_diem,
         loaiMoc: cotMoc.loai_moc,
         cheDoHienThi: cotMoc.che_do_hien_thi,
+        watermarkBat: cotMoc.watermark_bat === true,
         verifiedBy: verified?.verifiedBy ?? null,
         verifier,
       },

@@ -1,11 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 5;
+const TAP_MAX_DIST = 14;
 
 type Transform = { scale: number; x: number; y: number };
+
+type Options = {
+  /** Mở sẵn chế độ full-screen (ẩn chrome). Nút tắt đóng viewer, không thoát immersive. */
+  lockedImmersive?: boolean;
+};
 
 function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
@@ -63,12 +69,17 @@ function clampPan(t: Transform, width: number, height: number): Transform {
   };
 }
 
+function isChromeTarget(target: EventTarget | null) {
+  return Boolean((target as Element | null)?.closest?.("button, a"));
+}
+
 /**
  * Zoom + pan trong lightbox xem ảnh.
- * Mobile: 2 ngón pinch zoom, 2 ngón kéo để pan.
- * Desktop: wheel zoom, kéo chuột khi đã phóng to.
+ * Mobile: tap vào ảnh → immersive; pinch zoom; 1 ngón pan khi đã phóng.
+ * Desktop: lăn chuột zoom → immersive; kéo chuột khi đã phóng to.
  */
-export function usePinchZoomPan(resetKey: unknown) {
+export function usePinchZoomPan(resetKey: unknown, options?: Options) {
+  const lockedImmersive = options?.lockedImmersive === true;
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const transformRef = useRef<Transform>({ scale: 1, x: 0, y: 0 });
@@ -83,13 +94,39 @@ export function usePinchZoomPan(resetKey: unknown) {
     y: number;
     start: Transform;
   } | null>(null);
+  const tapRef = useRef<{
+    x: number;
+    y: number;
+    id: number;
+  } | null>(null);
+  const immersiveRef = useRef(lockedImmersive);
   const [isZoomed, setIsZoomed] = useState(false);
+  const [isImmersive, setIsImmersive] = useState(lockedImmersive);
   const [gestureLock, setGestureLock] = useState(false);
+
+  const enterImmersive = useCallback(() => {
+    if (immersiveRef.current) return;
+    immersiveRef.current = true;
+    setIsImmersive(true);
+  }, []);
+
+  const exitImmersive = useCallback(() => {
+    transformRef.current = { scale: 1, x: 0, y: 0 };
+    pinchRef.current = null;
+    dragRef.current = null;
+    applyContentTransform(contentRef.current, transformRef.current);
+    setIsZoomed(false);
+    setGestureLock(false);
+    if (lockedImmersive) return;
+    immersiveRef.current = false;
+    setIsImmersive(false);
+  }, [lockedImmersive]);
 
   useEffect(() => {
     transformRef.current = { scale: 1, x: 0, y: 0 };
     pinchRef.current = null;
     dragRef.current = null;
+    tapRef.current = null;
     applyContentTransform(contentRef.current, transformRef.current);
     setIsZoomed(false);
     setGestureLock(false);
@@ -121,31 +158,59 @@ export function usePinchZoomPan(resetKey: unknown) {
         const pair = touchPair(e.touches);
         if (!pair) return;
         dragRef.current = null;
+        tapRef.current = null;
         pinchRef.current = {
           dist: Math.max(pairDist(pair[0], pair[1]), 1),
           mid: pairMid(pair[0], pair[1]),
           start: { ...transformRef.current },
         };
+        enterImmersive();
         setGestureLock(true);
+        return;
+      }
+      if (e.touches.length === 1 && transformRef.current.scale > 1.01) {
+        const t = e.touches.item(0);
+        if (!t) return;
+        dragRef.current = {
+          id: t.identifier,
+          x: t.clientX,
+          y: t.clientY,
+          start: { ...transformRef.current },
+        };
       }
     };
 
     const onTouchMove = (e: TouchEvent) => {
-      if (e.touches.length < 2 || !pinchRef.current) return;
-      const pair = touchPair(e.touches);
-      if (!pair) return;
-      e.preventDefault();
-      const { cx, cy } = center();
-      const dist = Math.max(pairDist(pair[0], pair[1]), 1);
-      const mid = pairMid(pair[0], pair[1]);
-      const pinch = pinchRef.current;
-      const nextScale = pinch.start.scale * (dist / pinch.dist);
-      const zoomed = zoomAround(pinch.start, pinch.mid, nextScale, cx, cy);
-      commit({
-        scale: zoomed.scale,
-        x: zoomed.x + (mid.x - pinch.mid.x),
-        y: zoomed.y + (mid.y - pinch.mid.y),
-      });
+      if (e.touches.length >= 2 && pinchRef.current) {
+        const pair = touchPair(e.touches);
+        if (!pair) return;
+        e.preventDefault();
+        tapRef.current = null;
+        const { cx, cy } = center();
+        const dist = Math.max(pairDist(pair[0], pair[1]), 1);
+        const mid = pairMid(pair[0], pair[1]);
+        const pinch = pinchRef.current;
+        const nextScale = pinch.start.scale * (dist / pinch.dist);
+        const zoomed = zoomAround(pinch.start, pinch.mid, nextScale, cx, cy);
+        commit({
+          scale: zoomed.scale,
+          x: zoomed.x + (mid.x - pinch.mid.x),
+          y: zoomed.y + (mid.y - pinch.mid.y),
+        });
+        return;
+      }
+      const drag = dragRef.current;
+      if (e.touches.length === 1 && drag) {
+        const t = e.touches.item(0);
+        if (!t || t.identifier !== drag.id) return;
+        e.preventDefault();
+        tapRef.current = null;
+        commit({
+          scale: drag.start.scale,
+          x: drag.start.x + (t.clientX - drag.x),
+          y: drag.start.y + (t.clientY - drag.y),
+        });
+      }
     };
 
     const endPinch = () => {
@@ -158,11 +223,13 @@ export function usePinchZoomPan(resetKey: unknown) {
 
     const onTouchEnd = (e: TouchEvent) => {
       if (e.touches.length < 2) endPinch();
+      if (e.touches.length === 0) dragRef.current = null;
     };
 
     const onWheel = (e: WheelEvent) => {
-      if ((e.target as Element | null)?.closest?.("button, a")) return;
+      if (isChromeTarget(e.target)) return;
       e.preventDefault();
+      enterImmersive();
       const { cx, cy } = center();
       const factor = Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0025));
       commit(
@@ -177,9 +244,12 @@ export function usePinchZoomPan(resetKey: unknown) {
     };
 
     const onPointerDown = (e: PointerEvent) => {
-      if (e.pointerType === "touch") return;
+      if (isChromeTarget(e.target)) return;
       if (e.button !== 0) return;
-      if ((e.target as Element | null)?.closest?.("button, a")) return;
+      if (e.pointerType === "touch" || e.pointerType === "pen") {
+        tapRef.current = { x: e.clientX, y: e.clientY, id: e.pointerId };
+        return;
+      }
       if (transformRef.current.scale <= 1.01) return;
       dragRef.current = {
         id: e.pointerId,
@@ -195,8 +265,17 @@ export function usePinchZoomPan(resetKey: unknown) {
     };
 
     const onPointerMove = (e: PointerEvent) => {
+      const tap = tapRef.current;
+      if (tap && tap.id === e.pointerId) {
+        if (
+          Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > TAP_MAX_DIST
+        ) {
+          tapRef.current = null;
+        }
+      }
       const drag = dragRef.current;
       if (!drag || drag.id !== e.pointerId) return;
+      if (e.pointerType === "touch") return;
       e.preventDefault();
       commit({
         scale: drag.start.scale,
@@ -207,6 +286,15 @@ export function usePinchZoomPan(resetKey: unknown) {
 
     const onPointerUp = (e: PointerEvent) => {
       if (dragRef.current?.id === e.pointerId) dragRef.current = null;
+      const tap = tapRef.current;
+      tapRef.current = null;
+      if (!tap || tap.id !== e.pointerId) return;
+      if (isChromeTarget(e.target)) return;
+      if (e.pointerType !== "touch" && e.pointerType !== "pen") return;
+      if (Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > TAP_MAX_DIST) {
+        return;
+      }
+      enterImmersive();
     };
 
     const preventGesture = (e: Event) => e.preventDefault();
@@ -236,7 +324,14 @@ export function usePinchZoomPan(resetKey: unknown) {
       viewport.removeEventListener("gesturestart", preventGesture);
       viewport.removeEventListener("gesturechange", preventGesture);
     };
-  }, []);
+  }, [enterImmersive]);
 
-  return { viewportRef, contentRef, isZoomed, gestureLock };
+  return {
+    viewportRef,
+    contentRef,
+    isZoomed,
+    isImmersive,
+    gestureLock,
+    exitImmersive,
+  };
 }

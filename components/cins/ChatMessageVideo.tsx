@@ -33,6 +33,8 @@ export function ChatMessageVideo({
     ratioFromDims(width ?? 0, height ?? 0),
   );
   const reportedRef = useRef(false);
+  const playingRef = useRef(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const onNaturalSizeRef = useRef(onNaturalSize);
   onNaturalSizeRef.current = onNaturalSize;
   const posterSrc = poster?.trim() || null;
@@ -49,120 +51,93 @@ export function ChatMessageVideo({
     reportedRef.current = false;
     const known = ratioFromDims(width ?? 0, height ?? 0);
     setRatio(known);
+    playingRef.current = false;
     setPlaying(false);
-    if (known && width && height) {
-      applyNaturalSize(width, height);
-      return;
-    }
-
-    /* Probe riêng — preload=metadata trên <video> trong button đôi khi để videoWidth=0. */
-    let cancelled = false;
-    const video = document.createElement("video");
-    video.preload = "metadata";
-    video.muted = true;
-    video.playsInline = true;
-
-    const cleanup = () => {
-      video.onloadedmetadata = null;
-      video.onloadeddata = null;
-      video.onerror = null;
-      video.removeAttribute("src");
-      video.load();
-    };
-
-    const tryApply = () => {
-      if (cancelled) return;
-      if (video.videoWidth > 0 && video.videoHeight > 0) {
-        applyNaturalSize(video.videoWidth, video.videoHeight);
-        cleanup();
-      }
-    };
-
-    video.onloadedmetadata = tryApply;
-    video.onloadeddata = tryApply;
-    video.onerror = () => {
-      if (!cancelled) cleanup();
-    };
-    video.src = src.includes("#") ? src : `${src}#t=0.001`;
-
-    return () => {
-      cancelled = true;
-      cleanup();
-    };
+    if (known && width && height) applyNaturalSize(width, height);
     // applyNaturalSize ổn định qua ref; không đưa vào deps.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src, width, height]);
 
   const aspectStyle = { aspectRatio: ratio ?? "16 / 9" };
 
-  if (playing) {
-    return (
+  const startPlayback = (event: { stopPropagation: () => void }) => {
+    event.stopPropagation();
+    playingRef.current = true;
+    const video = videoRef.current;
+    /* play() trong cùng stack với tap — iOS không cho autoplay sau khi mount <video> mới. */
+    if (video) {
+      video.playsInline = true;
+      video.setAttribute("webkit-playsinline", "true");
+      void video.play().catch(() => {
+        /* Native controls vẫn hiện; user tap play trên thanh điều khiển. */
+      });
+    }
+    setPlaying(true);
+  };
+
+  return (
+    <div
+      className={`cins-chat-msg-video-root${stacked ? " is-stacked" : ""}`}
+      style={aspectStyle}
+    >
       <video
+        ref={videoRef}
         className={`cins-chat-msg-video${stacked ? " is-stacked" : ""}`}
         src={src}
         poster={posterSrc ?? undefined}
-        style={aspectStyle}
-        controls
-        autoPlay
+        controls={playing}
         playsInline
         preload="metadata"
+        onClick={(e) => e.stopPropagation()}
+        onPlay={() => {
+          playingRef.current = true;
+          setPlaying(true);
+        }}
         onLoadedMetadata={(e) => {
           const v = e.currentTarget;
           applyNaturalSize(v.videoWidth, v.videoHeight);
         }}
-      />
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      className={`cins-chat-msg-video-poster${stacked ? " is-stacked" : ""}`}
-      style={aspectStyle}
-      aria-label="Phát video"
-      onClick={() => setPlaying(true)}
-    >
-      {posterSrc ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={posterSrc}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          onLoad={(e) => {
-            const img = e.currentTarget;
-            applyNaturalSize(img.naturalWidth, img.naturalHeight);
-          }}
-        />
-      ) : (
-        <video
-          className="cins-chat-msg-video-thumb"
-          src={src.includes("#") ? src : `${src}#t=0.001`}
-          muted
-          playsInline
-          preload="metadata"
-          tabIndex={-1}
-          aria-hidden
-          onLoadedMetadata={(e) => {
-            const v = e.currentTarget;
-            applyNaturalSize(v.videoWidth, v.videoHeight);
-          }}
-          onLoadedData={(e) => {
-            const v = e.currentTarget;
-            applyNaturalSize(v.videoWidth, v.videoHeight);
-            try {
-              if (v.currentTime < 0.05) {
-                v.currentTime = Math.min(0.12, Math.max(0.05, (v.duration || 1) * 0.02));
-              }
-            } catch {
-              /* ignore seek errors */
+        onLoadedData={(e) => {
+          if (playingRef.current) return;
+          const v = e.currentTarget;
+          applyNaturalSize(v.videoWidth, v.videoHeight);
+          try {
+            if (v.currentTime < 0.05) {
+              v.currentTime = Math.min(
+                0.12,
+                Math.max(0.05, (v.duration || 1) * 0.02),
+              );
             }
-          }}
-        />
+          } catch {
+            /* ignore seek errors */
+          }
+        }}
+      />
+      {playing ? null : (
+        <button
+          type="button"
+          className={`cins-chat-msg-video-poster${stacked ? " is-stacked" : ""}`}
+          aria-label="Phát video"
+          onClick={startPlayback}
+        >
+          {posterSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={posterSrc}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              onLoad={(e) => {
+                const img = e.currentTarget;
+                applyNaturalSize(img.naturalWidth, img.naturalHeight);
+              }}
+            />
+          ) : null}
+          <span className="cins-chat-msg-video-play" aria-hidden>
+            <Play size={22} strokeWidth={2} fill="currentColor" />
+          </span>
+        </button>
       )}
-      <span className="cins-chat-msg-video-play" aria-hidden>
-        <Play size={22} strokeWidth={2} fill="currentColor" />
-      </span>
-    </button>
+    </div>
   );
 }

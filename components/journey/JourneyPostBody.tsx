@@ -469,6 +469,11 @@ export function JourneyPostBody({
             postSlug={postSlug ?? null}
             editCotMocId={milestone.id}
             onAfterChange={onMilestoneUpdated}
+            hasImages={Boolean(
+              mainPost?.noiDungBlocks?.some((b) => b.loai === "imgs"),
+            )}
+            watermarkOn={milestone.watermarkBat === true}
+            ownerHasWatermark={Boolean(owner.watermark)}
           />
         ) : null}
       </div>
@@ -613,6 +618,12 @@ export function JourneyPostBody({
   const mediaAutoplay = variant === "full";
   /** Permalink / stack Behance — hiện đủ ảnh album, không cắt 6 +N. */
   const showAllAlbumImages = variant === "full" || stackAlbum;
+  const imageWatermark =
+    !isOwner &&
+    milestone.watermarkBat === true &&
+    owner.watermark
+      ? owner.watermark
+      : null;
 
   function renderPostBlocks(
     blockList: ReadonlyArray<Block> | null | undefined,
@@ -624,6 +635,7 @@ export function JourneyPostBody({
         blocks={blockList}
         mediaAutoplay={mediaAutoplay}
         showAllImages={opts?.showAllImages ?? showAllAlbumImages}
+        watermark={imageWatermark}
       />
     );
   }

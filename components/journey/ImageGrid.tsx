@@ -50,6 +50,10 @@ import {
 } from "@/lib/editor/image-slot-dnd";
 import { setShareDragData } from "@/lib/cins/share-drag";
 import { isCloudflareImageId } from "@/lib/chat/image-url";
+import { JourneyImageWatermark } from "@/components/journey/JourneyImageWatermark";
+import type { WatermarkRenderDto } from "@/lib/journey/watermark";
+
+import "./journey-watermark.css";
 
 function mediaNaturalAspectStyle(
   aspect: number | undefined,
@@ -128,6 +132,8 @@ type Props = {
   albumLayoutMode?: AlbumLayoutMode;
   /** Thay lightbox — vd. mở Reels video trên World Journey. */
   onOpenOverride?: () => void;
+  /** Watermark overlay + decoy — chỉ khi post bật + viewer không phải owner. */
+  watermark?: WatermarkRenderDto | null;
 };
 
 const ALBUM_SLOT_MIME = "application/x-cins-album-slot";
@@ -164,6 +170,7 @@ type CellProps = {
   dragSnap?: DragSnapTarget | null;
   onDragFromChange?: (slot: number | null) => void;
   onDragSnapChange?: (snap: DragSnapTarget | null) => void;
+  watermark?: WatermarkRenderDto | null;
 };
 
 function ImageGridCell({
@@ -192,6 +199,7 @@ function ImageGridCell({
   dragSnap = null,
   onDragFromChange,
   onDragSnapChange,
+  watermark = null,
 }: CellProps) {
   const CellTag = useButtonCells ? "button" : "div";
 
@@ -402,6 +410,9 @@ function ImageGridCell({
           }}
         />
       ) : null}
+      {watermark && thumbSrc ? (
+        <JourneyImageWatermark dto={watermark} protect />
+      ) : null}
       {uploadState ? (
         <>
           {uploadActive || uploadFailed ? (
@@ -501,6 +512,7 @@ export function ImageGrid({
   composeSlotActions,
   albumLayoutMode = DEFAULT_ALBUM_LAYOUT_MODE,
   onOpenOverride,
+  watermark = null,
 }: Props) {
   const [dimEpoch, setDimEpoch] = useState(0);
   useEffect(() => subscribeImageDimensions(() => setDimEpoch((n) => n + 1)), []);
@@ -629,6 +641,7 @@ export function ImageGrid({
         dragSnap={dragSnap}
         onDragFromChange={setDragFrom}
         onDragSnapChange={setDragSnap}
+        watermark={watermark}
       />
     );
   };
@@ -877,6 +890,7 @@ export function ImageGrid({
           index={lightboxIndex}
           onClose={closeLightbox}
           onIndexChange={setLightboxIndex}
+          watermark={watermark}
         />
       ) : null}
     </>

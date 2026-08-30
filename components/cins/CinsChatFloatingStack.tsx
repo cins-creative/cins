@@ -91,6 +91,7 @@ import {
   upsertChatReadCursor,
 } from "@/lib/chat/read-cursors-client";
 import { useChatReadCursorsRealtime } from "@/lib/chat/use-chat-read-cursors-realtime";
+import { useOpenRoomMessageBackfill } from "@/lib/chat/use-open-room-message-backfill";
 import { reconcileChatMessage, appendChatMessageIfNew, mergeChatMessageUpdate, type ChatRealtimeMessageEvent } from "@/lib/chat/realtime";
 import { applyChatViewerPerspective } from "@/lib/chat/message-perspective";
 import { applyKnownGroupSender } from "@/lib/chat/apply-known-group-sender";
@@ -1285,6 +1286,70 @@ export function CinsChatFloatingStack({
     subscribeChatMessages,
     viewerProfileId,
   ]);
+
+  useOpenRoomMessageBackfill(
+    miniOpen && miniThread ? miniThread.roomId : null,
+    (raw) => {
+      const roomId = miniRoomIdRef.current;
+      if (!roomId || !miniOpenRef.current) return;
+      const base = applyChatViewerPerspective(raw, viewerProfileId);
+      const lastMsg = base[base.length - 1];
+      if (!lastMsg) return;
+      let added = false;
+
+      setRoomStates((prev) => {
+        const current = prev[roomId] ?? {
+          messages: [],
+          hasMore: false,
+          hydrated: true,
+        };
+        let nextMessages = current.messages;
+        for (const msg of base) {
+          const enriched = miniThreadRef.current?.isGroup
+            ? applyKnownGroupSender(msg, miniThreadRef.current.memberAvatars)
+            : msg;
+          nextMessages = appendChatMessageIfNew(nextMessages, enriched);
+        }
+        if (nextMessages === current.messages) return prev;
+        added = true;
+        if (viewerProfileId) {
+          writeRoomMessagesCache(viewerProfileId, roomId, nextMessages);
+        }
+        return {
+          ...prev,
+          [roomId]: { ...current, messages: nextMessages, hydrated: true },
+        };
+      });
+
+      setMiniThread((prev) => {
+        if (!prev) return prev;
+        const nextPreview = messagePreviewText(lastMsg);
+        const nextLastAt =
+          lastMsg.sentAt > prev.lastAt ? lastMsg.sentAt : prev.lastAt;
+        if (nextPreview === prev.preview && nextLastAt === prev.lastAt) {
+          return prev;
+        }
+        return { ...prev, preview: nextPreview, lastAt: nextLastAt };
+      });
+
+      if (lastMsg.from === "them") {
+        persistPeekRoomRead(roomId, lastMsg.id, viewerProfileId);
+      }
+
+      if (!added) return;
+      const container = messagesContainerRef.current;
+      const nearBottom = container
+        ? container.scrollHeight - container.scrollTop - container.clientHeight <
+          80
+        : true;
+      if (nearBottom) {
+        shouldScrollToBottomRef.current = true;
+        requestAnimationFrame(() =>
+          scrollMessagesToBottomRef.current("smooth"),
+        );
+      }
+    },
+  );
 
   useEffect(() => {
     if (open) {

@@ -5,6 +5,7 @@ import type { PersonalFilterRef } from "@/lib/filter/types";
 import type { BookmarkFrameKind } from "@/lib/journey/bookmark-source-theme";
 import type { AuthorCardThemeDto } from "@/lib/journey/card-theme";
 import type { AvatarFrameDto } from "@/lib/journey/avatar-frame";
+import type { WatermarkRenderDto } from "@/lib/journey/watermark";
 
 /**
  * Type chuẩn cho 1 cột mốc (milestone) trên Journey.
@@ -265,6 +266,12 @@ export type MilestoneItem = {
    */
   journeyGhimLuc?: string | null;
 
+  /**
+   * Owner bật watermark overlay trên ảnh bài (`content_cot_moc.watermark_bat`).
+   * Config hình/góc ở `giao_dien.watermark`.
+   */
+  watermarkBat?: boolean;
+
   /** Thời gian xảy ra — năm + tháng (1..12) + ngày (1..31). */
   year: number;
   month: number;
@@ -303,6 +310,11 @@ export type MilestoneItem = {
   authorCardTheme?: AuthorCardThemeDto | null;
   /** Khung avatar công khai (`giao_dien.avatarFrame`) — chip + badge tác giả. */
   authorAvatarFrame?: AvatarFrameDto | null;
+  /**
+   * Watermark config công khai của tác giả (`giao_dien.watermark`) —
+   * chỉ render khi `watermarkBat` và viewer không phải owner.
+   */
+  authorWatermark?: WatermarkRenderDto | null;
   /** UUID tác phẩm chính, dùng cho các action cộng sự. */
   tacPhamId?: string | null;
   /** Slug nhãn cá nhân (`filter_nhan`) gắn trên cột mốc — lọc cục bộ Journey. */

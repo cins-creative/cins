@@ -162,6 +162,7 @@ type ReelSession = {
   items: GalleryMainItem[];
   hasMore: boolean;
   nextOffset: number;
+  lockPlaylist?: boolean;
 };
 
 function isStreamVideoItem(item: GalleryMainItem): boolean {
@@ -724,39 +725,44 @@ export function WorldJourneyFeed({
 
   const openVideoPlayer = useCallback((payload: VideoListingOpenPayload) => {
     const startId = payload.item.id || payload.id;
-    /* Giữ list listing để lúc đóng Reels không mất trang đã tải. */
-    setGalleryRows(payload.items);
-    setGalleryMore(payload.hasMore);
-    setGalleryOffset(payload.nextOffset);
+    const lockPlaylist = Boolean(payload.lockPlaylist);
+    const items = lockPlaylist
+      ? payload.items.filter(isStreamVideoItem)
+      : playlistStartingAt(payload.items, startId, payload.item);
+    if (!lockPlaylist) {
+      /* Giữ list listing để lúc đóng Reels không mất trang đã tải. */
+      setGalleryRows(payload.items);
+      setGalleryMore(payload.hasMore);
+      setGalleryOffset(payload.nextOffset);
+    }
     setOpenAside(null);
     setSurfaceView("video");
     setReelSession({
       startId,
-      items: playlistStartingAt(payload.items, startId, payload.item),
-      hasMore: payload.hasMore,
-      nextOffset: payload.nextOffset,
+      items,
+      hasMore: lockPlaylist ? false : payload.hasMore,
+      nextOffset: lockPlaylist ? 0 : payload.nextOffset,
+      lockPlaylist,
     });
     pushVideoPlayUrl(startId);
   }, []);
 
-  /** Rail video dọc trên timeline → Reels với playlist portrait. */
+  /** Rail video dọc trên timeline → Reels chỉ trong đúng rail vừa click. */
   const openVideoFromRail = useCallback(
     (payload: VideoRailOpenPayload) => {
-      const pool =
-        videoRailRows.length > 0 ? [...videoRailRows] : [...payload.items];
-      const items = pool.some((row) => row.id === payload.item.id)
-        ? pool
-        : [payload.item, ...pool];
-      /* Load-more Reels dùng videoEndpoint (mọi hướng) — offset 0 + dedupe id. */
+      const items = payload.items.some((row) => row.id === payload.item.id)
+        ? [...payload.items]
+        : [payload.item, ...payload.items];
       openVideoPlayer({
         id: payload.item.id,
         item: payload.item,
         items,
-        hasMore: true,
+        hasMore: false,
         nextOffset: 0,
+        lockPlaylist: true,
       });
     },
-    [openVideoPlayer, videoRailRows],
+    [openVideoPlayer],
   );
 
   const openVideoFromMilestone = useCallback(
@@ -1844,6 +1850,7 @@ export function WorldJourneyFeed({
                 nextOffset={reelSession.nextOffset}
                 endpoint={videoEndpoint}
                 startItemId={reelSession.startId}
+                lockPlaylist={reelSession.lockPlaylist}
                 onClose={closeVideoPlayer}
               />
             </div>

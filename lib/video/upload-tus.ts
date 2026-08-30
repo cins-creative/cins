@@ -26,7 +26,7 @@ export function prepareResponseIsValid(prep: VideoPrepareResponse): boolean {
   return Boolean(prep.uploadURL);
 }
 
-/** Tạo tus Upload tới Cloudflare Stream (uploadURL từ direct-creator). */
+/** Tạo tus Upload tới Cloudflare Stream (uploadURL = endpoint tạo upload). */
 export async function createVideoTusUpload(
   file: File,
   prep: VideoPrepareResponse,
@@ -37,11 +37,15 @@ export async function createVideoTusUpload(
     throw new Error("Thiếu uploadURL Cloudflare Stream.");
   }
   return new Upload(file, {
-    retryDelays: [0, 1000, 3000, 5000, 10000],
-    metadata: { filetype: file.type, title: file.name },
+    endpoint: prep.uploadURL,
+    /* Stream: tối thiểu 5MB, khuyến nghị 50MB, tối đa 200MB. */
+    chunkSize: 50 * 1024 * 1024,
+    retryDelays: [0, 3000, 5000, 10000, 20000],
+    metadata: { filename: file.name, filetype: file.type, name: file.name },
+    storeFingerprintForResuming: false,
+    removeFingerprintOnSuccess: true,
     onProgress: handlers.onProgress,
     onError: handlers.onError,
     onSuccess: handlers.onSuccess,
-    uploadUrl: prep.uploadURL,
   });
 }

@@ -14,6 +14,7 @@ import {
   extractPhotoGridImagesFromBlocks,
   groupBlocksForRender,
 } from "@/lib/journey/image-grid";
+import type { WatermarkRenderDto } from "@/lib/journey/watermark";
 
 /** Nhóm ảnh đầu mount ngay; phần còn lại chờ gần viewport. */
 const EAGER_IMAGE_GROUPS = 2;
@@ -27,6 +28,8 @@ type Props = {
    * Timeline card giữ mặc định false.
    */
   showAllImages?: boolean;
+  /** Watermark overlay — non-owner + post bật. */
+  watermark?: WatermarkRenderDto | null;
 };
 
 function maybeDeferImage(
@@ -51,6 +54,7 @@ export function PostBlockRenderer({
   blocks,
   mediaAutoplay = false,
   showAllImages = false,
+  watermark = null,
 }: Props) {
   const groups = useMemo(() => groupBlocksForRender(blocks), [blocks]);
   const allImages = useMemo(
@@ -105,6 +109,7 @@ export function PostBlockRenderer({
                   }
                   lightboxIndexOffset={sharedLightbox ? offset : 0}
                   suppressLightbox={sharedLightbox}
+                  watermark={watermark}
                 />
               </div>
             </div>,
@@ -132,6 +137,7 @@ export function PostBlockRenderer({
                   }
                   lightboxIndexOffset={sharedLightbox ? offset : 0}
                   suppressLightbox={sharedLightbox}
+                  watermark={watermark}
                 />
               </div>
             </div>,
@@ -162,6 +168,7 @@ export function PostBlockRenderer({
           index={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
           onIndexChange={setLightboxIndex}
+          watermark={watermark}
         />
       ) : null}
     </div>

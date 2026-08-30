@@ -52,6 +52,7 @@ export async function GET() {
     avatarFrame: state.avatarFrame,
     popover: state.popover,
     shopSwitch: state.shopSwitch,
+    watermark: state.watermark,
     isDefault: isDefaultProfileTheme(state),
   });
 }
@@ -152,6 +153,18 @@ export async function PATCH(request: Request) {
     }
   }
 
+  if (next.watermark.source === "custom" && next.watermark.imageId) {
+    const allowed = new Set(next.customs.map((c) => c.imageId));
+    if (!allowed.has(next.watermark.imageId)) {
+      return NextResponse.json(
+        {
+          error: "watermark.imageId phải nằm trong ảnh đã tải lên.",
+        },
+        { status: 400 },
+      );
+    }
+  }
+
   const payload = serializeGiaoDien(next);
 
   const { error: updErr } = await admin
@@ -172,6 +185,7 @@ export async function PATCH(request: Request) {
     avatarFrame: next.avatarFrame,
     popover: next.popover,
     shopSwitch: next.shopSwitch,
+    watermark: next.watermark,
     isDefault: isDefaultProfileTheme(next),
   });
 }
@@ -195,13 +209,14 @@ export async function DELETE() {
 
   const prev = parseProfileGiaoDien(currentRow?.giao_dien);
   const empty = emptyGiaoDien();
-  /* Reset theme + customs; giữ nhóm B–E + shopSwitch. */
+  /* Reset theme + customs; giữ nhóm B–E + shopSwitch + watermark. */
   const next = {
     ...empty,
     card: prev.card,
     avatarFrame: prev.avatarFrame,
     popover: prev.popover,
     shopSwitch: prev.shopSwitch,
+    watermark: prev.watermark,
   };
 
   const { error } = await admin
@@ -226,6 +241,7 @@ export async function DELETE() {
     avatarFrame: next.avatarFrame,
     popover: next.popover,
     shopSwitch: next.shopSwitch,
+    watermark: next.watermark,
     isDefault: isDefaultProfileTheme(next),
   });
 }

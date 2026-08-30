@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Volume2, VolumeX } from "lucide-react";
 import {
   type PointerEvent as ReactPointerEvent,
   useCallback,
@@ -16,6 +16,7 @@ import { buildStreamIframeUrl } from "@/lib/cloudflare/stream-embed";
 import { bindStreamPlayer } from "@/lib/cloudflare/stream-player-sdk";
 import { GALLERY_GRID_IMAGE_SIZES } from "@/lib/cloudflare/cf-variant-url";
 import { WORLD_JOURNEY_VIDEO_RAIL_SIZE } from "@/lib/cins/worldJourneyFeedConstants";
+import { useT } from "@/lib/i18n/use-t";
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 import { getNameInitials } from "@/lib/journey/profile";
 
@@ -32,6 +33,7 @@ function railIframeSrc(uid: string): string {
     controls: "false",
     preload: "auto",
     loop: "false",
+    startTime: "0",
   });
   return `${buildStreamIframeUrl(uid)}?${params.toString()}`;
 }
@@ -65,6 +67,7 @@ export function WorldJourneyVideoRail({
         .slice(0, WORLD_JOURNEY_VIDEO_RAIL_SIZE),
     [rawItems],
   );
+  const t = useT();
   const n = items.length;
   const isStrip = railIndex <= 1 || slotKey === "top";
 
@@ -72,6 +75,7 @@ export function WorldJourneyVideoRail({
   const [animDir, setAnimDir] = useState<0 | 1 | -1>(0);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [stripDragging, setStripDragging] = useState(false);
+  const [muted, setMuted] = useState(true);
   const lockUntilRef = useRef(0);
   const wheelAccRef = useRef(0);
   const rootRef = useRef<HTMLElement | null>(null);
@@ -115,6 +119,9 @@ export function WorldJourneyVideoRail({
 
   const goNext = useCallback(() => step(1), [step]);
   const goPrev = useCallback(() => step(-1), [step]);
+  const toggleMuted = useCallback(() => {
+    setMuted((prev) => !prev);
+  }, []);
 
   const handleOpen = useCallback(
     (item: GalleryMainItem) => {
@@ -383,6 +390,7 @@ export function WorldJourneyVideoRail({
                 total={n}
                 layout={isStrip ? "strip" : "coverflow"}
                 playing={i === (hoverIndex ?? activeIndex)}
+                muted={muted}
                 onOpen={() => handleOpen(item)}
                 onFocusCard={() => setActiveIndex(i)}
                 onHover={() => setHoverIndex(i)}
@@ -401,6 +409,20 @@ export function WorldJourneyVideoRail({
             <ChevronRight size={22} strokeWidth={2.25} aria-hidden />
           </button>
         ) : null}
+
+        <button
+          type="button"
+          className={"wj-video-rail-audio" + (muted ? "" : " is-hearing")}
+          aria-label={muted ? t("rail.unmute") : t("rail.mute")}
+          aria-pressed={!muted}
+          onClick={toggleMuted}
+        >
+          {muted ? (
+            <VolumeX size={16} strokeWidth={2.25} aria-hidden />
+          ) : (
+            <Volume2 size={16} strokeWidth={2.25} aria-hidden />
+          )}
+        </button>
       </div>
 
       {!isStrip && n > 1 ? (
@@ -461,10 +483,12 @@ function RailClip({
   item,
   active,
   mounted,
+  muted,
 }: {
   item: GalleryMainItem;
   active: boolean;
   mounted: boolean;
+  muted: boolean;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerRef = useRef<Awaited<ReturnType<typeof bindStreamPlayer>> | null>(
@@ -472,6 +496,10 @@ function RailClip({
   );
   const activeRef = useRef(active);
   activeRef.current = active;
+  const mutedRef = useRef(muted);
+  mutedRef.current = muted;
+  const warmedRef = useRef(false);
+  const wasActiveRef = useRef(false);
   const uid = item.streamUid?.trim() || "";
   const poster = item.masonrySrc?.trim() || item.src;
   const src = useMemo(() => (uid ? railIframeSrc(uid) : ""), [uid]);
@@ -480,6 +508,8 @@ function RailClip({
   useEffect(() => {
     setReady(false);
     playerRef.current = null;
+    warmedRef.current = false;
+    wasActiveRef.current = false;
   }, [src]);
 
   useEffect(() => {
@@ -498,11 +528,39 @@ function RailClip({
       }
     };
 
-    const syncPlayback = () => {
-      if (cancelled || !player) return;
-      player.muted = true;
-      player.loop = false;
-      if (activeRef.current) {
+    const capWarm = () => {
+      if (cancelled || !player || activeRef.current) return;
+      const dur = player.duration;
+      const cap =
+        Number.isFinite(dur) && dur > 0
+          ? Math.min(PREVIEW_LOOP_SECONDS, dur)
+          : PREVIEW_LOOP_SECONDS;
+      if (player.currentTime >= cap) {
+        player.pause();
+        player.currentTime = 0;
+        warmedRef.current = true;
+      }
+    };
+
+    const rewindToStart = () => {
+      if (!player) return;
+      try {
+        player.currentTime = 0;
+      } catch {
+        /* ignore */
+      }
+    };
+
+    const applyMute = () => {
+      if (!player) return;
+      player.muted = !activeRef.current || mutedRef.current;
+    };
+
+    const kickPlay = () => {
+      if (!player) return;
+      applyMute();
+      void player.play().catch(() => {
+        player.muted = true;
         void player.play().catch(() => {
           try {
             el.contentWindow?.postMessage(
@@ -513,9 +571,29 @@ function RailClip({
             /* ignore */
           }
         });
-      } else {
-        player.pause();
+      });
+    };
+
+    const syncPlayback = () => {
+      if (cancelled || !player) return;
+      player.loop = false;
+      applyMute();
+      if (activeRef.current) {
+        wasActiveRef.current = true;
+        rewindToStart();
+        kickPlay();
+        return;
       }
+      if (!warmedRef.current) {
+        kickPlay();
+        return;
+      }
+      player.pause();
+    };
+
+    const onTime = () => {
+      if (activeRef.current) loopHead();
+      else capWarm();
     };
 
     void (async () => {
@@ -523,8 +601,8 @@ function RailClip({
         player = await bindStreamPlayer(el);
         if (cancelled) return;
         playerRef.current = player;
-        player.muted = true;
-        player.addEventListener("timeupdate", loopHead);
+        applyMute();
+        player.addEventListener("timeupdate", onTime);
         player.addEventListener("loadedmetadata", () => {
           setReady(true);
           syncPlayback();
@@ -539,7 +617,7 @@ function RailClip({
     return () => {
       cancelled = true;
       if (player) {
-        player.removeEventListener("timeupdate", loopHead);
+        player.removeEventListener("timeupdate", onTime);
         player.pause();
       }
       playerRef.current = null;
@@ -549,14 +627,30 @@ function RailClip({
   useEffect(() => {
     const player = playerRef.current;
     if (!player) return;
-    player.muted = true;
     player.loop = false;
+    player.muted = !active || muted;
     if (active) {
+      const firstPlay = !wasActiveRef.current;
+      wasActiveRef.current = true;
+      if (firstPlay) {
+        try {
+          player.currentTime = 0;
+        } catch {
+          /* ignore */
+        }
+      }
       void player.play().catch(() => undefined);
-    } else {
-      player.pause();
+      return;
     }
-  }, [active]);
+    wasActiveRef.current = false;
+    if (!warmedRef.current) {
+      player.muted = true;
+      void player.play().catch(() => undefined);
+      return;
+    }
+    player.pause();
+    player.currentTime = 0;
+  }, [active, muted]);
 
   return (
     <>
@@ -592,6 +686,7 @@ function VideoStackCard({
   total,
   layout,
   playing,
+  muted,
   onOpen,
   onFocusCard,
   onHover,
@@ -601,6 +696,7 @@ function VideoStackCard({
   total: number;
   layout: "strip" | "coverflow";
   playing: boolean;
+  muted: boolean;
   onOpen: () => void;
   onFocusCard: () => void;
   onHover?: () => void;
@@ -633,7 +729,12 @@ function VideoStackCard({
       <div className="wj-video-rail-shell">
         <div className="wj-video-rail-thumb-wrap">
           <span className="wj-video-rail-thumb" aria-hidden>
-            <RailClip item={item} active={isFront} mounted={mounted} />
+            <RailClip
+              item={item}
+              active={isFront}
+              mounted={mounted}
+              muted={muted}
+            />
             {isStrip ? <VideoStackAvatar item={item} overlay /> : null}
           </span>
           <button

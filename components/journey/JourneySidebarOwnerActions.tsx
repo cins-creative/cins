@@ -14,7 +14,9 @@ import {
   EDIT_PROFILE_QUERY,
   EDIT_PROFILE_TAB_CUSTOMIZE,
   OPEN_EDIT_PROFILE_EVENT,
+  type EditProfileCustomizeSub,
   type EditProfileOpenTab,
+  type OpenEditProfileDetail,
 } from "@/lib/cins/open-edit-profile";
 
 type Props = {
@@ -41,12 +43,19 @@ export function JourneySidebarOwnerActions({
   const [open, setOpen] = useState(false);
   const [initialTab, setInitialTab] =
     useState<EditProfileOpenTab>("thong-tin");
+  const [initialCustomizeSub, setInitialCustomizeSub] =
+    useState<EditProfileCustomizeSub | null>(null);
 
   useEffect(() => {
     function onOpen(ev: Event) {
-      const tab = (ev as CustomEvent<{ tab?: EditProfileOpenTab }>).detail
-        ?.tab;
+      const detail = (ev as CustomEvent<OpenEditProfileDetail>).detail;
+      const tab = detail?.tab;
       setInitialTab(tab === "customize" ? "customize" : "thong-tin");
+      setInitialCustomizeSub(
+        tab === "customize" && detail?.customizeSub
+          ? detail.customizeSub
+          : null,
+      );
       setOpen(true);
     }
     window.addEventListener(OPEN_EDIT_PROFILE_EVENT, onOpen);
@@ -59,6 +68,7 @@ export function JourneySidebarOwnerActions({
     const params = new URLSearchParams(window.location.search);
     if (params.get(EDIT_PROFILE_QUERY) !== EDIT_PROFILE_TAB_CUSTOMIZE) return;
     setInitialTab("customize");
+    setInitialCustomizeSub(null);
     setOpen(true);
     router.replace(pathname, { scroll: false });
   }, [pathname, router]);
@@ -71,6 +81,7 @@ export function JourneySidebarOwnerActions({
           className="j-btn-msg"
           onClick={() => {
             setInitialTab("thong-tin");
+            setInitialCustomizeSub(null);
             setOpen(true);
           }}
         >
@@ -88,6 +99,7 @@ export function JourneySidebarOwnerActions({
         initial={initial}
         ownerSlug={ownerSlug}
         initialTab={initialTab}
+        initialCustomizeSub={initialCustomizeSub}
       />
     </>
   );

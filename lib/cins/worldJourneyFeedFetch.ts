@@ -24,6 +24,7 @@ import {
   avatarFrameFromGiaoDien,
   milestoneTakesAuthorAvatarFrame,
 } from "@/lib/journey/avatar-frame";
+import { watermarkFromGiaoDien } from "@/lib/journey/watermark";
 import {
   attachFeedScoresAndFilter,
   feedScoreTargetFromMilestone,
@@ -80,7 +81,7 @@ const FEED_FILTER_POOL_LIMIT = FEED_POOL_LIMIT;
 const QUERY_LIMIT = 300;
 
 const COT_MOC_FEED_SELECT =
-  "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc, id_nguoi_dung, id_to_chuc, id_khoa_hoc, id_lop_hoc";
+  "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, watermark_bat, tao_luc, id_nguoi_dung, id_to_chuc, id_khoa_hoc, id_lop_hoc";
 
 type CotMocFeedRow = {
   id: string;
@@ -90,6 +91,7 @@ type CotMocFeedRow = {
   mo_ta: string | null;
   thoi_diem: string;
   che_do_hien_thi: string;
+  watermark_bat?: boolean | null;
   tao_luc: string | null;
   id_nguoi_dung: string;
   id_to_chuc?: string | null;
@@ -398,6 +400,23 @@ async function hydrateAuthorCardThemes(
       next = frameDto
         ? { ...next, authorAvatarFrame: frameDto }
         : stripAuthorAvatarFrame(next);
+    }
+
+    if (m.variant === "bookmark" || m.variant === "tagged") {
+      if (next.authorWatermark != null) {
+        const { authorWatermark: _drop, ...rest } = next;
+        next = rest as MilestoneItem;
+      }
+    } else if (m.variant === "self" || m.variant === "verified") {
+      const wmDto = author ? watermarkFromGiaoDien(author.giao_dien) : null;
+      next = wmDto
+        ? { ...next, authorWatermark: wmDto }
+        : next.authorWatermark == null
+          ? next
+          : (() => {
+              const { authorWatermark: _drop, ...rest } = next;
+              return rest as MilestoneItem;
+            })();
     }
 
     return next;

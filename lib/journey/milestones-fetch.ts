@@ -81,6 +81,7 @@ type CotMocRow = {
   che_do_hien_thi: "public" | "theo_nhom" | "chi_minh" | "feature" | "cong_dong";
   /** Thời điểm tạo record (timestamptz) — tiebreak khi cùng `thoi_diem`. */
   tao_luc: string | null;
+  watermark_bat?: boolean | null;
   id_nguoi_dung?: string;
   id_to_chuc?: string | null;
   id_khoa_hoc?: string | null;
@@ -423,6 +424,7 @@ export async function buildSelfMilestonesForCotMocs(
       type: LOAI_MOC_TO_TYPE[m.loai_moc],
       visibility: mapCheDoToMilestoneVisibility(m.che_do_hien_thi),
       visibilityCustom: visibilityCustomByMoc.get(m.id) ?? null,
+      watermarkBat: m.watermark_bat === true,
       congDongOrg:
         m.che_do_hien_thi === CHE_DO_MOC_CONG_DONG && m.id_to_chuc
           ? (congDongOrgs.get(m.id_to_chuc) ?? null)
@@ -498,7 +500,7 @@ export async function buildSelfMilestonesForCotMocs(
 }
 
 const COT_MOC_CARD_SELECT =
-  "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc, id_nguoi_dung, id_to_chuc, id_khoa_hoc, id_lop_hoc";
+  "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, watermark_bat, tao_luc, id_nguoi_dung, id_to_chuc, id_khoa_hoc, id_lop_hoc";
 
 /** Build một `MilestoneItem` sau publish/edit — dùng optimistic merge timeline. */
 export async function buildMilestoneItemForCotMoc(
@@ -563,7 +565,7 @@ export async function fetchMilestonesForUser(params: {
   const { data: cotMocs, error } = await admin
     .from("content_cot_moc")
     .select(
-      "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc, id_to_chuc, id_khoa_hoc, id_lop_hoc",
+      "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, watermark_bat, tao_luc, id_to_chuc, id_khoa_hoc, id_lop_hoc",
     )
     .eq("id_nguoi_dung", userId)
     /* Order chính: ngày xảy ra (`thoi_diem`) DESC. Tiebreak: `tao_luc` DESC
@@ -732,7 +734,7 @@ export async function fetchTaggedMilestonesForUser(params: {
   const { data: cotMocs } = await admin
     .from("content_cot_moc")
     .select(
-      "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc",
+      "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, watermark_bat, tao_luc",
     )
     .in("id", cotMocIds)
     .returns<CotMocRow[]>();
@@ -808,6 +810,7 @@ export async function fetchTaggedMilestonesForUser(params: {
       visibility: isSelfAuthoredTagged
         ? mapCheDoToMilestoneVisibility(cm.che_do_hien_thi)
         : mapForeignJourneyVisibilityToUi(journeyVisByTp.get(tacPhamId)),
+      watermarkBat: cm.watermark_bat === true,
       year: dateObj.getUTCFullYear(),
       month: dateObj.getUTCMonth() + 1,
       day: dateObj.getUTCDate(),
@@ -899,7 +902,7 @@ export async function fetchBookmarkedMilestonesForUser(params: {
   const { data: cotMocs } = await admin
     .from("content_cot_moc")
     .select(
-      "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, tao_luc, id_nguoi_dung, id_to_chuc, id_khoa_hoc, id_lop_hoc",
+      "id, loai_moc, nguon_goc, tieu_de, mo_ta, thoi_diem, che_do_hien_thi, watermark_bat, tao_luc, id_nguoi_dung, id_to_chuc, id_khoa_hoc, id_lop_hoc",
     )
     .in("id", cotMocIds)
     .returns<CotMocRow[]>();

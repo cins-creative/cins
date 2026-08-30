@@ -1,6 +1,7 @@
 import type { ArticleTagRef } from "@/lib/editor/article-tag";
 import type { Block as ServerBlock } from "@/lib/editor/types";
 import type { AvatarFrameDto } from "@/lib/journey/avatar-frame";
+import type { WatermarkRenderDto } from "@/lib/journey/watermark";
 import type {
   CommentIdentityBadge,
   CommentReactionSummary,
@@ -13,6 +14,8 @@ export type MilestonePostAuthor = {
   avatarId: string | null;
   /** Khung overlay avatar — SoT `giao_dien.avatarFrame`. */
   avatarFrame?: AvatarFrameDto | null;
+  /** Watermark ảnh bài — SoT `giao_dien.watermark`. */
+  watermark?: WatermarkRenderDto | null;
   /**
    * Bình luận dưới danh nghĩa org — hiện avatar/tên org; `id`/`isOwn` vẫn theo
    * người gửi thật (`nguoi_binh_luan`).
@@ -92,6 +95,8 @@ export type MilestonePostDetail = {
     thoiDiem: string;
     loaiMoc: string;
     cheDoHienThi: "public" | "theo_nhom" | "chi_minh" | "feature" | "cong_dong";
+    /** Owner bật watermark overlay trên ảnh bài. */
+    watermarkBat?: boolean;
     /**
      * Org đã xác thực cột mốc (`verify_xac_nhan`) — chuỗi hiển thị kiểu `✓ Tên org`
      * (đồng bộ timeline `verifiedBy`). `null` khi chưa xác thực.

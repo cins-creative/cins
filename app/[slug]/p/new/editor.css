@@ -6189,6 +6189,16 @@
 .cins-editor-page .ed-cp-journey-live .jcard-unfold-toggle {
   pointer-events: auto;
 }
+
+.cins-editor-page .ed-cp-journey-live .preview,
+.cins-editor-page .ed-cp-journey-live .jcard-video-trigger,
+.cins-editor-page .ed-cp-journey-live .jcard-video-root,
+.cins-editor-page .ed-cp-journey-live .image-grid,
+.cins-editor-page .ed-cp-journey-live .image-album-carousel,
+.cins-editor-page .ed-cp-thumb {
+  pointer-events: auto !important;
+  cursor: zoom-in;
+}
 .cins-editor-page .ed-cp-shop-kiosk {
   margin-top: 10px;
   pointer-events: auto;

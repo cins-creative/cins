@@ -49,6 +49,16 @@ import {
   type ProfileShopSwitchSlice,
   type ShopSwitchPatchInput,
 } from "@/lib/journey/shop-switch";
+import {
+  applyWatermarkPatch,
+  DEFAULT_WATERMARK,
+  parseWatermark,
+  serializeWatermark,
+  validateWatermarkPatchBody,
+  watermarksEqual,
+  type ProfileWatermarkSlice,
+  type WatermarkPatchInput,
+} from "@/lib/journey/watermark";
 
 /* ── Accent presets (catalog 10 id; picker hiện 9 recent + colorwheel) ─ */
 
@@ -401,6 +411,8 @@ export type ProfileGiaoDienState = {
   popover: ProfilePopoverThemeSlice;
   /** Khối ShopSwitchCard trên sidebar Journey. */
   shopSwitch: ProfileShopSwitchSlice;
+  /** Watermark ảnh bài (album / bài dài). */
+  watermark: ProfileWatermarkSlice;
 };
 
 export const DEFAULT_PROFILE_THEME: ProfileThemeSlice = {
@@ -450,6 +462,7 @@ export function emptyGiaoDien(): ProfileGiaoDienState {
       ...DEFAULT_SHOP_SWITCH,
       position: { ...DEFAULT_SHOP_SWITCH.position },
     },
+    watermark: { ...DEFAULT_WATERMARK },
   };
 }
 
@@ -690,6 +703,7 @@ export function parseProfileGiaoDien(raw: unknown): ProfileGiaoDienState {
     card: parseCardTheme(obj.card, customs),
     popover: parsePopoverTheme(obj.popover, customs),
     shopSwitch: parseShopSwitch(obj.shopSwitch, customs),
+    watermark: parseWatermark(obj.watermark, customs),
   };
 
   return state;
@@ -733,6 +747,8 @@ export type ProfileThemePatchInput = {
   popover?: PopoverThemePatchInput;
   /** Khối Shop trên sidebar. */
   shopSwitch?: ShopSwitchPatchInput;
+  /** Watermark ảnh bài. */
+  watermark?: WatermarkPatchInput;
 };
 
 export type ValidateThemePatchResult =
@@ -928,6 +944,12 @@ export function validateThemePatchBody(
     patch.shopSwitch = shopResult.patch;
   }
 
+  if ("watermark" in obj) {
+    const wmResult = validateWatermarkPatchBody(obj.watermark);
+    if (!wmResult.ok) return wmResult;
+    patch.watermark = wmResult.patch;
+  }
+
   if (
     !patch.accent &&
     !patch.background &&
@@ -936,12 +958,13 @@ export function validateThemePatchBody(
     !patch.card &&
     !patch.avatarFrame &&
     !patch.popover &&
-    !patch.shopSwitch
+    !patch.shopSwitch &&
+    !patch.watermark
   ) {
     return {
       ok: false,
       error:
-        "Thiếu accent, background, applyToHome, card, avatarFrame, popover hoặc shopSwitch.",
+        "Thiếu accent, background, applyToHome, card, avatarFrame, popover, shopSwitch hoặc watermark.",
     };
   }
 
@@ -1048,6 +1071,9 @@ export function applyThemePatch(
     shopSwitch: patch.shopSwitch
       ? applyShopSwitchPatch(prev.shopSwitch, patch.shopSwitch, prev.customs)
       : prev.shopSwitch,
+    watermark: patch.watermark
+      ? applyWatermarkPatch(prev.watermark, patch.watermark, prev.customs)
+      : prev.watermark,
   };
   return next;
 }
@@ -1115,6 +1141,14 @@ export function serializeGiaoDien(
   }
   if (!shopSwitchesEqual(state.shopSwitch, DEFAULT_SHOP_SWITCH)) {
     out.shopSwitch = serializeShopSwitch(state.shopSwitch);
+  }
+  const wmPayload = serializeWatermark(state.watermark);
+  if (
+    wmPayload &&
+    (state.watermark.enabled ||
+      !watermarksEqual(state.watermark, DEFAULT_WATERMARK))
+  ) {
+    out.watermark = wmPayload;
   }
   return out;
 }
@@ -1199,10 +1233,26 @@ export function removeProfileCustomImage(
           kind: "classic" as const,
         }
       : state.shopSwitch;
+  const watermark =
+    state.watermark.imageId === id
+      ? {
+          ...state.watermark,
+          imageId: null,
+          source: "preset" as const,
+        }
+      : state.watermark;
   const prevBg = state.theme.background;
 
   if (prevBg.kind !== "image") {
-    return { ...state, customs, card, avatarFrame, popover, shopSwitch };
+    return {
+      ...state,
+      customs,
+      card,
+      avatarFrame,
+      popover,
+      shopSwitch,
+      watermark,
+    };
   }
 
   const devices: ProfileBackground["devices"] = {};
@@ -1261,6 +1311,7 @@ export function removeProfileCustomImage(
     avatarFrame,
     popover,
     shopSwitch,
+    watermark,
   };
 }
 

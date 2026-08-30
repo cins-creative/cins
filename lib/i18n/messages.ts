@@ -12,6 +12,8 @@ const vi = {
   "reel.audio": "Audio",
   "reel.muteAll": "Tắt tiếng tất cả video",
   "reel.hearAll": "Nghe tất cả video",
+  "rail.mute": "Tắt tiếng",
+  "rail.unmute": "Bật tiếng",
 
   "nav.mainAria": "Điều hướng chính",
   "nav.footAria": "Liên kết phụ",
@@ -1282,6 +1284,8 @@ const en: { [K in keyof typeof vi]: string } = {
   "reel.audio": "Audio",
   "reel.muteAll": "Mute all videos",
   "reel.hearAll": "Hear all videos",
+  "rail.mute": "Mute",
+  "rail.unmute": "Unmute",
 
   "nav.mainAria": "Main navigation",
   "nav.footAria": "Secondary links",

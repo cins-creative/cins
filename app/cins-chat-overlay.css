@@ -4229,6 +4229,7 @@ body:has(.cins-shell--chat-page) .cins-chat-root.is-chat-fullscreen,
   box-shadow: none;
 }
 
+.cins-canvas-card-link-thumb .cins-chat-msg-video-root,
 .cins-canvas-card-link-thumb .cins-chat-msg-video,
 .cins-canvas-card-link-thumb .cins-chat-msg-video-poster {
   width: 100%;
@@ -6414,6 +6415,9 @@ button.cins-canvas-table-cell-text {
 .cins-chat-bubble-wrap.has-bubble-actions .cins-chat-msg-image-link,
 .cins-chat-bubble-wrap.has-bubble-actions .cins-chat-album-cell,
 .cins-chat-bubble-wrap.has-bubble-actions .cins-chat-msg-sticker-btn,
+.cins-chat-bubble-wrap.has-bubble-actions .cins-chat-msg-video-root,
+.cins-chat-bubble-wrap.has-bubble-actions .cins-chat-msg-video-poster,
+.cins-chat-bubble-wrap.has-bubble-actions .cins-chat-msg-video,
 .cins-chat-bubble-wrap.has-bubble-actions .cins-chat-reaction-chip,
 .cins-chat-bubble-wrap.has-bubble-actions .cins-chat-msg-actions,
 .cins-chat-bubble-wrap.has-bubble-actions .cins-chat-msg-actions button,
@@ -6421,6 +6425,7 @@ button.cins-canvas-table-cell-text {
 .cins-chat-bubble-wrap.has-bubble-actions button.cins-chat-don-card-cta,
 .cins-chat-bubble-wrap.has-bubble-actions .cins-chat-don-card-bill-toggle,
 .cins-chat-bubble-wrap.has-bubble-actions .cins-chat-phong-lop-invite-btn,
+.cins-chat-bubble-wrap.has-bubble-actions .cins-chat-reply-quote,
 .cins-chat-bubble-wrap.has-bubble-actions input,
 .cins-chat-bubble-wrap.has-bubble-actions textarea,
 .cins-chat-bubble-wrap.has-bubble-actions select,
@@ -7200,24 +7205,27 @@ button.cins-canvas-table-cell-text {
 
 .cins-chat-reply-quote {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
   width: 100%;
   max-width: 100%;
   min-width: 0;
+  min-height: 44px;
   margin: 0 0 8px;
-  padding: 6px 8px;
+  padding: 8px 10px;
   border: 0;
   border-radius: var(--radius-sm);
   background: rgba(0, 0, 0, 0.12);
   color: inherit;
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.4;
   text-align: left;
   cursor: default;
   overflow: hidden;
   box-sizing: border-box;
+  position: relative;
+  z-index: 1;
 }
 
 .cins-chat-reply-quote > span {
@@ -7257,12 +7265,13 @@ button.cins-canvas-table-cell-text {
 }
 
 .cins-chat-reply-quote img {
-  width: 32px;
-  height: 32px;
-  margin-top: 1px;
+  width: 40px;
+  height: 40px;
+  margin-top: 0;
   border-radius: var(--radius-sm);
   object-fit: cover;
   flex-shrink: 0;
+  pointer-events: none;
 }
 
 .cins-chat-reactions {
@@ -8120,6 +8129,23 @@ button.cins-canvas-table-cell-text {
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.cins-chat-lightbox.is-immersive .cins-chat-lightbox-nav,
+.cins-chat-lightbox.is-immersive .cins-chat-lightbox-counter,
+.cins-chat-lightbox.is-immersive .cins-chat-lightbox-filmstrip {
+  display: none;
+}
+.cins-chat-lightbox.is-immersive .cins-chat-lightbox-inner,
+.cins-chat-lightbox.is-immersive.has-filmstrip .cins-chat-lightbox-inner {
+  padding: 0;
+}
+.cins-chat-lightbox.is-immersive .cins-chat-lightbox-figure,
+.cins-chat-lightbox.is-immersive .cins-chat-lightbox-figure img,
+.cins-chat-lightbox.is-immersive.has-filmstrip .cins-chat-lightbox-figure,
+.cins-chat-lightbox.is-immersive.has-filmstrip .cins-chat-lightbox-figure img {
+  max-width: 100%;
+  max-height: 100%;
 }
 
 @media (max-width: 640px) {
@@ -11999,8 +12025,9 @@ button.cins-chat-don-card-cta.is-action:disabled {
   object-fit: contain;
 }
 
-/* Video chat (R2) — poster click-to-play + player.
+/* Video chat (R2) — poster overlay + 1 <video> (giữ user-gesture iOS).
    Cần width cố định: cha bare-media dùng fit-content; width:100% sẽ co về 0. */
+.cins-chat-msg-video-root,
 .cins-chat-msg-video,
 .cins-chat-msg-video-poster {
   display: block;
@@ -12013,14 +12040,31 @@ button.cins-chat-don-card-cta.is-action:disabled {
   flex-shrink: 0;
 }
 
-.cins-chat-msg-video-poster {
+.cins-chat-msg-video-root {
   position: relative;
+}
+
+.cins-chat-msg-video-root > .cins-chat-msg-video {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: contain;
+}
+
+.cins-chat-msg-video-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
   padding: 0;
   border: 0;
   cursor: pointer;
   line-height: 0;
 }
 
+.cins-chat-msg-video-root.is-stacked,
 .cins-chat-msg-video-poster.is-stacked,
 .cins-chat-msg-video.is-stacked {
   max-width: 100%;

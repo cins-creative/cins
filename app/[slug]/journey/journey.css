@@ -17332,6 +17332,15 @@ button.j-user-pop-close svg {
   word-break: break-word;
   white-space: normal;
 }
+/* Dark: caption trên nền gần-đen — sáng thêm một chút, không đổi hierarchy. */
+:root[data-theme="dark"] .j-m-card .jcard-text.jcard-editor-text,
+:root[data-theme="dark"] .j-m-card .jcard-text.jcard-editor-text .title-in.title-ro,
+:root[data-theme="dark"] .j-m-card .jcard-text.jcard-editor-text .sub-in.sub-ro,
+:root[data-theme="dark"] .jcard--photo .jcard-editor-text .jcard-lead .jcard-desc.sub-in,
+:root[data-theme="dark"] .jcard--video .jcard-editor-text .jcard-lead .jcard-desc.sub-in,
+:root[data-theme="dark"] .jcard--article .jcard-editor-text .jcard-lead .jcard-desc.sub-in {
+  color: color-mix(in srgb, var(--ink-display, #fff) 62%, #fff);
+}
 .jcard-desc {
   margin: 0 0 14px;
   color: var(--jcard-ink);

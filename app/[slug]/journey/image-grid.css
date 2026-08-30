@@ -509,7 +509,8 @@
   will-change: transform;
   user-select: none;
 }
-.image-lightbox-figure img {
+.image-lightbox-figure img,
+.image-lightbox-figure video {
   max-width: 100%;
   max-height: 100%;
   width: auto;
@@ -629,6 +630,11 @@
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.image-lightbox.is-immersive .image-lightbox-nav,
+.image-lightbox.is-immersive .image-lightbox-filmstrip {
+  display: none;
 }
 
 .cins-editor-page.mc-compose-page .image-grid {

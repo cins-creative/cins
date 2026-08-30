@@ -101,6 +101,7 @@ export function JourneyLikeButton({
   const [pickerErr, setPickerErr] = useState<string | null>(null);
   const closePickerRef = useRef<() => void>(() => {});
   const openPickerRef = useRef<() => void>(() => {});
+  const postingRef = useRef(false);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -148,6 +149,8 @@ export function JourneyLikeButton({
 
   const postReaction = useCallback(
     (emoji: string, active: boolean) => {
+      if (postingRef.current) return;
+      postingRef.current = true;
       const prevLiked = liked;
       const prevCount = count;
       const prevEmoji = reactionEmoji;
@@ -181,6 +184,7 @@ export function JourneyLikeButton({
       );
 
       startTransition(async () => {
+        try {
         const res = await fetch("/api/reactions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -231,15 +235,18 @@ export function JourneyLikeButton({
             },
           }),
         );
+        } finally {
+          postingRef.current = false;
+        }
       });
     },
     [count, liked, loaiDoiTuong, milestoneId, reactionEmoji],
   );
 
   /**
-   * Tap trái tim:
-   * - Desktop: chưa thích → thả tim + mở bảng; đã thích → bỏ thích
-   * - Mobile: chỉ thả / bỏ tim — bảng emoji mở khi giữ
+   * Tap trái tim / emoji đang chọn:
+   * - Đã có reaction → hủy (click, touch, hoặc bấm lại emoji trên bảng)
+   * - Chưa có: desktop thả tim + mở bảng; mobile chỉ thả — bảng mở khi giữ
    */
   const onPickEmoji = useCallback(
     (key: CommentReactionKey) => {
@@ -248,6 +255,7 @@ export function JourneyLikeButton({
           key === reactionEmoji ||
           (key === REACTION_EMOJI.LIKE && !reactionEmoji && liked)
         ) {
+          postReaction(key, false);
           closePickerRef.current();
           return;
         }
@@ -432,6 +440,11 @@ export function JourneyLikeButton({
         className={`action-btn action-btn--split${liked ? " is-liked" : ""}${
           pickerOpen ? " is-picker-open" : ""
         }`}
+        onClick={(event) => {
+          if (event.target !== event.currentTarget) return;
+          event.stopPropagation();
+          onHeartPress();
+        }}
       >
         <button
           type="button"

@@ -14,7 +14,7 @@ const SNAP = 0.32;
 const FLICK = 0.55;
 const DRAWER_MS = 320;
 const IGNORE =
-  ".shop-kiosk-ticker-hit, .shop-kiosk-ticker, .shop-kiosk-ticker-track, .wj-feed-promo-rail-track, .j-reaction-wrap";
+  ".shop-kiosk-ticker-hit, .shop-kiosk-ticker, .shop-kiosk-ticker-track, .shop-kiosk-ticker-label, .wj-feed-promo-rail-track, .j-reaction-wrap";
 
 function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));

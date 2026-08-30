@@ -45,17 +45,32 @@ import {
   JourneyShopSwitchPicker,
   type JourneyShopSwitchPickerHandle,
 } from "@/components/journey/JourneyShopSwitchPicker";
+import {
+  JourneyWatermarkPicker,
+  type JourneyWatermarkPickerHandle,
+} from "@/components/journey/JourneyWatermarkPicker";
+import type { ProfileWatermarkSlice } from "@/lib/journey/watermark";
+import type { EditProfileCustomizeSub } from "@/lib/cins/open-edit-profile";
 
-/** Sub-tab Customize — Theme · Avatar · Shop · Bài viết (datebar). */
+/** Sub-tab Customize — Theme · Avatar · Shop · Bài viết · Watermark. */
 const CUSTOMIZE_SUB_TABS = [
   { id: "theme", label: "Theme" },
   { id: "avatar", label: "Avatar" },
   { id: "shop", label: "Shop" },
   { id: "post", label: "Bài viết" },
+  { id: "watermark", label: "Watermark" },
 ] as const;
 
 type CustomizeSubTab = (typeof CUSTOMIZE_SUB_TABS)[number]["id"];
 
+function isCustomizeSubTab(v: unknown): v is CustomizeSubTab {
+  return (
+    typeof v === "string" &&
+    (CUSTOMIZE_SUB_TABS as ReadonlyArray<{ id: string }>).some(
+      (t) => t.id === v,
+    )
+  );
+}
 type AccentTone = "yellow" | "mint" | "orange" | "violet" | "blue";
 
 type SlugStatus =
@@ -132,6 +147,8 @@ export type EditProfileInitial = {
   profileCard?: ProfileCardThemeSlice | null;
   /** Khối Shop trên sidebar. */
   profileShopSwitch?: ProfileShopSwitchSlice | null;
+  /** Watermark ảnh bài. */
+  profileWatermark?: ProfileWatermarkSlice | null;
   authorAvatarUrl?: string | null;
   authorCoverUrl?: string | null;
 };
@@ -144,6 +161,8 @@ type Props = {
   ownerSlug: string;
   /** Tab mở khi `open` chuyển true. */
   initialTab?: "thong-tin" | "customize";
+  /** Subtab customize khi mở tab customize. */
+  initialCustomizeSub?: EditProfileCustomizeSub | null;
 };
 
 /**
@@ -160,6 +179,7 @@ export function JourneyEditProfileModal({
   initial,
   ownerSlug,
   initialTab = "thong-tin",
+  initialCustomizeSub = null,
 }: Props) {
   const router = useRouter();
   const titleId = useId();
@@ -198,19 +218,27 @@ export function JourneyEditProfileModal({
   const [avatarDirty, setAvatarDirty] = useState(false);
   const [cardDirty, setCardDirty] = useState(false);
   const [shopDirty, setShopDirty] = useState(false);
+  const [watermarkDirty, setWatermarkDirty] = useState(false);
   const [themeSaving, setThemeSaving] = useState(false);
   const themePickerRef = useRef<JourneyThemePickerHandle>(null);
   const avatarPickerRef = useRef<JourneyAvatarFramePickerHandle>(null);
   const cardPickerRef = useRef<JourneyCardThemePickerHandle>(null);
   const shopPickerRef = useRef<JourneyShopSwitchPickerHandle>(null);
+  const watermarkPickerRef = useRef<JourneyWatermarkPickerHandle>(null);
   const onCustomize = tab === "customize";
-  const customizeDirty = themeDirty || avatarDirty || cardDirty || shopDirty;
+  const customizeDirty =
+    themeDirty ||
+    avatarDirty ||
+    cardDirty ||
+    shopDirty ||
+    watermarkDirty;
   const themeFooter =
     onCustomize &&
     (customizeSub === "theme" ||
       customizeSub === "avatar" ||
       customizeSub === "post" ||
       customizeSub === "shop" ||
+      customizeSub === "watermark" ||
       customizeDirty);
   const customizeStubFooter = onCustomize && !themeFooter;
 
@@ -234,6 +262,9 @@ export function JourneyEditProfileModal({
   }, []);
   const onShopDirtyChange = useCallback((dirty: boolean) => {
     setShopDirty(dirty);
+  }, []);
+  const onWatermarkDirtyChange = useCallback((dirty: boolean) => {
+    setWatermarkDirty(dirty);
   }, []);
 
   /* Mount flag — portal chỉ chạy sau khi client hydrate xong (tránh SSR mismatch). */
@@ -268,15 +299,20 @@ export function JourneyEditProfileModal({
     );
     setGiaiDoan(initial.giaiDoan);
     setTab(initialTab);
-    setCustomizeSub("theme");
+    setCustomizeSub(
+      initialTab === "customize" && isCustomizeSubTab(initialCustomizeSub)
+        ? initialCustomizeSub
+        : "theme",
+    );
     setThemeDirty(false);
     setAvatarDirty(false);
     setCardDirty(false);
     setShopDirty(false);
+    setWatermarkDirty(false);
     setThemeSaving(false);
     setSubmitError(null);
     setSavedFlash(false);
-  }, [open, initial, ownerSlug, initialTab]);
+  }, [open, initial, ownerSlug, initialTab, initialCustomizeSub]);
 
   async function runSlugCheck(value: string): Promise<boolean> {
     setSlugStatus({ kind: "checking" });
@@ -334,11 +370,19 @@ export function JourneyEditProfileModal({
     const avatarPicker = avatarPickerRef.current;
     const cardPicker = cardPickerRef.current;
     const shopPicker = shopPickerRef.current;
+    const watermarkPicker = watermarkPickerRef.current;
     const dirtyTheme = Boolean(themePicker?.isDirty());
     const dirtyAvatar = Boolean(avatarPicker?.isDirty());
     const dirtyCard = Boolean(cardPicker?.isDirty());
     const dirtyShop = Boolean(shopPicker?.isDirty());
-    if (!dirtyTheme && !dirtyAvatar && !dirtyCard && !dirtyShop) {
+    const dirtyWatermark = Boolean(watermarkPicker?.isDirty());
+    if (
+      !dirtyTheme &&
+      !dirtyAvatar &&
+      !dirtyCard &&
+      !dirtyShop &&
+      !dirtyWatermark
+    ) {
       return true;
     }
 
@@ -347,6 +391,7 @@ export function JourneyEditProfileModal({
       !dirtyAvatar &&
       !dirtyCard &&
       !dirtyShop &&
+      !dirtyWatermark &&
       (themePicker?.isDefaultDraft() ?? false);
 
     try {
@@ -361,6 +406,7 @@ export function JourneyEditProfileModal({
         ...(dirtyAvatar ? avatarPicker?.getPatch() ?? {} : {}),
         ...(dirtyCard ? cardPicker?.getPatch() ?? {} : {}),
         ...(dirtyShop ? shopPicker?.getPatch() ?? {} : {}),
+        ...(dirtyWatermark ? watermarkPicker?.getPatch() ?? {} : {}),
       };
       if (Object.keys(body).length === 0) return true;
       const data = await patchGiaoDien(body);
@@ -375,24 +421,35 @@ export function JourneyEditProfileModal({
       if (dirtyShop) {
         shopPicker?.markSaved(data.shopSwitch, data.customs);
       }
+      if (dirtyWatermark) {
+        watermarkPicker?.markSaved(data.watermark, data.customs);
+      }
       return true;
     } catch {
       return false;
     }
   }
 
-  /** Đóng có xác nhận nếu theme/avatar/bài viết/shop chưa lưu. Không đóng khi bấm ngoài backdrop. */
+  /** Đóng có xác nhận nếu theme/avatar/bài viết/shop/watermark chưa lưu. Không đóng khi bấm ngoài backdrop. */
   async function requestClose() {
     if (isPending || themeSaving) return;
     const themePicker = themePickerRef.current;
     const avatarPicker = avatarPickerRef.current;
     const cardPicker = cardPickerRef.current;
     const shopPicker = shopPickerRef.current;
+    const watermarkPicker = watermarkPickerRef.current;
     const dirtyTheme = Boolean(themePicker?.isDirty());
     const dirtyAvatar = Boolean(avatarPicker?.isDirty());
     const dirtyCard = Boolean(cardPicker?.isDirty());
     const dirtyShop = Boolean(shopPicker?.isDirty());
-    if (dirtyTheme || dirtyAvatar || dirtyCard || dirtyShop) {
+    const dirtyWatermark = Boolean(watermarkPicker?.isDirty());
+    if (
+      dirtyTheme ||
+      dirtyAvatar ||
+      dirtyCard ||
+      dirtyShop ||
+      dirtyWatermark
+    ) {
       const wantSave = window.confirm(
         "Bạn có thay đổi giao diện chưa lưu.\n\nOK = Lưu rồi đóng\nCancel = Đóng mà không lưu",
       );
@@ -405,15 +462,18 @@ export function JourneyEditProfileModal({
         setAvatarDirty(false);
         setCardDirty(false);
         setShopDirty(false);
+        setWatermarkDirty(false);
       } else {
         themePicker?.discard();
         avatarPicker?.discard();
         cardPicker?.discard();
         shopPicker?.discard();
+        watermarkPicker?.discard();
         setThemeDirty(false);
         setAvatarDirty(false);
         setCardDirty(false);
         setShopDirty(false);
+        setWatermarkDirty(false);
       }
     }
     handleClose();
@@ -428,6 +488,7 @@ export function JourneyEditProfileModal({
       setAvatarDirty(false);
       setCardDirty(false);
       setShopDirty(false);
+      setWatermarkDirty(false);
     }
   }
 
@@ -1059,6 +1120,23 @@ export function JourneyEditProfileModal({
                   initialShopSwitch={initial.profileShopSwitch ?? null}
                   ownerSlug={ownerSlug}
                   onDirtyChange={onShopDirtyChange}
+                />
+              ) : null}
+            </div>
+
+            <div
+              id="j-edit-subpanel-watermark"
+              role="tabpanel"
+              aria-labelledby="j-edit-subtab-watermark"
+              className="j-edit-subpanel"
+              hidden={customizeSub !== "watermark"}
+            >
+              {tab === "customize" &&
+              (customizeSub === "watermark" || watermarkDirty) ? (
+                <JourneyWatermarkPicker
+                  ref={watermarkPickerRef}
+                  initialWatermark={initial.profileWatermark ?? null}
+                  onDirtyChange={onWatermarkDirtyChange}
                 />
               ) : null}
             </div>

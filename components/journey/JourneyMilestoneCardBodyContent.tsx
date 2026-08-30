@@ -21,6 +21,7 @@ import type { MilestoneMediaItem } from "@/components/journey/milestone-types";
 import { extractCfImageIdFromDeliveryUrl } from "@/lib/cloudflare/image-id-from-url";
 import { albumLayoutModeFromBlocks } from "@/lib/journey/album-layout-mode";
 import type { GridImage } from "@/lib/journey/image-grid";
+import type { WatermarkRenderDto } from "@/lib/journey/watermark";
 import {
   gridThumbSrc,
   isPortraitGridImage,
@@ -114,6 +115,8 @@ type Props = {
   /** Có permalink bài — dùng cho fallback copy. */
   hasLinkedPost?: boolean;
   onTagLinkClick?: (e: React.MouseEvent) => void;
+  /** Watermark overlay — non-owner + post bật. */
+  watermark?: WatermarkRenderDto | null;
 };
 
 function shouldIgnoreBodyTrigger(target: Element | null): boolean {
@@ -148,6 +151,7 @@ export function JourneyMilestoneCardBodyContent({
   captionExpandMode = "overlay",
   hasLinkedPost = false,
   onTagLinkClick,
+  watermark = null,
 }: Props) {
   const router = useRouter();
   const blocks = noiDungBlocks ?? null;
@@ -783,6 +787,7 @@ export function JourneyMilestoneCardBodyContent({
                   lightboxImages={albumHeroLightboxImages ?? undefined}
                   lightboxIndexOffset={1}
                   onOpenOverride={onOpenStreamVideo}
+                  watermark={watermark}
                 />
               </div>
             </div>
@@ -795,6 +800,7 @@ export function JourneyMilestoneCardBodyContent({
                 eagerLoad={eagerMedia}
                 albumLayoutMode={albumLayoutMode}
                 onOpenOverride={onOpenStreamVideo}
+                watermark={watermark}
               />
             </div>
           ) : (isPhotoSingle || isPhotoCard) &&
@@ -819,6 +825,7 @@ export function JourneyMilestoneCardBodyContent({
                 eagerLoad={eagerMedia}
                 albumLayoutMode={albumLayoutMode}
                 onOpenOverride={onOpenStreamVideo}
+                watermark={watermark}
               />
             </div>
           ) : isTextWithImage && hasCoverPreview && preview ? (
@@ -883,12 +890,18 @@ export function JourneyMilestoneCardBodyContent({
             <JourneyCardEmbedPeek body={body} blocks={blocks} />
           ) : showArticleEmbedBlocksPeek && articleEmbedPeekBlocks.length > 0 ? (
             <div className="preview preview--article-peek is-embed-interactive">
-              <PostBlockRenderer blocks={articleEmbedPeekBlocks} />
+              <PostBlockRenderer
+                blocks={articleEmbedPeekBlocks}
+                watermark={watermark}
+              />
             </div>
           ) : showArticleContentPeek ? (
             <div className="preview preview--article-peek">
               <div className="preview--article-peek-inner">
-                <PostBlockRenderer blocks={articlePeekBlocks} />
+                <PostBlockRenderer
+                  blocks={articlePeekBlocks}
+                  watermark={watermark}
+                />
               </div>
               {showExpandTrigger ? expandCtaOverlay : null}
             </div>

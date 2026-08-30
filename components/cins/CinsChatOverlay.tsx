@@ -185,6 +185,7 @@ import {
   upsertChatReadCursor,
 } from "@/lib/chat/read-cursors-client";
 import { useChatReadCursorsRealtime } from "@/lib/chat/use-chat-read-cursors-realtime";
+import { useOpenRoomMessageBackfill } from "@/lib/chat/use-open-room-message-backfill";
 import { useRoomPresence } from "@/lib/chat/use-room-presence";
 import {
   patchThreadMessages,
@@ -2878,65 +2879,57 @@ export function CinsChatOverlay({
   }, [active?.messages.at(-1)?.id, active?.roomId, persistViewedRoom]);
 
   /**
-   * Phòng tư vấn org (staff inbox): Realtime phụ thuộc RLS `chat_thanh_vien`.
-   * Poll nhẹ khi đang mở hội thoại để đồng bộ preview + tin mới nếu channel miss.
+   * Mọi hội thoại đang mở: REST backfill. Realtime WS có thể «joined» nhưng im
+   * (tab lâu, gap reconnect) — trước đây chỉ poll inbox org 8s nên DM đứng hình.
    */
-  useEffect(() => {
-    const roomId = active?.roomId;
-    if (!roomId || isPendingRoomId(roomId)) return;
-    if (!active.isOrgStaffInbox && !active.isOrgAdvisory) return;
+  useOpenRoomMessageBackfill(active?.roomId, (raw) => {
+    const roomId = activeRoomIdRef.current;
+    if (!roomId) return;
+    const baseMessages = applyChatViewerPerspective(raw, viewerProfileId);
+    const lastMsg = baseMessages[baseMessages.length - 1];
+    if (!lastMsg) return;
+    const nextPreview = messagePreviewText(lastMsg);
+    let added = false;
 
-    let cancelled = false;
-    const tick = async () => {
-      try {
-        const page = await fetchRoomMessagesPage(roomId, { limit: 12 });
-        if (!page || cancelled) return;
-        const baseMessages = applyChatViewerPerspective(
-          page.messages,
-          viewerProfileId,
-        );
-        const lastMsg = baseMessages[baseMessages.length - 1];
-        if (!lastMsg) return;
-        const nextPreview = messagePreviewText(lastMsg);
+    setThreads((prev) =>
+      prev.map((t) => {
+        if (t.roomId !== roomId) return t;
+        const previewStale =
+          t.lastAt < lastMsg.sentAt || t.preview !== nextPreview;
+        let messages = t.messages;
+        for (const msg of baseMessages) {
+          const enriched = t.isGroup
+            ? applyKnownGroupSender(msg, t.memberAvatars)
+            : msg;
+          messages = appendChatMessageIfNew(messages, enriched);
+        }
+        if (messages !== t.messages) added = true;
+        if (added && viewerProfileId) {
+          writeRoomMessagesCache(viewerProfileId, roomId, messages);
+        }
+        if (!previewStale && messages === t.messages) return t;
+        return {
+          ...t,
+          messages,
+          preview: nextPreview,
+          lastAt: lastMsg.sentAt > t.lastAt ? lastMsg.sentAt : t.lastAt,
+          unread: 0,
+        };
+      }),
+    );
 
-        setThreads((prev) =>
-          prev.map((t) => {
-            if (t.roomId !== roomId) return t;
-            const previewStale =
-              t.lastAt < lastMsg.sentAt || t.preview !== nextPreview;
-            let messages = t.messages;
-            if (t.roomId === activeRoomIdRef.current) {
-              for (const msg of baseMessages) {
-                messages = appendChatMessageIfNew(messages, msg);
-              }
-            }
-            if (!previewStale && messages === t.messages) return t;
-            return {
-              ...t,
-              messages,
-              preview: nextPreview,
-              lastAt: lastMsg.sentAt > t.lastAt ? lastMsg.sentAt : t.lastAt,
-              unread: t.roomId === activeRoomIdRef.current ? 0 : t.unread,
-            };
-          }),
-        );
-      } catch {
-        /* ignore */
-      }
-    };
-
-    void tick();
-    const timer = window.setInterval(() => void tick(), 8_000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [
-    active?.roomId,
-    active?.isOrgStaffInbox,
-    active?.isOrgAdvisory,
-    viewerProfileId,
-  ]);
+    if (!added) return;
+    const container = messagesContainerRef.current;
+    const nearBottom = container
+      ? container.scrollHeight - container.scrollTop - container.clientHeight < 80
+      : true;
+    if (nearBottom) {
+      shouldScrollToBottomRef.current = true;
+      requestAnimationFrame(() =>
+        scrollMessagesToBottomRef.current("smooth"),
+      );
+    }
+  });
 
   useEffect(() => {
     const roomId = active?.roomId;
