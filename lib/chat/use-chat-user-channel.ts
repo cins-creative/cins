@@ -2,27 +2,53 @@
 
 import { useEffect, useRef } from "react";
 
-import type { ChatRealtimeRow } from "@/lib/chat/realtime";
-import { emitChatRealtimeResubscribed } from "@/lib/chat/realtime-events";
+import {
+  CHAT_BROADCAST_EVENT,
+  chatUserTopic,
+  type ChatEnvelope,
+} from "@/lib/chat/publish-types";
+import { emitChatEnvelope } from "@/lib/chat/realtime-events";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 const MAX_RETRY_DELAY_MS = 15_000;
 const BASE_RETRY_DELAY_MS = 1_000;
-/** Watchdog: kênh có thể "chết im" không bắn CLOSED/ERROR (máy ngủ, tab throttle). */
 const HEARTBEAT_MS = 25_000;
 
-export function useChatRealtime(
+export function isChatBroadcastClientEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_CHAT_BROADCAST?.trim() === "on";
+}
+
+function parseEnvelope(raw: unknown): ChatEnvelope | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const roomId = typeof o.roomId === "string" ? o.roomId : "";
+  const messageId = typeof o.messageId === "string" ? o.messageId : "";
+  const senderId = typeof o.senderId === "string" ? o.senderId : "";
+  if (!roomId || !messageId || !senderId) return null;
+  return {
+    roomId,
+    messageId,
+    senderId,
+    sentAt: typeof o.sentAt === "string" ? o.sentAt : "",
+    kind: typeof o.kind === "string" ? o.kind : "text",
+    preview: typeof o.preview === "string" ? o.preview : "",
+    event: o.event === "update" ? "update" : "insert",
+  };
+}
+
+/**
+ * Kênh riêng `cins-user:<profileId>` — chỉ bật khi `NEXT_PUBLIC_CHAT_BROADCAST=on`
+ * **và** đã apply `migration_chat_user_broadcast.sql`. Không thay CDC.
+ */
+export function useChatUserChannel(
   viewerProfileId: string | null,
-  onInsert: (row: ChatRealtimeRow) => void,
-  onUpdate?: (row: ChatRealtimeRow) => void,
+  onEnvelope: (envelope: ChatEnvelope) => void,
 ) {
-  const onInsertRef = useRef(onInsert);
-  onInsertRef.current = onInsert;
-  const onUpdateRef = useRef(onUpdate);
-  onUpdateRef.current = onUpdate;
+  const onEnvelopeRef = useRef(onEnvelope);
+  onEnvelopeRef.current = onEnvelope;
 
   useEffect(() => {
-    if (!viewerProfileId) return;
+    if (!viewerProfileId || !isChatBroadcastClientEnabled()) return;
 
     let supabase: ReturnType<typeof createSupabaseBrowserClient>;
     try {
@@ -57,53 +83,23 @@ export function useChatRealtime(
       }
     };
 
-    /* Kênh «zombie»: trình duyệt báo còn mở nhưng ngưng nhận frame (máy ngủ,
-       tab bị suspend trên mobile, mất mạng chớp nhoáng) — không tự phục hồi
-       nếu chỉ dựa vào .subscribe() một lần. Theo dõi status + tự resubscribe. */
     const connect = () => {
       if (disposed) return;
-
-      /* Topic duy nhất mỗi lần subscribe — tránh tái dùng channel đã
-         `subscribe()` (StrictMode double-invoke / remount nhanh) gây lỗi
-         «cannot add postgres_changes callbacks after subscribe()». */
-      const uniqueTopic = `cins-chat:${viewerProfileId}:${Math.random()
-        .toString(36)
-        .slice(2)}`;
-
+      const topic = chatUserTopic(viewerProfileId);
       channel = supabase
-        .channel(uniqueTopic)
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "chat_tin_nhan",
-          },
-          (payload) => {
-            const row = payload.new as ChatRealtimeRow | null;
-            if (!row?.id || row.da_xoa) return;
-            onInsertRef.current(row);
-          },
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "chat_tin_nhan",
-          },
-          (payload) => {
-            const row = payload.new as ChatRealtimeRow | null;
-            if (!row?.id) return;
-            onUpdateRef.current?.(row);
-          },
-        )
+        .channel(topic, { config: { private: true } })
+        .on("broadcast", { event: CHAT_BROADCAST_EVENT }, (payload) => {
+          const envelope = parseEnvelope(
+            (payload as { payload?: unknown }).payload ?? payload,
+          );
+          if (!envelope) return;
+          onEnvelopeRef.current(envelope);
+          emitChatEnvelope(envelope.roomId);
+        })
         .subscribe((status) => {
           if (disposed) return;
           if (status === "SUBSCRIBED") {
             retryCount = 0;
-            /* Có thể vừa có gap trong lúc kênh chết → hook bù tin catch-up ngay. */
-            emitChatRealtimeResubscribed();
             return;
           }
           if (
@@ -126,7 +122,7 @@ export function useChatRealtime(
         try {
           await supabase.realtime.setAuth();
         } catch {
-          /* token callback lỗi — vẫn thử subscribe lại */
+          /* ignore */
         }
         if (disposed) return;
         connect();
@@ -149,8 +145,6 @@ export function useChatRealtime(
       }, delay);
     };
 
-    /* Tab lại hiện: chỉ reconnect khi kênh không còn joined — teardown kênh
-       khỏe tạo gap INSERT (tin mới rơi trong lúc await removeChannel). */
     const onVisible = () => {
       if (document.visibilityState !== "visible") return;
       const state = channel?.state;
@@ -179,11 +173,12 @@ export function useChatRealtime(
       try {
         await supabase.realtime.setAuth();
       } catch {
-        /* token callback lỗi — vẫn thử subscribe */
+        /* ignore */
       }
       if (disposed) return;
       connect();
     })();
+
     watchdogTimer = setInterval(() => {
       if (disposed || reconnecting) return;
       if (document.visibilityState !== "visible") return;

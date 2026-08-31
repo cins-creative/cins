@@ -247,7 +247,7 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 | `chat/rooms/[roomId]` | PATCH tên · DELETE phòng (owner) |
 | `chat/rooms/[roomId]/members` · `.../[userId]` | Thành viên: list/thêm · đổi vai trò/kick |
 | `chat/rooms/[roomId]/invite` · `join-requests` · `leave` · `avatar` | Link mời, duyệt xin vào, rời, avatar |
-| `chat/rooms/[roomId]/messages` · `.../[messageId]` · `reactions` · `read` · `pins` | Tin, sửa/thu hồi/ghim, reaction, đã đọc |
+| `chat/rooms/[roomId]/messages` · `.../[messageId]` · `reactions` · `read` · `pins` | Tin, sửa/thu hồi/ghim, reaction, đã đọc. **GET `?after=<messageId>`** = catch-up delta (không `before` cùng lúc; **không** `mark_read`). Keyset `(tao_luc, id)`. L35d |
 | `chat/rooms/[roomId]/projects` | GET list project con · POST tạo (owner/admin cha) — **L28** |
 | `chat/rooms/[roomId]/visibility` | PATCH `trang_thai` `active`\|`an` (ẩn/khôi phục project) — **L28** |
 | `chat/rooms/[roomId]/tags` · `.../[tagId]` | Thẻ tài nguyên phòng: list/tạo · xóa — **L28** |
@@ -284,7 +284,7 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 | `billing/` | **Billing P1–P2 + SePay log** — tk · hub · hoá đơn · Sepay log thô · dual-write · notify · Journey ghim | `tk.ts` · `hub.ts` · `hoa-don.ts` · `sepay-giao-dich.ts` · `phan-bo.ts` · `notify-hoa-don.ts` · `journey-ghim.ts` · `journey-pin-hide.ts` · … |
 | `tag/` | Tạo tag, dedup, gen tom-tat, normalize, slug, admin merge | `create.ts`, `gen-tom-tat.ts`, `dedup.ts`, `normalize.ts` |
 | `filter/` | **Filter cá nhân** (user & org): CRUD nhãn, gắn cột mốc/bài org, list theo chủ, đếm visible cho khách, nhãn hệ thống `cong-dong` | `create.ts`, `update.ts`, `delete.ts`, `gan.ts`, `list-cua-user.ts`, `count-visible-to-viewer.ts`, `cong-dong-personal-filter.ts` (+ `.shared.ts`) |
-| `chat/` | **Chat:** DM/org/nhóm, realtime, ghim, nhóm bạn bè, **project con**, thẻ tài nguyên, mốc phòng, bình chọn; overlay tab **Mua bán** (`types` `ChatThreadView`/`ChatMuaBanSub`, cờ shop trên `listAllChatThreads`); **inbox org staff** (`canAccessOrgInbox` · `listOrgInboxThreadsForStaff`) gồm studio | `group-message.ts`, `group-roles.ts`, `project-room.ts`, `room-tags.ts`, `room-moc.ts`, `room-poll.ts`, `direct-message.ts`, `org-message.ts`, `use-chat-realtime.ts` |
+| `chat/` | **Chat:** DM/org/nhóm, realtime, ghim, nhóm bạn bè, **project con**, thẻ tài nguyên, mốc phòng, bình chọn; overlay tab **Mua bán** (`types` `ChatThreadView`/`ChatMuaBanSub`, cờ shop trên `listAllChatThreads`); **inbox org staff** (`canAccessOrgInbox` · `listOrgInboxThreadsForStaff`) gồm studio | `group-message.ts`, `group-roles.ts`, `project-room.ts`, `room-tags.ts`, `room-moc.ts`, `room-poll.ts`, `direct-message.ts`, `org-message.ts`, `insert-message.ts`, `use-chat-realtime.ts`, `use-open-room-message-backfill.ts`, `publish.ts`, `use-chat-user-channel.ts` |
 | `articles/` | Bài viết nghề/keyword/phần mềm, quan hệ liên quan, link keyword | `queries.ts`, `nghe-role-preview.ts`, `link-keywords-in-html.ts`, `partition-*`, `article-href.ts`, `nghe-page-queries.ts` |
 | `seo/` | Metadata chuẩn, JSON-LD, sitemap articles | `site.ts`, `build-article-metadata.ts`, `json-ld.ts`, `sitemap-articles.ts` |
 | `bai-viet/` | Hub card, phân loại, pagination | `hub-card.ts`, `hub-loai.ts` |
@@ -308,6 +308,7 @@ Tái dùng đúng pattern Shopee AI cho **user tự import portfolio** của ch�
 
 | File | Tạo gì |
 |---|---|
+| `migration_chat_user_broadcast.sql` | **L35d Phase 2 — CHƯA CHẠY.** Policy `realtime.messages` cho topic `cins-user:<profileId>`. Cần user duyệt rồi mới apply. |
 | `audit_nghe_seo.sql` | **Readonly audit SEO nghề** — meta/tom_tat/noi_dung/bo_phan. Chạy: `node scripts/audit-nghe-seo.mjs` → `scripts/nghe-content/_audit-seo-report.json`. |
 | `migration_shop_dang_ky_mo.sql` | **Lead dựng shop hộ:** bảng `shop_dang_ky_mo` + enum kênh/trạng thái/hình thức; RLS bật, không policy (chỉ service role). API `POST /api/mo-shop` · UI `/mo-shop`. Chạy: `npm run migrate:shop-dang-ky-mo`. **Đã chạy** CINs 2026-08-11. Plan: `PLAN_mo-shop-ho.md`. |
 | `migration_shop_gio_cua_hang.sql` | Giỏ storefront: `shop_gio.id_cua_hang` + `id_cot_moc` nullable; CHECK XOR scope; unique partial (buyer+moc) / (buyer+cua_hang). Chạy: `node scripts/run-shop-gio-cua-hang-migration.mjs`. |
@@ -494,6 +495,10 @@ RESEND_FROM                    (optional; mặc định `CINs <noreply@cins.vn>`
 CINS_NOI_BO_SHOP_PHI_SECRET    (Bearer; shop chốt kỳ — fallback CINS_NOI_BO_DANG_BAI_SECRET)
 CSDT_PHI_MA_SALT               (salt mã CK Sepay — P0 B1; không public)
 # Tuỳ chọn fallback khi bảng cấu hình trống: CSDT_PHI_TY_LE · CSDT_PHI_NGUONG_VND
+
+# Chat L35d Phase 2 — mặc định tắt. Chỉ bật sau khi chạy migration_chat_user_broadcast.sql
+CHAT_BROADCAST                 (server: on = publish envelope sau INSERT)
+NEXT_PUBLIC_CHAT_BROADCAST     (client: on = subscribe kênh cins-user:<id>; cần rebuild)
 ```
 
 ### Đồng bộ `.env.local` ↔ Worker Cloudflare `cins` (2026-08-10)

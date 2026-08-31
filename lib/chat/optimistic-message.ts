@@ -7,6 +7,21 @@ export function isOptimisticMessageId(id: string): boolean {
   return id.startsWith(OPTIMISTIC_PREFIX);
 }
 
+/**
+ * Id tin cuối **đã tồn tại trên server** — dùng làm cursor catch-up (`?after=`).
+ * Bỏ qua bản optimistic đang gửi: id đó không có trong DB nên server sẽ coi như
+ * không có cursor và trả cả tail thay vì delta.
+ */
+export function latestServerMessageId(
+  messages: ReadonlyArray<{ id: string }>,
+): string | null {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const id = messages[i]?.id;
+    if (id && !isOptimisticMessageId(id)) return id;
+  }
+  return null;
+}
+
 export function createOptimisticChatMessage(input: {
   body: string;
   kind?: ChatMessageKind;

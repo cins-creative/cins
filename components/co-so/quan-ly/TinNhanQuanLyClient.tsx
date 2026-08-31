@@ -46,19 +46,13 @@ import {
   messagePreviewText,
 } from "@/lib/chat/optimistic-message";
 import type { OrgInboxThread } from "@/lib/chat/org-inbox-types";
-import {
-  mapRealtimeRow,
-  reconcileChatMessage,
-  type ChatRealtimeRow,
-} from "@/lib/chat/realtime";
+import { reconcileChatMessage } from "@/lib/chat/realtime";
 import { replaceOptimisticAlbumWithRealMessages } from "@/lib/chat/replace-album-batch";
 import type {
   ChatMessage,
   ChatMessageReplyPreview,
   ChatThread,
 } from "@/lib/chat/types";
-import { useChatRealtime } from "@/lib/chat/use-chat-realtime";
-import { tinHienVoiViewer } from "@/lib/chat/visibility";
 import { imageFilesFromClipboard } from "@/lib/files/clipboard-images";
 import { userEmojiDeliveryUrl } from "@/lib/user-emoji/delivery-url";
 import { chatImageDeliveryUrl } from "@/lib/chat/image-url";
@@ -721,6 +715,8 @@ function CoSoRoomsPane({
   statusFlash?: string | null;
   orgBrand?: { ten?: string | null; anh?: string | null } | null;
 }) {
+  /* Bus tin nhắn của provider — pane này không tự mở kênh realtime riêng nữa. */
+  const { subscribeChatMessages } = useCinsChat();
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -816,33 +812,38 @@ function CoSoRoomsPane({
   const selectedRoomIdRef = useRef(selectedRoomId);
   selectedRoomIdRef.current = selectedRoomId;
 
-  useChatRealtime(
-    viewerId,
-    (row: ChatRealtimeRow) => {
-      if (!viewerId) return;
-      if (!tinHienVoiViewer(row.chi_hien_cho, viewerId)) return;
-      if (!threadsRef.current.some((t) => t.roomId === row.id_phong)) return;
-      const mapped = mapRealtimeRow(row, viewerId);
+  /**
+   * Nhận tin qua **bus của provider** thay vì mở kênh realtime riêng — trước
+   * đây trang này subscribe toàn bảng `chat_tin_nhan` song song với provider.
+   * Bus phát event đã map + đã lọc `chi_hien_cho` (cùng luồng RLS).
+   */
+  useEffect(() => {
+    if (!viewerId) return;
+    return subscribeChatMessages((event) => {
+      /* Giữ đúng hành vi cũ: chỉ xử lý tin mới, không xử lý UPDATE. */
+      if (event.event !== "insert") return;
+      if (!threadsRef.current.some((t) => t.roomId === event.roomId)) return;
+      const mapped = event.message;
       const activeRoom = selectedRoomIdRef.current;
-      if (row.id_phong === activeRoom) {
+      if (event.roomId === activeRoom) {
         setMessages((prev) => reconcileChatMessage(prev, mapped));
       }
       setThreads((list) =>
         list.map((t) => {
-          if (t.roomId !== row.id_phong) return t;
+          if (t.roomId !== event.roomId) return t;
           return {
             ...t,
             preview: messagePreviewText(mapped).slice(0, 80),
             lastAt: mapped.sentAt,
             unread:
-              row.id_phong === activeRoom
+              event.roomId === activeRoom
                 ? 0
-                : t.unread + (row.id_nguoi_gui !== viewerId ? 1 : 0),
+                : t.unread + (event.senderId !== viewerId ? 1 : 0),
           };
         }),
       );
-    },
-  );
+    });
+  }, [subscribeChatMessages, viewerId]);
 
   const childCounts = useMemo(
     () => countActiveChildrenByParent(threads),

@@ -46,13 +46,7 @@ import {
   type OrgInboxThread,
   type OrgInboxThreadStatus,
 } from "@/lib/chat/org-inbox-types";
-import {
-  mapRealtimeRow,
-  reconcileChatMessage,
-  type ChatRealtimeRow,
-} from "@/lib/chat/realtime";
-import { useChatRealtime } from "@/lib/chat/use-chat-realtime";
-import { tinHienVoiViewer } from "@/lib/chat/visibility";
+import { reconcileChatMessage } from "@/lib/chat/realtime";
 import { replaceOptimisticAlbumWithRealMessages } from "@/lib/chat/replace-album-batch";
 import type { ChatMessage, ChatMessageReplyPreview } from "@/lib/chat/types";
 import { userEmojiDeliveryUrl } from "@/lib/user-emoji/delivery-url";
@@ -212,48 +206,57 @@ export function OrgInboxPanel({
     [threads, selectedStudentId],
   );
 
-  const { viewerProfileId } = useCinsChat();
+  const { viewerProfileId, subscribeChatMessages } = useCinsChat();
   const threadsRef = useRef(threads);
   threadsRef.current = threads;
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
 
-  useChatRealtime(viewerProfileId, (row: ChatRealtimeRow) => {
+  /**
+   * Nhận tin qua **bus của provider** thay vì tự mở kênh realtime riêng.
+   * Trước đây panel này subscribe toàn bảng `chat_tin_nhan` song song với
+   * provider ⇒ 2–3 kênh/tab và beep trùng. Bus phát event đã map + đã lọc
+   * `chi_hien_cho`, cùng luồng RLS nên tập tin nhận được y như cũ.
+   */
+  useEffect(() => {
     if (!viewerProfileId) return;
-    if (!tinHienVoiViewer(row.chi_hien_cho, viewerProfileId)) return;
-    const hit = threadsRef.current.find((t) => t.roomId === row.id_phong);
-    if (!hit) return;
+    return subscribeChatMessages((event) => {
+      /* Giữ đúng hành vi cũ: panel chỉ xử lý tin mới, không xử lý UPDATE. */
+      if (event.event !== "insert") return;
+      const hit = threadsRef.current.find((t) => t.roomId === event.roomId);
+      if (!hit) return;
 
-    const mapped = mapRealtimeRow(row, viewerProfileId);
-    const isActive = selectedRef.current?.roomId === row.id_phong;
-    const fromStudent = row.id_nguoi_gui === hit.studentUserId;
+      const mapped = event.message;
+      const isActive = selectedRef.current?.roomId === event.roomId;
+      const fromStudent = event.senderId === hit.studentUserId;
 
-    if (isActive) {
-      setMessages((prev) => reconcileChatMessage(prev, mapped));
-    }
+      if (isActive) {
+        setMessages((prev) => reconcileChatMessage(prev, mapped));
+      }
 
-    setThreads((list) => {
-      const next = list.map((t) => {
-        if (t.roomId !== row.id_phong) return t;
-        const unreadBump = !isActive && fromStudent;
-        return {
-          ...t,
-          preview: messagePreviewText(mapped).slice(0, 80),
-          lastAt: mapped.sentAt,
-          unread: isActive ? false : unreadBump ? true : t.unread,
-          unreadCount: isActive
-            ? 0
-            : unreadBump
-              ? t.unreadCount + 1
-              : t.unreadCount,
-          status: fromStudent ? ("open" as const) : t.status,
-        };
+      setThreads((list) => {
+        const next = list.map((t) => {
+          if (t.roomId !== event.roomId) return t;
+          const unreadBump = !isActive && fromStudent;
+          return {
+            ...t,
+            preview: messagePreviewText(mapped).slice(0, 80),
+            lastAt: mapped.sentAt,
+            unread: isActive ? false : unreadBump ? true : t.unread,
+            unreadCount: isActive
+              ? 0
+              : unreadBump
+                ? t.unreadCount + 1
+                : t.unreadCount,
+            status: fromStudent ? ("open" as const) : t.status,
+          };
+        });
+        return [...next].sort(
+          (a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime(),
+        );
       });
-      return [...next].sort(
-        (a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime(),
-      );
     });
-  });
+  }, [subscribeChatMessages, viewerProfileId]);
 
   const loadThreads = useCallback(
     async (options?: { silent?: boolean }) => {

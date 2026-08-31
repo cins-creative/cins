@@ -1,6 +1,7 @@
 import "server-only";
 
 import { isCloudflareImageId } from "@/lib/chat/image-url";
+import { insertChatMessageRow } from "@/lib/chat/insert-message";
 import { ensureOrgHubPhong } from "@/lib/co-so/org-hub-phong";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getViewerCoSoVaiTro } from "@/lib/to-chuc/co-so-membership";
@@ -338,13 +339,17 @@ export async function ensureLopChatPhongAndJoinStudent(input: {
       .eq("id", input.studentUserId)
       .maybeSingle<{ ten_hien_thi: string | null }>();
     const ten = user?.ten_hien_thi?.trim() || "học viên";
-    await admin.from("chat_tin_nhan").insert({
-      id_phong: ensured.roomId,
-      id_nguoi_gui: input.studentUserId,
-      loai_tin: "system",
-      noi_dung: `Chào mừng ${ten} đến với lớp học!`,
-      ngu_canh: { loai: "chao_lop", suKien: "join" },
-    });
+    /* Một cửa ghi tin. `bumpRoomAt` bỏ trống — giữ đúng hành vi cũ (không bump). */
+    await insertChatMessageRow<{ id: string }>(
+      {
+        id_phong: ensured.roomId,
+        id_nguoi_gui: input.studentUserId,
+        loai_tin: "system",
+        noi_dung: `Chào mừng ${ten} đến với lớp học!`,
+        ngu_canh: { loai: "chao_lop", suKien: "join" },
+      },
+      { select: "id", admin },
+    );
   }
 
   // Khóa đồng bộ tiến độ → HV mới nhận bài đang mở của lớp (Q5)

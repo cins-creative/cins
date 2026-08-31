@@ -27,9 +27,24 @@ export async function GET(req: Request, context: RouteContext) {
     80,
   );
   const before = url.searchParams.get("before")?.trim() || undefined;
-  /* Chỉ đánh dấu đã xem khi client chủ động (mở phòng) — không prefetch. */
+  /* Catch-up delta — bù tin miss khi WS zombie / gap reconnect. */
+  const after = url.searchParams.get("after")?.trim() || undefined;
+
+  if (before && after) {
+    return NextResponse.json(
+      { error: "Không dùng đồng thời before và after." },
+      { status: 400 },
+    );
+  }
+
+  /**
+   * Chỉ đánh dấu đã xem khi client chủ động mở phòng — không prefetch, không
+   * catch-up. `markRoomRead` đánh dấu đọc cả phòng nên mark read trên đường
+   * delta sẽ xoá sạch unread.
+   */
   const markRead =
     !before &&
+    !after &&
     (url.searchParams.get("mark_read") === "1" ||
       url.searchParams.get("mark_read") === "true");
 
@@ -37,12 +52,19 @@ export async function GET(req: Request, context: RouteContext) {
     const result = await listRoomMessages(roomId, session.profile.id, {
       limit,
       before,
+      after,
       markRead,
     });
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof Error && error.message === "FORBIDDEN") {
       return NextResponse.json({ error: "Không có quyền truy cập." }, { status: 403 });
+    }
+    if (error instanceof Error && error.message === "CURSOR_CONFLICT") {
+      return NextResponse.json(
+        { error: "Không dùng đồng thời before và after." },
+        { status: 400 },
+      );
     }
     return NextResponse.json(
       { error: "Không tải được tin nhắn." },

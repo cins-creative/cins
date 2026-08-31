@@ -21,73 +21,29 @@ import { GalleryItemVisual } from "@/components/journey/GalleryItemVisual";
 import { VideoProcessingPlaceholder } from "@/components/journey/VideoProcessingPlaceholder";
 import { GALLERY_GRID_IMAGE_SIZES } from "@/lib/cloudflare/cf-variant-url";
 import {
-  buildStreamIframeUrl,
   buildStreamThumbnailAtTime,
 } from "@/lib/cloudflare/stream-embed";
 import {
   applyStreamAudio,
   bindStreamPlayer,
   playStreamWithAudio,
+  seekStreamPlayer,
   type StreamPlayer,
 } from "@/lib/cloudflare/stream-player-sdk";
+import {
+  formatReelTime,
+  postStreamEvent,
+  streamPlayerIframeSrc,
+  toggleElementFullscreen,
+} from "@/lib/journey/stream-player-ui";
+import { useWorldJourneyFeedAudio } from "@/components/cins/world-journey/WorldJourneyFeedAudioContext";
 import { useT } from "@/lib/i18n/use-t";
 import { VIDEO_FEED_MAX_ASPECT } from "@/lib/journey/video-canvas-ratio";
 
 import "./wj-list-player.css";
 
-function formatReelTime(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
-  const total = Math.floor(seconds);
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
 function listingIframeSrc(uid: string): string {
-  const params = new URLSearchParams({
-    autoplay: "false",
-    muted: "true",
-    controls: "false",
-    preload: "auto",
-    loop: "false",
-  });
-  return `${buildStreamIframeUrl(uid)}?${params.toString()}`;
-}
-
-function postStreamEvent(
-  iframe: HTMLIFrameElement | null,
-  event: "play" | "pause",
-) {
-  try {
-    iframe?.contentWindow?.postMessage(JSON.stringify({ event }), "*");
-  } catch {
-    /* ignore */
-  }
-}
-
-async function toggleElementFullscreen(el: HTMLElement | null): Promise<void> {
-  if (!el) return;
-  const doc = document as Document & {
-    webkitExitFullscreen?: () => Promise<void> | void;
-    webkitFullscreenElement?: Element | null;
-  };
-  const anyEl = el as HTMLElement & {
-    webkitRequestFullscreen?: () => Promise<void> | void;
-  };
-  const current = document.fullscreenElement ?? doc.webkitFullscreenElement;
-  if (current) {
-    if (document.exitFullscreen) {
-      await document.exitFullscreen();
-      return;
-    }
-    await doc.webkitExitFullscreen?.();
-    return;
-  }
-  if (el.requestFullscreen) {
-    await el.requestFullscreen();
-    return;
-  }
-  await anyEl.webkitRequestFullscreen?.();
+  return streamPlayerIframeSrc(uid);
 }
 
 export type StreamInlineClip = {
@@ -131,7 +87,7 @@ export function WorldJourneyVideoListingPlayer({
   const uid = item.streamUid?.trim() ?? "";
   const visualSrc = item.masonrySrc?.trim() || item.src || "";
   const frameAspect = Math.max(thumbAspect ?? 16 / 9, VIDEO_FEED_MAX_ASPECT);
-  const [loopOn, setLoopOn] = useState(true);
+  const { loopOn, toggleLoop } = useWorldJourneyFeedAudio();
   const [paused, setPaused] = useState(true);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -224,12 +180,18 @@ export function WorldJourneyVideoListingPlayer({
     };
     const onEnded = () => {
       if (cancelled || !player) return;
-      if (!loopOnRef.current || !activeRef.current) return;
-      if (userPausedRef.current) return;
+      if (loopOnRef.current && activeRef.current) {
+        if (userPausedRef.current) return;
+        player.currentTime = 0;
+        void player.play().catch(() => {
+          postStreamEvent(el, "play");
+        });
+        return;
+      }
       player.currentTime = 0;
-      void player.play().catch(() => {
-        postStreamEvent(el, "play");
-      });
+      setCurrentTime(0);
+      setPaused(true);
+      userPausedRef.current = true;
     };
 
     const detach = () => {
@@ -370,16 +332,16 @@ export function WorldJourneyVideoListingPlayer({
     (ratio: number) => {
       const clamped = Math.min(1, Math.max(0, ratio));
       const player = playerRef.current;
+      const el = iframeRef.current;
       const d = player?.duration || duration;
       setScrubRatio(clamped);
       if (!Number.isFinite(d) || d <= 0) return;
       const next = clamped * d;
       setCurrentTime(next);
-      if (!player) return;
       if (seekRafRef.current) cancelAnimationFrame(seekRafRef.current);
       seekRafRef.current = requestAnimationFrame(() => {
         seekRafRef.current = 0;
-        player.currentTime = next;
+        seekStreamPlayer(player ?? playerRef.current, next, el);
       });
     },
     [duration],
@@ -422,8 +384,16 @@ export function WorldJourneyVideoListingPlayer({
   const onTimelinePointerUp = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       e.stopPropagation();
+      const ratio = ratioFromPointer(e);
       if (scrubbingRef.current) {
-        seekToRatio(ratioFromPointer(e));
+        seekToRatio(ratio);
+      }
+      const player = playerRef.current;
+      const d = player?.duration || duration;
+      if (Number.isFinite(d) && d > 0) {
+        const next = Math.min(1, Math.max(0, ratio)) * d;
+        setCurrentTime(next);
+        seekStreamPlayer(player, next, iframeRef.current);
       }
       scrubbingRef.current = false;
       setScrubbing(false);
@@ -433,7 +403,6 @@ export function WorldJourneyVideoListingPlayer({
         /* ignore */
       }
       if (wasPlayingRef.current && !userPausedRef.current) {
-        const player = playerRef.current;
         if (player) {
           applyStreamAudio(player, mutedRef.current);
           void player.play().catch(() => {
@@ -446,7 +415,7 @@ export function WorldJourneyVideoListingPlayer({
       }
       wasPlayingRef.current = false;
     },
-    [ratioFromPointer, seekToRatio],
+    [duration, ratioFromPointer, seekToRatio],
   );
 
   const setRoot = useCallback(
@@ -541,30 +510,37 @@ export function WorldJourneyVideoListingPlayer({
       {canControl ? (
         <div
           className={
-            "wj-reel-timeline is-pinned" + (scrubbing ? " is-scrubbing" : "")
+            "wj-reel-timeline is-pinned" +
+            (onOpenViewer ? " is-viewer-hit" : "") +
+            (scrubbing ? " is-scrubbing" : "")
           }
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onOpenViewer && !isFullscreen) onOpenViewer();
+          }}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <button
-            type="button"
-            className="wj-reel-timeline-btn"
-            aria-label={paused ? "Phát video" : "Tạm dừng"}
-            onClick={(e) => {
-              e.stopPropagation();
-              togglePlayback();
-            }}
-          >
-            {paused ? (
-              <Play size={18} strokeWidth={2.2} fill="currentColor" />
-            ) : (
-              <Pause size={18} strokeWidth={2.2} fill="currentColor" />
-            )}
-          </button>
+          {!onOpenViewer ? (
+            <button
+              type="button"
+              className="wj-reel-timeline-btn"
+              aria-label={paused ? t("reel.play") : t("reel.pause")}
+              onClick={(e) => {
+                e.stopPropagation();
+                togglePlayback();
+              }}
+            >
+              {paused ? (
+                <Play size={18} strokeWidth={2.2} fill="currentColor" />
+              ) : (
+                <Pause size={18} strokeWidth={2.2} fill="currentColor" />
+              )}
+            </button>
+          ) : null}
           <div
             className="wj-reel-timeline-scrub"
             role="slider"
-            aria-label="Timeline video"
+            aria-label={t("reel.timeline")}
             aria-valuemin={0}
             aria-valuemax={Math.round(duration) || 0}
             aria-valuenow={Math.round(currentTime)}
@@ -606,7 +582,7 @@ export function WorldJourneyVideoListingPlayer({
           <button
             type="button"
             className={"wj-reel-timeline-btn" + (muted ? "" : " is-on")}
-            aria-label={muted ? t("rail.unmute") : t("rail.mute")}
+            aria-label={muted ? t("reel.hearAll") : t("reel.muteAll")}
             aria-pressed={!muted}
             onClick={(e) => {
               e.stopPropagation();
@@ -628,35 +604,41 @@ export function WorldJourneyVideoListingPlayer({
               <Volume2 size={16} strokeWidth={2.2} />
             )}
           </button>
-          <button
-            type="button"
-            className={"wj-reel-timeline-btn" + (loopOn ? " is-on" : "")}
-            aria-label={loopOn ? "Tắt phát lại" : "Bật phát lại"}
-            aria-pressed={loopOn}
-            onClick={(e) => {
-              e.stopPropagation();
-              setLoopOn((prev) => !prev);
-            }}
-          >
-            <Repeat size={16} strokeWidth={2.2} />
-          </button>
-          <button
-            type="button"
-            className="wj-reel-timeline-btn"
-            aria-label={
-              isFullscreen ? "Thoát toàn màn hình" : "Phóng toàn màn hình"
-            }
-            onClick={(e) => {
-              e.stopPropagation();
-              void toggleElementFullscreen(stageRef.current);
-            }}
-          >
-            {isFullscreen ? (
-              <Minimize2 size={16} strokeWidth={2.2} />
-            ) : (
-              <Maximize2 size={16} strokeWidth={2.2} />
-            )}
-          </button>
+          {!onOpenViewer ? (
+            <>
+              <button
+                type="button"
+                className={"wj-reel-timeline-btn" + (loopOn ? " is-on" : "")}
+                aria-label={loopOn ? t("reel.loopOff") : t("reel.loopOn")}
+                aria-pressed={loopOn}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleLoop();
+                }}
+              >
+                <Repeat size={16} strokeWidth={2.2} />
+              </button>
+              <button
+                type="button"
+                className="wj-reel-timeline-btn"
+                aria-label={
+                  isFullscreen
+                    ? t("reel.exitFullscreen")
+                    : t("reel.fullscreen")
+                }
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void toggleElementFullscreen(stageRef.current);
+                }}
+              >
+                {isFullscreen ? (
+                  <Minimize2 size={16} strokeWidth={2.2} />
+                ) : (
+                  <Maximize2 size={16} strokeWidth={2.2} />
+                )}
+              </button>
+            </>
+          ) : null}
         </div>
       ) : null}
     </div>

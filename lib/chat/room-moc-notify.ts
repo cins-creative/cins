@@ -1,6 +1,10 @@
 import "server-only";
 
-import { mapMessageFromRow } from "@/lib/chat/direct-message";
+import { mapMessageFromRow, type MessageRow } from "@/lib/chat/direct-message";
+import {
+  CHAT_MESSAGE_ROW_COLS,
+  insertChatMessageRow,
+} from "@/lib/chat/insert-message";
 import { advanceLichLopMocAfterDue } from "@/lib/chat/room-moc-lop-lich";
 import { normalizeMocNguon } from "@/lib/chat/room-moc-nguon";
 import {
@@ -129,23 +133,21 @@ async function insertMocNoticeMessage(
   if (moc[col]) return null;
 
   const admin = createServiceRoleClient();
-  const { data: message, error } = await admin
-    .from("chat_tin_nhan")
-    .insert({
+  /* Một cửa ghi tin. Bump `cap_nhat_luc` giữ ở dưới — chỉ sau khi claim mốc. */
+  const { data: message, error } = await insertChatMessageRow<MessageRow>(
+    {
       id_phong: moc.id_phong,
       id_nguoi_gui: moc.id_nguoi_tao,
       noi_dung: bodyForSuKien(suKien, moc.ten),
       loai_tin: "system",
       ngu_canh: buildNguCanh(moc, suKien),
       da_xoa: false,
-    })
-    .select(
-      "id, id_phong, id_nguoi_gui, noi_dung, loai_tin, id_dinh_kem, id_tin_tra_loi, ngu_canh, tao_luc, da_xoa, da_sua, sua_luc",
-    )
-    .single();
+    },
+    { select: CHAT_MESSAGE_ROW_COLS, admin },
+  );
 
   if (error || !message?.id) {
-    console.error("[chat-moc-notify] insert failed", error?.message);
+    console.error("[chat-moc-notify] insert failed", error);
     return null;
   }
 

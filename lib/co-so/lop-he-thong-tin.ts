@@ -7,6 +7,7 @@ import "server-only";
 import {
   noiDungLopBaiStaff,
 } from "@/lib/chat/lop-bai-notice";
+import { insertChatMessageRow } from "@/lib/chat/insert-message";
 import type { ChatLopBaiNotice } from "@/lib/chat/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -59,17 +60,17 @@ export async function guiTinHeThongLopBai(input: {
     slug: input.slug,
   };
 
-  const { data: tin, error } = await admin
-    .from("chat_tin_nhan")
-    .insert({
+  /* Một cửa ghi tin — giữ nguyên hành vi cũ (không bump `cap_nhat_luc`). */
+  const { data: tin, error } = await insertChatMessageRow<{ id: string }>(
+    {
       id_phong: roomId,
       id_nguoi_gui: input.actorId,
       loai_tin: "system",
       noi_dung: noiDungLopBaiStaff(input.loai, input.tenBai, tenHv),
       ngu_canh: nguCanh,
-    })
-    .select("id")
-    .maybeSingle<{ id: string }>();
+    },
+    { select: "id", admin },
+  );
 
   if (error || !tin) return null;
   return tin.id;

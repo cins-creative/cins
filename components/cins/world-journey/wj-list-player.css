@@ -97,6 +97,14 @@
   transition: opacity 160ms ease;
 }
 
+.wj-list-player .wj-reel-timeline.is-viewer-hit {
+  cursor: pointer;
+}
+
+.wj-list-player .wj-reel-timeline.is-viewer-hit .wj-reel-timeline-scrub {
+  cursor: pointer;
+}
+
 .wj-list-player .wj-reel-timeline.is-pinned,
 .wj-list-player .wj-reel-timeline.is-scrubbing,
 .wj-list-player .wj-reel-timeline:focus-within {
@@ -139,13 +147,13 @@
 
 .wj-list-player .wj-reel-timeline-btn.is-on {
   background: transparent;
-  color: #22c55e;
+  color: var(--cins-blue, #1f74c9);
 }
 
 .wj-list-player .wj-reel-timeline-btn.is-on:hover,
 .wj-list-player .wj-reel-timeline-btn.is-on:focus-visible {
   background: transparent;
-  color: #4ade80;
+  color: color-mix(in srgb, var(--cins-blue, #1f74c9) 78%, white);
 }
 
 .wj-list-player .wj-reel-timeline-scrub {

@@ -1,6 +1,14 @@
 import "server-only";
 
-import { assertRoomMember, mapMessageFromRow } from "@/lib/chat/direct-message";
+import {
+  assertRoomMember,
+  mapMessageFromRow,
+  type MessageRow,
+} from "@/lib/chat/direct-message";
+import {
+  CHAT_MESSAGE_ROW_COLS,
+  insertChatMessageRow,
+} from "@/lib/chat/insert-message";
 import type { ChatMessage, ChatPollOption, ChatPollSummary } from "@/lib/chat/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -151,19 +159,18 @@ export async function createRoomPoll(
   }
 
   const admin = createServiceRoleClient();
-  const { data: message, error: msgError } = await admin
-    .from("chat_tin_nhan")
-    .insert({
+  /* Một cửa ghi tin. Bump `cap_nhat_luc` giữ ở dưới — chỉ sau khi tạo xong
+     bình chọn + lựa chọn, để rollback không để lại phòng bị bump oan. */
+  const { data: message, error: msgError } = await insertChatMessageRow<MessageRow>(
+    {
       id_phong: roomId,
       id_nguoi_gui: viewerId,
       noi_dung: question,
       loai_tin: "binh_chon",
       da_xoa: false,
-    })
-    .select(
-      "id, id_phong, id_nguoi_gui, noi_dung, loai_tin, id_dinh_kem, id_tin_tra_loi, ngu_canh, tao_luc, da_xoa, da_sua, sua_luc",
-    )
-    .single();
+    },
+    { select: CHAT_MESSAGE_ROW_COLS, admin },
+  );
 
   if (msgError || !message?.id) {
     return { ok: false, error: "Không tạo được tin bình chọn." };

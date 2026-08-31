@@ -37,13 +37,19 @@ export async function fetchChatThreadsSnapshot(): Promise<ChatThreadsSnapshot | 
   }
 }
 
-function readThreadsRam(viewerProfileId: string): ChatThreadsSnapshot | null {
+function readThreadsRam(
+  viewerProfileId: string,
+  maxAgeMs = THREADS_RAM_TTL_MS,
+): ChatThreadsSnapshot | null {
   const hit = threadsRamByViewer.get(viewerProfileId);
   if (!hit) return null;
-  if (Date.now() - hit.at > THREADS_RAM_TTL_MS) {
+  const age = Date.now() - hit.at;
+  if (age > THREADS_RAM_TTL_MS) {
     threadsRamByViewer.delete(viewerProfileId);
     return null;
   }
+  /* Còn trong TTL chung nhưng cũ hơn mức caller chấp nhận → để caller fetch lại. */
+  if (age > maxAgeMs) return null;
   return hit.data;
 }
 
@@ -54,11 +60,17 @@ function readThreadsRam(viewerProfileId: string): ChatThreadsSnapshot | null {
  */
 export async function prefetchChatThreads(
   viewerProfileId: string,
-  opts?: { force?: boolean },
+  opts?: { force?: boolean; maxAgeMs?: number },
 ): Promise<ChatThreadsSnapshot | null> {
   if (!opts?.force) {
-    const ram = readThreadsRam(viewerProfileId);
+    const ram = readThreadsRam(viewerProfileId, opts?.maxAgeMs);
     if (ram) return ram;
+    /**
+     * Vẫn dedupe theo inflight kể cả khi `maxAgeMs` ngắn — nhiều poller + event
+     * `visibilitychange`/`focus` bắn cùng lúc chỉ tạo **một** request.
+     * `/api/chat/threads` là endpoint đắt nhất của chat (6 nhóm query), nên
+     * **không** dùng `force` cho đường tab quay lại.
+     */
     const pending = threadsInflight.get(viewerProfileId);
     if (pending) return pending;
   }

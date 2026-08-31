@@ -117,6 +117,30 @@ export function pauseStream(
   postStreamPause(iframe);
 }
 
+/** Seek — SDK `currentTime` + postMessage (một số embed chỉ nghe message). */
+export function seekStreamPlayer(
+  player: { currentTime: number } | null | undefined,
+  seconds: number,
+  iframe?: HTMLIFrameElement | null,
+) {
+  if (!Number.isFinite(seconds) || seconds < 0) return;
+  if (player) {
+    try {
+      player.currentTime = seconds;
+    } catch {
+      /* ignore */
+    }
+  }
+  try {
+    iframe?.contentWindow?.postMessage(
+      JSON.stringify({ currentTime: seconds }),
+      "*",
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
 /** Unmute cần volume=1 — chỉ `muted=false` trên iframe Stream thường không có tiếng. */
 export function applyStreamAudio(
   player: { muted: boolean; volume?: number },

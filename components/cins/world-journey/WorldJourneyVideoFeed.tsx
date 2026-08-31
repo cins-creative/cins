@@ -1,7 +1,11 @@
 "use client";
 
 import {
+  ArrowLeft,
+  ChevronsLeft,
+  ChevronsRight,
   Clapperboard,
+  Loader2,
   Maximize2,
   Minimize2,
   Pause,
@@ -22,6 +26,7 @@ import {
 } from "react";
 
 import { JourneyUserPopover } from "@/components/journey/JourneyUserPopover";
+import { JourneyCommentsSheet } from "@/components/journey/JourneyCommentsSheet";
 import { VideoProcessingPlaceholder } from "@/components/journey/VideoProcessingPlaceholder";
 import { JourneyBookmarkButton } from "@/components/journey/JourneyBookmarkButton";
 import { JourneyCommentLink } from "@/components/journey/JourneyCommentLink";
@@ -35,18 +40,27 @@ import {
 } from "@/lib/cins/worldJourneyFeedConstants";
 import { replaceVideoPlayUrl } from "@/lib/cins/worldJourneyVideoUrl";
 import {
-  buildStreamIframeUrl,
   buildStreamThumbnailAtTime,
 } from "@/lib/cloudflare/stream-embed";
 import {
   applyStreamAudio,
   bindStreamPlayer,
   playStreamWithAudio,
+  seekStreamPlayer,
   type StreamPlayer,
 } from "@/lib/cloudflare/stream-player-sdk";
 import { SOCIAL_LOAI_DOI_TUONG } from "@/lib/cong-dong/constants";
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 import { isLikelyPortraitGalleryVideo } from "@/lib/journey/gallery-video-orientation";
+import {
+  formatReelTime,
+  postStreamEvent,
+  reelIframePreloadCount,
+  streamPlayerIframeSrc,
+  toggleElementFullscreen,
+  tryLockLandscape,
+  tryUnlockOrientation,
+} from "@/lib/journey/stream-player-ui";
 import {
   canvasAspectFromRatio,
   type VideoCanvasRatio,
@@ -129,11 +143,11 @@ type Props = {
 };
 
 /** Số video kế tiếp mount iframe (muted, không autoplay) trước khi scroll tới. */
-const REEL_IFRAME_PRELOAD = 2;
-/** Buffer ~3s rồi pause — clip kế mở là phát ngay, không tải lại từ đầu. */
-const REEL_WARM_SECONDS = 3;
+const REEL_IFRAME_PRELOAD_DEFAULT = 2;
 /** Còn ≤ N video trong list → prefetch trang API kế (không đợi sentinel). */
 const REEL_PAGE_PREFETCH_REMAINING = 3;
+const REEL_DOUBLE_TAP_MS = 280;
+const REEL_SEEK_STEP = 10;
 
 function isStreamVideoItem(item: GalleryMainItem): boolean {
   return Boolean(item.streamUid?.trim());
@@ -162,64 +176,8 @@ function reactionTarget(item: GalleryMainItem): {
   return { loai: SOCIAL_LOAI_DOI_TUONG.COT_MOC, id };
 }
 
-function formatReelTime(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
-  const total = Math.floor(seconds);
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
-/** Src cố định — play/pause/loop qua Stream SDK. Đổi query khi snap sẽ reload iframe (chớp). */
 function streamIframeSrc(uid: string): string {
-  const params = new URLSearchParams({
-    autoplay: "false",
-    muted: "true",
-    controls: "false",
-    preload: "auto",
-    loop: "false",
-  });
-  return `${buildStreamIframeUrl(uid)}?${params.toString()}`;
-}
-
-function postStreamEvent(
-  iframe: HTMLIFrameElement | null,
-  event: "play" | "pause",
-) {
-  try {
-    iframe?.contentWindow?.postMessage(JSON.stringify({ event }), "*");
-  } catch {
-    /* ignore */
-  }
-}
-
-function isCoarsePointer(e: { pointerType?: string }): boolean {
-  return e.pointerType === "touch" || e.pointerType === "pen";
-}
-
-async function toggleElementFullscreen(el: HTMLElement | null): Promise<void> {
-  if (!el) return;
-  const doc = document as Document & {
-    webkitExitFullscreen?: () => Promise<void> | void;
-    webkitFullscreenElement?: Element | null;
-  };
-  const anyEl = el as HTMLElement & {
-    webkitRequestFullscreen?: () => Promise<void> | void;
-  };
-  const current = document.fullscreenElement ?? doc.webkitFullscreenElement;
-  if (current) {
-    if (document.exitFullscreen) {
-      await document.exitFullscreen();
-      return;
-    }
-    await doc.webkitExitFullscreen?.();
-    return;
-  }
-  if (el.requestFullscreen) {
-    await el.requestFullscreen();
-    return;
-  }
-  await anyEl.webkitRequestFullscreen?.();
+  return streamPlayerIframeSrc(uid);
 }
 
 function ReelSlide({
@@ -231,6 +189,10 @@ function ReelSlide({
   muted,
   onToggleLoop,
   onToggleMuted,
+  onAdvanceNext,
+  clipIndex,
+  clipTotal,
+  registerActiveControls,
 }: {
   item: GalleryMainItem;
   active: boolean;
@@ -242,6 +204,17 @@ function ReelSlide({
   muted: boolean;
   onToggleLoop: () => void;
   onToggleMuted: () => void;
+  /** Hết clip + loop tắt → sang video kế. */
+  onAdvanceNext?: () => void;
+  clipIndex: number;
+  clipTotal: number;
+  registerActiveControls?: (
+    controls: {
+      togglePlayback: () => void;
+      toggleFullscreen: () => void;
+      seekBySeconds: (delta: number) => void;
+    } | null,
+  ) => void;
 }) {
   const uid = item.streamUid!.trim();
   const poster = item.src || item.videoPreviewSrc || undefined;
@@ -257,12 +230,20 @@ function ReelSlide({
   const [scrubRatio, setScrubRatio] = useState(0);
   const [chromeOn, setChromeOn] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [cssRotated, setCssRotated] = useState(false);
+  const [buffering, setBuffering] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [seekFlash, setSeekFlash] = useState<"back" | "fwd" | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const slideRef = useRef<HTMLElement>(null);
+  const videoRowRef = useRef<HTMLDivElement>(null);
   const chromeHideRef = useRef(0);
+  const seekFlashTimerRef = useRef(0);
+  const lastTapRef = useRef<{ t: number; x: number; y: number } | null>(null);
   const tapOriginRef = useRef({ x: 0, y: 0 });
   const tapArmedRef = useRef(false);
   const ignoreTapUntilRef = useRef(0);
+  const pointerHandledTapRef = useRef(false);
   const playerRef = useRef<StreamPlayer | null>(null);
   /** User chủ động pause — đừng auto-play lại khi effect active chạy. */
   const userPausedRef = useRef(false);
@@ -277,12 +258,13 @@ function ReelSlide({
   loopOnRef.current = loopOn;
   const mutedRef = useRef(muted);
   mutedRef.current = muted;
+  const onAdvanceNextRef = useRef(onAdvanceNext);
+  onAdvanceNextRef.current = onAdvanceNext;
   const playRetryRef = useRef<number[]>([]);
-  const warmingRef = useRef(false);
-  const warmedRef = useRef(false);
   const t = useT();
   const target = reactionTarget(item);
   const caption = item.meta?.trim() || item.label?.trim() || "";
+  const [captionExpanded, setCaptionExpanded] = useState(false);
   const iframeSrc = active || preload ? streamIframeSrc(uid) : null;
   const progress =
     duration > 0
@@ -297,6 +279,10 @@ function ReelSlide({
       : null;
   const sharePath = item.href?.trim() || null;
   const shareTitle = item.label?.trim() || caption || "CINs";
+  const commentsOwnerSlug =
+    item.postOwnerSlug?.trim() || item.authorSlug?.trim() || "";
+  const commentsMilestoneId = target?.id ?? item.cotMocId?.trim() ?? "";
+  const canOpenComments = Boolean(commentsOwnerSlug && commentsMilestoneId);
 
   useEffect(() => {
     const next = reelAspectFromItem(item);
@@ -308,6 +294,7 @@ function ReelSlide({
     return () => {
       if (seekRafRef.current) cancelAnimationFrame(seekRafRef.current);
       window.clearTimeout(chromeHideRef.current);
+      window.clearTimeout(seekFlashTimerRef.current);
     };
   }, []);
 
@@ -318,7 +305,16 @@ function ReelSlide({
       };
       const current =
         document.fullscreenElement ?? doc.webkitFullscreenElement ?? null;
-      setIsFullscreen(current === slideRef.current);
+      const row = videoRowRef.current;
+      const slide = slideRef.current;
+      const on =
+        Boolean(current) &&
+        (current === row || current === slide || Boolean(row?.contains(current)));
+      setIsFullscreen(on);
+      if (!on) {
+        tryUnlockOrientation();
+        setCssRotated(false);
+      }
     };
     document.addEventListener("fullscreenchange", onFs);
     document.addEventListener("webkitfullscreenchange", onFs);
@@ -330,7 +326,7 @@ function ReelSlide({
 
   useEffect(() => {
     if (active && canPlay) {
-      ignoreTapUntilRef.current = Date.now() + 500;
+      ignoreTapUntilRef.current = Date.now() + 200;
       tapArmedRef.current = false;
     }
   }, [active, canPlay]);
@@ -380,7 +376,6 @@ function ReelSlide({
     let player: StreamPlayer | null = null;
 
     const pauseIfNotCurrent = (next: StreamPlayer) => {
-      if (warmingRef.current) return;
       next.loop = false;
       next.pause();
       postStreamEvent(el, "pause");
@@ -407,16 +402,6 @@ function ReelSlide({
     };
     const onTime = () => {
       if (cancelled || !player || scrubbingRef.current) return;
-      if (warmingRef.current) {
-        const cap = Math.min(REEL_WARM_SECONDS, player.duration || REEL_WARM_SECONDS);
-        if (player.currentTime >= cap) {
-          warmingRef.current = false;
-          warmedRef.current = true;
-          player.pause();
-          player.currentTime = 0;
-        }
-        return;
-      }
       if (!activeRef.current || !canPlayRef.current) {
         if (!player.paused) pauseIfNotCurrent(player);
         return;
@@ -438,25 +423,43 @@ function ReelSlide({
     };
     const onEnded = () => {
       if (cancelled || !player) return;
-      if (!loopOnRef.current || !activeRef.current || !canPlayRef.current) {
+      if (!activeRef.current || !canPlayRef.current) return;
+      if (userPausedRef.current) return;
+      if (loopOnRef.current) {
+        player.currentTime = 0;
+        void player.play().catch(() => {
+          postStreamEvent(el, "play");
+        });
         return;
       }
-      if (userPausedRef.current) return;
+      /* Loop tắt → sang clip kế (hoặc dừng nếu hết list). */
       player.currentTime = 0;
-      void player.play().catch(() => {
-        postStreamEvent(el, "play");
-      });
+      setCurrentTime(0);
+      setPaused(true);
+      onAdvanceNextRef.current?.();
+    };
+    const onWaiting = () => {
+      if (cancelled) return;
+      if (!activeRef.current || !canPlayRef.current) return;
+      setBuffering(true);
+    };
+    const onPlaying = () => {
+      if (cancelled) return;
+      setBuffering(false);
     };
 
     const detach = () => {
       if (!player) return;
       player.removeEventListener("play", onPlay);
       player.removeEventListener("playing", onPlay);
+      player.removeEventListener("playing", onPlaying);
       player.removeEventListener("pause", onPause);
       player.removeEventListener("timeupdate", onTime);
       player.removeEventListener("durationchange", onMeta);
       player.removeEventListener("loadedmetadata", onMeta);
       player.removeEventListener("ended", onEnded);
+      player.removeEventListener("waiting", onWaiting);
+      player.removeEventListener("stalled", onWaiting);
     };
 
     const playIfActive = (next: StreamPlayer) => {
@@ -491,11 +494,14 @@ function ReelSlide({
         playerRef.current = next;
         next.addEventListener("play", onPlay);
         next.addEventListener("playing", onPlay);
+        next.addEventListener("playing", onPlaying);
         next.addEventListener("pause", onPause);
         next.addEventListener("timeupdate", onTime);
         next.addEventListener("durationchange", onMeta);
         next.addEventListener("loadedmetadata", onMeta);
         next.addEventListener("ended", onEnded);
+        next.addEventListener("waiting", onWaiting);
+        next.addEventListener("stalled", onWaiting);
         playIfActive(next);
       } catch {
         if (!cancelled) playerRef.current = null;
@@ -520,10 +526,10 @@ function ReelSlide({
     const player = playerRef.current;
     if (!player) return;
     player.loop = loopOn && canPlay;
-    if (!canPlay && !warmingRef.current) player.pause();
+    if (!canPlay) player.pause();
   }, [loopOn, canPlay]);
 
-  /* Slide vào khung chính → play; preload / chưa snap xong → pause. */
+  /* Slide vào khung chính → play; preload / chưa snap → chỉ load, không play. */
   useEffect(() => {
     const el = iframeRef.current;
 
@@ -555,47 +561,34 @@ function ReelSlide({
     const pauseInactive = () => {
       userPausedRef.current = false;
       setPaused(true);
+      setBuffering(false);
+      setCurrentTime(0);
       const player = playerRef.current;
       if (player) {
         player.pause();
+        try {
+          player.currentTime = 0;
+        } catch {
+          /* ignore */
+        }
         return;
       }
       postStreamEvent(el, "pause");
     };
 
-    if (!active) {
+    if (!active || !canPlay) {
       clearPlayRetries();
-      if (preload && !warmedRef.current) {
-        warmingRef.current = true;
+      if (!active) {
+        pauseInactive();
+      } else {
         setPaused(true);
         const player = playerRef.current;
-        if (player) {
-          player.muted = true;
-          player.loop = false;
-          void player.play().catch(() => {
-            postStreamEvent(el, "play");
-          });
-        } else {
-          postStreamEvent(el, "play");
-        }
-        return () => {
-          warmingRef.current = false;
-        };
+        if (player) player.pause();
+        else postStreamEvent(el, "pause");
       }
-      warmingRef.current = false;
-      pauseInactive();
-      return;
-    }
-    if (!canPlay) {
-      clearPlayRetries();
-      setPaused(true);
-      const player = playerRef.current;
-      if (player) player.pause();
-      else postStreamEvent(el, "pause");
       return;
     }
 
-    warmingRef.current = false;
     playActive();
     playRetryRef.current = [
       window.setTimeout(playActive, 350),
@@ -604,7 +597,7 @@ function ReelSlide({
     return () => {
       clearPlayRetries();
     };
-  }, [active, canPlay, iframeSrc, preload]);
+  }, [active, canPlay, iframeSrc]);
 
   useEffect(() => {
     const player = playerRef.current;
@@ -616,8 +609,30 @@ function ReelSlide({
   }, [muted]);
 
   const toggleFullscreen = useCallback(() => {
-    void toggleElementFullscreen(slideRef.current).catch(() => {});
+    void toggleElementFullscreen(videoRowRef.current ?? slideRef.current).catch(
+      () => {},
+    );
   }, []);
+
+  const toggleRotateFullscreen = useCallback(() => {
+    const row = videoRowRef.current;
+    if (!row) return;
+    if (cssRotated) {
+      setCssRotated(false);
+      tryUnlockOrientation();
+      return;
+    }
+    void (async () => {
+      try {
+        await toggleElementFullscreen(row);
+        await tryLockLandscape();
+        revealChrome(false);
+      } catch {
+        setCssRotated(true);
+        revealChrome(false);
+      }
+    })();
+  }, [cssRotated, revealChrome]);
 
   const togglePlayback = useCallback(() => {
     if (!active) return;
@@ -649,18 +664,90 @@ function ReelSlide({
   const seekToRatio = useCallback((ratio: number) => {
     const clamped = Math.min(1, Math.max(0, ratio));
     const player = playerRef.current;
+    const el = iframeRef.current;
     const d = player?.duration || duration;
     setScrubRatio(clamped);
     if (!Number.isFinite(d) || d <= 0) return;
     const next = clamped * d;
     setCurrentTime(next);
-    if (!player) return;
     if (seekRafRef.current) cancelAnimationFrame(seekRafRef.current);
     seekRafRef.current = requestAnimationFrame(() => {
       seekRafRef.current = 0;
-      player.currentTime = next;
+      seekStreamPlayer(player ?? playerRef.current, next, el);
     });
   }, [duration]);
+
+  const seekBySeconds = useCallback(
+    (delta: number) => {
+      const player = playerRef.current;
+      const el = iframeRef.current;
+      const d = player?.duration || duration;
+      if (!(d > 0)) return;
+      const cur = player?.currentTime ?? currentTime;
+      const next = Math.min(d, Math.max(0, cur + delta));
+      setCurrentTime(next);
+      seekStreamPlayer(player, next, el);
+      const dir = delta < 0 ? "back" : "fwd";
+      setSeekFlash(dir);
+      window.clearTimeout(seekFlashTimerRef.current);
+      seekFlashTimerRef.current = window.setTimeout(() => setSeekFlash(null), 650);
+      revealChrome(false);
+    },
+    [currentTime, duration, revealChrome],
+  );
+
+  const handleSurfaceTap = useCallback(
+    (clientX: number, clientY: number, rect: DOMRect) => {
+      const now = Date.now();
+      const last = lastTapRef.current;
+      const relX = rect.width > 0 ? (clientX - rect.left) / rect.width : 0.5;
+      const side: "back" | "fwd" | "mid" =
+        relX < 0.33 ? "back" : relX > 0.67 ? "fwd" : "mid";
+
+      if (
+        last &&
+        now - last.t < REEL_DOUBLE_TAP_MS &&
+        Math.abs(clientX - last.x) < 72 &&
+        Math.abs(clientY - last.y) < 72 &&
+        side !== "mid"
+      ) {
+        lastTapRef.current = null;
+        seekBySeconds(side === "back" ? -REEL_SEEK_STEP : REEL_SEEK_STEP);
+        return;
+      }
+
+      lastTapRef.current = { t: now, x: clientX, y: clientY };
+      window.setTimeout(() => {
+        const cur = lastTapRef.current;
+        if (!cur || cur.t !== now) return;
+        lastTapRef.current = null;
+        if (chromeOn && !paused) {
+          window.clearTimeout(chromeHideRef.current);
+          setChromeOn(false);
+          return;
+        }
+        togglePlayback();
+        revealChrome(paused);
+      }, REEL_DOUBLE_TAP_MS);
+    },
+    [chromeOn, paused, revealChrome, seekBySeconds, togglePlayback],
+  );
+
+  useEffect(() => {
+    if (!active || !registerActiveControls) return;
+    registerActiveControls({
+      togglePlayback,
+      toggleFullscreen,
+      seekBySeconds,
+    });
+    return () => registerActiveControls(null);
+  }, [
+    active,
+    registerActiveControls,
+    seekBySeconds,
+    toggleFullscreen,
+    togglePlayback,
+  ]);
 
   const ratioFromPointer = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -699,8 +786,17 @@ function ReelSlide({
   const onTimelinePointerUp = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       e.stopPropagation();
+      const ratio = ratioFromPointer(e);
       if (scrubbingRef.current) {
-        seekToRatio(ratioFromPointer(e));
+        seekToRatio(ratio);
+      }
+      /* Ép seek sync trước play — tránh RAF chưa kịp apply. */
+      const player = playerRef.current;
+      const d = player?.duration || duration;
+      if (Number.isFinite(d) && d > 0) {
+        const next = Math.min(1, Math.max(0, ratio)) * d;
+        setCurrentTime(next);
+        seekStreamPlayer(player, next, iframeRef.current);
       }
       scrubbingRef.current = false;
       setScrubbing(false);
@@ -710,12 +806,13 @@ function ReelSlide({
         /* ignore */
       }
       if (wasPlayingRef.current && !userPausedRef.current) {
-        const player = playerRef.current;
         if (player) {
           void player.play().catch(() => {
             player.muted = true;
             void player.play();
           });
+        } else {
+          postStreamEvent(iframeRef.current, "play");
         }
         revealChrome(false);
       } else {
@@ -723,7 +820,7 @@ function ReelSlide({
       }
       wasPlayingRef.current = false;
     },
-    [ratioFromPointer, revealChrome, seekToRatio],
+    [duration, ratioFromPointer, revealChrome, seekToRatio],
   );
 
   return (
@@ -738,7 +835,12 @@ function ReelSlide({
     >
       <div className="wj-reel-frame">
         <div className="wj-reel-main">
-          <div className="wj-reel-video-row">
+          <div
+            ref={videoRowRef}
+            className={
+              "wj-reel-video-row" + (cssRotated ? " is-css-rotated" : "")
+            }
+          >
           <article
             ref={slideRef}
             className={
@@ -784,7 +886,7 @@ function ReelSlide({
               <button
                 type="button"
                 className="wj-reel-tap"
-                aria-label="Điều khiển video"
+                aria-label={t("reel.controls")}
                 onPointerDown={(e) => {
                   tapArmedRef.current = true;
                   tapOriginRef.current = { x: e.clientX, y: e.clientY };
@@ -798,20 +900,79 @@ function ReelSlide({
                   const dx = e.clientX - tapOriginRef.current.x;
                   const dy = e.clientY - tapOriginRef.current.y;
                   if (dx * dx + dy * dy > 64) return;
-                  if (isCoarsePointer(e)) {
-                    if (chromeOn && !paused) {
-                      window.clearTimeout(chromeHideRef.current);
-                      setChromeOn(false);
-                    } else {
-                      revealChrome(paused);
-                    }
-                    return;
-                  }
-                  togglePlayback();
+                  pointerHandledTapRef.current = true;
+                  window.setTimeout(() => {
+                    pointerHandledTapRef.current = false;
+                  }, 350);
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  handleSurfaceTap(e.clientX, e.clientY, rect);
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (pointerHandledTapRef.current) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  handleSurfaceTap(e.clientX, e.clientY, rect);
                 }}
               />
             ) : null}
+            {seekFlash ? (
+              <span
+                className={"wj-reel-seek-flash is-" + seekFlash}
+                aria-live="polite"
+              >
+                {seekFlash === "back" ? (
+                  <>
+                    <ChevronsLeft size={28} strokeWidth={2.2} aria-hidden />
+                    <span>{t("reel.seekBack")}</span>
+                  </>
+                ) : (
+                  <>
+                    <ChevronsRight size={28} strokeWidth={2.2} aria-hidden />
+                    <span>{t("reel.seekFwd")}</span>
+                  </>
+                )}
+              </span>
+            ) : null}
+            {paused && active && !item.videoProcessing ? (
+              <span className="wj-reel-pause-badge" aria-hidden>
+                <Play size={22} strokeWidth={2.2} fill="currentColor" />
+              </span>
+            ) : null}
+            {buffering && active && !paused ? (
+              <span className="wj-reel-buffering" aria-hidden>
+                <Loader2 size={28} strokeWidth={2.2} className="wj-reel-spin" />
+              </span>
+            ) : null}
             </div>
+            {aspectMode === "landscape" && iframeSrc && !item.videoProcessing ? (
+              <button
+                type="button"
+                className="wj-reel-rotate"
+                aria-label={
+                  isFullscreen || cssRotated
+                    ? t("reel.exitFullscreen")
+                    : t("reel.fullscreen")
+                }
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleRotateFullscreen();
+                }}
+              >
+                {isFullscreen || cssRotated ? (
+                  <Minimize2 size={16} strokeWidth={2} />
+                ) : (
+                  <Maximize2 size={16} strokeWidth={2} />
+                )}
+              </button>
+            ) : null}
+            {/* Progress line luôn hiện khi chrome ẩn */}
+            {iframeSrc && !item.videoProcessing ? (
+              <div
+                className="wj-reel-progress-slim"
+                style={{ width: `${progress}%` }}
+                aria-hidden
+              />
+            ) : null}
             {iframeSrc && !item.videoProcessing ? (
               <div
                 className={
@@ -821,7 +982,7 @@ function ReelSlide({
                 <button
                   type="button"
                   className="wj-reel-timeline-btn"
-                  aria-label={paused ? "Phát video" : "Tạm dừng"}
+                  aria-label={paused ? t("reel.play") : t("reel.pause")}
                   onClick={(e) => {
                     e.stopPropagation();
                     togglePlayback();
@@ -837,7 +998,7 @@ function ReelSlide({
                 <div
                   className="wj-reel-timeline-scrub"
                   role="slider"
-                  aria-label="Timeline video"
+                  aria-label={t("reel.timeline")}
                   aria-valuemin={0}
                   aria-valuemax={Math.round(duration) || 0}
                   aria-valuenow={Math.round(currentTime)}
@@ -897,8 +1058,11 @@ function ReelSlide({
                 </span>
                 <button
                   type="button"
-                  className={"wj-reel-timeline-btn" + (muted ? "" : " is-on")}
-                  aria-label={muted ? t("rail.unmute") : t("rail.mute")}
+                  className={
+                    "wj-reel-timeline-btn wj-reel-timeline-btn--mute" +
+                    (muted ? "" : " is-on")
+                  }
+                  aria-label={muted ? t("reel.hearAll") : t("reel.muteAll")}
                   aria-pressed={!muted}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -924,9 +1088,10 @@ function ReelSlide({
                 <button
                   type="button"
                   className={
-                    "wj-reel-timeline-btn" + (loopOn ? " is-on" : "")
+                    "wj-reel-timeline-btn wj-reel-timeline-btn--loop" +
+                    (loopOn ? " is-on" : "")
                   }
-                  aria-label={loopOn ? "Tắt phát lại" : "Bật phát lại"}
+                  aria-label={loopOn ? t("reel.loopOff") : t("reel.loopOn")}
                   aria-pressed={loopOn}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -938,9 +1103,11 @@ function ReelSlide({
                 </button>
                 <button
                   type="button"
-                  className="wj-reel-timeline-btn"
+                  className="wj-reel-timeline-btn wj-reel-timeline-btn--fs"
                   aria-label={
-                    isFullscreen ? "Thoát toàn màn hình" : "Phóng toàn màn hình"
+                    isFullscreen
+                      ? t("reel.exitFullscreen")
+                      : t("reel.fullscreen")
                   }
                   onClick={(e) => {
                     e.stopPropagation();
@@ -1002,7 +1169,21 @@ function ReelSlide({
                     </>
                   )}
                 </div>
-                {caption ? <p className="wj-reel-caption">{caption}</p> : null}
+                {caption ? (
+                  <button
+                    type="button"
+                    className={
+                      "wj-reel-caption" +
+                      (captionExpanded ? " is-expanded" : "")
+                    }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCaptionExpanded((v) => !v);
+                    }}
+                  >
+                    {caption}
+                  </button>
+                ) : null}
               </div>
           </article>
 
@@ -1023,10 +1204,14 @@ function ReelSlide({
                   commentCount={null}
                   idDoiTuong={target.id}
                   loaiDoiTuong={target.loai}
-                  href={sharePath ?? undefined}
                   sharePath={sharePath}
                   shareTitle={shareTitle}
                   disableActorsReveal
+                  onOpenComments={
+                    canOpenComments
+                      ? () => setCommentsOpen(true)
+                      : undefined
+                  }
                 />
                 <JourneyBookmarkButton
                   milestoneId={target.id}
@@ -1036,7 +1221,13 @@ function ReelSlide({
                   disableActorsReveal
                 />
               </>
-            ) : null}
+            ) : (
+              <span className="wj-reel-rail-empty" aria-hidden title="Không có tương tác">
+                <span className="wj-reel-rail-ghost" />
+                <span className="wj-reel-rail-ghost" />
+                <span className="wj-reel-rail-ghost" />
+              </span>
+            )}
             {sharePath ? (
               <PostShareMenu
                 sharePath={sharePath}
@@ -1047,10 +1238,22 @@ function ReelSlide({
             ) : null}
             <button
               type="button"
+              className={"wj-reel-loop" + (loopOn ? " is-on" : "")}
+              aria-label={loopOn ? t("reel.loopOff") : t("reel.loopOn")}
+              aria-pressed={loopOn}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleLoop();
+              }}
+            >
+              <Repeat size={22} strokeWidth={2} aria-hidden />
+            </button>
+            <button
+              type="button"
               className={
                 "wj-reel-audio" + (muted ? "" : " is-hearing is-on")
               }
-              aria-label={muted ? t("reel.muteAll") : t("reel.hearAll")}
+              aria-label={muted ? t("reel.hearAll") : t("reel.muteAll")}
               aria-pressed={!muted}
               onClick={(e) => {
                 e.stopPropagation();
@@ -1071,12 +1274,28 @@ function ReelSlide({
               ) : (
                 <Volume2 size={22} strokeWidth={2} aria-hidden />
               )}
-              <span>{t("reel.audio")}</span>
             </button>
           </div>
           </div>
         </div>
       </div>
+      <span className="sr-only" aria-live="polite">
+        {active
+          ? t("reel.clipOf")
+              .replace("{n}", String(clipIndex + 1))
+              .replace("{total}", String(clipTotal))
+          : ""}
+      </span>
+      {canOpenComments ? (
+        <JourneyCommentsSheet
+          open={commentsOpen && active}
+          onClose={() => setCommentsOpen(false)}
+          postOwnerSlug={commentsOwnerSlug}
+          postSlug={item.postSlug}
+          milestoneId={commentsMilestoneId}
+          syncUrl={false}
+        />
+      ) : null}
     </div>
   );
 }
@@ -1170,18 +1389,19 @@ export function WorldJourneyVideoFeed({
   const [opened, setOpened] = useState(
     () => seedPlaylist(initialItems, startItemId, lockPlaylist).length > 0,
   );
-  const [loopOn, setLoopOn] = useState(true);
-  const { muted: mutedAll, toggleMuted: toggleMutedAll } =
-    useWorldJourneyFeedAudio();
+  const {
+    muted: mutedAll,
+    toggleMuted: toggleMutedAll,
+    loopOn,
+    toggleLoop,
+  } = useWorldJourneyFeedAudio();
   const [framedId, setFramedId] = useState<string | null>(() =>
     pickStartId(
       seedPlaylist(initialItems, startItemId, lockPlaylist),
       startItemId,
     ),
   );
-  const toggleLoop = useCallback(() => {
-    setLoopOn((prev) => !prev);
-  }, []);
+  const t = useT();
 
   const activeIndex = useMemo(() => {
     if (!activeId) return 0;
@@ -1198,6 +1418,33 @@ export function WorldJourneyVideoFeed({
   const panLockedRef = useRef(false);
   const panUnlockTimerRef = useRef(0);
   const wheelAccRef = useRef(0);
+  const bounceTimerRef = useRef(0);
+  const [edgeBounce, setEdgeBounce] = useState<0 | 1 | -1>(0);
+  const activeControlsRef = useRef<{
+    togglePlayback: () => void;
+    toggleFullscreen: () => void;
+    seekBySeconds: (delta: number) => void;
+  } | null>(null);
+  const iframePreload = reelIframePreloadCount(REEL_IFRAME_PRELOAD_DEFAULT);
+
+  const registerActiveControls = useCallback(
+    (
+      controls: {
+        togglePlayback: () => void;
+        toggleFullscreen: () => void;
+        seekBySeconds: (delta: number) => void;
+      } | null,
+    ) => {
+      activeControlsRef.current = controls;
+    },
+    [],
+  );
+
+  const pulseEdgeBounce = useCallback((dir: 1 | -1) => {
+    setEdgeBounce(dir);
+    window.clearTimeout(bounceTimerRef.current);
+    bounceTimerRef.current = window.setTimeout(() => setEdgeBounce(0), 220);
+  }, []);
 
   const schedulePanUnlock = useCallback((idleMs: number) => {
     window.clearTimeout(panUnlockTimerRef.current);
@@ -1280,11 +1527,22 @@ export function WorldJourneyVideoFeed({
   const goBy = useCallback(
     (dir: -1 | 1) => {
       if (panLockedRef.current) return false;
+      if (
+        typeof document !== "undefined" &&
+        (document.fullscreenElement ||
+          document.querySelector(".wj-reel-video-row.is-css-rotated"))
+      ) {
+        return false;
+      }
       const list = itemsRef.current;
       const next = activeIndexRef.current + dir;
-      if (next < 0) return false;
+      if (next < 0) {
+        pulseEdgeBounce(-1);
+        return false;
+      }
       if (next >= list.length) {
         if (hasMoreRef.current) void loadMore();
+        else pulseEdgeBounce(1);
         return false;
       }
       const id = list[next]?.id;
@@ -1295,7 +1553,7 @@ export function WorldJourneyVideoFeed({
       replaceVideoPlayUrl(id);
       return true;
     },
-    [loadMore],
+    [loadMore, pulseEdgeBounce],
   );
   const goByRef = useRef(goBy);
   goByRef.current = goBy;
@@ -1329,7 +1587,7 @@ export function WorldJourneyVideoFeed({
   useEffect(() => {
     if (typeof window === "undefined") return;
     const start = activeIndex + 1;
-    const end = Math.min(items.length, start + REEL_IFRAME_PRELOAD + 1);
+    const end = Math.min(items.length, start + iframePreload + 1);
     for (let i = start; i < end; i++) {
       const src = items[i]?.src || items[i]?.videoPreviewSrc;
       if (!src) continue;
@@ -1337,7 +1595,7 @@ export function WorldJourneyVideoFeed({
       img.decoding = "async";
       img.src = src;
     }
-  }, [activeIndex, items]);
+  }, [activeIndex, iframePreload, items]);
 
   const pinnedStartRef = useRef(false);
   /* Deep link: clip chưa có trong trang đầu → tải tiếp, rồi xếp lên đầu một lần. */
@@ -1370,11 +1628,38 @@ export function WorldJourneyVideoFeed({
         onClose();
         return;
       }
-      const t = e.target;
+      const targetEl = e.target;
       if (
-        t instanceof HTMLElement &&
-        t.closest(".wj-reel-timeline, input, textarea, [contenteditable='true']")
+        targetEl instanceof HTMLElement &&
+        targetEl.closest(
+          ".wj-reel-timeline-scrub, .wj-reel-timeline-btn, input, textarea, [contenteditable='true']",
+        )
       ) {
+        return;
+      }
+      if (e.key === " " || e.code === "Space") {
+        e.preventDefault();
+        activeControlsRef.current?.togglePlayback();
+        return;
+      }
+      if (e.key === "f" || e.key === "F") {
+        e.preventDefault();
+        activeControlsRef.current?.toggleFullscreen();
+        return;
+      }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        activeControlsRef.current?.seekBySeconds(-REEL_SEEK_STEP);
+        return;
+      }
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        activeControlsRef.current?.seekBySeconds(REEL_SEEK_STEP);
+        return;
+      }
+      if (e.key === "m" || e.key === "M") {
+        e.preventDefault();
+        toggleMutedAll();
         return;
       }
       if (e.key === "ArrowDown" || e.key === "PageDown" || e.key === "j") {
@@ -1387,7 +1672,14 @@ export function WorldJourneyVideoFeed({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, schedulePanUnlock]);
+  }, [onClose, schedulePanUnlock, toggleMutedAll]);
+
+  useEffect(() => {
+    return () => {
+      window.clearTimeout(panUnlockTimerRef.current);
+      window.clearTimeout(bounceTimerRef.current);
+    };
+  }, []);
 
   const hasSlides = items.length > 0;
   useEffect(() => {
@@ -1415,7 +1707,7 @@ export function WorldJourneyVideoFeed({
       t instanceof Element &&
       Boolean(
         t.closest(
-          ".wj-reel-timeline, .wj-reel-rail, .wj-reel-meta",
+          ".wj-reel-timeline-scrub, .wj-reel-timeline-btn, .wj-reel-rail, .wj-reel-meta, .wj-reel-rotate, .wj-reel-back",
         ),
       );
     const onPointerDown = (e: PointerEvent) => {
@@ -1455,10 +1747,6 @@ export function WorldJourneyVideoFeed({
     };
   }, [hasSlides, schedulePanUnlock]);
 
-  useEffect(() => {
-    return () => window.clearTimeout(panUnlockTimerRef.current);
-  }, []);
-
   if (items.length === 0) {
     const empty = (
       bootstrapping || loading ? (
@@ -1479,9 +1767,29 @@ export function WorldJourneyVideoFeed({
 
   return (
     <div className="wj-video-feed-wrap">
+      {onClose ? (
+        <button
+          type="button"
+          className="wj-reel-back"
+          aria-label={t("reel.back")}
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+        >
+          <ArrowLeft size={26} strokeWidth={2.2} aria-hidden />
+        </button>
+      ) : null}
       <div className="wj-video-feed" ref={scrollerRef} aria-label="Video">
         <div
-          className="wj-reel-track"
+          className={
+            "wj-reel-track" +
+            (edgeBounce === 1
+              ? " is-bounce-end"
+              : edgeBounce === -1
+                ? " is-bounce-start"
+                : "")
+          }
           style={
             {
               "--wj-reel-i": String(activeIndex),
@@ -1493,12 +1801,14 @@ export function WorldJourneyVideoFeed({
             const preload =
               !active &&
               index > activeIndex &&
-              index <= activeIndex + REEL_IFRAME_PRELOAD;
+              index <= activeIndex + iframePreload;
             return (
               <div
                 key={item.id}
                 className={"wj-reel-snap" + (active ? " is-active" : "")}
                 data-reel-id={item.id}
+                // eslint-disable-next-line react/no-unknown-property -- HTML inert
+                inert={!active ? true : undefined}
               >
                 <ReelSlide
                   item={item}
@@ -1509,6 +1819,14 @@ export function WorldJourneyVideoFeed({
                   muted={mutedAll}
                   onToggleLoop={toggleLoop}
                   onToggleMuted={toggleMutedAll}
+                  onAdvanceNext={() => {
+                    if (goByRef.current(1)) schedulePanUnlock(80);
+                  }}
+                  clipIndex={index}
+                  clipTotal={items.length}
+                  registerActiveControls={
+                    active ? registerActiveControls : undefined
+                  }
                 />
               </div>
             );

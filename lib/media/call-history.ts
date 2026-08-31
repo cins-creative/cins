@@ -1,6 +1,14 @@
 import "server-only";
 
-import { assertRoomMember, mapMessageFromRow } from "@/lib/chat/direct-message";
+import {
+  assertRoomMember,
+  mapMessageFromRow,
+  type MessageRow,
+} from "@/lib/chat/direct-message";
+import {
+  CHAT_MESSAGE_ROW_COLS,
+  insertChatMessageRow,
+} from "@/lib/chat/insert-message";
 import type { ChatMessage } from "@/lib/chat/types";
 import {
   buildCuocGoiNguCanh,
@@ -11,8 +19,7 @@ import {
 import type { MediaCallMode } from "@/lib/media/call-mode";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
-const MESSAGE_COLS =
-  "id, id_phong, id_nguoi_gui, noi_dung, loai_tin, id_dinh_kem, id_tin_tra_loi, ngu_canh, tao_luc, da_xoa, da_sua, sua_luc";
+const MESSAGE_COLS = CHAT_MESSAGE_ROW_COLS;
 
 export async function insertCuocGoiDangGoi(input: {
   roomId: string;
@@ -34,24 +41,24 @@ export async function insertCuocGoiDangGoi(input: {
     joinTokenExp: input.joinTokenExp ?? null,
   };
   const admin = createServiceRoleClient();
-  const { data, error } = await admin
-    .from("chat_tin_nhan")
-    .insert({
+  /* Một cửa ghi tin — giữ nguyên hành vi cũ (không bump `cap_nhat_luc`). */
+  const { data, error } = await insertChatMessageRow<MessageRow>(
+    {
       id_phong: input.roomId,
       id_nguoi_gui: input.callerId,
       noi_dung: cuocGoiMessageBody(input.mode, "dang_goi"),
       loai_tin: "system",
       ngu_canh: buildCuocGoiNguCanh(notice),
-    })
-    .select(MESSAGE_COLS)
-    .single();
+    },
+    { select: MESSAGE_COLS, admin },
+  );
 
   if (error || !data) {
-    throw new Error(error?.message || "Không ghi được tín hiệu cuộc gọi.");
+    throw new Error(error || "Không ghi được tín hiệu cuộc gọi.");
   }
 
   return {
-    messageId: data.id as string,
+    messageId: data.id,
     message: mapMessageFromRow(data, input.callerId),
   };
 }

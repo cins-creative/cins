@@ -67,6 +67,7 @@ import {
 import { resolveMentionsAgainstMembers } from "@/lib/chat/mentions";
 import {
   createOptimisticChatMessage,
+  latestServerMessageId,
   messagePreviewText,
 } from "@/lib/chat/optimistic-message";
 import { isPendingRoomId } from "@/lib/chat/optimistic-thread";
@@ -126,6 +127,8 @@ function messageToReplyPreview(msg: ChatMessage): ChatMessageReplyPreview {
 }
 
 const RECONCILE_MS = 120_000;
+/** Cửa sổ focus lại — mức cũ tối đa của cache thread còn chấp nhận được. */
+const TAB_RETURN_MAX_AGE_MS = 5_000;
 
 type RoomChatState = {
   messages: ChatMessage[];
@@ -1013,9 +1016,9 @@ export function CinsChatFloatingStack({
     [addImageFiles],
   );
 
-  const syncThreads = useCallback(async () => {
+  const syncThreads = useCallback(async (opts?: { maxAgeMs?: number }) => {
     try {
-      const snapshot = await prefetchChatData();
+      const snapshot = await prefetchChatData({ maxAgeMs: opts?.maxAgeMs });
       if (!snapshot) return;
 
       const viewing =
@@ -1135,7 +1138,8 @@ export function CinsChatFloatingStack({
     }
     void syncThreads();
     const id = window.setInterval(() => void syncThreads(), RECONCILE_MS);
-    const onFocus = () => void syncThreads();
+    /* Cửa sổ được focus lại: không chấp nhận cache 45s cho badge/peek. */
+    const onFocus = () => void syncThreads({ maxAgeMs: TAB_RETURN_MAX_AGE_MS });
     window.addEventListener("focus", onFocus);
     return () => {
       window.clearInterval(id);
@@ -1348,6 +1352,15 @@ export function CinsChatFloatingStack({
           scrollMessagesToBottomRef.current("smooth"),
         );
       }
+    },
+    {
+      getLatestMessageId: () => {
+        const roomId = miniRoomIdRef.current;
+        if (!roomId) return null;
+        return latestServerMessageId(
+          roomStatesRef.current[roomId]?.messages ?? [],
+        );
+      },
     },
   );
 

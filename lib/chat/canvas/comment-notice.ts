@@ -1,6 +1,14 @@
 import "server-only";
 
-import { assertRoomMember, mapMessageFromRow } from "@/lib/chat/direct-message";
+import {
+  assertRoomMember,
+  mapMessageFromRow,
+  type MessageRow,
+} from "@/lib/chat/direct-message";
+import {
+  CHAT_MESSAGE_ROW_COLS,
+  insertChatMessageRow,
+} from "@/lib/chat/insert-message";
 import type { ChatMessage } from "@/lib/chat/types";
 import { getAvatarUrl } from "@/lib/journey/profile";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -184,30 +192,27 @@ export async function notifyCanvasComment(input: {
     hostTen: host?.ten ?? null,
   });
 
-  const { data: inserted, error } = await admin
-    .from("chat_tin_nhan")
-    .insert({
+  /* Một cửa ghi tin — bump `cap_nhat_luc` như trước. */
+  const { data: inserted, error } = await insertChatMessageRow<MessageRow>(
+    {
       id_phong: input.roomId,
       id_nguoi_gui: input.author.id,
       noi_dung: noticeBody(input.author.ten, 1, host?.ten ?? null),
       loai_tin: "system",
       ngu_canh,
       da_xoa: false,
-    })
-    .select(
-      "id, id_phong, id_nguoi_gui, noi_dung, loai_tin, id_dinh_kem, id_tin_tra_loi, ngu_canh, tao_luc, da_xoa, da_sua, sua_luc",
-    )
-    .single();
+    },
+    {
+      select: CHAT_MESSAGE_ROW_COLS,
+      bumpRoomAt: new Date().toISOString(),
+      admin,
+    },
+  );
 
   if (error || !inserted) {
-    console.error("[canvas-comment] notice insert failed", error?.message);
+    console.error("[canvas-comment] notice insert failed", error);
     return null;
   }
-
-  await admin
-    .from("chat_phong")
-    .update({ cap_nhat_luc: new Date().toISOString() })
-    .eq("id", input.roomId);
 
   return mapMessageFromRow(inserted, input.viewerId);
 }

@@ -74,6 +74,22 @@ export async function recallRoomMessage(
   }
 
   const reactions = await loadReactionsForMessages([messageId], viewerId);
+  try {
+    const { publishChatEnvelope } = await import("@/lib/chat/publish");
+    publishChatEnvelope({
+      roomId,
+      messageId,
+      senderId: viewerId,
+      sentAt: updated.tao_luc,
+      loaiTin: updated.loai_tin,
+      noiDung: updated.noi_dung,
+      nguCanh: updated.ngu_canh,
+      chiHienCho: updated.chi_hien_cho ?? null,
+      event: "update",
+    });
+  } catch {
+    /* ignore */
+  }
   return {
     ok: true,
     message: mapMessageFromRow(updated, viewerId, {
@@ -142,6 +158,23 @@ export async function editRoomMessage(
   const message = await fetchMessageById(messageId, viewerId);
   if (!message) {
     return { ok: false, error: "Không tải lại được tin nhắn." };
+  }
+
+  try {
+    const { publishChatEnvelope } = await import("@/lib/chat/publish");
+    publishChatEnvelope({
+      roomId,
+      messageId,
+      senderId: viewerId,
+      sentAt: updated.tao_luc,
+      loaiTin: updated.loai_tin,
+      noiDung: updated.noi_dung,
+      nguCanh: updated.ngu_canh,
+      chiHienCho: updated.chi_hien_cho ?? null,
+      event: "update",
+    });
+  } catch {
+    /* ignore */
   }
 
   return { ok: true, message };

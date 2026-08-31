@@ -199,6 +199,7 @@ import {
 import { applyOptimisticReaction } from "@/lib/chat/optimistic-reactions";
 import {
   createOptimisticChatMessage,
+  latestServerMessageId,
   messagePreviewText,
 } from "@/lib/chat/optimistic-message";
 import {
@@ -2879,8 +2880,9 @@ export function CinsChatOverlay({
   }, [active?.messages.at(-1)?.id, active?.roomId, persistViewedRoom]);
 
   /**
-   * Mọi hội thoại đang mở: REST backfill. Realtime WS có thể «joined» nhưng im
-   * (tab lâu, gap reconnect) — trước đây chỉ poll inbox org 8s nên DM đứng hình.
+   * Mọi hội thoại đang mở: REST catch-up theo cursor. Realtime WS có thể
+   * «joined» nhưng im (tab lâu, gap reconnect) nên vẫn cần lưới an toàn.
+   * Overlay giữ `priority` cao hơn bubble mini — một phòng chỉ một poller.
    */
   useOpenRoomMessageBackfill(active?.roomId, (raw) => {
     const roomId = activeRoomIdRef.current;
@@ -2929,6 +2931,9 @@ export function CinsChatOverlay({
         scrollMessagesToBottomRef.current("smooth"),
       );
     }
+  }, {
+    getLatestMessageId: () => latestServerMessageId(activeMessagesRef.current),
+    priority: 1,
   });
 
   useEffect(() => {

@@ -56,6 +56,7 @@ import {
   normalizeChiHienCho,
   tinHienVoiViewer,
 } from "@/lib/chat/visibility";
+import { insertChatMessageRow } from "@/lib/chat/insert-message";
 import {
   buildNguCanhPayload,
   countUnreadMentions,
@@ -69,6 +70,12 @@ const MESSAGE_PAGE_SIZE = 30;
 export type ListRoomMessagesOptions = {
   limit?: number;
   before?: string;
+  /**
+   * Catch-up delta: chỉ lấy tin **mới hơn** cursor (id tin). Loại trừ với `before`.
+   * Nhánh này **không** trả `readCursors`/`pinnedMessages` và **không bao giờ**
+   * mark read — client chỉ dùng để bù tin miss khi WS zombie / gap reconnect.
+   */
+  after?: string;
   markRead?: boolean;
 };
 
@@ -437,6 +444,21 @@ export async function fetchMessageById(
     .maybeSingle<MessageRow>();
 
   if (!row) return null;
+  return enrichMessageFromRow(row, viewerId);
+}
+
+/**
+ * Phần làm giàu tin (reactions / ghim / tin trả lời) tách khỏi `fetchMessageById`.
+ * Đường gửi tin đã có sẵn row từ `INSERT ... RETURNING` (cùng `MESSAGE_SELECT`),
+ * nên gọi trực tiếp vào đây để **bỏ một round-trip đọc lại tin vừa ghi**.
+ */
+export async function enrichMessageFromRow(
+  row: MessageRow,
+  viewerId: string,
+): Promise<ChatMessage | null> {
+  const admin = createServiceRoleClient();
+  const messageId = row.id;
+
   if (!tinHienVoiViewer(row.chi_hien_cho, viewerId)) return null;
 
   const [reactions, pinnedIds] = await Promise.all([
@@ -1183,27 +1205,44 @@ export async function listRoomMessages(
   const admin = createServiceRoleClient();
   const limit = Math.min(Math.max(options.limit ?? MESSAGE_PAGE_SIZE, 1), 80);
 
-  let beforeAt: string | null = null;
-  if (options.before) {
-    const { data: cursor } = await admin
-      .from("chat_tin_nhan")
-      .select("tao_luc")
-      .eq("id", options.before)
-      .eq("id_phong", roomId)
-      .maybeSingle<{ tao_luc: string }>();
-    beforeAt = cursor?.tao_luc ?? null;
+  if (options.before && options.after) {
+    throw new Error("CURSOR_CONFLICT");
   }
+
+  /**
+   * Keyset cursor `(tao_luc, id)`. Chỉ dùng `tao_luc` là **sót/trùng tin** ở biên
+   * trang khi nhiều tin cùng timestamp (gửi dồn, tin hệ thống bulk).
+   */
+  const cursorId = options.after ?? options.before;
+  let cursor: { tao_luc: string; id: string } | null = null;
+  if (cursorId) {
+    const { data: cursorRow } = await admin
+      .from("chat_tin_nhan")
+      .select("id, tao_luc")
+      .eq("id", cursorId)
+      .eq("id_phong", roomId)
+      .maybeSingle<{ id: string; tao_luc: string }>();
+    cursor = cursorRow ?? null;
+  }
+
+  /* Cursor không còn (xoá cứng / sai phòng) → coi như không có cursor, trả tail. */
+  const isDelta = Boolean(options.after) && cursor !== null;
+  const ascending = isDelta;
 
   let query = admin
     .from("chat_tin_nhan")
     .select(MESSAGE_SELECT)
     .eq("id_phong", roomId)
     .or(`chi_hien_cho.is.null,chi_hien_cho.cs.{${viewerId}}`)
-    .order("tao_luc", { ascending: false })
+    .order("tao_luc", { ascending })
+    .order("id", { ascending })
     .limit(limit + 1);
 
-  if (beforeAt) {
-    query = query.lt("tao_luc", beforeAt);
+  if (cursor) {
+    const at = `"${cursor.tao_luc}"`;
+    query = isDelta
+      ? query.or(`tao_luc.gt.${at},and(tao_luc.eq.${at},id.gt.${cursor.id})`)
+      : query.or(`tao_luc.lt.${at},and(tao_luc.eq.${at},id.lt.${cursor.id})`);
   }
 
   const { data, error } = await query.returns<MessageRow[]>();
@@ -1215,12 +1254,23 @@ export async function listRoomMessages(
   const rows = data ?? [];
   const hasMore = rows.length > limit;
   const pageRows = hasMore ? rows.slice(0, limit) : rows;
-  const chronological = pageRows.slice().reverse();
+  /* Delta đã asc; nhánh lùi lấy desc rồi đảo. */
+  const chronological = ascending ? pageRows : pageRows.slice().reverse();
 
-  const [readCursors, pinnedRaw] = await Promise.all([
-    listRoomReadCursors(roomId, viewerId),
-    listPinnedMessagesForRoom(roomId, viewerId, admin),
-  ]);
+  /**
+   * Delta rỗng (đa số lần gọi catch-up) → thoát trước khi làm phần đắt:
+   * ghim, read cursors, enrich, và các dynamic import bên dưới.
+   */
+  if (isDelta && chronological.length === 0) {
+    return { messages: [], hasMore: false };
+  }
+
+  const [readCursors, pinnedRaw] = isDelta
+    ? ([undefined, []] as [ChatReadCursor[] | undefined, ChatMessage[]])
+    : await Promise.all([
+        listRoomReadCursors(roomId, viewerId),
+        listPinnedMessagesForRoom(roomId, viewerId, admin),
+      ]);
 
   let messages = await enrichMessages(chronological, viewerId, roomId);
 
@@ -1284,7 +1334,12 @@ export async function listRoomMessages(
     );
   }
 
-  const shouldMarkRead = options.markRead ?? !options.before;
+  /**
+   * Delta **không bao giờ** mark read — kể cả khi caller truyền `markRead`.
+   * `markRoomRead()` đánh dấu đọc **cả phòng** (lấy tin mới nhất, không theo
+   * cursor truyền vào), nên catch-up mà mark read sẽ xoá sạch unread của phòng.
+   */
+  const shouldMarkRead = isDelta ? false : (options.markRead ?? !options.before);
   if (shouldMarkRead) {
     const last = messages.at(-1);
     if (last) {
@@ -1292,7 +1347,13 @@ export async function listRoomMessages(
     }
   }
 
-  return { messages, hasMore, readCursors, pinnedMessages };
+  return {
+    messages,
+    hasMore,
+    readCursors,
+    /* Delta không trả ghim — tránh client ghi đè danh sách ghim bằng mảng rỗng. */
+    pinnedMessages: isDelta ? undefined : pinnedMessages,
+  };
 }
 
 async function listPinnedMessagesForRoom(
@@ -1529,27 +1590,35 @@ export async function sendRoomMessage(
         ...(chiHienCho ? { chi_hien_cho: chiHienCho } : {}),
       };
 
-  const { data, error } = await admin
-    .from("chat_tin_nhan")
-    .insert(insertRow)
-    .select(MESSAGE_SELECT)
-    .single<MessageRow>();
+  /* Một cửa ghi tin (kèm bump `cap_nhat_luc`) — xem `insert-message.ts`. */
+  const { data, error } = await insertChatMessageRow<MessageRow>(insertRow, {
+    select: MESSAGE_SELECT,
+    bumpRoomAt: now,
+    admin,
+  });
 
   if (error || !data) {
     return { ok: false, error: "Không gửi được tin nhắn." };
   }
 
-  await admin.from("chat_phong").update({ cap_nhat_luc: now }).eq("id", roomId);
-
   /* Người gửi không nằm trong chi_hien_cho → không mark-read / không bắt buộc fetch. */
   const visibleToSender = tinHienVoiViewer(chiHienCho, viewerId);
-  if (visibleToSender) {
-    await markRoomRead(roomId, viewerId, data.id);
-  }
 
-  let message = visibleToSender
-    ? await fetchMessageById(data.id, viewerId)
-    : mapMessageFromRow(data, viewerId);
+  /**
+   * Hai việc độc lập nhau — chạy song song để cắt round-trip khỏi đường gửi tin.
+   * `markRoomRead` vẫn `await` (vẫn ném lỗi ra ngoài như trước) để tránh tình
+   * huống watermark chưa kịp ghi mà client đã gọi lại danh sách hội thoại.
+   */
+  const [, enriched] = await Promise.all([
+    visibleToSender
+      ? markRoomRead(roomId, viewerId, data.id)
+      : Promise.resolve(undefined),
+    visibleToSender
+      ? enrichMessageFromRow(data, viewerId)
+      : Promise.resolve(null),
+  ]);
+
+  let message = visibleToSender ? enriched : mapMessageFromRow(data, viewerId);
   if (!message) {
     return { ok: false, error: "Không tải lại được tin nhắn." };
   }

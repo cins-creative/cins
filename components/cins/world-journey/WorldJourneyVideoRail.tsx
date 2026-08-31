@@ -86,8 +86,8 @@ type Props = {
 
 /**
  * Coverflow 3D — card giữa thẳng, hai bên rotateY; chuyển thì xoay vào tâm.
- * Desktop: nút L/R + wheel khi hover. Mobile: press/kéo ngang → autoplay
- * (play() trong pointerdown — iOS cần user gesture).
+ * Coverflow: clip giữa autoplay. Strip (rail đầu): chỉ play khi hover
+ * (chuột) hoặc đang nhấn (touch); thả / rời chuột thì pause.
  */
 export function WorldJourneyVideoRail({
   items: rawItems,
@@ -116,7 +116,6 @@ export function WorldJourneyVideoRail({
     if (isStrip && items.length >= 2) return `${first.id}-c0`;
     return first.id;
   });
-  const [stripCopy, setStripCopy] = useState(0);
   const [stripDragging, setStripDragging] = useState(false);
   const [railInView, setRailInView] = useState(() => isStrip);
   const { muted, toggleMuted } = useWorldJourneyFeedAudio();
@@ -189,7 +188,6 @@ export function WorldJourneyVideoRail({
     setAnimDir(0);
     setHoverIndex(null);
     setHoverLoopKey(null);
-    setStripCopy(0);
     setActiveLoopKey(
       isStrip && n >= 2 && items[0] ? `${items[0].id}-c0` : items[0]?.id ?? null,
     );
@@ -344,11 +342,6 @@ export function WorldJourneyVideoRail({
     } else if (el.scrollLeft > setWidth * 1.75) {
       el.scrollLeft -= setWidth;
     }
-    const copy = Math.min(
-      2,
-      Math.max(0, Math.round(el.scrollLeft / setWidth)),
-    );
-    setStripCopy(copy);
   }, [stripLoops]);
 
   const handleOpen = useCallback(
@@ -416,7 +409,7 @@ export function WorldJourneyVideoRail({
         const idx = items.findIndex((item) => item.id === itemId);
         if (idx >= 0) setActiveIndex(idx);
       },
-      { root: track, threshold: [0.15, 0.4, 0.6, 0.8, 1] },
+      { root: track, threshold: [0, 0.15, 0.4, 0.6, 0.8, 1] },
     );
     for (const card of cards) io.observe(card);
     return () => io.disconnect();
@@ -470,6 +463,9 @@ export function WorldJourneyVideoRail({
       const dx = e.clientX - drag.startX;
       if (drag.axis === "x" && Math.abs(dx) >= SWIPE_THRESHOLD_PX) {
         suppressClickRef.current = true;
+        window.setTimeout(() => {
+          suppressClickRef.current = false;
+        }, 0);
         /* Vuốt trái → video kế (front ra sau); vuốt phải → quay lại. */
         step(dx < 0 ? 1 : -1);
       }
@@ -494,13 +490,6 @@ export function WorldJourneyVideoRail({
       if (e.pointerType !== "mouse") {
         activateTouchCard(e.target, activeLoopKeyRef.current);
       }
-      if (e.pointerType === "mouse") {
-        try {
-          el.setPointerCapture(e.pointerId);
-        } catch {
-          /* ignore */
-        }
-      }
     },
     [activateTouchCard],
   );
@@ -522,7 +511,7 @@ export function WorldJourneyVideoRail({
         drag.axis = "x";
         drag.moved = true;
         setStripDragging(true);
-        if (e.pointerType !== "mouse" && !el.hasPointerCapture(e.pointerId)) {
+        if (!el.hasPointerCapture(e.pointerId)) {
           try {
             el.setPointerCapture(e.pointerId);
           } catch {
@@ -533,12 +522,12 @@ export function WorldJourneyVideoRail({
       if (drag.axis !== "x") return;
       el.scrollLeft = drag.startScroll - dx;
       wrapInfiniteScroll();
-      if (e.pointerType !== "mouse") {
-        const under = document.elementFromPoint(e.clientX, e.clientY);
-        activateTouchCard(under, activeLoopKeyRef.current);
+      if (drag.moved && e.pointerType !== "mouse") {
+        setHoverIndex(null);
+        setHoverLoopKey(null);
       }
     },
-    [wrapInfiniteScroll, activateTouchCard],
+    [wrapInfiniteScroll],
   );
 
   const endStripPointer = useCallback(
@@ -551,19 +540,19 @@ export function WorldJourneyVideoRail({
       }
       if (drag.moved) {
         suppressClickRef.current = true;
+        window.setTimeout(() => {
+          suppressClickRef.current = false;
+        }, 0);
         wrapInfiniteScroll();
         setStripDragging(false);
       }
       if (e.pointerType !== "mouse") {
-        const keep = activeLoopKeyRef.current;
-        if (keep) {
-          setHoverLoopKey(keep);
-          kickLoopKeyPlay(keep);
-        }
+        setHoverIndex(null);
+        setHoverLoopKey(null);
       }
       stripDragRef.current = null;
     },
-    [wrapInfiniteScroll, kickLoopKeyPlay],
+    [wrapInfiniteScroll],
   );
 
   useEffect(() => {
@@ -636,20 +625,14 @@ export function WorldJourneyVideoRail({
               : undefined
           }
         >
-          {displayCards.map(({ item, loopKey, sourceIndex }, cardIndex) => {
+          {displayCards.map(({ item, loopKey, sourceIndex }) => {
             const offset = isStrip
               ? 0
               : circularOffset(sourceIndex, activeIndex, n);
-            const copy = stripLoops && n > 0 ? Math.floor(cardIndex / n) : 0;
-            const visibleCopy = stripLoops ? stripCopy : 0;
             const playing = isStrip
-              ? railInView &&
-                copy === visibleCopy &&
-                loopKey === hoverLoopKey
+              ? railInView && loopKey === hoverLoopKey
               : railInView && sourceIndex === (hoverIndex ?? activeIndex);
-            const clipMounted = isStrip
-              ? copy === visibleCopy
-              : true;
+            const clipMounted = isStrip ? loopKey === hoverLoopKey : true;
             return (
               <VideoStackCard
                 key={loopKey}
@@ -667,6 +650,7 @@ export function WorldJourneyVideoRail({
                 onHover={() => {
                   setHoverIndex(sourceIndex);
                   setHoverLoopKey(loopKey);
+                  kickLoopKeyPlay(loopKey);
                 }}
                 onEnded={isStrip || n <= 1 ? undefined : goNext}
                 onBindPlayer={registerPlayer}
@@ -690,7 +674,7 @@ export function WorldJourneyVideoRail({
         <button
           type="button"
           className={"wj-video-rail-audio" + (muted ? "" : " is-hearing is-on")}
-          aria-label={muted ? t("rail.unmute") : t("rail.mute")}
+          aria-label={muted ? t("reel.hearAll") : t("reel.muteAll")}
           aria-pressed={!muted}
           onClick={onToggleAudio}
         >
@@ -924,8 +908,22 @@ function RailClip({
       else if (inViewRef.current) startWarm();
     };
 
+    const waitForIframeLoad = () =>
+      new Promise<void>((resolve) => {
+        let settled = false;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          resolve();
+        };
+        el.addEventListener("load", finish, { once: true });
+        retryIds.push(window.setTimeout(finish, 700));
+      });
+
     void (async () => {
       try {
+        await waitForIframeLoad();
+        if (cancelled) return;
         player = await bindStreamPlayer(el);
         if (cancelled) return;
         playerRef.current = player;
@@ -1011,8 +1009,7 @@ function RailClip({
         <iframe
           ref={iframeRef}
           className={
-            "wj-video-rail-clip" +
-            (ready && (active || !loop) ? " is-ready" : "")
+            "wj-video-rail-clip" + (ready && active ? " is-ready" : "")
           }
           src={src}
           title={item.label || "Video"}
@@ -1119,6 +1116,13 @@ function VideoStackCard({
           <button
             type="button"
             className="wj-video-rail-card-hit"
+            onPointerEnter={
+              isStrip && onHover
+                ? (event) => {
+                    if (event.pointerType === "mouse") onHover();
+                  }
+                : undefined
+            }
             onClick={isStrip || isFront ? onOpen : onFocusCard}
             tabIndex={visible ? 0 : -1}
             aria-label={

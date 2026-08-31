@@ -888,6 +888,8 @@
   padding: 0;
   min-height: 0;
   flex: 0 1 auto;
+  container-type: inline-size;
+  container-name: wj-feed-timeline;
 }
 
 .world-journey-home .wj-feed .wj-feed-timeline .j-year-block {
@@ -2088,12 +2090,51 @@
   border-radius: 0;
 }
 
+/* Cột feed hẹp (điện thoại / shell ~420px) — không phụ thuộc viewport. */
+@container wj-feed-timeline (max-width: 719px) {
+  .world-journey-home .wj-video-rail--coverflow {
+    aspect-ratio: auto;
+  }
+
+  .world-journey-home .wj-video-rail--coverflow .wj-video-rail-stage {
+    aspect-ratio: 5 / 6;
+    flex: 0 0 auto;
+    width: 100%;
+    --wj-inner-h: calc(
+      100cqi * 6 / 5 - var(--wj-video-meta-h) - var(--wj-video-pad) * 2
+    );
+    --wj-video-deck-w: max(
+      168px,
+      min(
+        64cqi,
+        calc(
+          var(--wj-inner-h) * var(--wj-video-aspect, 0.5625) +
+            var(--wj-video-pad) * 2
+        )
+      )
+    );
+  }
+}
+
 @media (max-width: 719px) {
   .world-journey-home .wj-video-rail {
     margin: 6px 0 16px;
   }
 
-  /* Coverflow + strip: clip luôn 9:16. */
+  /* Coverflow: khung stage 5:6; clip trong card vẫn 9:16. */
+  .world-journey-home .wj-video-rail--coverflow {
+    aspect-ratio: auto;
+  }
+
+  .world-journey-home .wj-video-rail--coverflow .wj-video-rail-stage {
+    aspect-ratio: 5 / 6;
+    flex: 0 0 auto;
+    width: 100%;
+    --wj-inner-h: calc(
+      100cqi * 6 / 5 - var(--wj-video-meta-h) - var(--wj-video-pad) * 2
+    );
+  }
+
   .world-journey-home .wj-video-rail-stage {
     --wj-video-deck-w: max(
       168px,
@@ -5199,6 +5240,7 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
   --wj-reel-rail-w: 72px;
   --wj-reel-row-pad-l: 24px;
   --wj-reel-pan-ms: 420ms;
+  --wj-reel-timeline-h: 56px;
   /* Khung video không cao hơn 6:7. 16:9 giữ nguyên. */
   --wj-reel-a-min: calc(6 / 7);
   /* Dọc (9:16) vs ngang fill-W (16:9). */
@@ -5231,9 +5273,69 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
     var(--ease, cubic-bezier(0.2, 0.7, 0.3, 1));
 }
 
+.wj-reel-track.is-bounce-end {
+  animation: wj-reel-bounce-end 220ms ease-out;
+}
+
+.wj-reel-track.is-bounce-start {
+  animation: wj-reel-bounce-start 220ms ease-out;
+}
+
+@keyframes wj-reel-bounce-end {
+  0% {
+    transform: translate3d(
+      0,
+      calc(var(--wj-reel-i, 0) * var(--wj-reel-slide-h, 0px) * -1),
+      0
+    );
+  }
+  40% {
+    transform: translate3d(
+      0,
+      calc(var(--wj-reel-i, 0) * var(--wj-reel-slide-h, 0px) * -1 - 28px),
+      0
+    );
+  }
+  100% {
+    transform: translate3d(
+      0,
+      calc(var(--wj-reel-i, 0) * var(--wj-reel-slide-h, 0px) * -1),
+      0
+    );
+  }
+}
+
+@keyframes wj-reel-bounce-start {
+  0% {
+    transform: translate3d(
+      0,
+      calc(var(--wj-reel-i, 0) * var(--wj-reel-slide-h, 0px) * -1),
+      0
+    );
+  }
+  40% {
+    transform: translate3d(
+      0,
+      calc(var(--wj-reel-i, 0) * var(--wj-reel-slide-h, 0px) * -1 + 28px),
+      0
+    );
+  }
+  100% {
+    transform: translate3d(
+      0,
+      calc(var(--wj-reel-i, 0) * var(--wj-reel-slide-h, 0px) * -1),
+      0
+    );
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .wj-reel-track {
     transition: none;
+  }
+  .wj-reel-track.is-bounce-end,
+  .wj-reel-track.is-bounce-start {
+    animation: none;
   }
 }
 
@@ -5270,7 +5372,7 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
 
 .wj-reel-back {
   position: absolute;
-  top: 12px;
+  top: calc(12px + env(safe-area-inset-top, 0px));
   left: 12px;
   z-index: 8;
   display: inline-flex;
@@ -5457,23 +5559,159 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
   touch-action: none;
 }
 
+.wj-reel-seek-flash {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+  transform: translateY(-50%);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+  font-size: 12px;
+  font-weight: 600;
+  animation: wj-reel-seek-pop 650ms ease-out;
+}
+
+.wj-reel-seek-flash.is-back {
+  left: 12%;
+}
+
+.wj-reel-seek-flash.is-fwd {
+  right: 12%;
+}
+
+@keyframes wj-reel-seek-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.85);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
 .wj-reel-pause-badge {
   position: absolute;
   top: 50%;
   left: 50%;
   z-index: 2;
   transform: translate(-50%, -50%);
-  width: 64px;
-  height: 64px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: #fff;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.65));
+}
+
+.wj-reel-buffering {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  background: rgba(0, 0, 0, 0.45);
-  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  background: rgba(0, 0, 0, 0.35);
+  border: 0;
   pointer-events: none;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+}
+
+.wj-reel-spin {
+  animation: wj-reel-spin 0.8s linear infinite;
+}
+
+@keyframes wj-reel-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.wj-reel-rotate {
+  position: relative;
+  z-index: 6;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  align-self: center;
+  width: 36px;
+  height: 36px;
+  margin: 6px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: rgba(255, 255, 255, 0.55);
+  background: transparent;
+  cursor: pointer;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease, color 160ms ease;
+}
+
+.wj-reel-slide.is-chrome .wj-reel-rotate,
+.wj-reel-slide:hover .wj-reel-rotate {
+  opacity: 0.75;
+  pointer-events: auto;
+}
+
+.wj-reel-rotate:hover,
+.wj-reel-rotate:focus-visible {
+  color: rgba(255, 255, 255, 0.9);
+  opacity: 1;
+}
+
+.wj-reel-video-row.is-css-rotated {
+  position: fixed !important;
+  inset: 0;
+  z-index: 80;
+  width: 100dvh !important;
+  height: 100dvw !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0;
+  transform: rotate(90deg) translateY(-100%);
+  transform-origin: top left;
+  background: #000;
+  padding: 0 !important;
+}
+
+.wj-reel-video-row:fullscreen,
+.wj-reel-video-row:-webkit-full-screen {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  padding: 0;
 }
 
 .wj-reel-rail.jcard-actions {
@@ -5568,45 +5806,78 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
 
 .wj-reel-audio {
   display: inline-flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  min-width: 44px;
+  min-width: 40px;
+  min-height: 40px;
   margin: 0;
-  padding: 6px 4px 0;
+  padding: 4px;
   border: 0;
   border-radius: 10px;
   background: transparent;
   color: #fff;
   cursor: pointer;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.15;
-  letter-spacing: 0.01em;
+}
+
+.wj-reel-loop {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
+  margin: 0;
+  padding: 4px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
 }
 
 .wj-reel-audio:hover,
-.wj-reel-audio:focus-visible {
+.wj-reel-audio:focus-visible,
+.wj-reel-loop:hover,
+.wj-reel-loop:focus-visible {
   background: transparent;
   color: #fff;
 }
 
 .wj-reel-audio.is-hearing,
-.wj-reel-audio.is-on {
-  color: #22c55e;
+.wj-reel-audio.is-on,
+.wj-reel-loop.is-on {
+  color: var(--cins-blue, #1f74c9);
 }
 
 .wj-reel-audio.is-hearing:hover,
-.wj-reel-audio.is-hearing:focus-visible {
-  color: #86efac;
+.wj-reel-audio.is-hearing:focus-visible,
+.wj-reel-loop.is-on:hover,
+.wj-reel-loop.is-on:focus-visible {
+  color: color-mix(in srgb, var(--cins-blue, #1f74c9) 78%, white);
+}
+
+.wj-reel-rail-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.wj-reel-rail-ghost {
+  display: block;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.35);
 }
 
 .wj-reel-rail .action-btn svg,
 .wj-reel-rail .share-btn svg,
 .wj-reel-rail .action-btn-part svg,
 .wj-reel-rail .j-action-touch svg,
-.wj-reel-rail .wj-reel-audio svg {
+.wj-reel-rail .wj-reel-audio svg,
+.wj-reel-rail .wj-reel-loop svg {
   width: 26px;
   height: 26px;
 }
@@ -5685,7 +5956,7 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 52px;
+  bottom: var(--wj-reel-timeline-h, 56px);
   z-index: 5;
   display: flex;
   flex-direction: column;
@@ -5716,7 +5987,7 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
   align-items: center;
   gap: 8px;
   height: auto;
-  min-height: 44px;
+  min-height: var(--wj-reel-timeline-h, 56px);
   padding: 18px 10px 8px;
   box-sizing: border-box;
   background: linear-gradient(
@@ -5737,6 +6008,14 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
 .wj-reel-slide.is-chrome .wj-reel-timeline,
 .wj-reel-timeline.is-scrubbing {
   opacity: 1;
+}
+
+.wj-reel-timeline.is-pinned .wj-reel-timeline-btn,
+.wj-reel-timeline.is-pinned .wj-reel-timeline-scrub,
+.wj-reel-slide.is-chrome .wj-reel-timeline-btn,
+.wj-reel-slide.is-chrome .wj-reel-timeline-scrub,
+.wj-reel-timeline.is-scrubbing .wj-reel-timeline-btn,
+.wj-reel-timeline.is-scrubbing .wj-reel-timeline-scrub {
   pointer-events: auto;
 }
 
@@ -5744,8 +6023,28 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
   .wj-reel-slide:hover .wj-reel-timeline,
   .wj-reel-timeline:focus-within {
     opacity: 1;
+  }
+  .wj-reel-slide:hover .wj-reel-timeline-btn,
+  .wj-reel-slide:hover .wj-reel-timeline-scrub,
+  .wj-reel-timeline:focus-within .wj-reel-timeline-btn,
+  .wj-reel-timeline:focus-within .wj-reel-timeline-scrub {
     pointer-events: auto;
   }
+}
+
+.wj-reel-progress-slim {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  z-index: 3;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+  transition: width 80ms linear;
+}
+
+.wj-reel-slide.is-chrome .wj-reel-progress-slim {
+  opacity: 0;
 }
 
 .wj-reel-timeline-btn {
@@ -5776,13 +6075,13 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
 
 .wj-reel-timeline-btn.is-on {
   background: transparent;
-  color: #22c55e;
+  color: var(--cins-blue, #1f74c9);
 }
 
 .wj-reel-timeline-btn.is-on:hover,
 .wj-reel-timeline-btn.is-on:focus-visible {
   background: transparent;
-  color: #4ade80;
+  color: color-mix(in srgb, var(--cins-blue, #1f74c9) 78%, white);
 }
 
 .wj-reel-timeline-scrub {
@@ -5949,6 +6248,11 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
 
 .wj-reel-caption {
   margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font: inherit;
   font-size: 13px;
   line-height: 1.35;
   color: rgba(255, 255, 255, 0.95);
@@ -5956,16 +6260,19 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  cursor: pointer;
 }
 
-.wj-reel-sentinel {
-  height: 1px;
+.wj-reel-caption.is-expanded {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
 }
 
 .wj-reel-loading {
   position: absolute;
   left: 50%;
-  bottom: 16px;
+  bottom: calc(var(--wj-reel-timeline-h, 56px) + 12px);
   z-index: 6;
   transform: translateX(-50%);
   padding: 6px 12px;
@@ -5985,6 +6292,12 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+@media (min-width: 781px) {
+  .wj-reel-rail .wj-reel-audio {
+    display: none;
+  }
 }
 
 /* Desktop rộng: gutter lớn hơn quanh khung video. */
@@ -6069,23 +6382,24 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
     box-shadow: none;
   }
 
-  /* Khít tỉ lệ, max cao 4:5; căn giữa — letterbox đen như Reels. */
+  /* Fill hết chiều cao slide; media contain bên trong. */
   .wj-reel-video-box {
     position: relative;
     inset: auto;
-    flex: 0 0 auto;
-    width: min(100%, calc(100cqh * var(--reel-a)));
+    flex: 1 1 auto;
+    width: 100%;
     max-width: 100%;
-    height: auto;
+    height: 100%;
     max-height: 100%;
-    aspect-ratio: var(--reel-a);
-    margin: 0 auto;
+    aspect-ratio: auto;
+    margin: 0;
   }
 
   .wj-reel-media {
     position: absolute;
     inset: 0;
-    width: auto;
+    width: 100%;
+    height: 100%;
     aspect-ratio: auto;
     background: #000;
     border: 0;
@@ -6095,16 +6409,48 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
 
   .wj-reel-tap {
     inset: 0;
-    width: auto;
-    height: auto;
+    width: 100%;
+    height: 100%;
     aspect-ratio: auto;
+  }
+
+  /* Ngang (H ≤ W): căn giữa, đẩy khối video lên 70px. */
+  .wj-reel-stage[data-aspect="landscape"] .wj-reel-slide {
+    justify-content: center;
+  }
+
+  .wj-reel-stage[data-aspect="landscape"] .wj-reel-video-box {
+    flex: 0 0 auto;
+    width: 100%;
+    height: auto;
+    max-height: calc(100% - var(--wj-reel-timeline-h, 56px) - 52px);
+    aspect-ratio: var(--wj-reel-aspect, 16 / 9);
+    padding-bottom: 0;
+    transform: translateY(-70px);
+  }
+
+  .wj-reel-stage[data-aspect="landscape"] .wj-reel-rotate {
+    display: inline-flex;
+    transform: translateY(-70px);
+  }
+
+  .wj-reel-timeline-btn--mute,
+  .wj-reel-timeline-btn--loop,
+  .wj-reel-timeline-btn--fs {
+    display: none;
+  }
+
+  .wj-reel-timeline-scrub {
+    height: 44px;
   }
 
   .wj-reel-rail.jcard-actions {
     position: absolute;
     left: auto;
     right: 4px;
-    bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(
+      var(--wj-reel-timeline-h, 56px) + env(safe-area-inset-bottom, 0px)
+    );
     margin: 0;
     z-index: 5;
     padding-bottom: 0;
@@ -6115,7 +6461,9 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
     position: absolute;
     left: 0;
     right: calc(var(--wj-reel-rail-w) + 8px);
-    bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(
+      var(--wj-reel-timeline-h, 56px) + env(safe-area-inset-bottom, 0px)
+    );
     z-index: 5;
     margin: 0;
     padding: 12px 12px 8px;

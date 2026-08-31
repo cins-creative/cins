@@ -1,6 +1,7 @@
 import "server-only";
 
 import { sendRoomMessage } from "@/lib/chat/direct-message";
+import { insertChatMessageRow } from "@/lib/chat/insert-message";
 import { findOrCreateOrgStudentRoom } from "@/lib/chat/org-message";
 import type { ChatContextCard } from "@/lib/chat/types";
 import {
@@ -441,24 +442,23 @@ export async function sendPhongLopInviteAfterConfirm(input: {
     .maybeSingle<{ ten_phong: string | null }>();
   const tenPhong = room?.ten_phong?.trim() || null;
 
-  await admin.from("chat_tin_nhan").insert({
-    id_phong: orgStudentRoomId,
-    id_nguoi_gui: input.actorId,
-    loai_tin: "system",
-    noi_dung: "Tham gia phòng học",
-    ngu_canh: {
-      loai: "phong_lop",
-      roomId: input.lopRoomId,
-      orgId: input.orgId,
-      lopId: input.lopId,
-      tenPhong,
+  /* Một cửa ghi tin — bump `cap_nhat_luc` như trước. */
+  await insertChatMessageRow<{ id: string }>(
+    {
+      id_phong: orgStudentRoomId,
+      id_nguoi_gui: input.actorId,
+      loai_tin: "system",
+      noi_dung: "Tham gia phòng học",
+      ngu_canh: {
+        loai: "phong_lop",
+        roomId: input.lopRoomId,
+        orgId: input.orgId,
+        lopId: input.lopId,
+        tenPhong,
+      },
     },
-  });
-
-  await admin
-    .from("chat_phong")
-    .update({ cap_nhat_luc: now })
-    .eq("id", orgStudentRoomId);
+    { select: "id", bumpRoomAt: now, admin },
+  );
 }
 
 /**

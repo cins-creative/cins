@@ -65,6 +65,8 @@ import {
 import { playIncomingMessageSound } from "@/lib/chat/play-incoming-message-sound";
 import { hasShareDragData } from "@/lib/cins/share-drag";
 import { useChatRealtime } from "@/lib/chat/use-chat-realtime";
+import { useChatUserChannel } from "@/lib/chat/use-chat-user-channel";
+import type { ChatEnvelope } from "@/lib/chat/publish-types";
 import {
   CHAT_ROUTE_HREF,
   CINS_HISTORY_CHAT,
@@ -143,7 +145,14 @@ type CinsChatContextValue = {
   setChatFocus: (roomId: string | null, surface: ChatFocusSurface) => void;
   getCachedThreads: () => ChatThreadsSnapshot | null;
   getCachedRoomMessages: (roomId: string) => ChatMessage[] | null;
-  prefetchChatData: () => Promise<ChatThreadsSnapshot | null>;
+  /**
+   * `maxAgeMs` — tuổi cache RAM tối đa mà caller chấp nhận. Đường
+   * `visibilitychange`/`focus` truyền mức ngắn (~5s) để không đọc cache 45s cũ,
+   * nhưng vẫn không nã `/api/chat/threads` (endpoint đắt nhất của chat).
+   */
+  prefetchChatData: (opts?: {
+    maxAgeMs?: number;
+  }) => Promise<ChatThreadsSnapshot | null>;
   prefetchRoomMessages: (roomId: string) => Promise<ChatMessage[] | null>;
   /** Ghim bubble nổi (mini dock). */
   pinnedRoomIds: string[];
@@ -186,6 +195,9 @@ type CinsChatContextValue = {
   /** Overlay gọi khi đã nhận drop thành công (giữ overlay mở, thoát drop mode). */
   completeShareDrop: () => void;
 };
+
+/** Tab/cửa sổ hiện lại — mức cũ tối đa của cache thread còn chấp nhận được. */
+const TAB_RETURN_MAX_AGE_MS = 5_000;
 
 const CinsChatContext = createContext<CinsChatContextValue | null>(null);
 
@@ -245,6 +257,20 @@ export function CinsChatProvider({
     roomId: null,
     surface: null,
   });
+  /** Chống beep/unread nhân đôi khi envelope + CDC cùng báo một tin. */
+  const notifiedIdsRef = useRef(new Map<string, number>());
+  const takeIncomingNotify = useCallback((messageId: string): boolean => {
+    const now = Date.now();
+    const prev = notifiedIdsRef.current.get(messageId);
+    if (prev && now - prev < 120_000) return false;
+    notifiedIdsRef.current.set(messageId, now);
+    if (notifiedIdsRef.current.size > 400) {
+      for (const [id, at] of notifiedIdsRef.current) {
+        if (now - at > 120_000) notifiedIdsRef.current.delete(id);
+      }
+    }
+    return true;
+  }, []);
 
   const applyUnreadFromThreads = useCallback(
     (threads: Array<{ roomId: string; unread: number }>) => {
@@ -289,14 +315,21 @@ export function CinsChatProvider({
     [viewerProfileId],
   );
 
-  const prefetchChatData = useCallback(async (): Promise<ChatThreadsSnapshot | null> => {
-    if (!viewerProfileId) return null;
-    const snapshot = await prefetchChatThreads(viewerProfileId);
-    if (snapshot) {
-      applyUnreadFromThreads(snapshot.threads);
-    }
-    return snapshot;
-  }, [applyUnreadFromThreads, viewerProfileId]);
+  const prefetchChatData = useCallback(
+    async (opts?: {
+      maxAgeMs?: number;
+    }): Promise<ChatThreadsSnapshot | null> => {
+      if (!viewerProfileId) return null;
+      const snapshot = await prefetchChatThreads(viewerProfileId, {
+        maxAgeMs: opts?.maxAgeMs,
+      });
+      if (snapshot) {
+        applyUnreadFromThreads(snapshot.threads);
+      }
+      return snapshot;
+    },
+    [applyUnreadFromThreads, viewerProfileId],
+  );
 
   const prefetchRoomMessagesForViewer = useCallback(
     async (roomId: string): Promise<ChatMessage[] | null> => {
@@ -529,9 +562,10 @@ export function CinsChatProvider({
       void prefetchChatData();
     }, 120_000);
 
+    /* Tab hiện lại: cache 45s là quá cũ cho badge; 5s vừa mới vừa không hammer. */
     const onVisible = () => {
       if (document.visibilityState === "visible") {
-        void prefetchChatData();
+        void prefetchChatData({ maxAgeMs: TAB_RETURN_MAX_AGE_MS });
       }
     };
     document.addEventListener("visibilitychange", onVisible);
@@ -594,6 +628,7 @@ export function CinsChatProvider({
 
       const fromPeer = event.senderId !== viewerProfileId;
       if (!fromPeer) return;
+      if (!takeIncomingNotify(event.message.id)) return;
 
       if (event.message.kind === "chao_lop" || event.message.chaoLop) {
         return;
@@ -620,7 +655,7 @@ export function CinsChatProvider({
         setTotalUnread((count) => count + 1);
       }
     },
-    [viewerProfileId, isRoomMuted],
+    [viewerProfileId, isRoomMuted, takeIncomingNotify],
   );
 
   const handleRealtimeUpdate = useCallback(
@@ -637,11 +672,12 @@ export function CinsChatProvider({
       const fromPeer = event.senderId !== viewerProfileId;
       if (
         !fromPeer ||
-        event.message.nguCanh?.loai !== "don_hang" &&
-        event.message.nguCanh?.loai !== "don_hoc_phi"
+        (event.message.nguCanh?.loai !== "don_hang" &&
+          event.message.nguCanh?.loai !== "don_hoc_phi")
       ) {
         return;
       }
+      if (!takeIncomingNotify(event.message.id)) return;
       playIncomingMessageSound({ muted: isRoomMuted(event.roomId) });
       const focus = focusRef.current;
       const isViewing =
@@ -650,10 +686,35 @@ export function CinsChatProvider({
         setTotalUnread((count) => count + 1);
       }
     },
-    [viewerProfileId, isRoomMuted],
+    [viewerProfileId, isRoomMuted, takeIncomingNotify],
+  );
+
+  const handleEnvelope = useCallback(
+    (envelope: ChatEnvelope) => {
+      if (!viewerProfileId) return;
+      if (envelope.senderId === viewerProfileId) return;
+      if (envelope.kind === "chao_lop") return;
+      if (!takeIncomingNotify(envelope.messageId)) return;
+
+      if (envelope.kind === "cuoc_goi") {
+        const focus = focusRef.current;
+        const isViewing =
+          focus.surface !== null && focus.roomId === envelope.roomId;
+        if (!isViewing) setTotalUnread((count) => count + 1);
+        return;
+      }
+
+      playIncomingMessageSound({ muted: isRoomMuted(envelope.roomId) });
+      const focus = focusRef.current;
+      const isViewing =
+        focus.surface !== null && focus.roomId === envelope.roomId;
+      if (!isViewing) setTotalUnread((count) => count + 1);
+    },
+    [viewerProfileId, isRoomMuted, takeIncomingNotify],
   );
 
   useChatRealtime(viewerProfileId, handleRealtimeInsert, handleRealtimeUpdate);
+  useChatUserChannel(viewerProfileId, handleEnvelope);
 
   /** Mở panel + sync URL `/chat` (pushState — không remount trang nền). */
   const beginOpenPanel = useCallback(() => {

@@ -170,6 +170,8 @@ type ReelSession = {
   nextOffset: number;
   lockPlaylist?: boolean;
   shuffleUpcoming?: boolean;
+  /** Surface lúc mở viewer — back cấu trúc (không dùng history.back). */
+  openedFrom: FeedSurfaceView;
 };
 
 function isStreamVideoItem(item: GalleryMainItem): boolean {
@@ -210,6 +212,7 @@ function reelSessionFromPlayId(
   list: readonly GalleryMainItem[] = [],
   hasMore = true,
   nextOffset = 0,
+  openedFrom: FeedSurfaceView = "video",
 ): ReelSession | null {
   if (!playId) return null;
   return {
@@ -217,6 +220,7 @@ function reelSessionFromPlayId(
     items: playlistStartingAt(list, playId),
     hasMore,
     nextOffset,
+    openedFrom,
   };
 }
 
@@ -735,20 +739,40 @@ export function WorldJourneyFeed({
   }, []);
 
   const closeVideoPlayer = useCallback(() => {
-    if (window.history.state?.play) {
-      window.history.back();
-      return;
-    }
+    const from = reelSessionRef.current?.openedFrom ?? "video";
     setReelSession(null);
-    const url = new URL(window.location.href);
-    url.searchParams.set("view", "video");
-    url.searchParams.delete("play");
-    url.hash = "";
-    const q = url.searchParams.toString();
+
+    if (from === "journey" || from === "shop") {
+      const cached = timelineCacheRef.current[from];
+      if (cached) {
+        setFeedMilestones(applyStoredInlinePatches(cached.milestones));
+        setHasMore(cached.hasMore);
+        setNextOffset(cached.nextOffset);
+        hasMoreRef.current = cached.hasMore;
+        nextOffsetRef.current = cached.nextOffset;
+        setFilterLoading(false);
+      }
+    }
+    if (from === "gallery" || from === "video") {
+      const key = gallerySurfaceCacheKey(
+        from,
+        from === "video" ? "video" : activeFilterRef.current,
+        feedSourceRef.current,
+      );
+      const cached = galleryCacheRef.current[key];
+      if (cached) {
+        setGalleryRows(cached.items);
+        setGalleryMore(cached.hasMore);
+        setGalleryOffset(cached.nextOffset);
+        setFilterLoading(false);
+      }
+    }
+
+    setSurfaceView(from);
     window.history.replaceState(
-      { wjView: "video" },
+      { wjView: from },
       "",
-      q ? `${url.pathname}?${q}` : url.pathname,
+      feedViewHref(from),
     );
   }, []);
 
@@ -756,6 +780,7 @@ export function WorldJourneyFeed({
     const startId = payload.item.id || payload.id;
     const lockPlaylist = Boolean(payload.lockPlaylist);
     const shuffleUpcoming = Boolean(payload.shuffleUpcoming);
+    const openedFrom = surfaceViewRef.current;
     const items = lockPlaylist
       ? payload.items.filter(isStreamVideoItem)
       : playlistStartingAt(
@@ -779,6 +804,7 @@ export function WorldJourneyFeed({
       nextOffset: lockPlaylist ? 0 : payload.nextOffset,
       lockPlaylist,
       shuffleUpcoming,
+      openedFrom,
     });
     pushVideoPlayUrl(startId);
   }, []);

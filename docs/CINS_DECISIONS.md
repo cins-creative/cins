@@ -75,6 +75,11 @@
 - **Layout chrome 5 ô** (không phải 5-tab destination của PLAN_responsive_mobile §2.1): burger · nhóm giỏ/shop · **chat FAB nổi giữa** · thông báo · tài khoản. Nhóm giỏ/shop **ẩn** khi giỏ trống và chưa mở shop. Page-slot (admin/shop dash) nổi phía trên bar.
 - *Hệ quả:* `cins-app-nav.css` · `CinsChatDock` portal FAB vào `#app-topbar-chat-slot` · `use-chrome-stuck.ts` · padding `--cins-botbar-h` trên `.cins-main`. Guest-home / chat page / Reels ẩn bar như cũ.
 
+### L35d — Catch-up tin nhắn + một cửa ghi/nhận (2026-08-31)
+
+- **Chốt:** nối L35b — `GET messages?after=` (keyset `tao_luc,id`); poll phòng mở 3s → catch-up 20s; `maxAgeMs` 5s khi tab/focus; một cửa INSERT; `useChatRealtime` chỉ còn ở provider. **Không** đổi SoT `chat_tin_nhan`. **Không** sửa `markRoomRead`. Plan: [`PLAN_kien_truc_tin_nhan.md`](./PLAN_kien_truc_tin_nhan.md).
+- **Phase 2 (cờ tắt):** HTTP broadcast `POST /realtime/v1/api/broadcast` (đã xác nhận 202). Cần duyệt SQL `realtime.messages` rồi mới bật `CHAT_BROADCAST` + `NEXT_PUBLIC_CHAT_BROADCAST=on`.
+
 ### L35c — Tab stale hard reload kiểu Facebook (2026-08-25)
 
 - **Chốt:** tab nền ≥ **90 phút** rồi `visibility` → visible → `location.reload()` một lần (cùng URL). Cooldown 60s chống loop. Skip nếu đang gọi (`data-cins-call-active`), compose chat bẩn (`data-cins-compose-dirty`), hoặc đang focus form có nội dung.
@@ -568,6 +573,14 @@
 - **Đã sửa (P0 + P1a):** cả ba hook `use-chat-realtime` / `use-chat-read-cursors-realtime` / `use-room-presence` — `CLOSED` vào reconnect; `await removeChannel` + cờ `reconnecting`; watchdog 25s (`channel.state` ≠ `joined`/`joining` khi tab visible); `realtime.setAuth()` + reconnect khi `TOKEN_REFRESHED`. Cap `CHAT_SESSION_MESSAGES_CAP = 200` tin cuối trong `chat-session-cache.ts` (chỉ cache phiên, không cắt state React). Không đổi mapping tin / unread / âm thanh / watermark.
 - **Ngoài phạm vi (P2 — brief riêng):** ảo hóa World Journey feed; LRU Map cache RAM; gộp 3 hook → `useResilientRealtimeChannel`.
 - *Hệ quả file:* `lib/chat/use-chat-realtime.ts`, `lib/chat/use-chat-read-cursors-realtime.ts`, `lib/chat/use-room-presence.ts`, `lib/chat/chat-session-cache.ts`; plan [`PLAN_realtime_lag_thong_bao.md`](./PLAN_realtime_lag_thong_bao.md).
+
+### L35d — Catch-up cursor + một cửa ghi/nhận tin (2026-08-31)
+
+- **Vấn đề:** không có API bù tin (`after`); poll 3s endpoint nặng; keyset chỉ `tao_luc`; tab quay lại đọc RAM 45s; 7 chỗ INSERT `chat_tin_nhan`; 3 kênh CDC/tab.
+- **Đã làm (Phase 1–1C):** `after` + keyset `(tao_luc, id)`; delta không mark read; short-circuit 0 tin; catch-up 20s + reconnect/visibility/online; `maxAgeMs` 5s; helper INSERT; bus provider; bỏ đọc lại tin vừa gửi.
+- **Giữ nguyên:** `markRoomRead` đọc hết phòng (user chốt). SoT vẫn `chat_tin_nhan`.
+- **Phase 2:** HTTP `POST /realtime/v1/api/broadcast` xác nhận **202**. Code publish + subscribe sẵn, **cờ mặc định tắt**. SQL `migration_chat_user_broadcast.sql` **chưa chạy**.
+- *Hệ quả file:* plan [`PLAN_kien_truc_tin_nhan.md`](./PLAN_kien_truc_tin_nhan.md); `lib/chat/insert-message.ts`, `publish.ts`, `use-chat-user-channel.ts`, `use-open-room-message-backfill.ts`, `direct-message.ts`, overlay/stack/provider, `OrgInboxPanel`, `TinNhanQuanLyClient`.
 
 ### L35c — Tab stale hard reload kiểu Facebook (2026-08-25)
 

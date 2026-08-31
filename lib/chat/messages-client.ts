@@ -13,12 +13,24 @@ export type RoomMessagesPage = {
 
 export async function fetchRoomMessagesPage(
   roomId: string,
-  options?: { before?: string; limit?: number; markRead?: boolean },
+  options?: {
+    before?: string;
+    /**
+     * Catch-up delta: chỉ lấy tin mới hơn cursor. Server **không** mark read và
+     * **không** trả `readCursors`/`pinnedMessages` trên nhánh này.
+     */
+    after?: string;
+    limit?: number;
+    markRead?: boolean;
+  },
 ): Promise<RoomMessagesPage | null> {
   const params = new URLSearchParams();
   params.set("limit", String(options?.limit ?? CHAT_MESSAGES_PAGE_SIZE));
   if (options?.before) {
     params.set("before", options.before);
+  }
+  if (options?.after) {
+    params.set("after", options.after);
   }
   if (options?.markRead) {
     params.set("mark_read", "1");
