@@ -1347,7 +1347,8 @@ a.j-main-gallery-item {
 }
 button.j-main-gallery-item:focus-visible,
 a.j-main-gallery-item:focus-visible,
-.j-main-gallery-item:has(> .j-main-gallery-item-hit:focus-visible) {
+.j-main-gallery-item:has(> .j-main-gallery-item-hit:focus-visible),
+.j-main-gallery-item:has(> button.j-main-gallery-thumb:focus-visible) {
   outline: 2px solid rgba(31, 116, 201, 0.45);
   outline-offset: 2px;
 }
@@ -1404,6 +1405,18 @@ a.j-main-gallery-item:focus-visible,
   aspect-ratio: 16 / 9;
   overflow: hidden;
   background: var(--neutral-100);
+}
+button.j-main-gallery-thumb {
+  display: block;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
 }
 /* Ô "Thêm bài viết" — cell đầu gallery khi xem trang của chính mình. */
 .j-main-gallery-item.j-main-gallery-create {
@@ -10409,6 +10422,15 @@ select.j-edit-input {
 .j-m-menu-item.is-shop .j-m-menu-ico {
   color: #b45309;
 }
+.j-m-menu-item.is-watermark {
+  color: var(--cins-blue, #1f74c9);
+}
+.j-m-menu-item.is-watermark:hover:not(:disabled) {
+  background: var(--cins-blue-soft, #e7f0fb);
+}
+.j-m-menu-item.is-watermark .j-m-menu-ico {
+  color: var(--cins-blue, #1f74c9);
+}
 
 .j-m-menu-ico {
   display: inline-flex;
@@ -15870,6 +15892,13 @@ select.j-edit-input {
 }
 :root[data-theme="dark"] .j-m-menu-item.is-shop:hover:not(:disabled) {
   background: color-mix(in srgb, var(--cins-orange, #fdad4c) 16%, transparent);
+}
+:root[data-theme="dark"] .j-m-menu-item.is-watermark,
+:root[data-theme="dark"] .j-m-menu-item.is-watermark .j-m-menu-ico {
+  color: var(--cins-blue, #7db8f2);
+}
+:root[data-theme="dark"] .j-m-menu-item.is-watermark:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--cins-blue, #7db8f2) 16%, transparent);
 }
 :root[data-theme="dark"] .j-m-menu-confirm {
   background: color-mix(in srgb, var(--danger) 14%, transparent);

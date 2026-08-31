@@ -357,12 +357,11 @@ export function JourneyMilestoneCardBodyContent({
     videoEmbedUrlForArticle &&
       classifyStreamVideoUrl(videoEmbedUrlForArticle),
   );
-  /* Peek block trên card = kiểu «xổ sớm» trước unfold. Khi đã mở popup
-     (expandTrigger.enabled) không dump nội dung dài lên timeline. */
+  /* Click card → popup bài đầy đủ (không xổ inline). Peek trên timeline
+     vẫn hiện ảnh/embed trong khung cắt — không để khung 16:9 trống. */
   const opensArticlePopup = Boolean(expandTrigger?.enabled);
   const showArticleEmbedBlocksPeek =
     isArticle &&
-    !opensArticlePopup &&
     !isContentOpen &&
     !hasCoverPreview &&
     !isEmbedInteractivePeek &&
@@ -376,7 +375,6 @@ export function JourneyMilestoneCardBodyContent({
 
   const articleNeedsDepth =
     isArticle &&
-    !opensArticlePopup &&
     (isEmbedInteractivePeek ||
       showArticleEmbedBlocksPeek ||
       hasHostedVideoInArticle ||
@@ -401,9 +399,12 @@ export function JourneyMilestoneCardBodyContent({
     !peekIsTextOnly &&
     !showArticleEmbedBlocksPeek &&
     !isContentOpen;
-  /* Popup path không peek block — vẫn cần CTA «Xem đầy đủ» khi không có cover. */
+  /* Teaser chữ: CTA dưới title/caption — không force min-height 16:9. */
   const showArticleTextDepth =
     !isContentOpen &&
+    !showArticleContentPeek &&
+    !showArticleEmbedBlocksPeek &&
+    !isEmbedInteractivePeek &&
     ((articleNeedsDepth &&
       (articlePeekBlocks.length === 0 || peekIsTextOnly)) ||
       (opensArticlePopup && showExpandTrigger && !hasCoverPreview));
@@ -589,7 +590,10 @@ export function JourneyMilestoneCardBodyContent({
       <div
         className={[
           "jcard-content",
-          showArticleTextDepth ? "is-article-depth" : "",
+          showArticleContentPeek || showArticleEmbedBlocksPeek
+            ? "is-article-depth"
+            : "",
+          showArticleTextDepth ? "is-article-text-teaser" : "",
         ]
           .filter(Boolean)
         .join(" ")}

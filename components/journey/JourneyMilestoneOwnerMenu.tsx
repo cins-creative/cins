@@ -7,6 +7,7 @@ import {
   Calendar,
   Check,
   ChevronRight,
+  Copyright,
   ExternalLink,
   Eye,
   FolderKanban,
@@ -266,6 +267,17 @@ export function JourneyMilestoneOwnerMenu({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [watermarkBat, setWatermarkBat] = useState(watermarkOn);
+  const watermarkTouchedRef = useRef(false);
+  const watermarkGenRef = useRef(0);
+
+  useEffect(() => {
+    if (watermarkTouchedRef.current) {
+      if (watermarkOn === watermarkBat) watermarkTouchedRef.current = false;
+      return;
+    }
+    setWatermarkBat(watermarkOn);
+  }, [watermarkOn, watermarkBat]);
   const [portalReady, setPortalReady] = useState(false);
   const [menuStyle, setMenuStyle] = useState<{
     top: number;
@@ -441,13 +453,15 @@ export function JourneyMilestoneOwnerMenu({
   }
 
   function handleWatermark(on: boolean) {
-    if (pending || personalAttach.pending || foreignJourney) return;
+    if (personalAttach.pending || foreignJourney) return;
     if (!ownerHasWatermark) {
       close();
       openEditProfile("customize", "watermark");
       return;
     }
-    const previous = watermarkOn;
+    const previous = watermarkBat;
+    watermarkTouchedRef.current = true;
+    setWatermarkBat(on);
     setError(null);
     close();
     dispatchMilestoneInlinePatch({
@@ -455,9 +469,13 @@ export function JourneyMilestoneOwnerMenu({
       kind: "watermark",
       value: on,
     });
+    const gen = ++watermarkGenRef.current;
     startTransition(async () => {
       const res = await updateMilestoneWatermark(milestoneId, on);
+      if (gen !== watermarkGenRef.current) return;
       if (!res.ok) {
+        watermarkTouchedRef.current = true;
+        setWatermarkBat(previous);
         dispatchMilestoneInlinePatch({
           milestoneId,
           kind: "watermark",
@@ -467,10 +485,12 @@ export function JourneyMilestoneOwnerMenu({
         setOpen(true);
         return;
       }
+      const next = res.data?.watermarkBat ?? on;
+      setWatermarkBat(next);
       dispatchMilestoneInlinePatch({
         milestoneId,
         kind: "watermark",
-        value: res.data?.watermarkBat ?? on,
+        value: next,
       });
       router.refresh();
       onAfterChange?.();
@@ -862,22 +882,29 @@ export function JourneyMilestoneOwnerMenu({
         {hasImages && !foreignJourney ? (
           <button
             type="button"
-            className="j-m-menu-item"
+            className={
+              "j-m-menu-item" +
+              (ownerHasWatermark && watermarkBat ? " is-watermark" : "")
+            }
             role="menuitem"
-            disabled={pending || personalAttach.pending}
+            disabled={personalAttach.pending}
             onClick={() =>
               ownerHasWatermark
-                ? handleWatermark(!watermarkOn)
+                ? handleWatermark(!watermarkBat)
                 : handleWatermark(true)
             }
           >
             <span className="j-m-menu-ico" aria-hidden>
-              <Stamp size={14} strokeWidth={1.7} />
+              {ownerHasWatermark && watermarkBat ? (
+                <Copyright size={14} strokeWidth={1.7} />
+              ) : (
+                <Stamp size={14} strokeWidth={1.7} />
+              )}
             </span>
             <span className="j-m-menu-lbl">
               {!ownerHasWatermark
                 ? "Gắn watermark"
-                : watermarkOn
+                : watermarkBat
                   ? "Bỏ watermark"
                   : "Gắn watermark"}
             </span>

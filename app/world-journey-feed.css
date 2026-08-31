@@ -5079,6 +5079,39 @@ body:has(.world-journey-home.view-video) .cins-home-feed-root {
   border-radius: 12px;
 }
 
+.wj-video-listing-clip {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  pointer-events: none;
+  object-fit: contain;
+  background: transparent;
+  opacity: 0;
+}
+.wj-video-listing-clip.is-on {
+  opacity: 1;
+}
+.wj-feed-grid-panel .j-main-gallery-item .j-g-play {
+  width: auto;
+  height: auto;
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
+  color: #fff;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
+}
+.wj-feed-grid-panel .j-main-gallery-item .j-g-play svg {
+  width: 12px;
+  height: 12px;
+  margin-left: 1px;
+}
+.wj-feed-grid-panel .j-main-gallery-item:has(.wj-video-listing-clip.is-on) .j-g-play {
+  opacity: 0;
+}
+
 .wj-list-player.is-fill {
   height: 100%;
   aspect-ratio: auto;

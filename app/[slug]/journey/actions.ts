@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 import type { GiaiDoan } from "@/lib/auth/session";
 import { getCurrentSessionAndProfile } from "@/lib/auth/session";
@@ -986,6 +986,8 @@ export async function updateMilestoneWatermark(
   }
 
   revalidatePath(`/${owner.profileSlug}`);
+  revalidatePath("/");
+  revalidateTag("world-journey-feed", { expire: 0 });
   return { ok: true, data: { watermarkBat: on } };
 }
 

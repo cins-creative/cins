@@ -58,6 +58,20 @@ function railIframeSrc(uid: string, loop: boolean): string {
   return `${buildStreamIframeUrl(uid)}?${params.toString()}`;
 }
 
+function loopKeyFromTarget(target: EventTarget | null): string | null {
+  if (!(target instanceof Element)) return null;
+  return (
+    target.closest("[data-loop-key]")?.getAttribute("data-loop-key") ?? null
+  );
+}
+
+function itemIdFromTarget(target: EventTarget | null): string | null {
+  if (!(target instanceof Element)) return null;
+  return (
+    target.closest("[data-item-id]")?.getAttribute("data-item-id") ?? null
+  );
+}
+
 export type VideoRailOpenPayload = {
   item: GalleryMainItem;
   items: GalleryMainItem[];
@@ -72,7 +86,8 @@ type Props = {
 
 /**
  * Coverflow 3D — card giữa thẳng, hai bên rotateY; chuyển thì xoay vào tâm.
- * Desktop: nút L/R + wheel khi hover. Mobile: swipe ngang.
+ * Desktop: nút L/R + wheel khi hover. Mobile: press/kéo ngang → autoplay
+ * (play() trong pointerdown — iOS cần user gesture).
  */
 export function WorldJourneyVideoRail({
   items: rawItems,
@@ -103,7 +118,7 @@ export function WorldJourneyVideoRail({
   });
   const [stripCopy, setStripCopy] = useState(0);
   const [stripDragging, setStripDragging] = useState(false);
-  const [railInView, setRailInView] = useState(false);
+  const [railInView, setRailInView] = useState(() => isStrip);
   const { muted, toggleMuted } = useWorldJourneyFeedAudio();
   const lockUntilRef = useRef(0);
   const wheelAccRef = useRef(0);
@@ -188,7 +203,7 @@ export function WorldJourneyVideoRail({
 
   useEffect(() => {
     const el = rootRef.current;
-    if (!el || isStrip) return;
+    if (!el) return;
     const io = new IntersectionObserver(
       ([entry]) => {
         if (!entry) {
@@ -197,11 +212,49 @@ export function WorldJourneyVideoRail({
         }
         setRailInView(entry.isIntersecting);
       },
-      { threshold: [0, 0.35, 0.55, 0.72, 0.9, 1] },
+      {
+        threshold: isStrip
+          ? [0, 0.15, 0.35]
+          : [0, 0.35, 0.55, 0.72, 0.9, 1],
+      },
     );
     io.observe(el);
     return () => io.disconnect();
   }, [isStrip, slotKey, n]);
+
+  const kickLoopKeyPlay = useCallback((loopKey: string | null) => {
+    if (!loopKey) return;
+    const bound = playersRef.current.get(loopKey);
+    if (bound) {
+      void playStreamWithAudio(
+        bound.player,
+        mutedRef.current,
+        bound.iframe,
+      );
+      return;
+    }
+    const root = stripTrackRef.current ?? rootRef.current;
+    const clip = root?.querySelector<HTMLIFrameElement>(
+      `[data-loop-key="${CSS.escape(loopKey)}"] iframe`,
+    );
+    if (clip) postStreamPlay(clip);
+  }, []);
+
+  const activateTouchCard = useCallback(
+    (target: EventTarget | null, fallbackLoopKey: string | null) => {
+      const loopKey = loopKeyFromTarget(target) ?? fallbackLoopKey;
+      if (!loopKey) return;
+      const itemId = itemIdFromTarget(target);
+      if (itemId) {
+        const idx = items.findIndex((item) => item.id === itemId);
+        if (idx >= 0) setHoverIndex(idx);
+      }
+      if (loopKey === hoverLoopKeyRef.current) return;
+      setHoverLoopKey(loopKey);
+      kickLoopKeyPlay(loopKey);
+    },
+    [items, kickLoopKeyPlay],
+  );
 
   const step = useCallback(
     (dir: 1 | -1) => {
@@ -252,6 +305,12 @@ export function WorldJourneyVideoRail({
       pauseStream(bound.player, bound.iframe);
     }
   }, [isStrip, hoverLoopKey]);
+
+  useEffect(() => {
+    if (railInView) return;
+    setHoverIndex(null);
+    setHoverLoopKey(null);
+  }, [railInView]);
 
   const registerPlayer = useCallback(
     (
@@ -363,16 +422,22 @@ export function WorldJourneyVideoRail({
     return () => io.disconnect();
   }, [isStrip, n, items, displayCards.length]);
 
-  const onPointerDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0) return;
-    dragRef.current = {
-      pointerId: e.pointerId,
-      startX: e.clientX,
-      startY: e.clientY,
-      moved: false,
-      axis: "undecided",
-    };
-  }, []);
+  const onPointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (e.button !== 0) return;
+      dragRef.current = {
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        moved: false,
+        axis: "undecided",
+      };
+      if (e.pointerType !== "mouse") {
+        activateTouchCard(e.target, activeLoopKeyRef.current);
+      }
+    },
+    [activateTouchCard],
+  );
 
   const onPointerMove = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
@@ -426,6 +491,9 @@ export function WorldJourneyVideoRail({
         moved: false,
         axis: "undecided",
       };
+      if (e.pointerType !== "mouse") {
+        activateTouchCard(e.target, activeLoopKeyRef.current);
+      }
       if (e.pointerType === "mouse") {
         try {
           el.setPointerCapture(e.pointerId);
@@ -434,7 +502,7 @@ export function WorldJourneyVideoRail({
         }
       }
     },
-    [],
+    [activateTouchCard],
   );
 
   const onStripPointerMove = useCallback(
@@ -465,8 +533,12 @@ export function WorldJourneyVideoRail({
       if (drag.axis !== "x") return;
       el.scrollLeft = drag.startScroll - dx;
       wrapInfiniteScroll();
+      if (e.pointerType !== "mouse") {
+        const under = document.elementFromPoint(e.clientX, e.clientY);
+        activateTouchCard(under, activeLoopKeyRef.current);
+      }
     },
-    [wrapInfiniteScroll],
+    [wrapInfiniteScroll, activateTouchCard],
   );
 
   const endStripPointer = useCallback(
@@ -482,9 +554,16 @@ export function WorldJourneyVideoRail({
         wrapInfiniteScroll();
         setStripDragging(false);
       }
+      if (e.pointerType !== "mouse") {
+        const keep = activeLoopKeyRef.current;
+        if (keep) {
+          setHoverLoopKey(keep);
+          kickLoopKeyPlay(keep);
+        }
+      }
       stripDragRef.current = null;
     },
-    [wrapInfiniteScroll],
+    [wrapInfiniteScroll, kickLoopKeyPlay],
   );
 
   useEffect(() => {
@@ -545,6 +624,8 @@ export function WorldJourneyVideoRail({
           onPointerLeave={
             isStrip
               ? (event) => {
+                  if (event.pointerType !== "mouse") return;
+                  if (stripDragRef.current) return;
                   const next = event.relatedTarget;
                   if (next instanceof Node && event.currentTarget.contains(next)) {
                     return;
@@ -562,7 +643,9 @@ export function WorldJourneyVideoRail({
             const copy = stripLoops && n > 0 ? Math.floor(cardIndex / n) : 0;
             const visibleCopy = stripLoops ? stripCopy : 0;
             const playing = isStrip
-              ? copy === visibleCopy && loopKey === hoverLoopKey
+              ? railInView &&
+                copy === visibleCopy &&
+                loopKey === hoverLoopKey
               : railInView && sourceIndex === (hoverIndex ?? activeIndex);
             const clipMounted = isStrip
               ? copy === visibleCopy
@@ -577,7 +660,7 @@ export function WorldJourneyVideoRail({
                 layout={isStrip ? "strip" : "coverflow"}
                 playing={playing}
                 clipMounted={clipMounted}
-                inView={isStrip || railInView}
+                inView={railInView}
                 muted={muted}
                 onOpen={() => handleOpen(item)}
                 onFocusCard={() => setActiveIndex(sourceIndex)}
@@ -1005,6 +1088,13 @@ function VideoStackCard({
         isStrip && onHover
           ? (event) => {
               if (event.pointerType === "mouse") onHover();
+            }
+          : undefined
+      }
+      onPointerDown={
+        isStrip && onHover
+          ? (event) => {
+              if (event.pointerType !== "mouse") onHover();
             }
           : undefined
       }

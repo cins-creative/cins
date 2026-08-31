@@ -821,7 +821,10 @@ function fetchWorldJourneyFeedRankedForApi(viewerId: string) {
   return unstable_cache(
     () => buildWorldJourneyFeedRanked(viewerId),
     ["world-journey-feed-ranked", viewerId],
-    { revalidate: WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC },
+    {
+      revalidate: WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC,
+      tags: ["world-journey-feed", `world-journey-feed:${viewerId}`],
+    },
   )();
 }
 
@@ -833,7 +836,10 @@ function fetchWorldJourneyFeedRankedWideForApi(viewerId: string) {
         softQuota: false,
       }),
     ["world-journey-feed-ranked-wide", viewerId],
-    { revalidate: WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC },
+    {
+      revalidate: WORLD_JOURNEY_FEED_RANK_REVALIDATE_SEC,
+      tags: ["world-journey-feed", `world-journey-feed:${viewerId}`],
+    },
   )();
 }
 

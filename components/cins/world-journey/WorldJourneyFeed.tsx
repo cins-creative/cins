@@ -84,6 +84,11 @@ import {
   type HomeFeedLayout,
 } from "@/lib/home/home-feed-layout";
 import { mergeMilestoneIntoTimeline } from "@/lib/journey/timeline-merge";
+import {
+  applyMilestoneInlinePatch,
+  MILESTONE_INLINE_PATCH_EVENT,
+  type MilestoneInlinePatchDetail,
+} from "@/lib/journey/milestone-inline-patch";
 import type { FeedPromoVariant } from "@/lib/cins/worldJourneyFeedPromosTypes";
 import type { GalleryMainItem } from "@/lib/journey/gallery-page-fetch";
 import { galleryItemFromFeedMilestone } from "@/lib/cins/worldJourneyMilestoneVideo";
@@ -540,6 +545,14 @@ export function WorldJourneyFeed({
   const galleryInflightRef = useRef<
     Map<string, Promise<GalleryCacheEntry | null>>
   >(new Map());
+  /** Patch menu (watermark / type / visibility) — không để SSR cache 20s ghi đè. */
+  const inlinePatchesRef = useRef<MilestoneInlinePatchDetail[]>([]);
+  const applyStoredInlinePatches = useCallback((items: MilestoneItem[]) => {
+    return inlinePatchesRef.current.reduce(
+      (acc, detail) => applyMilestoneInlinePatch(acc, detail),
+      items,
+    );
+  }, []);
   /** Inflight dedupe prefetch timeline journey/shop. */
   const feedInflightRef = useRef<
     Map<string, Promise<{
@@ -874,7 +887,7 @@ export function WorldJourneyFeed({
       if (next === "journey" || next === "shop") {
         const cached = timelineCacheRef.current[next];
         if (cached) {
-          setFeedMilestones(cached.milestones);
+          setFeedMilestones(applyStoredInlinePatches(cached.milestones));
           setHasMore(cached.hasMore);
           setNextOffset(cached.nextOffset);
           hasMoreRef.current = cached.hasMore;
@@ -995,7 +1008,7 @@ export function WorldJourneyFeed({
       if (next === "journey" || next === "shop") {
         const cached = timelineCacheRef.current[next];
         if (cached) {
-          setFeedMilestones(cached.milestones);
+          setFeedMilestones(applyStoredInlinePatches(cached.milestones));
           setHasMore(cached.hasMore);
           setNextOffset(cached.nextOffset);
           hasMoreRef.current = cached.hasMore;
@@ -1112,7 +1125,9 @@ export function WorldJourneyFeed({
     ) {
       return;
     }
-    setFeedMilestones(mergePinnedOwnPublishes(milestones));
+    setFeedMilestones(
+      applyStoredInlinePatches(mergePinnedOwnPublishes(milestones)),
+    );
     setHasMore(feedHasMore);
     setNextOffset(feedNextOffset);
     hasMoreRef.current = feedHasMore;
@@ -1139,6 +1154,7 @@ export function WorldJourneyFeed({
     activeLinhVucSlug,
     feedSource,
     mergePinnedOwnPublishes,
+    applyStoredInlinePatches,
     surfaceView,
   ]);
 
@@ -1200,11 +1216,41 @@ export function WorldJourneyFeed({
         prev.filter((m) => m.id !== id && m.cotMocId !== id),
       );
     };
+    const onMilestonePatch = (event: Event) => {
+      const detail = (event as CustomEvent<MilestoneInlinePatchDetail>).detail;
+      if (!detail?.milestoneId) return;
+      inlinePatchesRef.current = [
+        ...inlinePatchesRef.current.filter(
+          (p) =>
+            !(p.milestoneId === detail.milestoneId && p.kind === detail.kind),
+        ),
+        detail,
+      ];
+      setFeedMilestones((prev) => applyMilestoneInlinePatch(prev, detail));
+      const cache = timelineCacheRef.current;
+      if (cache.journey) {
+        cache.journey = {
+          ...cache.journey,
+          milestones: applyMilestoneInlinePatch(
+            cache.journey.milestones,
+            detail,
+          ),
+        };
+      }
+      if (cache.shop) {
+        cache.shop = {
+          ...cache.shop,
+          milestones: applyMilestoneInlinePatch(cache.shop.milestones, detail),
+        };
+      }
+    };
     window.addEventListener(COMPOSE_PUBLISHED_EVENT, onComposePublished);
     window.addEventListener("cins:milestone-deleted", onMilestoneDeleted);
+    window.addEventListener(MILESTONE_INLINE_PATCH_EVENT, onMilestonePatch);
     return () => {
       window.removeEventListener(COMPOSE_PUBLISHED_EVENT, onComposePublished);
       window.removeEventListener("cins:milestone-deleted", onMilestoneDeleted);
+      window.removeEventListener(MILESTONE_INLINE_PATCH_EVENT, onMilestonePatch);
     };
   }, [sidebarProfile.slug, sidebarProfile.tenHienThi, sidebarProfile.avatarUrl, viewerProfileId]);
 
@@ -1471,7 +1517,7 @@ export function WorldJourneyFeed({
         });
         if (cancelled || epoch !== filterQueryEpochRef.current) return;
         if (!feedData) throw new Error("filter fetch failed");
-        setFeedMilestones(feedData.milestones);
+        setFeedMilestones(applyStoredInlinePatches(feedData.milestones));
         hasMoreRef.current = feedData.hasMore;
         nextOffsetRef.current = feedData.nextOffset;
         setHasMore(feedData.hasMore);
