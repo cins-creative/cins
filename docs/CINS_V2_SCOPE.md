@@ -101,6 +101,30 @@ Plugin tạo doanh thu → CINs thu % tự động khi giao dịch hoàn thành:
 
 Admin cấu hình % per plugin / tier. Seller xem phí đã trả trong Analytics & Pro.
 
+### Quy tắc 3 — Promote (add-on, plugin kiếm tiền)
+
+**Promote** = đẩy nội bộ nền tảng (budget + thời gian + placement), **không** phải quảng cáo banner bên thứ ba.
+
+- Chỉ là **add-on** trong plugin — user bật từng add-on `promote` per plugin
+- Chỉ plugin **giúp user kiếm tiền** (có dòng % giao dịch hoặc subscription trả phí):
+
+| Plugin | Add-on Promote | Đối tượng đẩy | Placement gợi ý |
+|--------|----------------|---------------|-----------------|
+| Shop | ✅ | Sản phẩm / cửa hàng | Tìm SP, categories, đầu tab Shop |
+| Commission | ✅ | Gói dịch vụ | Browse commission, tag nghề |
+| Khóa học | ✅ | Khóa / video lẻ | Discovery khóa, khóa liên quan |
+| Sự kiện | ✅ | Sự kiện / loại vé | Discovery sự kiện, sắp diễn ra |
+| Cộng đồng | ✅ | Nhóm (ưu tiên nhóm trả phí) | Discovery cộng đồng |
+| Tuyển dụng | ❌ | — | Không thu phí / không phải kênh bán |
+| Customize | ❌ | — | Trang trí, không bán |
+| Analytics & Pro | ❌ | — | Plugin báo cáo; chi tiêu promote xem ở đây |
+
+**Engine chung** (hạ tầng §9): một hệ `plugin_promote_*` — billing, placement, nhãn **“Được tài trợ”**, moderation. Mỗi plugin chỉ khai báo entity + nút “Đẩy” trong Manage.
+
+**Khác Featured block (Customize add-on):** pin thủ công trên profile = miễn phí / sắp xếp tay; Promote = trả tiền → reach rộng hơn (search, discovery, feed).
+
+**Monetization CINs:** (1) % giao dịch · (2) budget Promote · (3) Analytics & Pro.
+
 ---
 
 ## 7. Plugin marketplace
@@ -241,6 +265,7 @@ User vào `/settings/plugins` → xem danh sách plugin → bật/tắt → wiza
 - Digital delivery (file tải sau TT)
 - Báo cáo doanh thu → tab trong Analytics & Pro
 - Quầy / booth sự kiện (POS nhẹ — liên kết plugin Sự kiện)
+- **Promote** — đẩy sản phẩm / shop (add-on; engine chung §6 quy tắc 3)
 
 ---
 
@@ -270,6 +295,7 @@ User vào `/settings/plugins` → xem danh sách plugin → bật/tắt → wiza
 - Milestone thanh toán (nhiều đợt)
 - NDA / điều khoản bắt buộc trước brief
 - File vault (giao file source sau hoàn thành)
+- **Promote** — đẩy gói dịch vụ (add-on)
 
 ---
 
@@ -317,6 +343,7 @@ Một plugin, hai **loại khóa** (chọn khi tạo): `live` (học trực ti�
 - Combo khóa (bundle nhiều khóa)
 - Sản phẩm học viên (showcase)
 - Affiliate (user chia sẻ link → hoa hồng)
+- **Promote** — đẩy khóa / video lẻ (add-on)
 
 ---
 
@@ -367,6 +394,7 @@ Một plugin, hai **loại khóa** (chọn khi tạo): `live` (học trực ti�
 - Waitlist (hết chỗ)
 - Email / push nhắc trước event
 - Accept shop tham dự (booth — liên kết plugin Shop)
+- **Promote** — đẩy sự kiện / vé (add-on)
 
 ---
 
@@ -392,6 +420,7 @@ Một plugin, hai **loại khóa** (chọn khi tạo): `live` (học trực ti�
 - Poll / vote
 - Wiki / pin trang (nhẹ)
 - Event trong nhóm (liên kết plugin Sự kiện)
+- **Promote** — đẩy nhóm / gói member trả phí (add-on)
 
 ---
 
@@ -426,6 +455,7 @@ Một plugin, hai **loại khóa** (chọn khi tạo): `live` (học trực ti�
 
 #### I2. Add-on Analytics & Pro
 - Funnel chi tiết (shop / khóa / commission)
+- Báo cáo chi tiêu **Promote** per plugin (impression / click / conversion)
 - Custom domain → profile
 - Watermark batch (bài Journey)
 - Export CSV / báo cáo
@@ -471,6 +501,7 @@ Một plugin, hai **loại khóa** (chọn khi tạo): `live` (học trực ti�
 ### Plugin system
 - Plugin marketplace (`/settings/plugins`)
 - Addon registry (voucher/combo engine dùng chung Shop + Khóa)
+- **Promote engine** — campaign + placement + spend log; add-on `promote` per plugin kiếm tiền (§6 quy tắc 3)
 - Bảng `plugin_ctv` (CTV dùng chung mọi plugin)
 - Onboarding wizard per plugin (lần đầu bật)
 
@@ -504,16 +535,16 @@ Một plugin, hai **loại khóa** (chọn khi tạo): `live` (học trực ti�
 
 ## 11. Ma trận plugin tổng hợp
 
-| Plugin | % phí | CTV | Chat auto | Add-on nổi bật |
-|--------|-------|-----|-----------|----------------|
-| Shop | % đơn | ✅ | Giao dịch | Voucher, Flash sale, Đa thị trường, Digital |
-| Commission | % đơn | ✅ | Giao dịch | Rush, File vault, Milestone TT |
-| Khóa học | % mua/sub | ✅ | Nhóm (lớp) | Video lẻ, Cert, WebRTC, Affiliate |
-| Tuyển dụng | Không | ✅ | Người lạ | Talent pool, Scorecard |
-| Sự kiện | % vé | ✅ | Nhóm | Bán vé QR, Livestream, Booth |
-| Cộng đồng | % sub | ✅ | Nhóm | Member trả phí, Poll |
-| Customize | Không | — | — | Scheduled theme, Custom watermark |
-| Analytics & Pro | Không | — | — | Custom domain, API/webhook |
+| Plugin | % phí | CTV | Chat auto | Promote add-on | Add-on nổi bật khác |
+|--------|-------|-----|-----------|----------------|---------------------|
+| Shop | % đơn | ✅ | Giao dịch | ✅ | Voucher, Flash sale, Đa thị trường, Digital |
+| Commission | % đơn | ✅ | Giao dịch | ✅ | Rush, File vault, Milestone TT |
+| Khóa học | % mua/sub | ✅ | Nhóm (lớp) | ✅ | Video lẻ, Cert, WebRTC, Affiliate |
+| Tuyển dụng | Không | ✅ | Người lạ | ❌ | Talent pool, Scorecard |
+| Sự kiện | % vé | ✅ | Nhóm | ✅ | Bán vé QR, Livestream, Booth |
+| Cộng đồng | % sub | ✅ | Nhóm | ✅ | Member trả phí, Poll |
+| Customize | Không | — | — | ❌ | Scheduled theme, Custom watermark |
+| Analytics & Pro | Không | — | — | — (xem báo cáo) | Custom domain, API/webhook |
 
 ---
 
@@ -535,8 +566,9 @@ Một plugin, hai **loại khóa** (chọn khi tạo): `live` (học trực ti�
 12. Plugin #4–#6 (Tuyển dụng, Sự kiện, Cộng đồng)
 13. Plugin #7 (Customize) + Plugin #8 (Analytics & Pro)
 14. Add-on per plugin (voucher, flash sale, v.v.)
-15. Analytics & Pro đầy đủ + phí nền tảng
-16. Migrate user / bài cũ từ CINs v1
+15. Promote engine + add-on promote (5 plugin kiếm tiền)
+16. Analytics & Pro đầy đủ + phí nền tảng + báo cáo Promote
+17. Migrate user / bài cũ từ CINs v1
 ```
 
 *Mỗi phase = có thể demo được. Không phase "chỉ refactor".*
@@ -616,6 +648,9 @@ user_plugin             -- (id_nguoi_dung, loai, trang_thai, cau_hinh)
 user_plugin_addon       -- (id_plugin, addon_key, bat, cau_hinh)
 plugin_ctv              -- CTV chung mọi plugin
 plugin_phi              -- lịch sử phí nền tảng per giao dịch
+plugin_promote_campaign -- (id_plugin, loai_plugin, entity_id, budget, ttl, trang_thai)
+plugin_promote_placement-- (campaign_id, vi_tri: search|tag|discovery|tab_...)
+plugin_promote_spend    -- log chi tiêu / impression / click
 ```
 
 ### Shop
