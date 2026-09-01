@@ -101,6 +101,11 @@ export function WorldJourneyVideoListingPlayer({
   const scrubbingRef = useRef(false);
   const wasPlayingRef = useRef(false);
   const seekRafRef = useRef(0);
+  const pendingSeekRef = useRef<number | null>(null);
+  const lastScrubRatioRef = useRef(0);
+  const scrubElRef = useRef<HTMLDivElement>(null);
+  const durationRef = useRef(0);
+  const unbindTimelineWindow = useRef<(() => void) | null>(null);
   const activeRef = useRef(active);
   const mutedRef = useRef(muted);
   const loopOnRef = useRef(loopOn);
@@ -108,6 +113,7 @@ export function WorldJourneyVideoListingPlayer({
   activeRef.current = active;
   mutedRef.current = muted;
   loopOnRef.current = loopOn;
+  durationRef.current = duration;
   const canControl = Boolean(uid) && !item.videoProcessing;
   const [inView, setInView] = useState(false);
   const iframeSrc =
@@ -166,17 +172,35 @@ export function WorldJourneyVideoListingPlayer({
     };
     const onTime = () => {
       if (cancelled || !player || scrubbingRef.current) return;
+      const pending = pendingSeekRef.current;
+      if (pending != null) {
+        const got = player.currentTime || 0;
+        if (Math.abs(got - pending) > 0.4) {
+          seekStreamPlayer(player, pending, el);
+          return;
+        }
+        pendingSeekRef.current = null;
+      }
       setCurrentTime(player.currentTime || 0);
       if (!player.paused) setPaused(false);
       const d = player.duration;
       if (Number.isFinite(d) && d > 0) setDuration(d);
+    };
+    const onSeeked = () => {
+      const pending = pendingSeekRef.current;
+      if (pending == null || !player) return;
+      if (Math.abs((player.currentTime || 0) - pending) <= 0.4) {
+        pendingSeekRef.current = null;
+      }
     };
     const onMeta = () => {
       if (cancelled || !player) return;
       const d = player.duration;
       if (Number.isFinite(d) && d > 0) setDuration(d);
       setPaused(player.paused);
-      setCurrentTime(player.currentTime || 0);
+      if (pendingSeekRef.current == null && !scrubbingRef.current) {
+        setCurrentTime(player.currentTime || 0);
+      }
     };
     const onEnded = () => {
       if (cancelled || !player) return;
@@ -203,6 +227,7 @@ export function WorldJourneyVideoListingPlayer({
       player.removeEventListener("durationchange", onMeta);
       player.removeEventListener("loadedmetadata", onMeta);
       player.removeEventListener("ended", onEnded);
+      player.removeEventListener("seeked", onSeeked);
     };
 
     const attach = async () => {
@@ -219,6 +244,7 @@ export function WorldJourneyVideoListingPlayer({
         next.addEventListener("durationchange", onMeta);
         next.addEventListener("loadedmetadata", onMeta);
         next.addEventListener("ended", onEnded);
+        next.addEventListener("seeked", onSeeked);
         next.loop = loopOnRef.current;
         applyStreamAudio(next, mutedRef.current);
         if (activeRef.current && !userPausedRef.current) {
@@ -328,32 +354,88 @@ export function WorldJourneyVideoListingPlayer({
     postStreamEvent(el, "pause");
   }, [onActivate, paused]);
 
-  const seekToRatio = useCallback(
-    (ratio: number) => {
-      const clamped = Math.min(1, Math.max(0, ratio));
-      const player = playerRef.current;
-      const el = iframeRef.current;
-      const d = player?.duration || duration;
-      setScrubRatio(clamped);
-      if (!Number.isFinite(d) || d <= 0) return;
-      const next = clamped * d;
-      setCurrentTime(next);
+  const seekToRatio = useCallback((ratio: number, immediate = false) => {
+    const clamped = Math.min(1, Math.max(0, ratio));
+    lastScrubRatioRef.current = clamped;
+    setScrubRatio(clamped);
+    const player = playerRef.current;
+    const el = iframeRef.current;
+    const pd = player?.duration;
+    const d =
+      typeof pd === "number" && Number.isFinite(pd) && pd > 0
+        ? pd
+        : durationRef.current;
+    if (!Number.isFinite(d) || d <= 0) return;
+    const next = clamped * d;
+    pendingSeekRef.current = next;
+    setCurrentTime(next);
+    const apply = () => {
+      seekRafRef.current = 0;
+      seekStreamPlayer(playerRef.current, next, el);
+    };
+    if (immediate) {
       if (seekRafRef.current) cancelAnimationFrame(seekRafRef.current);
-      seekRafRef.current = requestAnimationFrame(() => {
-        seekRafRef.current = 0;
-        seekStreamPlayer(player ?? playerRef.current, next, el);
-      });
-    },
-    [duration],
-  );
+      apply();
+      return;
+    }
+    if (seekRafRef.current) cancelAnimationFrame(seekRafRef.current);
+    seekRafRef.current = requestAnimationFrame(apply);
+  }, []);
 
-  const ratioFromPointer = useCallback(
-    (e: ReactPointerEvent<HTMLDivElement>) => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      return rect.width > 0 ? (e.clientX - rect.left) / rect.width : 0;
-    },
-    [],
-  );
+  const ratioFromClientX = useCallback((clientX: number, track?: HTMLElement | null) => {
+    const el = track ?? scrubElRef.current;
+    if (!el) return lastScrubRatioRef.current;
+    const rect = el.getBoundingClientRect();
+    return rect.width > 0
+      ? Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
+      : lastScrubRatioRef.current;
+  }, []);
+
+  const finishTimelineScrub = useCallback((ratio: number, pointerId?: number) => {
+    seekToRatio(ratio, true);
+    const player = playerRef.current;
+    const el = iframeRef.current;
+    const pd = player?.duration;
+    const d =
+      typeof pd === "number" && Number.isFinite(pd) && pd > 0
+        ? pd
+        : durationRef.current;
+    const next =
+      Number.isFinite(d) && d > 0
+        ? Math.min(1, Math.max(0, ratio)) * d
+        : pendingSeekRef.current;
+    scrubbingRef.current = false;
+    setScrubbing(false);
+    if (pointerId != null) {
+      try {
+        scrubElRef.current?.releasePointerCapture(pointerId);
+      } catch {
+        /* ignore */
+      }
+    }
+    if (wasPlayingRef.current && !userPausedRef.current) {
+      const resumeAt = next ?? 0;
+      if (player) {
+        applyStreamAudio(player, mutedRef.current, el);
+        void player
+          .play()
+          .catch(() => {
+            if (mutedRef.current) {
+              applyStreamAudio(player, true, el);
+              return player.play();
+            }
+            return undefined;
+          })
+          .finally(() => {
+            if (resumeAt >= 0) {
+              pendingSeekRef.current = resumeAt;
+              seekStreamPlayer(player, resumeAt, el);
+            }
+          });
+      }
+    }
+    wasPlayingRef.current = false;
+  }, [seekToRatio]);
 
   const onTimelinePointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -361,62 +443,48 @@ export function WorldJourneyVideoListingPlayer({
       e.preventDefault();
       onActivate();
       const track = e.currentTarget;
-      track.setPointerCapture(e.pointerId);
+      const pointerId = e.pointerId;
+      try {
+        track.setPointerCapture(pointerId);
+      } catch {
+        /* ignore */
+      }
       const player = playerRef.current;
       wasPlayingRef.current = player ? !player.paused : !paused;
       if (player && !player.paused) player.pause();
       scrubbingRef.current = true;
       setScrubbing(true);
-      seekToRatio(ratioFromPointer(e));
+      seekToRatio(ratioFromClientX(e.clientX, track), true);
+
+      unbindTimelineWindow.current?.();
+      const onMove = (ev: PointerEvent) => {
+        if (ev.pointerId !== pointerId || !scrubbingRef.current) return;
+        ev.stopPropagation();
+        seekToRatio(ratioFromClientX(ev.clientX, track));
+      };
+      const onUp = (ev: PointerEvent) => {
+        if (ev.pointerId !== pointerId) return;
+        unbindTimelineWindow.current?.();
+        unbindTimelineWindow.current = null;
+        finishTimelineScrub(ratioFromClientX(ev.clientX, track), pointerId);
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
+      unbindTimelineWindow.current = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
+      };
     },
-    [onActivate, paused, ratioFromPointer, seekToRatio],
+    [finishTimelineScrub, onActivate, paused, ratioFromClientX, seekToRatio],
   );
 
-  const onTimelinePointerMove = useCallback(
-    (e: ReactPointerEvent<HTMLDivElement>) => {
-      if (!scrubbingRef.current) return;
-      e.stopPropagation();
-      seekToRatio(ratioFromPointer(e));
-    },
-    [ratioFromPointer, seekToRatio],
-  );
-
-  const onTimelinePointerUp = useCallback(
-    (e: ReactPointerEvent<HTMLDivElement>) => {
-      e.stopPropagation();
-      const ratio = ratioFromPointer(e);
-      if (scrubbingRef.current) {
-        seekToRatio(ratio);
-      }
-      const player = playerRef.current;
-      const d = player?.duration || duration;
-      if (Number.isFinite(d) && d > 0) {
-        const next = Math.min(1, Math.max(0, ratio)) * d;
-        setCurrentTime(next);
-        seekStreamPlayer(player, next, iframeRef.current);
-      }
-      scrubbingRef.current = false;
-      setScrubbing(false);
-      try {
-        e.currentTarget.releasePointerCapture(e.pointerId);
-      } catch {
-        /* ignore */
-      }
-      if (wasPlayingRef.current && !userPausedRef.current) {
-        if (player) {
-          applyStreamAudio(player, mutedRef.current);
-          void player.play().catch(() => {
-            if (mutedRef.current) {
-              applyStreamAudio(player, true);
-              void player.play();
-            }
-          });
-        }
-      }
-      wasPlayingRef.current = false;
-    },
-    [duration, ratioFromPointer, seekToRatio],
-  );
+  useEffect(() => {
+    return () => {
+      unbindTimelineWindow.current?.();
+    };
+  }, []);
 
   const setRoot = useCallback(
     (el: HTMLDivElement | null) => {
@@ -538,6 +606,7 @@ export function WorldJourneyVideoListingPlayer({
             </button>
           ) : null}
           <div
+            ref={scrubElRef}
             className="wj-reel-timeline-scrub"
             role="slider"
             aria-label={t("reel.timeline")}
@@ -547,9 +616,6 @@ export function WorldJourneyVideoListingPlayer({
             aria-valuetext={`${formatReelTime(currentTime)} / ${formatReelTime(duration)}`}
             tabIndex={0}
             onPointerDown={onTimelinePointerDown}
-            onPointerMove={onTimelinePointerMove}
-            onPointerUp={onTimelinePointerUp}
-            onPointerCancel={onTimelinePointerUp}
           >
             {scrubbing && previewThumb ? (
               <div

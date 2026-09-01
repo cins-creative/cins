@@ -9289,6 +9289,18 @@ a.cso-sk-manage-person-name:hover {
 }
 
 /* Tab Sản phẩm — filter công khai + dashboard quản trị */
+.tdh-page--cso .cso-sp-manage-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.tdh-page--cso .cso-sp-manage-bar .ss-btn-notify {
+  width: auto;
+}
+
 .tdh-page--cso .cso-sp-filter-bar {
   display: flex;
   flex-wrap: wrap;

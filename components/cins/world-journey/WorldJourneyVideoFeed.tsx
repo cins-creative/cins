@@ -250,6 +250,12 @@ function ReelSlide({
   const scrubbingRef = useRef(false);
   const wasPlayingRef = useRef(false);
   const seekRafRef = useRef(0);
+  const pendingSeekRef = useRef<number | null>(null);
+  const lastScrubRatioRef = useRef(0);
+  const scrubElRef = useRef<HTMLDivElement>(null);
+  const currentTimeRef = useRef(0);
+  const durationRef = useRef(0);
+  const unbindTimelineWindow = useRef<(() => void) | null>(null);
   const activeRef = useRef(active);
   activeRef.current = active;
   const canPlayRef = useRef(canPlay);
@@ -260,6 +266,8 @@ function ReelSlide({
   mutedRef.current = muted;
   const onAdvanceNextRef = useRef(onAdvanceNext);
   onAdvanceNextRef.current = onAdvanceNext;
+  currentTimeRef.current = currentTime;
+  durationRef.current = duration;
   const playRetryRef = useRef<number[]>([]);
   const t = useT();
   const target = reactionTarget(item);
@@ -406,18 +414,36 @@ function ReelSlide({
         if (!player.paused) pauseIfNotCurrent(player);
         return;
       }
+      const pending = pendingSeekRef.current;
+      if (pending != null) {
+        const got = player.currentTime || 0;
+        if (Math.abs(got - pending) > 0.4) {
+          seekStreamPlayer(player, pending, el);
+          return;
+        }
+        pendingSeekRef.current = null;
+      }
       setCurrentTime(player.currentTime || 0);
       /* Sync badge với player thật — tránh play qua postMessage mà UI vẫn paused. */
       if (!player.paused) setPaused(false);
       const d = player.duration;
       if (Number.isFinite(d) && d > 0) setDuration(d);
     };
+    const onSeeked = () => {
+      const pending = pendingSeekRef.current;
+      if (pending == null || !player) return;
+      if (Math.abs((player.currentTime || 0) - pending) <= 0.4) {
+        pendingSeekRef.current = null;
+      }
+    };
     const onMeta = () => {
       if (cancelled || !player) return;
       const d = player.duration;
       if (Number.isFinite(d) && d > 0) setDuration(d);
       setPaused(player.paused);
-      setCurrentTime(player.currentTime || 0);
+      if (pendingSeekRef.current == null && !scrubbingRef.current) {
+        setCurrentTime(player.currentTime || 0);
+      }
       const size = playerNaturalSize(player);
       if (size) applyNaturalAspect(size.width, size.height);
     };
@@ -460,6 +486,7 @@ function ReelSlide({
       player.removeEventListener("ended", onEnded);
       player.removeEventListener("waiting", onWaiting);
       player.removeEventListener("stalled", onWaiting);
+      player.removeEventListener("seeked", onSeeked);
     };
 
     const playIfActive = (next: StreamPlayer) => {
@@ -502,6 +529,7 @@ function ReelSlide({
         next.addEventListener("ended", onEnded);
         next.addEventListener("waiting", onWaiting);
         next.addEventListener("stalled", onWaiting);
+        next.addEventListener("seeked", onSeeked);
         playIfActive(next);
       } catch {
         if (!cancelled) playerRef.current = null;
@@ -661,21 +689,87 @@ function ReelSlide({
     postStreamEvent(el, "pause");
   }, [active, paused]);
 
-  const seekToRatio = useCallback((ratio: number) => {
+  const seekToRatio = useCallback((ratio: number, immediate = false) => {
     const clamped = Math.min(1, Math.max(0, ratio));
+    lastScrubRatioRef.current = clamped;
+    setScrubRatio(clamped);
     const player = playerRef.current;
     const el = iframeRef.current;
-    const d = player?.duration || duration;
-    setScrubRatio(clamped);
+    const pd = player?.duration;
+    const d =
+      typeof pd === "number" && Number.isFinite(pd) && pd > 0
+        ? pd
+        : durationRef.current;
     if (!Number.isFinite(d) || d <= 0) return;
     const next = clamped * d;
+    pendingSeekRef.current = next;
     setCurrentTime(next);
-    if (seekRafRef.current) cancelAnimationFrame(seekRafRef.current);
-    seekRafRef.current = requestAnimationFrame(() => {
+    const apply = () => {
       seekRafRef.current = 0;
-      seekStreamPlayer(player ?? playerRef.current, next, el);
-    });
-  }, [duration]);
+      seekStreamPlayer(playerRef.current, next, el);
+    };
+    if (immediate) {
+      if (seekRafRef.current) cancelAnimationFrame(seekRafRef.current);
+      apply();
+      return;
+    }
+    if (seekRafRef.current) cancelAnimationFrame(seekRafRef.current);
+    seekRafRef.current = requestAnimationFrame(apply);
+  }, []);
+
+  const finishTimelineScrub = useCallback(
+    (ratio: number, pointerId?: number) => {
+      if (!scrubbingRef.current && !wasPlayingRef.current) return;
+      seekToRatio(ratio, true);
+      const player = playerRef.current;
+      const el = iframeRef.current;
+      const pd = player?.duration;
+      const d =
+        typeof pd === "number" && Number.isFinite(pd) && pd > 0
+          ? pd
+          : durationRef.current;
+      const next =
+        Number.isFinite(d) && d > 0
+          ? Math.min(1, Math.max(0, ratio)) * d
+          : pendingSeekRef.current;
+      scrubbingRef.current = false;
+      setScrubbing(false);
+      if (pointerId != null) {
+        try {
+          scrubElRef.current?.releasePointerCapture(pointerId);
+        } catch {
+          /* ignore */
+        }
+      }
+      if (wasPlayingRef.current && !userPausedRef.current) {
+        const resumeAt = next ?? 0;
+        if (player) {
+          void player
+            .play()
+            .catch(() => {
+              player.muted = true;
+              return player.play();
+            })
+            .finally(() => {
+              if (resumeAt >= 0) {
+                pendingSeekRef.current = resumeAt;
+                seekStreamPlayer(player, resumeAt, el);
+              }
+            });
+        } else {
+          postStreamEvent(el, "play");
+          if (typeof next === "number") {
+            seekStreamPlayer(null, next, el);
+          }
+        }
+        revealChrome(false);
+      } else {
+        revealChrome(true);
+      }
+      wasPlayingRef.current = false;
+    },
+    [revealChrome, seekToRatio],
+  );
 
   const seekBySeconds = useCallback(
     (delta: number) => {
@@ -685,6 +779,7 @@ function ReelSlide({
       if (!(d > 0)) return;
       const cur = player?.currentTime ?? currentTime;
       const next = Math.min(d, Math.max(0, cur + delta));
+      pendingSeekRef.current = next;
       setCurrentTime(next);
       seekStreamPlayer(player, next, el);
       const dir = delta < 0 ? "back" : "fwd";
@@ -749,79 +844,95 @@ function ReelSlide({
     togglePlayback,
   ]);
 
-  const ratioFromPointer = useCallback(
-    (e: ReactPointerEvent<HTMLDivElement>) => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      return rect.width > 0 ? (e.clientX - rect.left) / rect.width : 0;
-    },
-    [],
-  );
+  const ratioFromClientX = useCallback((clientX: number, track?: HTMLElement | null) => {
+    const el = track ?? scrubElRef.current;
+    if (!el) return lastScrubRatioRef.current;
+    const rect = el.getBoundingClientRect();
+    return rect.width > 0
+      ? Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
+      : lastScrubRatioRef.current;
+  }, []);
 
   const onTimelinePointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       e.stopPropagation();
       e.preventDefault();
       const track = e.currentTarget;
-      track.setPointerCapture(e.pointerId);
+      const pointerId = e.pointerId;
+      try {
+        track.setPointerCapture(pointerId);
+      } catch {
+        /* Safari / không hỗ trợ capture */
+      }
       const player = playerRef.current;
       wasPlayingRef.current = player ? !player.paused : !paused;
       if (player && !player.paused) player.pause();
       scrubbingRef.current = true;
       setScrubbing(true);
       revealChrome(true);
-      seekToRatio(ratioFromPointer(e));
+      seekToRatio(ratioFromClientX(e.clientX, track), true);
+
+      unbindTimelineWindow.current?.();
+      const onMove = (ev: PointerEvent) => {
+        if (ev.pointerId !== pointerId || !scrubbingRef.current) return;
+        ev.stopPropagation();
+        seekToRatio(ratioFromClientX(ev.clientX, track));
+      };
+      const onUp = (ev: PointerEvent) => {
+        if (ev.pointerId !== pointerId) return;
+        unbindTimelineWindow.current?.();
+        unbindTimelineWindow.current = null;
+        finishTimelineScrub(ratioFromClientX(ev.clientX, track), pointerId);
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
+      unbindTimelineWindow.current = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
+      };
     },
-    [paused, ratioFromPointer, revealChrome, seekToRatio],
+    [finishTimelineScrub, paused, ratioFromClientX, revealChrome, seekToRatio],
   );
 
-  const onTimelinePointerMove = useCallback(
-    (e: ReactPointerEvent<HTMLDivElement>) => {
-      if (!scrubbingRef.current) return;
-      e.stopPropagation();
-      seekToRatio(ratioFromPointer(e));
-    },
-    [ratioFromPointer, seekToRatio],
-  );
+  useEffect(() => {
+    return () => {
+      unbindTimelineWindow.current?.();
+    };
+  }, []);
 
-  const onTimelinePointerUp = useCallback(
-    (e: ReactPointerEvent<HTMLDivElement>) => {
-      e.stopPropagation();
-      const ratio = ratioFromPointer(e);
-      if (scrubbingRef.current) {
-        seekToRatio(ratio);
-      }
-      /* Ép seek sync trước play — tránh RAF chưa kịp apply. */
+  useEffect(() => {
+    const el = scrubElRef.current;
+    if (!el) return;
+    const onWheel = (ev: WheelEvent) => {
       const player = playerRef.current;
-      const d = player?.duration || duration;
-      if (Number.isFinite(d) && d > 0) {
-        const next = Math.min(1, Math.max(0, ratio)) * d;
-        setCurrentTime(next);
-        seekStreamPlayer(player, next, iframeRef.current);
-      }
-      scrubbingRef.current = false;
-      setScrubbing(false);
-      try {
-        e.currentTarget.releasePointerCapture(e.pointerId);
-      } catch {
-        /* ignore */
-      }
-      if (wasPlayingRef.current && !userPausedRef.current) {
-        if (player) {
-          void player.play().catch(() => {
-            player.muted = true;
-            void player.play();
-          });
-        } else {
-          postStreamEvent(iframeRef.current, "play");
-        }
-        revealChrome(false);
-      } else {
-        revealChrome(true);
-      }
-      wasPlayingRef.current = false;
-    },
-    [duration, ratioFromPointer, revealChrome, seekToRatio],
-  );
+      const pd = player?.duration;
+      const d =
+        typeof pd === "number" && Number.isFinite(pd) && pd > 0
+          ? pd
+          : durationRef.current;
+      if (!(d > 0)) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      const axis =
+        Math.abs(ev.deltaX) >= Math.abs(ev.deltaY) ? ev.deltaX : ev.deltaY;
+      if (axis === 0) return;
+      const step = (axis > 0 ? 1 : -1) * Math.min(1, d * 0.05);
+      const cur =
+        pendingSeekRef.current ??
+        player?.currentTime ??
+        currentTimeRef.current;
+      const next = Math.min(d, Math.max(0, cur + step));
+      pendingSeekRef.current = next;
+      lastScrubRatioRef.current = next / d;
+      setScrubRatio(next / d);
+      setCurrentTime(next);
+      seekStreamPlayer(player, next, iframeRef.current);
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [iframeSrc]);
 
   return (
     <div
@@ -996,6 +1107,7 @@ function ReelSlide({
                   )}
                 </button>
                 <div
+                  ref={scrubElRef}
                   className="wj-reel-timeline-scrub"
                   role="slider"
                   aria-label={t("reel.timeline")}
@@ -1005,23 +1117,20 @@ function ReelSlide({
                   aria-valuetext={`${formatReelTime(currentTime)} / ${formatReelTime(duration)}`}
                   tabIndex={active ? 0 : -1}
                   onPointerDown={onTimelinePointerDown}
-                  onPointerMove={onTimelinePointerMove}
-                  onPointerUp={onTimelinePointerUp}
-                  onPointerCancel={onTimelinePointerUp}
                   onKeyDown={(e) => {
                     if (!duration) return;
                     if (e.key === "ArrowRight") {
                       e.preventDefault();
-                      seekToRatio((currentTime + 2) / duration);
+                      seekToRatio((currentTime + 2) / duration, true);
                     } else if (e.key === "ArrowLeft") {
                       e.preventDefault();
-                      seekToRatio((currentTime - 2) / duration);
+                      seekToRatio((currentTime - 2) / duration, true);
                     } else if (e.key === "Home") {
                       e.preventDefault();
-                      seekToRatio(0);
+                      seekToRatio(0, true);
                     } else if (e.key === "End") {
                       e.preventDefault();
-                      seekToRatio(1);
+                      seekToRatio(1, true);
                     } else if (e.key === " " || e.key === "Enter") {
                       e.preventDefault();
                       togglePlayback();
@@ -1686,6 +1795,12 @@ export function WorldJourneyVideoFeed({
     const root = scrollerRef.current;
     if (!root || !hasSlides) return;
     const onWheel = (e: WheelEvent) => {
+      if (
+        e.target instanceof Element &&
+        e.target.closest(".wj-reel-timeline-scrub")
+      ) {
+        return;
+      }
       if (Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
       e.preventDefault();
       /* Inertia trackpad: giữ khóa tới khi bánh xe nghỉ — đừng reset khi prefetch. */

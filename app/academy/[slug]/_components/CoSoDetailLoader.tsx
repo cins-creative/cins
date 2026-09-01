@@ -9,6 +9,7 @@ import { getOrgAdminStatus, getOrgMemberStatus } from "@/lib/truong/org-admin";
 import {
   canViewerManageKhoaHoc,
 } from "@/lib/to-chuc/khoa-hoc";
+import { getViewerCoSoVaiTro } from "@/lib/to-chuc/co-so-membership";
 import { getCoSoDetailPayloadCached } from "@/lib/to-chuc/co-so-page-queries";
 
 type Props = {
@@ -23,13 +24,16 @@ export async function CoSoDetailLoader({ slug }: Props) {
   const viewerProfileId = session?.profile?.id ?? null;
   const postIds = payload.baidang.map((p) => p.id);
 
-  const [canEdit, isOrgMember, canManageKhoaHoc, bookmarkSocial, systemRole] =
+  const [canEdit, isOrgMember, canManageKhoaHoc, bookmarkSocial, systemRole, viewerVaiTro] =
     await Promise.all([
       getOrgAdminStatus(slug, viewerProfileId),
       getOrgMemberStatus(slug, viewerProfileId),
       canViewerManageKhoaHoc(viewerProfileId, payload.school.id),
       loadOrgBaiDangBookmarkSocial(postIds, viewerProfileId),
       getCurrentUserSystemRole(),
+      viewerProfileId
+        ? getViewerCoSoVaiTro(viewerProfileId, payload.school.id)
+        : Promise.resolve(null),
     ]);
 
   const payloadWithSocial = {
@@ -55,6 +59,7 @@ export async function CoSoDetailLoader({ slug }: Props) {
           payload={payloadWithSocial}
           canEdit={canEdit}
           isOrgMember={isOrgMember}
+          viewerVaiTro={viewerVaiTro}
           canManageKhoaHoc={canManageKhoaHoc}
           systemRole={systemRole}
           viewerLoggedIn={Boolean(viewerProfileId)}

@@ -5516,6 +5516,15 @@
   line-height: 1.28;
   color: var(--ink-display, #0f172a);
 }
+/* Title trong milestone card timeline giữ cỡ card (journey.css 18px), không lấy
+   cỡ hero EditorView — id selector ở trên thắng cascade nên phải nêu lại. */
+.tdh-page--v6 #tdh-panel-bai-dang .j-m-card .jcard-editor-text .title-in.title-ro,
+.tdh-page--v6 #cso-panel-bai-dang .j-m-card .jcard-editor-text .title-in.title-ro,
+.tdh-page--v6 #cso-panel-showcase .j-m-card .jcard-editor-text .title-in.title-ro {
+  font-size: 18px;
+  letter-spacing: -0.025em;
+  line-height: 1.35;
+}
 .tdh-page--v6 #tdh-panel-bai-dang .jcard-editor-text .sub-in.sub-ro,
 .tdh-page--v6 #cso-panel-bai-dang .jcard-editor-text .sub-in.sub-ro,
 .tdh-page--v6 #cso-panel-showcase .jcard-editor-text .sub-in.sub-ro {

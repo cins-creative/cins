@@ -6,6 +6,7 @@ import { ContentSurfaceViewToggle } from "@/components/cins/ContentSurfaceViewTo
 import type { MilestoneItem } from "@/components/journey/milestone-types";
 import { EntityLightJourneyFeed } from "@/components/tag/EntityLightJourneyFeed";
 import { TruongDoanProjectMasonry } from "@/components/truong/TruongDoanProjectMasonry";
+import { TruongMilestoneTagNotify } from "@/components/truong/TruongMilestoneTagNotify";
 import { useTruongInlineEdit } from "@/components/truong/inline/TruongInlineEditContext";
 import type { ContentSurfaceView } from "@/lib/cins/content-surface-view";
 import type { OrgDoanProjectItem } from "@/lib/journey/org-milestone-tag-types";
@@ -42,7 +43,9 @@ export function CoSoTabSanPham({
   canManageKhoaHoc = false,
 }: Props) {
   const ctx = useTruongInlineEdit();
-  const isManaging = Boolean(canManageKhoaHoc && ctx?.isEditing);
+  const isManaging = Boolean(
+    ctx?.isEditing && (canManageKhoaHoc || ctx.canEdit),
+  );
 
   const [publicProjects, setPublicProjects] = useState<OrgDoanProjectItem[]>([]);
   const [milestones, setMilestones] = useState<MilestoneItem[]>([]);
@@ -143,6 +146,12 @@ export function CoSoTabSanPham({
         </h2>
       </div>
 
+      {isManaging ? (
+        <div className="cso-sp-manage-bar">
+          <TruongMilestoneTagNotify showWallAdmin />
+        </div>
+      ) : null}
+
       <div className="cso-sp-public">
         <div className="cso-sp-filter-bar" role="group" aria-label="Lọc sản phẩm">
           <label className="cso-sp-filter">
@@ -168,7 +177,7 @@ export function CoSoTabSanPham({
         ) : showPublicEmpty ? (
           <p className="tdh-placeholder">
             {isManaging
-              ? "Chưa có sản phẩm công khai. Quản lý tại «Quản lý bài học viên» trên trang quản trị."
+              ? "Chưa có sản phẩm công khai. Bật hiển thị trong «Quản lý bài học viên»."
               : "Chưa có sản phẩm học viên nào được cơ sở chọn hiển thị."}
           </p>
         ) : view === "timeline" ? (

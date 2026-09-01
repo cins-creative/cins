@@ -87,7 +87,30 @@ export async function bindStreamPlayer(
   return Stream(iframe);
 }
 
+function streamMessageOrigin(iframe: HTMLIFrameElement | null | undefined) {
+  try {
+    const src = iframe?.src;
+    if (src) return new URL(src, window.location.href).origin;
+  } catch {
+    /* ignore */
+  }
+  return "*";
+}
+
+/** SDK iframe nghe object `{ __privateUnstableMessageType }` — không phải JSON string. */
+function postStreamMessage(
+  iframe: HTMLIFrameElement | null | undefined,
+  data: Record<string, unknown>,
+) {
+  try {
+    iframe?.contentWindow?.postMessage(data, streamMessageOrigin(iframe));
+  } catch {
+    /* ignore */
+  }
+}
+
 function postStreamPlay(iframe: HTMLIFrameElement | null | undefined) {
+  postStreamMessage(iframe, { __privateUnstableMessageType: "playCommand" });
   try {
     iframe?.contentWindow?.postMessage(JSON.stringify({ event: "play" }), "*");
   } catch {
@@ -96,6 +119,7 @@ function postStreamPlay(iframe: HTMLIFrameElement | null | undefined) {
 }
 
 function postStreamPause(iframe: HTMLIFrameElement | null | undefined) {
+  postStreamMessage(iframe, { __privateUnstableMessageType: "pauseCommand" });
   try {
     iframe?.contentWindow?.postMessage(JSON.stringify({ event: "pause" }), "*");
   } catch {
@@ -117,7 +141,7 @@ export function pauseStream(
   postStreamPause(iframe);
 }
 
-/** Seek — SDK `currentTime` + postMessage (một số embed chỉ nghe message). */
+/** Seek — setter SDK (`setProperty`) + postMessage cùng protocol iframe. */
 export function seekStreamPlayer(
   player: { currentTime: number } | null | undefined,
   seconds: number,
@@ -131,14 +155,11 @@ export function seekStreamPlayer(
       /* ignore */
     }
   }
-  try {
-    iframe?.contentWindow?.postMessage(
-      JSON.stringify({ currentTime: seconds }),
-      "*",
-    );
-  } catch {
-    /* ignore */
-  }
+  postStreamMessage(iframe, {
+    __privateUnstableMessageType: "setProperty",
+    property: "currentTime",
+    value: seconds,
+  });
 }
 
 /** Unmute cần volume=1 — chỉ `muted=false` trên iframe Stream thường không có tiếng. */
@@ -152,6 +173,11 @@ export function applyStreamAudio(
     player.volume = 1;
   }
   try {
+    postStreamMessage(iframe, {
+      __privateUnstableMessageType: "setProperty",
+      property: "muted",
+      value: wantMuted,
+    });
     iframe?.contentWindow?.postMessage(
       JSON.stringify({ muted: wantMuted }),
       "*",

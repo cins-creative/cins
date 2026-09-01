@@ -25,6 +25,7 @@ import type {
   MonThiCatalogItem,
 } from "@/lib/truong/calc-draft";
 import type { SystemRole } from "@/lib/auth/system-role";
+import type { CoSoStaffVaiTro } from "@/lib/to-chuc/co-so-vai-tro";
 import type {
   TruongBaiDang,
   TruongDetail,
@@ -45,6 +46,11 @@ type Ctx = {
    * vẫn theo dõi/nhắn tin/like như user thường.
    */
   isOrgMember: boolean;
+  /**
+   * Vai trò staff của viewer trong org này (`user_thanh_vien_to_chuc.vai_tro`).
+   * Null khi chưa thuộc org. Ưu tiên hơn `systemRole` khi hiện badge trang org.
+   */
+  viewerVaiTro: CoSoStaffVaiTro | null;
   /** Vai trò hệ thống của viewer (badge topbar) — null khi chưa đăng nhập. */
   systemRole: SystemRole | null;
   /** Đang bật UI chỉnh sửa trên trang. */
@@ -136,12 +142,14 @@ export function TruongInlineEditProvider({
   children,
   canEdit,
   isOrgMember = false,
+  viewerVaiTro = null,
   systemRole = null,
   initial,
 }: {
   children: ReactNode;
   canEdit: boolean;
   isOrgMember?: boolean;
+  viewerVaiTro?: CoSoStaffVaiTro | null;
   systemRole?: SystemRole | null;
   initial: TruongPagePayload;
 }) {
@@ -632,6 +640,7 @@ export function TruongInlineEditProvider({
     () => ({
       canEdit,
       isOrgMember,
+      viewerVaiTro,
       systemRole,
       editMode,
       setEditMode,
@@ -679,6 +688,7 @@ export function TruongInlineEditProvider({
     [
       canEdit,
       isOrgMember,
+      viewerVaiTro,
       systemRole,
       editMode,
       setEditMode,

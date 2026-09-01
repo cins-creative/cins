@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { flushSync } from "react-dom";
 
 import { useWorldJourneyFeedAudio } from "@/components/cins/world-journey/WorldJourneyFeedAudioContext";
 import { GalleryItemVisual } from "@/components/journey/GalleryItemVisual";
@@ -220,23 +221,25 @@ export function WorldJourneyVideoRail({
     return () => io.disconnect();
   }, [isStrip, slotKey, n]);
 
-  const kickLoopKeyPlay = useCallback((loopKey: string | null) => {
-    if (!loopKey) return;
-    const bound = playersRef.current.get(loopKey);
-    if (bound) {
-      void playStreamWithAudio(
-        bound.player,
-        mutedRef.current,
-        bound.iframe,
+  const kickLoopKeyPlay = useCallback(
+    (loopKey: string | null, wantMuted = mutedRef.current) => {
+      if (!loopKey) return;
+      for (const [key, bound] of playersRef.current) {
+        if (key === loopKey) {
+          void playStreamWithAudio(bound.player, wantMuted, bound.iframe);
+        } else {
+          applyStreamAudio(bound.player, true, bound.iframe);
+        }
+      }
+      if (playersRef.current.has(loopKey)) return;
+      const root = stripTrackRef.current ?? rootRef.current;
+      const clip = root?.querySelector<HTMLIFrameElement>(
+        `[data-loop-key="${CSS.escape(loopKey)}"] iframe`,
       );
-      return;
-    }
-    const root = stripTrackRef.current ?? rootRef.current;
-    const clip = root?.querySelector<HTMLIFrameElement>(
-      `[data-loop-key="${CSS.escape(loopKey)}"] iframe`,
-    );
-    if (clip) postStreamPlay(clip);
-  }, []);
+      if (clip) postStreamPlay(clip);
+    },
+    [],
+  );
 
   const activateTouchCard = useCallback(
     (target: EventTarget | null, fallbackLoopKey: string | null) => {
@@ -254,6 +257,21 @@ export function WorldJourneyVideoRail({
     [items, kickLoopKeyPlay],
   );
 
+  const focusCoverflowCard = useCallback(
+    (sourceIndex: number, loopKey: string) => {
+      flushSync(() => {
+        setActiveIndex(sourceIndex);
+        setActiveLoopKey(loopKey);
+        setHoverIndex(null);
+        setHoverLoopKey(null);
+      });
+      activeLoopKeyRef.current = loopKey;
+      hoverLoopKeyRef.current = null;
+      kickLoopKeyPlay(loopKey);
+    },
+    [kickLoopKeyPlay],
+  );
+
   const step = useCallback(
     (dir: 1 | -1) => {
       if (n <= 1) return;
@@ -261,10 +279,24 @@ export function WorldJourneyVideoRail({
       if (now < lockUntilRef.current) return;
       lockUntilRef.current = now + STEP_LOCK_MS;
       setAnimDir(dir);
-      setActiveIndex((cur) => (cur + dir + n) % n);
+      let nextKey: string | null = null;
+      flushSync(() => {
+        setActiveIndex((cur) => {
+          const next = (cur + dir + n) % n;
+          nextKey = items[next]?.id ?? null;
+          return next;
+        });
+        setHoverIndex(null);
+        setHoverLoopKey(null);
+      });
+      if (nextKey) {
+        activeLoopKeyRef.current = nextKey;
+        hoverLoopKeyRef.current = null;
+        kickLoopKeyPlay(nextKey);
+      }
       window.setTimeout(() => setAnimDir(0), STEP_LOCK_MS);
     },
-    [n],
+    [n, items, kickLoopKeyPlay],
   );
 
   const goNext = useCallback(() => step(1), [step]);
@@ -273,16 +305,15 @@ export function WorldJourneyVideoRail({
   const onToggleAudio = useCallback(() => {
     const nextMuted = !muted;
     toggleMuted();
-    const key = hearingKey();
-    for (const [loopKey, bound] of playersRef.current) {
-      const hearing = !nextMuted && key != null && loopKey === key;
-      if (hearing) {
-        void playStreamWithAudio(bound.player, false, bound.iframe);
-      } else {
-        applyStreamAudio(bound.player, true, bound.iframe);
-      }
-    }
-  }, [muted, toggleMuted, hearingKey]);
+    mutedRef.current = nextMuted;
+    const key =
+      hearingKey() ??
+      activeLoopKeyRef.current ??
+      items[activeIndex]?.id ??
+      items[0]?.id ??
+      null;
+    kickLoopKeyPlay(key, nextMuted);
+  }, [muted, toggleMuted, hearingKey, kickLoopKeyPlay, items, activeIndex]);
 
   useEffect(() => {
     const key = hearingKey();
@@ -425,11 +456,8 @@ export function WorldJourneyVideoRail({
         moved: false,
         axis: "undecided",
       };
-      if (e.pointerType !== "mouse") {
-        activateTouchCard(e.target, activeLoopKeyRef.current);
-      }
     },
-    [activateTouchCard],
+    [],
   );
 
   const onPointerMove = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
@@ -646,7 +674,7 @@ export function WorldJourneyVideoRail({
                 inView={railInView}
                 muted={muted}
                 onOpen={() => handleOpen(item)}
-                onFocusCard={() => setActiveIndex(sourceIndex)}
+                onFocusCard={() => focusCoverflowCard(sourceIndex, loopKey)}
                 onHover={() => {
                   setHoverIndex(sourceIndex);
                   setHoverLoopKey(loopKey);
@@ -698,10 +726,7 @@ export function WorldJourneyVideoRail({
               }
               aria-selected={i === activeIndex}
               aria-label={`Video ${i + 1}`}
-              onClick={() => {
-                setActiveIndex(i);
-                setActiveLoopKey(item.id);
-              }}
+              onClick={() => focusCoverflowCard(i, item.id)}
             />
           ))}
         </div>

@@ -47,6 +47,11 @@
   flex-direction: column;
 }
 
+/* Panel bài học viên (journey cá nhân) — ẩn banner phí org. */
+.cso-ql-inner:has(.tdh-milestone-tag-modal) .cso-phi-banner {
+  display: none;
+}
+
 /* ?? Nav rail (grouped IA A) � full width c?a .cso-ql ?? */
 .cso-ql-nav {
   display: flex;

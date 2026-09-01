@@ -6352,6 +6352,8 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
   }
 
   .wj-reel-main {
+    flex: 1 1 auto;
+    min-height: 0;
     width: 100%;
     height: 100%;
     max-height: 100%;
@@ -6361,6 +6363,7 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
   .wj-reel-video-row {
     --reel-avail-w: 100cqw;
     position: relative;
+    flex: 1 1 auto;
     width: 100%;
     height: 100%;
     max-height: 100%;
@@ -6370,9 +6373,11 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
   .wj-reel-slide {
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: stretch;
+    flex: 1 1 auto;
     width: 100%;
     height: 100%;
+    min-height: 100%;
     max-height: 100%;
     aspect-ratio: auto;
     overflow: hidden;
@@ -6390,6 +6395,7 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
     width: 100%;
     max-width: 100%;
     height: 100%;
+    min-height: 0;
     max-height: 100%;
     aspect-ratio: auto;
     margin: 0;
@@ -6414,24 +6420,23 @@ body:has(.world-journey-home.view-video) .gio-chung-toast {
     aspect-ratio: auto;
   }
 
-  /* Ngang (H ≤ W): căn giữa, đẩy khối video lên 70px. */
+  /* Ngang: cùng fill H 100% — contain trong khung, không co box 16:9. */
   .wj-reel-stage[data-aspect="landscape"] .wj-reel-slide {
-    justify-content: center;
+    justify-content: stretch;
   }
 
   .wj-reel-stage[data-aspect="landscape"] .wj-reel-video-box {
-    flex: 0 0 auto;
+    flex: 1 1 auto;
     width: 100%;
-    height: auto;
-    max-height: calc(100% - var(--wj-reel-timeline-h, 56px) - 52px);
-    aspect-ratio: var(--wj-reel-aspect, 16 / 9);
-    padding-bottom: 0;
-    transform: translateY(-70px);
+    height: 100%;
+    max-height: 100%;
+    aspect-ratio: auto;
+    transform: none;
   }
 
   .wj-reel-stage[data-aspect="landscape"] .wj-reel-rotate {
     display: inline-flex;
-    transform: translateY(-70px);
+    transform: none;
   }
 
   .wj-reel-timeline-btn--mute,

@@ -27,6 +27,7 @@ import {
   type CoSoTabId,
 } from "@/lib/to-chuc/co-so-page-cau-hinh";
 import type { SystemRole } from "@/lib/auth/system-role";
+import type { CoSoStaffVaiTro } from "@/lib/to-chuc/co-so-vai-tro";
 import type { CoSoDetailPayload } from "@/lib/to-chuc/co-so-page-queries";
 import { countActiveStudioJobs } from "@/lib/to-chuc/studio-tuyen-dung-format";
 import { CO_SO_KHOA_UPDATED_EVENT } from "@/lib/to-chuc/co-so-khoa-events";
@@ -55,6 +56,8 @@ type Props = {
   canEdit?: boolean;
   /** Member org thật (trục 2) — khoá theo dõi/nhắn tin chính org của mình. */
   isOrgMember?: boolean;
+  /** Vai trò staff của viewer trong cơ sở này. */
+  viewerVaiTro?: CoSoStaffVaiTro | null;
   canManageKhoaHoc?: boolean;
   systemRole?: SystemRole | null;
   viewerLoggedIn?: boolean;
@@ -350,6 +353,7 @@ export function CoSoDetailView({
   payload,
   canEdit = false,
   isOrgMember = false,
+  viewerVaiTro = null,
   canManageKhoaHoc = false,
   systemRole = null,
   viewerLoggedIn = false,
@@ -363,6 +367,7 @@ export function CoSoDetailView({
     <TruongInlineEditProvider
       canEdit={canEdit}
       isOrgMember={isOrgMember}
+      viewerVaiTro={viewerVaiTro}
       systemRole={systemRole}
       initial={coSoToInlinePayload(payload)}
     >

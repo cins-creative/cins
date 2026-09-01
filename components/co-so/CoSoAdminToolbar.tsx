@@ -9,6 +9,7 @@ import {
   isElevatedRole,
   SYSTEM_ROLE_LABELS,
 } from "@/lib/auth/system-role-labels";
+import { listingOrgStaffRoleLabel } from "@/lib/to-chuc/co-so-vai-tro";
 
 type Props = {
   quanLyHref?: string | null;
@@ -23,11 +24,20 @@ export function CoSoAdminToolbar({ quanLyHref }: Props) {
   const isEditing = ctx?.isEditing ?? false;
   const saving = ctx?.saving ?? false;
   const systemRole = ctx?.systemRole ?? null;
+  const viewerVaiTro = ctx?.viewerVaiTro ?? null;
+  const orgRoleLabel = listingOrgStaffRoleLabel(viewerVaiTro);
   const elevated = isElevatedRole(systemRole);
-  const roleKey = elevated ? systemRole : "org";
-  const roleLabel = elevated ? SYSTEM_ROLE_LABELS[systemRole] : "Quản trị";
+  const roleKey = viewerVaiTro === "owner"
+    ? "owner"
+    : viewerVaiTro === "admin"
+      ? "admin"
+      : elevated && !viewerVaiTro
+        ? systemRole
+        : "org";
+  const roleLabel =
+    orgRoleLabel ?? (elevated ? SYSTEM_ROLE_LABELS[systemRole] : "Quản trị");
   const RoleIcon =
-    roleKey === "super_admin"
+    roleKey === "super_admin" || roleKey === "owner"
       ? Shield
       : roleKey === "admin"
         ? ShieldCheck
@@ -60,7 +70,9 @@ export function CoSoAdminToolbar({ quanLyHref }: Props) {
           title={
             isEditing
               ? "Đang ở chế độ quản trị — bấm để xem như người dùng"
-              : `Vai trò: ${roleLabel} — bấm để bật chế độ quản trị`
+              : orgRoleLabel
+                ? `Vai trò trong cơ sở: ${roleLabel} — bấm để bật chế độ quản trị`
+                : `Vai trò: ${roleLabel} — bấm để bật chế độ quản trị`
           }
           onClick={() => ctx.setEditMode(!isEditing)}
         >

@@ -47,7 +47,7 @@ type Props = {
   milestones: ReadonlyArray<MilestoneItem>;
   viewerProfileId: string;
   feedPromos?: FeedPromoVariant[];
-  /** Pool video dọc — rail top + xen kẽ với promo. */
+  /** Pool video dọc — xen kẽ với promo trong timeline. */
   videoRailItems?: ReadonlyArray<GalleryMainItem>;
   onOpenVideoRail?: (payload: VideoRailOpenPayload) => void;
   scrollLoad?: { enabled: boolean } | null;
@@ -107,8 +107,7 @@ function useFeedPromoBreakpoint(): FeedPromoBreakpoint {
 }
 
 /**
- * Chèn rail theo chu kỳ: k lẻ → promo, k chẵn → video dọc.
- * Video rail #1 (top) render riêng ngoài map (after=0).
+ * Chèn rail theo chu kỳ: k lẻ → promo, k chẵn → video dọc (coverflow, index ≥ 2).
  */
 function buildFeedRailInsertMap(
   postCount: number,
@@ -117,16 +116,13 @@ function buildFeedRailInsertMap(
   viewerProfileId: string,
   bp: FeedPromoBreakpoint,
   onOpenVideoRail: ((payload: VideoRailOpenPayload) => void) | undefined,
-  /** Cursor sau rail top (#1) — tiếp tục slice cho rail xen kẽ. */
-  videoCursorStart: number,
 ): Map<number, ReactNode> {
   const map = new Map<number, ReactNode>();
   if (postCount === 0) return map;
 
   const cursors: Partial<Record<FeedPromoKind, number>> = {};
   let cycleIdx = 0;
-  let videoCursor = videoCursorStart;
-  /** Số rail video đã chèn trong map (không tính top #1). */
+  let videoCursor = 0;
   let videoRailSeq = 1;
 
   for (
@@ -245,18 +241,6 @@ export function WorldJourneyFeedTimeline({
     warmFeedMediaUrls(milestones);
   }, [milestones]);
 
-  /** Rail #1 trên cùng — slice đầu pool. */
-  const topVideoRail = useMemo(() => {
-    if (videoRailItems.length === 0) {
-      return { items: [] as GalleryMainItem[], nextOffset: 0 };
-    }
-    return takeVideoRailSlice(
-      videoRailItems,
-      0,
-      WORLD_JOURNEY_VIDEO_RAIL_SIZE,
-    );
-  }, [videoRailItems]);
-
   const promoInsertMap = useMemo(
     () =>
       buildFeedRailInsertMap(
@@ -266,7 +250,6 @@ export function WorldJourneyFeedTimeline({
         viewerProfileId,
         promoBp,
         videoRailItems.length > 0 ? openVideoRailStable : undefined,
-        topVideoRail.nextOffset,
       ),
     [
       milestones.length,
@@ -275,7 +258,6 @@ export function WorldJourneyFeedTimeline({
       viewerProfileId,
       promoBp,
       openVideoRailStable,
-      topVideoRail.nextOffset,
     ],
   );
 
@@ -431,15 +413,6 @@ export function WorldJourneyFeedTimeline({
 
   return (
     <main className="j-timeline wj-feed-timeline" aria-label="Feed World Journey">
-      {topVideoRail.items.length > 0 ? (
-        <WorldJourneyVideoRail
-          items={topVideoRail.items}
-          slotKey="top"
-          railIndex={1}
-          onOpenVideo={openVideoRailStable}
-        />
-      ) : null}
-
       {byYear.map((yb) => {
         const block = (
           <JourneyYearBlock

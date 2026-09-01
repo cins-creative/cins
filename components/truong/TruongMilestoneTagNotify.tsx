@@ -216,6 +216,14 @@ export function TruongMilestoneTagNotify({
     [items],
   );
 
+  /* Không pending → mở thẳng bảng hiển thị tường (Đã duyệt). */
+  useEffect(() => {
+    if (!open || loading || !showWallAdmin) return;
+    if (filter !== "pending") return;
+    if (tagPendingCount > 0 || approvedCount === 0) return;
+    setFilter("approved");
+  }, [open, loading, showWallAdmin, filter, tagPendingCount, approvedCount]);
+
   const rejectedCount = useMemo(
     () =>
       items.filter(
